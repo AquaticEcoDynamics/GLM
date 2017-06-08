@@ -1,0 +1,23 @@
+#include "windows.h"
+
+#define APP_MENU              200
+#define APP_ICON              300
+
+#define APP_ABOUT             0x100
+#define APP_EXIT              0x101
+
+//==============================================================================
+//
+APP_ICON                 ICON    DISCARDABLE     "glm.ico"
+
+//==============================================================================
+APP_MENU MENU DISCARDABLE
+BEGIN
+    POPUP "&GLM"
+    BEGIN
+        MENUITEM "A&bout",                      APP_ABOUT
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       APP_EXIT
+    END
+END
+

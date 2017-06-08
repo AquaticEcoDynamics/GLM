@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Intel C++ Project"
+	Version="13.0"
+	Name="libplugin"
+	ProjectGUID="{A7A1CFB8-2544-4BA9-B3E5-B0F62147A6A2}"
+	VCNestedProjectGUID="{71DB7CB0-897B-4D2C-B247-11F32222478E}"
+	VCNestedProjectFileName="libplugin.vcproj"
+	>
+	<Configurations/>
+	<Files/>
+</VisualStudioProject>

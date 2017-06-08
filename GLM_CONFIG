@@ -1,0 +1,24 @@
+#
+# These are settings used for building glm
+#
+
+export FABM=true
+export AED2=true
+export USE_DL=false
+export WITH_PLOTS=true
+export WITH_XPLOTS=true
+
+export FORTRAN_COMPILER=IFORT
+# NB: At the moment only ifort build actually works
+# export FORTRAN_COMPILER=GFORTRAN
+
+# The default is MacPorts : uncomment the next line if you use "homebrew"
+#export HOMEBREW=true
+
+export CURDIR=`pwd`
+export FABMDIR=${CURDIR}/../fabm-git
+export PLOTDIR=${CURDIR}/../libplot
+export AED2DIR=${CURDIR}/../libaed2
+export UTILDIR=${CURDIR}/../libutil
+
+export GLM_CONFIGURED=true

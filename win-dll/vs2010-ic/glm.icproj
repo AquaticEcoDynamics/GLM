@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Intel C++ Project"
+	Version="13.0"
+	Name="glm"
+	ProjectGUID="{6C76E988-81BC-463C-B576-C7B30D4616F4}"
+	VCNestedProjectGUID="{5CDBCC36-B1AF-4861-84A6-A469B8C10B2B}"
+	VCNestedProjectFileName="glm.vcproj"
+	>
+	<Configurations/>
+	<Files/>
+</VisualStudioProject>

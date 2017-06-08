@@ -1,0 +1,13 @@
+Source: glm
+Section: science
+Priority: extra
+Maintainer: Aquatic EcoDynamics Group
+Standards-Version: 3.9.3
+
+Package: glm
+Architecture: amd64
+Depends: ${misc:Depends},
+  libnetcdf-dev,
+  libgd-dev
+Description: General Lake Model
+ Model the bio-geo-chemical processes in lakes.

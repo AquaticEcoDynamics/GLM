@@ -1,0 +1,10 @@
+
+Building for windows requires visual studio and Intel fortran and either Visual C++ or Intel C++.
+
+You will also need netcdf and a other 3rd party libraries. They are also available on our web page at :
+
+netcdf :
+http://aed.see.uwa.edu.au/research/models/Extras/WinLibs.zip
+
+graphics libs :
+http://aed.see.uwa.edu.au/research/models/Extras/additions.zip

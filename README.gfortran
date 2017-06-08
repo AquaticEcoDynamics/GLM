@@ -1,0 +1,12 @@
+#
+# Notes 2013-11-26
+#
+# Compiling, at this stage, requires Intel Fortran as well as
+# the C compilers.  Some effort has been put into making it
+# compile with gfortran, however there is a show stopper bug :
+#
+#    https://gcc.gnu.org/bugzilla/show_bug.cgi?id=40737
+#
+# Actually, there is a second as yet unreported bug which
+# causes the compiler to segfault, but there is a workaround.
+# [see comments in glm_aed2.F90]
