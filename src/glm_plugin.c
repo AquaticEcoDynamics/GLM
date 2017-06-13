@@ -43,8 +43,8 @@
 
 static plugin_funcs funcs;
 
+char *strndup(const char *s, size_t len);
 
-#if 1
 /******************************************************************************/
 void set_funcs(
     set_c_wqvars_ptr_t  set_c_wqvars_ptr,
@@ -56,7 +56,9 @@ void set_funcs(
     store_nc_array_t    store_nc_array,
     store_nc_scalar_t   store_nc_scalar,
     write_csv_point_t   write_csv_point,
-    put_xplot_val_t     put_xplot_val)
+    put_xplot_val_t     put_xplot_val,
+    put_glm_val_t       put_glm_val,
+    put_glm_val_s_t     put_glm_val_s)
 {
     funcs.set_c_wqvars_ptr  = set_c_wqvars_ptr;
     funcs.Mobility          = Mobility;
@@ -70,6 +72,8 @@ void set_funcs(
 
     funcs.write_csv_point   = write_csv_point;
     funcs.put_xplot_val     = put_xplot_val;
+    funcs.put_glm_val       = put_glm_val;
+    funcs.put_glm_val_s     = put_glm_val_s;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -148,7 +152,18 @@ void write_csv_point_(int *f, const char *name, int *len, AED_REAL *val,
     free(n); free(v);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-#endif
+
+
+/******************************************************************************/
+void put_glm_val_s_(int *plot_id, AED_REAL *val)
+{   (*funcs.put_glm_val_s)(*plot_id, val); }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************/
+void put_glm_val_(int *plot_id, AED_REAL *val)
+{   (*funcs.put_glm_val)(*plot_id, val); }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
 /******************************************************************************/

@@ -139,6 +139,9 @@ ifeq ($(AED2),true)
 
   FINCLUDES+=-I$(AED2DIR)/include -I$(AED2DIR)/mod
   AED2LIBS=-L$(AED2DIR)/lib -laed2
+  ifneq ("$(wildcard ${AED2PLS}/Makefile)","")
+    AED2LIBS+=-L${AED2PLS}/lib -laed2+
+  endif
 
   ifeq ($(USE_DL),true)
     AED2TARGETS=libglm_wq_aed2.so
@@ -296,13 +299,11 @@ ${objdir}/%.o: ${srcdir}/%.c ${incdir}/glm.h
 
 # Build rules
 
-libglm_wq_aed2.so: glm_aed2.o glm_plugin.o
-	$(LD) -shared $(LDFLAGS) \
-                        -o $@ $^ -L/opt/intel/lib/intel64/ $(LIBS) $(AED2LIBS)
+libglm_wq_aed2.so: ${objdir}/glm_zones.o ${objdir}/glm_aed2.o ${objdir}/glm_plugin.o
+	$(LD) -shared $(LDFLAGS) -o $@ $^ $(AED2LIBS)
 
-libglm_wq_fabm.so: glm_fabm.o ode_solvers.o glm_plugin.o
-	$(LD) -shared $(LDFLAGS) \
-                        -o $@ $^ -L/opt/intel/lib/intel64/ $(LIBS) $(FABMLIBS)
+libglm_wq_fabm.so: ${objdir}/glm_zones.o ${objdir}/glm_fabm.o ${objdir}/ode_solvers.o ${objdir}/glm_plugin.o
+	$(LD) -shared $(LDFLAGS) -o $@ $^ $(FABMLIBS)
 
 # special needs dependancies
 

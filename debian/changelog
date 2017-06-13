@@ -1,12 +1,13 @@
-glm (2.5.0dev01-0) UNRELEASED; urgency=low
+glm (2.3.0dev01-0) UNRELEASED; urgency=low
 
   [ Casper Boon ]
   * new version 2.2.0
   * new version 2.2.0
+  * new version 2.2.1
 
   [ hydro i7 ]
   * new version 2.2.0dev
-  * new version 2.5.0dev01
+  * new version 2.3.0dev01
 
  -- hydro i7 <hydro@see-hydro04-i7>  Thu, 13 Apr 2017 10:55:42 +0800
 

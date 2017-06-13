@@ -137,13 +137,13 @@ void resize_internals(int icode, int lnu)
             VolSum += Inflows[k].TotIn;
 
 //fprintf(stderr, "MIXU %i %12.4f %12.4f\n",NumLayers,Lake[surfLayer].Height,Lake[surfLayer].LayerVol );
-         if(NumLayers==1){   
+         if (NumLayers==1) {
            if(Lake[surfLayer].Height<0.105) Lake[surfLayer].Height = 0.105;
            one_layer(surfLayer, MphLevelVol, dMphLevelVol);
 //           fprintf(stderr, "MIX2 %i %12.4f %12.4f\n",NumLayers,Lake[surfLayer].Height,Lake[surfLayer].LayerVol );
  }
 
-//     while(1) {
+//      while(1) {
         while(NumLayers > 1) { // stop at 1
             one_layer(surfLayer, MphLevelVol, dMphLevelVol);
 

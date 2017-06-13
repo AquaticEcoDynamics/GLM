@@ -52,6 +52,8 @@ typedef void (*store_nc_scalar_t)(int ncid, int id, int var_shape, AED_REAL scal
 
 typedef void (*write_csv_point_t)(int f, const char *name, AED_REAL val, const char *cval, int last);
 typedef void (*put_xplot_val_t)(char *name, int wlev, AED_REAL *val);
+typedef void (*put_glm_val_t)(int plot_id, AED_REAL *val);
+typedef void (*put_glm_val_s_t)(int plot_id, AED_REAL *val);
 
 typedef struct _plugin_funcs_ {
     set_c_wqvars_ptr_t  set_c_wqvars_ptr;
@@ -66,6 +68,8 @@ typedef struct _plugin_funcs_ {
 
     write_csv_point_t   write_csv_point;
     put_xplot_val_t     put_xplot_val;
+    put_glm_val_t       put_glm_val;
+    put_glm_val_s_t     put_glm_val_s;
 } plugin_funcs;
 
 typedef void (*set_funcs_t)(
@@ -78,7 +82,9 @@ typedef void (*set_funcs_t)(
     store_nc_array_t    store_nc_array,
     store_nc_scalar_t   store_nc_scalar,
     write_csv_point_t   write_csv_point,
-    put_xplot_val_t     put_xplot_val);
+    put_xplot_val_t     put_xplot_val,
+    put_glm_val_t       put_glm_val,
+    put_glm_val_s_t     put_glm_val_s);
 
 #ifdef _WIN32
   __declspec(dllexport)
@@ -93,7 +99,9 @@ void set_funcs(
     store_nc_array_t    store_nc_array,
     store_nc_scalar_t   store_nc_scalar,
     write_csv_point_t   write_csv_point,
-    put_xplot_val_t     put_xplot_val);
+    put_xplot_val_t     put_xplot_val,
+    put_glm_val_t       put_glm_val,
+    put_glm_val_s_t     put_glm_val_s);
 
 #endif
 

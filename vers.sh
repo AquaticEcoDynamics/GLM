@@ -38,10 +38,10 @@ for f in `find . -name glm.vcxproj` ; do
   fi
 done
 
-for f in `find . -name libglm_wq_\*.vfproj` ; do
+for f in `find . -name glm-\*.vfproj` ; do
   COUNT=`grep -w Version $f | grep VFLinkerTool | wc -l`
   if [ $COUNT = 4 ] ; then
-    i=`grep -w Version $f | grep VFLinkerTool | grep LIBCMTD | sort -u | cut -f6 -d\" | cut -f1 -d\"`
+    i=`grep -w Version $f | grep VFLinkerTool | cut -f4 -d\" | cut -f1 -d\" | sort -u`
     echo $i is the version for $f
     if [ $i != $vers ] ; then
       echo sed -i "s/Version=\"${i}\"/Version=\"${vers}\"/" $f

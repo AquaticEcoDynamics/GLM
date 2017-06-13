@@ -511,9 +511,9 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
 //printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);
 //printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
 
-        if(Lake[surfLayer].Height>0.1) { 
-        //# Thermal transfers are done by do_surface_thermodynamics
-        do_surface_thermodynamics(jday, iclock, lw_ind, Latitude, SWold, SWnew);
+        if (Lake[surfLayer].Height>0.1) {
+            //# Thermal transfers are done by do_surface_thermodynamics
+            do_surface_thermodynamics(jday, iclock, lw_ind, Latitude, SWold, SWnew);
         }
 
 //printf("n2 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
@@ -526,7 +526,7 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
         Light_Surface = Lake[surfLayer].Light/0.45;
 
         //# Mixing is done by do_mixing
-//        do_mixing();
+        // do_mixing();
 
 //      calc_mass_temp("After do_mixing");
 //printf("n3 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
@@ -546,25 +546,26 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
 //printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
 
 
-        // MH Littoral zone - temporary temp duplication 
-        if( littoral_sw ) {
-          littoralLayer = surfLayer+1 ;
-          if(NumLayers>1){
-            Lake[littoralLayer].Height = Lake[surfLayer].Height;
-            Lake[littoralLayer].MeanHeight = Lake[surfLayer].MeanHeight;
-            Lake[littoralLayer].Temp = Lake[surfLayer].Temp*1.1;
-            Lake[littoralLayer].Salinity = Lake[surfLayer].Salinity;
-            Lake[littoralLayer].LayerVol = Lake[surfLayer].LayerVol- Lake[surfLayer-1].LayerVol;
-            Lake[littoralLayer].LayerArea = Lake[surfLayer].LayerArea- Lake[surfLayer-1].LayerArea;
-           } else {
-            Lake[littoralLayer].Height = Lake[surfLayer].Height;
-            Lake[littoralLayer].MeanHeight = Lake[surfLayer].MeanHeight;
-            Lake[littoralLayer].Temp = Lake[surfLayer].Temp;
-            Lake[littoralLayer].Salinity = Lake[surfLayer].Salinity;
-            Lake[littoralLayer].LayerVol = Lake[surfLayer].LayerVol/2.;
-            Lake[littoralLayer].LayerArea = Lake[surfLayer].LayerArea/2.;
-           }
+        // MH Littoral zone - temporary temp duplication
+        if ( littoral_sw ) {
+            littoralLayer = surfLayer+1 ;
+            if (NumLayers>1) {
+                Lake[littoralLayer].Height = Lake[surfLayer].Height;
+                Lake[littoralLayer].MeanHeight = Lake[surfLayer].MeanHeight;
+                Lake[littoralLayer].Temp = Lake[surfLayer].Temp*1.1;
+                Lake[littoralLayer].Salinity = Lake[surfLayer].Salinity;
+                Lake[littoralLayer].LayerVol = Lake[surfLayer].LayerVol- Lake[surfLayer-1].LayerVol;
+                Lake[littoralLayer].LayerArea = Lake[surfLayer].LayerArea- Lake[surfLayer-1].LayerArea;
+            } else {
+                Lake[littoralLayer].Height = Lake[surfLayer].Height;
+                Lake[littoralLayer].MeanHeight = Lake[surfLayer].MeanHeight;
+                Lake[littoralLayer].Temp = Lake[surfLayer].Temp;
+                Lake[littoralLayer].Salinity = Lake[surfLayer].Salinity;
+                Lake[littoralLayer].LayerVol = Lake[surfLayer].LayerVol/2.;
+                Lake[littoralLayer].LayerArea = Lake[surfLayer].LayerArea/2.;
+            }
         }
+
         // flag in &glm_setup (int deep_mixing 0 = off, >0 = on)
         if ( deep_mixing > 0 ) {
             //# Estimate dissipation from energy inputs, buoyancy frequency etc

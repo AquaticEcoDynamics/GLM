@@ -30,8 +30,6 @@
 !#                                                                             #
 !###############################################################################
 
-#include "aed2.h"
-
 #define _VOLUME_SCALING_ 0
 
 #undef MISVAL
@@ -45,7 +43,6 @@ MODULE glm_zones
 
    USE ISO_C_BINDING
 
-   USE aed2_common
    USE glm_types
 
    IMPLICIT NONE

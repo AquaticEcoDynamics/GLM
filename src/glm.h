@@ -35,7 +35,7 @@
 #endif
 #define USE_FILLVALUE 1
 
-#define GLM_VERSION  "2.5.0dev01"
+#define GLM_VERSION  "2.3.0dev01"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -101,6 +101,9 @@
   #define FALSE 0
 
   #ifdef _WIN32
+    #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+       #define _VISUAL_C_
+    #endif
     #define snprintf _snprintf
     #define strcasecmp stricmp
     #define strncasecmp _strnicmp
