@@ -119,7 +119,6 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_var(ncid, "I_0",    NC_REALTYPE, 3, dims, &i0_id));
     check_nc_error(nc_def_var(ncid, "wind",   NC_REALTYPE, 3, dims, &wnd_id));
     check_nc_error(nc_def_var(ncid, "Tot_V",  NC_REALTYPE, 3, dims, &TV_id));
-    
 
     //# x,y,z,t
     dims[3] = x_dim;
@@ -207,8 +206,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     AED_REAL temp_time, LakeVolume;
     AED_REAL *heights, *vols, *salts, *temps, *dens, *qsw, *extc_coef;
     AED_REAL *u_mean, *u_orb;
-    int i;
-    int littoralLayer =0;
+    int i, littoralLayer =0;
 
     set_no++;
 
@@ -273,7 +271,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
         u_mean[i] = NC_FILLER;
         u_orb[i] = NC_FILLER;
     }
-    if ( littoral_sw ){
+    if ( littoral_sw ) {
         littoralLayer = wlev;
         heights[littoralLayer] = Lake[littoralLayer].Height;
         vols[littoralLayer] = Lake[littoralLayer].LayerVol;
@@ -284,7 +282,8 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
         extc_coef[littoralLayer] = NC_FILLER;
         u_mean[littoralLayer] = NC_FILLER;
         u_orb[littoralLayer] = NC_FILLER;
-    } 
+    }
+
     check_nc_error(nc_put_vara(ncid,     z_id, start, edges, heights));
     check_nc_error(nc_put_vara(ncid,     V_id, start, edges, vols));
     check_nc_error(nc_put_vara(ncid,  salt_id, start, edges, salts));

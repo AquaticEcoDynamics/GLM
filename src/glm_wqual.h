@@ -46,6 +46,7 @@ typedef int  (*wq_var_index_c_t)(const char*name, int *len);
 typedef void (*wq_set_flags_t)(int *split_factor, CLOGICAL *mobility, CLOGICAL *bioshade,
                  CLOGICAL *repair_state, int *ode_method, int *benthic_mode, CLOGICAL *do_plots);
 typedef int (*wq_is_var_t)(int *id, const char *v, int *len);
+typedef void (*wq_set_glm_zones_t)(AED_REAL *z_heights, int *numZones, int *numVars, int *numBenV);
 
 
 extern wq_init_glm_t        p_wq_init_glm;
@@ -71,6 +72,9 @@ extern wq_is_var_t          p_wq_is_var;
 int prime_wq(const char *which);
 
 #if USE_DL_LOADER
+extern wq_set_glm_zones_t p_wq_set_glm_zones;
+#define wq_set_glm_zones  (*p_wq_set_glm_zones)
+
 void wq_init_glm(char *fname, int *len, int *kk, int *NumWQVars, int *NumWQBen, AED_REAL *pKw);
 void wq_set_glm_data(void *Lake, int *MaxLayers,
                 MetDataType *MetData, SurfaceDataType *SurfData, AED_REAL *dt);
@@ -80,7 +84,7 @@ void wq_init_glm_output(int *ncid, int *x_dim, int *y_dim, int *z_dim, int *zone
 void wq_write_glm_(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
 int  wq_var_index_c(const char*name, int *len);
 void wq_set_flags(int *split_factor, CLOGICAL *mobility, CLOGICAL *bioshade, CLOGICAL *repair_state,
-                      int *ode_method, INTEGER *benthic_mode, CLOGICAL *do_plots);
+                      int *ode_method, int *benthic_mode, CLOGICAL *do_plots);
 int wq_is_var(int *id, const char *v, int *len);
 #else
 void fabm_init_glm(char *fname, int *len, int *kk, int *NumWQVars, int *NumWQBen, AED_REAL *pKw);

@@ -63,6 +63,7 @@ wq_write_glm_t       p_wq_write_glm       = NULL;
 wq_var_index_c_t     p_wq_var_index_c     = NULL;
 wq_set_flags_t       p_wq_set_flags       = NULL;
 wq_is_var_t          p_wq_is_var          = NULL;
+wq_set_glm_zones_t   p_wq_set_glm_zones   = NULL;
 
 
 int ode_method = 1, split_factor = 1;
@@ -128,12 +129,14 @@ int prime_wq(const char *which)
     p_wq_var_index_c     =     (wq_var_index_c_t) find_entry(glm_wq_handle, "wq_var_index_c");
     p_wq_set_flags       =       (wq_set_flags_t) find_entry(glm_wq_handle, "wq_set_flags");
     p_wq_is_var          =          (wq_is_var_t) find_entry(glm_wq_handle, "wq_is_var");
+    p_wq_set_glm_zones   =   (wq_set_glm_zones_t) find_entry(glm_wq_handle, "wq_set_glm_zones");
 #ifdef _WIN32
     p_set_funcs          =          (set_funcs_t) find_entry(glm_wq_handle, "set_funcs");
 
     (*p_set_funcs)(set_c_wqvars_ptr, Mobility, define_mode_on,
                    define_mode_off, new_nc_variable, set_nc_attributes,
-                   store_nc_array, store_nc_scalar, write_csv_point, put_xplot_val);
+                   store_nc_array, store_nc_scalar, write_csv_point,
+                   put_xplot_val, put_glm_val, put_glm_val_s);
 #endif
 
 #else

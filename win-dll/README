@@ -1,5 +1,4 @@
 
-NB : Although projects are provided for vs2008 AED no longer update them so they may well be log out of date
 
 The vs2010 projects are those used to build the windows binaries of glm
 
@@ -9,7 +8,7 @@ The vs2010 projects are those used to build the windows binaries of glm
 Updating version numbers :
 
  edit :
-   vs2008-ic/glm.vcproj vs2008-vc/glm.vcproj vs2010-ic/glm.vcxproj vs2010-vc/glm.vcxproj
+   vs2010-ic/glm.vcxproj vs2010-vc/glm.vcxproj
  search for previous verions (eg 1.2.1) and replace with new version.
 
 

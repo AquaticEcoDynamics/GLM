@@ -142,7 +142,7 @@ extern int subdaily; //* = FALSE;
 
 extern int Nmorph;             //* Number of data points
 
-extern AED_REAL MphInc;
+extern AED_REAL  MphInc;
 extern AED_REAL *MphLevelArea;    //* area of each layer determined by linear interpolation
 extern AED_REAL *dMphLevelArea;   //* gradients of area between 0.1m layers
 extern AED_REAL *dMphLevelVol;    //* gradients of volume between 0.1m layers
@@ -202,7 +202,7 @@ extern AED_REAL    fetch_height;
 extern AED_REAL    fetch_porosity;
 
 /*----------------------------------------------------------------------------*/
-// LITTORAL 
+// LITTORAL
 extern CLOGICAL littoral_sw;
 
 /*----------------------------------------------------------------------------*/

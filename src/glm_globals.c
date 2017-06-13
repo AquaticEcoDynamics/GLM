@@ -107,7 +107,7 @@ int subdaily = FALSE;
 
 int Nmorph = 0;             //# Number of data points in internal morphometry vector
 
-AED_REAL MphInc = 10.0;
+AED_REAL  MphInc = 10.0;
 AED_REAL *MphLevelArea    = NULL; //# area at each internal levels determined by linear interpolation
 AED_REAL *dMphLevelArea   = NULL; //# gradients of area between 0.1m levels
 AED_REAL *dMphLevelVol    = NULL; //# gradients of volume between 0.1m levels
@@ -166,7 +166,7 @@ AED_REAL    fetch_height = 0.;
 AED_REAL    fetch_porosity = 1.;
 
 //------------------------------------------------------------------------------
-// LITTORAL 
+// LITTORAL
 CLOGICAL littoral_sw        = TRUE;
 
 //------------------------------------------------------------------------------

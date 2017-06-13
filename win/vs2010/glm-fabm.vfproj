@@ -5,40 +5,40 @@
 		<Platform Name="x64"/></Platforms>
 	<Configurations>
 		<Configuration Name="Debug|Win32" OutputDirectory="$(PlatformName)-$(ConfigurationName)" IntermediateDirectory="$(PlatformName)-$(ConfigurationName)" ConfigurationType="typeStaticLibrary">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" Preprocess="preprocessYes" AdditionalIncludeDirectories="..\..\src\;..\..\..\fabm-git\include\;..\..\..\fabm-git\src\drivers\glm\;..\..\..\fabm-git\compilers\vs2010\glm\$(PlatformName)-$(ConfigurationName)\;..\..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\" PreprocessorDefinitions="FABM;PLOTS;XPLOTS;_FORTRAN_SOURCE_" F2003Semantics="true" WarnInterfaces="true" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebug"/>
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" Preprocess="preprocessYes" AdditionalIncludeDirectories="..\..\src\;.\$(PlatformName)-$(ConfigurationName)\include\;..\..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\;.\$(PlatformName)-$(ConfigurationName)\" PreprocessorDefinitions="FABM;PLOTS;XPLOTS;_FORTRAN_SOURCE_" F2003Semantics="true" WarnInterfaces="true" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebug"/>
 				<Tool Name="VFLibrarianTool"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
 				<Tool Name="VFCustomBuildTool"/>
 				<Tool Name="VFPreLinkEventTool"/>
-				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPreBuildEventTool" CommandLine="..\..\..\Extras\fabm\build_fabm-glm_lib.bat $(ConfigurationName) $(PlatformName)"/>
 				<Tool Name="VFPostBuildEventTool"/></Configuration>
 		<Configuration Name="Release|Win32" OutputDirectory="$(PlatformName)-$(ConfigurationName)" IntermediateDirectory="$(PlatformName)-$(ConfigurationName)" ConfigurationType="typeStaticLibrary">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" Preprocess="preprocessYes" AdditionalIncludeDirectories="..\..\src\;..\..\..\fabm-git\include\;..\..\..\fabm-git\src\drivers\glm\;..\..\..\fabm-git\compilers\vs2010\glm\$(PlatformName)-$(ConfigurationName)\;..\..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\" PreprocessorDefinitions="FABM;PLOTS;XPLOTS;_FORTRAN_SOURCE_" F2003Semantics="true"/>
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" Preprocess="preprocessYes" AdditionalIncludeDirectories="..\..\src\;.\$(PlatformName)-$(ConfigurationName)\include\;..\..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\;.\$(PlatformName)-$(ConfigurationName)\" PreprocessorDefinitions="FABM;PLOTS;XPLOTS;_FORTRAN_SOURCE_" F2003Semantics="true"/>
 				<Tool Name="VFLibrarianTool" LinkLibraryDependencies="true"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
 				<Tool Name="VFCustomBuildTool"/>
 				<Tool Name="VFPreLinkEventTool"/>
-				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPreBuildEventTool" CommandLine="..\..\..\Extras\fabm\build_fabm-glm_lib.bat $(ConfigurationName) $(PlatformName)"/>
 				<Tool Name="VFPostBuildEventTool"/></Configuration>
 		<Configuration Name="Debug|x64" OutputDirectory="$(PlatformName)-$(ConfigurationName)" IntermediateDirectory="$(PlatformName)-$(ConfigurationName)" ConfigurationType="typeStaticLibrary">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" Preprocess="preprocessYes" AdditionalIncludeDirectories="..\..\src\;..\..\..\fabm-git\include\;..\..\..\fabm-git\src\drivers\glm\;..\..\..\fabm-git\compilers\vs2010\glm\$(PlatformName)-$(ConfigurationName)\;..\..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\" PreprocessorDefinitions="FABM;PLOTS;XPLOTS;_FORTRAN_SOURCE_" F2003Semantics="true" WarnInterfaces="true" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebug"/>
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" Preprocess="preprocessYes" AdditionalIncludeDirectories="..\..\src\;.\$(PlatformName)-$(ConfigurationName)\include\;..\..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\;.\$(PlatformName)-$(ConfigurationName)\" PreprocessorDefinitions="FABM;PLOTS;XPLOTS;_FORTRAN_SOURCE_" F2003Semantics="true" WarnInterfaces="true" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebug"/>
 				<Tool Name="VFLibrarianTool" AdditionalLibraryDirectories="..\..\fabm-git\compilers\vs2010\glm\$(PlatformName)-$(ConfigurationName);..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\lib\;..\..\..\WinLibs\HDF5_dll_$(PlatformName)\lib\;..\..\..\additions\lib_$(PlatformName)\;$(PlatformName)-$(ConfigurationName)"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 				<Tool Name="VFCustomBuildTool"/>
 				<Tool Name="VFPreLinkEventTool"/>
-				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPreBuildEventTool" CommandLine="..\..\..\Extras\fabm\build_fabm-glm_lib.bat $(ConfigurationName) $(PlatformName)"/>
 				<Tool Name="VFPostBuildEventTool"/></Configuration>
 		<Configuration Name="Release|x64" OutputDirectory="$(PlatformName)-$(ConfigurationName)" IntermediateDirectory="$(PlatformName)-$(ConfigurationName)" ConfigurationType="typeStaticLibrary">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" Preprocess="preprocessYes" AdditionalIncludeDirectories="..\..\src\;..\..\..\fabm-git\include\;..\..\..\fabm-git\src\drivers\glm\;..\..\..\fabm-git\compilers\vs2010\glm\$(PlatformName)-$(ConfigurationName)\;..\..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\" PreprocessorDefinitions="FABM;PLOTS;XPLOTS;_FORTRAN_SOURCE_" F2003Semantics="true"/>
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" Preprocess="preprocessYes" AdditionalIncludeDirectories="..\..\src\;.\$(PlatformName)-$(ConfigurationName)\include\;..\..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\;.\$(PlatformName)-$(ConfigurationName)\" PreprocessorDefinitions="FABM;PLOTS;XPLOTS;_FORTRAN_SOURCE_" F2003Semantics="true"/>
 				<Tool Name="VFLibrarianTool" AdditionalLibraryDirectories="..\..\fabm-git\compilers\vs2010\glm\$(PlatformName)-$(ConfigurationName);..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\lib\;..\..\..\WinLibs\HDF5_dll_$(PlatformName)\lib\;..\..\..\additions\lib_$(PlatformName)\;$(PlatformName)-$(ConfigurationName)"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 				<Tool Name="VFCustomBuildTool"/>
 				<Tool Name="VFPreLinkEventTool"/>
-				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPreBuildEventTool" CommandLine="..\..\..\Extras\fabm\build_fabm-glm_lib.bat $(ConfigurationName) $(PlatformName)"/>
 				<Tool Name="VFPostBuildEventTool"/></Configuration></Configurations>
 	<Files>
 		<Filter Name="Header Files" Filter="fi;fd">
@@ -47,5 +47,6 @@
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
 		<File RelativePath="..\..\src\glm_fabm.F90"/>
 		<File RelativePath="..\..\src\glm_types.F90"/>
+		<File RelativePath="..\..\src\glm_zones.F90"/>
 		<File RelativePath="..\..\src\ode_solvers.F90"/></Filter></Files>
 	<Globals/></VisualStudioProject>
