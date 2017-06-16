@@ -158,7 +158,7 @@ ifeq ($(F90),ifort)
   FINCLUDES+=-I/opt/intel/include
   DEBUG_FFLAGS=-g -traceback
   OPT_FFLAGS=-O3
-  FFLAGS=-warn all -module ${moddir} -i-static -mp1 -stand f03 $(DEFINES) $(FINCLUDES)
+  FFLAGS=-warn all -module ${moddir} -i-static -mp1 -stand f08 $(DEFINES) $(FINCLUDES)
   ifeq ($(WITH_CHECKS),true)
     FFLAGS+=-check
   endif
@@ -239,7 +239,6 @@ OBJS=${objdir}/glm_globals.o \
      ${objdir}/glm_flow.o \
      ${objdir}/glm_mixer.o \
      ${objdir}/glm_deep.o \
-     ${objdir}/glm_bubbler.o \
      ${objdir}/glm_stress.o \
      ${objdir}/glm_bird.o \
      ${objdir}/glm_model.o \
@@ -323,6 +322,5 @@ ${objdir}/ode_solvers.o: ${srcdir}/ode_solvers.F90
 	$(F90) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
 
 ${objdir}/glm_globals.o: ${srcdir}/glm_globals.c ${incdir}/glm_globals.h ${incdir}/glm.h
-${objdir}/glm_bubbler.o: ${srcdir}/glm_bubbler.c ${incdir}/glm_globals.h ${incdir}/glm.h
 ${objdir}/glm_plugin.o: ${srcdir}/glm_plugin.c ${incdir}/glm_plugin.h ${incdir}/glm.h
 

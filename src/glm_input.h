@@ -47,10 +47,6 @@ void open_met_file(const char *fname, int snow_sw, int rain_sw,
 void read_daily_met(int julian, MetDataType *met);
 void read_sub_daily_met(int julian,int iclock, MetDataType *met);
 
-void open_bubbler_file(const char *fname, const char *timefmt);
-void read_bubble_data(int julian, AED_REAL *aFlow, int *nPorts,
-                                           AED_REAL *bDepth, AED_REAL *bLength);
-
 void close_met_files(void);
 void close_inflow_files(void);
 void close_outflow_files(void);

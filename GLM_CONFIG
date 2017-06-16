@@ -19,7 +19,7 @@ export CURDIR=`pwd`
 export FABMDIR=${CURDIR}/../fabm-git
 export PLOTDIR=${CURDIR}/../libplot
 export AED2DIR=${CURDIR}/../libaed2
-export AED2PLS=${CURDIR}/../libaed2+
+export AED2PLS=${CURDIR}/../libaed2-plus
 export UTILDIR=${CURDIR}/../libutil
 
 export GLM_CONFIGURED=true
