@@ -505,7 +505,7 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
         //printf("AirTemp = %10.5f\n",MetData.AirTemp);
         //printf("WindSpeed = %10.5f\n",MetData.WindSpeed);
         //printf("SatVapDef = %10.5f\n",MetData.SatVapDef);
-        
+
 //printf("n0 = %i3 %i3 %i3 \n",surfLayer, botmLayer, NumLayers);
 //printf("n1 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
 //printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);

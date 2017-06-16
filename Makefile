@@ -158,7 +158,7 @@ ifeq ($(F90),ifort)
   FINCLUDES+=-I/opt/intel/include
   DEBUG_FFLAGS=-g -traceback
   OPT_FFLAGS=-O3
-  FFLAGS=-warn all -module ${moddir} -i-static -mp1 -stand f03 $(DEFINES) $(FINCLUDES)
+  FFLAGS=-warn all -module ${moddir} -i-static -mp1 -stand f08 $(DEFINES) $(FINCLUDES)
   ifeq ($(WITH_CHECKS),true)
     FFLAGS+=-check
   endif
