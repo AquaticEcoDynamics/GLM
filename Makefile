@@ -138,9 +138,10 @@ ifeq ($(AED2),true)
   endif
 
   FINCLUDES+=-I$(AED2DIR)/include -I$(AED2DIR)/mod
-  AED2LIBS=-L$(AED2DIR)/lib -laed2
-  ifneq ("$(wildcard ${AED2PLS}/Makefile)","")
-    AED2LIBS+=-L${AED2PLS}/lib -laed2+
+  ifeq ("$(wildcard ${AED2PLS}/Makefile)","")
+    AED2LIBS=-L$(AED2DIR)/lib -laed2
+  else
+    AED2LIBS+=-L${AED2PLS}/lib -laed2+ -lifport
   endif
 
   ifeq ($(USE_DL),true)

@@ -265,6 +265,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
    namlst = f_get_lun()
 
    IF ( aed2_init_core('.') /= 0 ) STOP "Initialisation of aed2_core failed"
+   CALL aed2_print_version
 
    !# Create model tree
    print *,"Reading aed2_models config from ",TRIM(fname)
