@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -29,22 +29,26 @@
     <CharacterSet>Unicode</CharacterSet>
     <CLRSupport>false</CLRSupport>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <CLRSupport>false</CLRSupport>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <CLRSupport>false</CLRSupport>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <CLRSupport>false</CLRSupport>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -97,9 +101,10 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;glm-fabm.lib;fabm.lib;libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <Version>2.2.1</Version>
-      <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;.\$(PlatformName)-$(ConfigurationName)\lib\;..\..\..\..\additions\lib_$(Platform)\;$(Platform)-$(Configuration);C:\Program Files\Intel\Composer XE 2011 SP1\compiler\lib\ia32;C:\Program Files (x86)\Intel\Composer XE 2011 SP1\compiler\lib\ia32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;glm-fabm.lib;fabm.lib;libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;libifport.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <Version>
+      </Version>
+      <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;.\$(PlatformName)-$(ConfigurationName)\lib\;..\..\..\..\additions\lib_$(Platform)\;$(Platform)-$(Configuration);C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\ia32_win;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>LIBCMTD;LIBCMT;MSVCRT;libmmt;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
@@ -119,9 +124,10 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;glm-fabm.lib;fabm.lib;libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <Version>2.2.1</Version>
-      <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;.\$(PlatformName)-$(ConfigurationName)\lib\;..\..\..\..\additions\lib_$(Platform)\;$(Platform)-$(Configuration);C:\Program Files\Intel\Composer XE 2011 SP1\compiler\lib\intel64;C:\Program Files (x86)\Intel\Composer XE 2011 SP1\compiler\lib\intel64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;glm-fabm.lib;fabm.lib;libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;libifport.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <Version>
+      </Version>
+      <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;.\$(PlatformName)-$(ConfigurationName)\lib\;..\..\..\..\additions\lib_$(Platform)\;$(Platform)-$(Configuration);C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\ia64_win;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>LIBCMTD;LIBCMT;MSVCRT;libmmt;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
@@ -138,11 +144,12 @@
       <UseMSVC>false</UseMSVC>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;glm-fabm.lib;fabm.lib;libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <Version>2.2.1</Version>
-      <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;.\$(PlatformName)-$(ConfigurationName)\lib\;..\..\..\..\additions\lib_$(Platform)\;$(Platform)-$(Configuration);C:\Program Files\Intel\Composer XE 2011 SP1\compiler\lib\ia32;C:\Program Files (x86)\Intel\Composer XE 2011 SP1\compiler\lib\ia32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;glm-fabm.lib;fabm.lib;libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;libifport.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <Version>
+      </Version>
+      <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;.\$(PlatformName)-$(ConfigurationName)\lib\;..\..\..\..\additions\lib_$(Platform)\;$(Platform)-$(Configuration);C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\ia32_win;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <IgnoreSpecificDefaultLibraries>LIBCMTD;LIBCMT;libmmt;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <IgnoreSpecificDefaultLibraries>libcmt.lib;libmmt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -159,11 +166,12 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;glm-fabm.lib;fabm.lib;libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <Version>2.2.1</Version>
-      <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;.\$(PlatformName)-$(ConfigurationName)\lib\;..\..\..\..\additions\lib_$(Platform)\;$(Platform)-$(Configuration);C:\Program Files (x86)\Intel\Composer XE 2011 SP1\compiler\lib\intel64;C:\Program Files\Intel\Composer XE 2011 SP1\compiler\lib\intel64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;glm-fabm.lib;fabm.lib;libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;libifport.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <Version>
+      </Version>
+      <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;.\$(PlatformName)-$(ConfigurationName)\lib\;..\..\..\..\additions\lib_$(Platform)\;$(Platform)-$(Configuration);C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\intel64_win;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <IgnoreSpecificDefaultLibraries>LIBCMTD;LIBCMT;libmmt;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <IgnoreSpecificDefaultLibraries>libcmt.lib;libmmt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -215,7 +223,7 @@
     <ClInclude Include="..\..\src\libplot.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\libutil\win\vs2010\libutil.vcxproj">
+    <ProjectReference Include="..\..\..\libutil\win\vs2015\libutil.vcxproj">
       <Project>{8ef4b62a-1caf-4c2a-af8f-fbaf3350ea84}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>

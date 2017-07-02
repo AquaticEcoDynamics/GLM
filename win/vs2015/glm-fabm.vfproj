@@ -24,7 +24,7 @@
 				<Tool Name="VFPostBuildEventTool"/></Configuration>
 		<Configuration Name="Debug|x64" OutputDirectory="$(PlatformName)-$(ConfigurationName)" IntermediateDirectory="$(PlatformName)-$(ConfigurationName)" ConfigurationType="typeStaticLibrary">
 				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" Preprocess="preprocessYes" AdditionalIncludeDirectories="..\..\src\;.\$(PlatformName)-$(ConfigurationName)\include\;..\..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\;.\$(PlatformName)-$(ConfigurationName)\" PreprocessorDefinitions="FABM;PLOTS;XPLOTS;_FORTRAN_SOURCE_" F2003Semantics="true" WarnInterfaces="true" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebug"/>
-				<Tool Name="VFLibrarianTool" AdditionalLibraryDirectories="..\..\fabm-git\compilers\vs2010\glm\$(PlatformName)-$(ConfigurationName);..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\lib\;..\..\..\WinLibs\HDF5_dll_$(PlatformName)\lib\;..\..\..\additions\lib_$(PlatformName)\;$(PlatformName)-$(ConfigurationName)"/>
+				<Tool Name="VFLibrarianTool" AdditionalLibraryDirectories="..\..\fabm-git\compilers\vs2015\glm\$(PlatformName)-$(ConfigurationName);..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\lib\;..\..\..\WinLibs\HDF5_dll_$(PlatformName)\lib\;..\..\..\additions\lib_$(PlatformName)\;$(PlatformName)-$(ConfigurationName)"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 				<Tool Name="VFCustomBuildTool"/>
@@ -33,7 +33,7 @@
 				<Tool Name="VFPostBuildEventTool"/></Configuration>
 		<Configuration Name="Release|x64" OutputDirectory="$(PlatformName)-$(ConfigurationName)" IntermediateDirectory="$(PlatformName)-$(ConfigurationName)" ConfigurationType="typeStaticLibrary">
 				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" Preprocess="preprocessYes" AdditionalIncludeDirectories="..\..\src\;.\$(PlatformName)-$(ConfigurationName)\include\;..\..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\;.\$(PlatformName)-$(ConfigurationName)\" PreprocessorDefinitions="FABM;PLOTS;XPLOTS;_FORTRAN_SOURCE_" F2003Semantics="true"/>
-				<Tool Name="VFLibrarianTool" AdditionalLibraryDirectories="..\..\fabm-git\compilers\vs2010\glm\$(PlatformName)-$(ConfigurationName);..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\lib\;..\..\..\WinLibs\HDF5_dll_$(PlatformName)\lib\;..\..\..\additions\lib_$(PlatformName)\;$(PlatformName)-$(ConfigurationName)"/>
+				<Tool Name="VFLibrarianTool" AdditionalLibraryDirectories="..\..\fabm-git\compilers\vs2015\glm\$(PlatformName)-$(ConfigurationName);..\..\..\WinLibs\NetCDF4_dll_$(PlatformName)\lib\;..\..\..\WinLibs\HDF5_dll_$(PlatformName)\lib\;..\..\..\additions\lib_$(PlatformName)\;$(PlatformName)-$(ConfigurationName)"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 				<Tool Name="VFCustomBuildTool"/>

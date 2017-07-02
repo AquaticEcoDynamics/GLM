@@ -27,12 +27,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.     *
  *                                                                            *
  ******************************************************************************/
-#include "glm.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
+#include "glm.h"
 #include "glm_globals.h"
 #include "glm_csv.h"
 #include "aed_csv.h"
@@ -214,7 +214,7 @@ void init_csv_output(const char *out_dir)
 
         // Now map the wq state var names to their indices
         for (i = 0; i < csv_outfl_nvars; i++) {
-            int k = strlen(csv_outfl_vars[i]);
+            size_t k = strlen(csv_outfl_vars[i]);
             if ( internal_var(csv_outfl_vars[i]) )
                 ofl_wq_idx[i] = -1;
             else if ((ofl_wq_idx[i] = wq_var_index_c(csv_outfl_vars[i], &k)) < 0)

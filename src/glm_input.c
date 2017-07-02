@@ -66,18 +66,9 @@ typedef struct _withdrTemp_data_ {
     int wtemp_idx;
 } WithdrawalTempDataT;
 
-typedef struct _bubl_data_ {
-    int bubf;
-    int flow_idx;
-    int port_idx;
-    int depth_idx;
-    int length_idx;
-} BubbleDataT;
-
 static InflowDataT inf[MaxInf];
 static OutflowDataT outf[MaxOut];
 static WithdrawalTempDataT withdrTempf = { -1, -1 };
-static BubbleDataT bubl;
 
 static int metf;
 static int rain_idx, hum_idx, lwav_idx, sw_idx, atmp_idx, wind_idx, snow_idx,

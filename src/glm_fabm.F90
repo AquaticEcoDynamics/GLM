@@ -228,7 +228,7 @@ SUBROUTINE fabm_init_glm(i_fname,len,MaxLayers,NumWQVars,NumWQBen,pKw) BIND(C, n
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    CCHARACTER,INTENT(in) :: i_fname(*)
-   CINTEGER,INTENT(in)   :: len
+   CSIZET,INTENT(in)     :: len
    CINTEGER,INTENT(in)   :: MaxLayers
    CINTEGER,INTENT(out)  :: NumWQVars, NumWQBen
    AED_REAL,INTENT(in)   :: pKw
@@ -443,7 +443,7 @@ CINTEGER FUNCTION fabm_is_var(id,i_vname,len) BIND(C, name=_WQ_IS_VAR)
 !ARGUMENTS
    CINTEGER,INTENT(in)   :: id
    CCHARACTER,INTENT(in) :: i_vname(*)
-   CINTEGER,INTENT(in)   :: len
+   CSIZET,INTENT(in)     :: len
 !LOCALS
    CHARACTER(len=45) :: vname
    INTEGER :: i
@@ -753,6 +753,8 @@ SUBROUTINE right_hand_side_rhs(first,numc,nlev,cc,rhs)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
+   i = numc !# numc not used, this shuts up compiler warning
+
    !# Shortcut to the number of pelagic state variables.
    nvars = ubound(model%info%state_variables,1)
 
@@ -867,6 +869,8 @@ SUBROUTINE right_hand_side_ppdd(first,numc,nlev,cc,pp,dd)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
+   i = numc !# numc not used, this shuts up compiler warning
+
    !# Shortcut to the number of pelagic state variables.
    nvars = ubound(model%info%state_variables,1)
 
@@ -1000,6 +1004,8 @@ SUBROUTINE fabm_init_glm_output(ncid,x_dim,y_dim,z_dim,zone_dim,time_dim) BIND(C
 !
 !-------------------------------------------------------------------------------
 !BEGIN
+   n = zone_dim !# zone_dim not used in fabm - this shuts up the compiler warning
+
    !# Put NetCDF library in define mode.
    CALL define_mode_on(ncid)
 
@@ -1178,7 +1184,7 @@ CINTEGER FUNCTION fabm_var_index_c(name, len) BIND(C, name=_WQ_VAR_INDEX_C)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    CCHARACTER,INTENT(in) :: name(*)
-   CINTEGER,INTENT(in)   :: len
+   CSIZET,INTENT(in)     :: len
 !LOCALS
    CHARACTER(len=len+1) :: tn
    INTEGER              :: i

@@ -784,7 +784,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     Num_WQ_Vars = 0;
 
     if ( wq_calc ) {
-        int l = strlen(wq_nml_file);
+        size_t l = strlen(wq_nml_file);
 
         prime_wq(wq_lib);
         wq_init_glm(wq_nml_file, &l, &MaxLayers, &Num_WQ_Vars, &Num_WQ_Ben, &Kw); // Reads WQ namelist file
@@ -807,7 +807,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( wq_calc ) {
         /* The first 3 vars are flow, temp and salt */
         for (j = 3; j < inflow_varnum; j++) {
-            int k =  strlen(inflow_vars[j]);
+            size_t k =  strlen(inflow_vars[j]);
             WQ_VarsIdx[j-3] = wq_var_index_c(inflow_vars[j], &k);
         }
 
@@ -821,7 +821,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
         for (j = 0; j < NumOut; j++) {
             if ( O2name != NULL ) {
-                int tl = strlen(O2name[j]);
+                size_t tl = strlen(O2name[j]);
                 O2idx = wq_var_index_c(O2name[j],&tl);
                 if (O2idx < 0) {
                     fprintf(stderr, "Wrong oxygen name for outlet %3d ?\n",j+1); // How does it exit???
@@ -1183,7 +1183,7 @@ void initialise_lake(int namlst)
     if ( num_wq_vars > 0 ) {
         idx = malloc(sizeof(int)*num_wq_vars);
         for (j = 0; j < num_wq_vars; j++) {
-            int k =  strlen(wq_names[j]);
+            size_t k =  strlen(wq_names[j]);
             if ((idx[j] = wq_var_index_c(wq_names[j], &k)) < 0)
                 fprintf(stderr, "Cannot find \"%s\" for initial value\n", wq_names[j]);
         }

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+exit 0
+
 vers=$1
 if [ "$vers" = "" ] ; then
   echo cannot change to a non-version
