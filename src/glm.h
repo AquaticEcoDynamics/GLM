@@ -71,6 +71,7 @@
 #  define FLOAT
 #  define DOUBLETYPE double precision
 #  define CINTEGER INTEGER(kind=C_INT)
+#  define CSIZET   INTEGER(kind=C_SIZE_T)
 #  define CLOGICAL LOGICAL(kind=C_BOOL)
 #  define CCHARACTER CHARACTER(C_CHAR)
 
@@ -105,13 +106,13 @@
        #define _VISUAL_C_
     #endif
     #define snprintf _snprintf
-    #define strcasecmp stricmp
+    #define strcasecmp _stricmp
     #define strncasecmp _strnicmp
     /* for some reason neither VisualC nor Intel C define these prototypes */
     double fmod(double x, double y);
     //float fmodf(float x, float y);
-    double round(double x);
-    #ifndef _VISUAL_C_
+    //double round(double x);
+    #ifdef _VISUAL_C_
       char *strndup(const char *s, size_t n);
     #endif
   #endif

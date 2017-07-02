@@ -148,7 +148,7 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
     for (i = 0; i < nplots; i++) {
         int vn;
         if ( ! (vn = intern_is_var(i, vars[i])) ) {
-            int l = strlen(vars[i]);
+            size_t l = strlen(vars[i]);
             if ( ! (vn = wq_is_var(&i, vars[i], &l)) ) {
                 fprintf(stderr, "No plottable var \"%s\"\n", vars[i]);
                 continue;

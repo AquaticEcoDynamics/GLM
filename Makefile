@@ -140,7 +140,7 @@ ifeq ($(AED2),true)
   FINCLUDES+=-I$(AED2DIR)/include -I$(AED2DIR)/mod
   AED2LIBS=-L$(AED2DIR)/lib -laed2
   ifneq ("$(wildcard ${AED2PLS}/Makefile)","")
-    AED2LIBS+=-L${AED2PLS}/lib -laed2+
+    AED2PLBS=-L${AED2PLS}/lib -laed2+
   endif
 
   ifeq ($(USE_DL),true)
@@ -148,11 +148,8 @@ ifeq ($(AED2),true)
   endif
 endif
 
-ifneq ($(USE_DL),true)
-  LIBS+=$(AED2LIBS) $(FABMLIBS)
-endif
 
-
+FLIBS=
 # Select specific compiler bits
 ifeq ($(F90),ifort)
   FINCLUDES+=-I/opt/intel/include
@@ -163,9 +160,12 @@ ifeq ($(F90),ifort)
     FFLAGS+=-check
   endif
   FFLAGS+=-real-size 64
-  LIBS+=-L/opt/intel/lib
-  LIBS+=-lifcore -lsvml
-  LIBS+=-limf -lintlc
+  FLIBS+=-L/opt/intel/lib
+  FLIBS+=-lifcore -lsvml
+  FLIBS+=-limf -lintlc
+  ifneq ("$(AED2PLBS)", "")
+    AED2PLBS+=-lifport
+  endif
 else
   F90=gfortran
   FINCLUDES+=-I/usr/include
@@ -177,9 +177,14 @@ else
   endif
   FFLAGS+=-fdefault-real-8 -fdefault-double-8
   ifeq ($(OSTYPE),Darwin)
-    LIBS+=-L/usr/local/gfortran/lib
+    FLIBS+=-L/usr/local/gfortran/lib
   endif
-  LIBS+=-lgfortran
+  FLIBS+=-lgfortran
+endif
+
+ifneq ($(USE_DL),true)
+  WQLIBS=$(AED2LIBS) $(FABMLIBS)
+  WQPLIBS=$(AED2PLBS) $(FABMLIBS)
 endif
 
 ifeq ($(DEBUG),true)
@@ -239,12 +244,12 @@ OBJS=${objdir}/glm_globals.o \
      ${objdir}/glm_flow.o \
      ${objdir}/glm_mixer.o \
      ${objdir}/glm_deep.o \
-     ${objdir}/glm_bubbler.o \
      ${objdir}/glm_stress.o \
      ${objdir}/glm_bird.o \
      ${objdir}/glm_model.o \
      ${objdir}/glm_types.o \
      ${objdir}/glm_const.o \
+     ${objdir}/glm_bubbler.o \
      ${objdir}/glm_main.o
 
 ifeq ($(USE_DL),true)
@@ -275,7 +280,10 @@ ${moddir}:
 	@mkdir ${moddir}
 
 glm: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS)
-	$(CC) -o glm $(EXTRALINKFLAGS) $(OBJS) $(LIBS)
+	$(CC) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQLIBS) $(FLIBS)
+
+glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS)
+	$(CC) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQPLIBS) $(FLIBS)
 
 clean: ${objdir} ${moddir}
 	@touch ${objdir}/1.o ${moddir}/1.mod 1.t 1__genmod.f90 glm 1.so glm_test_bird
@@ -283,7 +291,7 @@ clean: ${objdir} ${moddir}
 	@echo Made clean
 
 distclean: clean
-	@/bin/rm -rf ${objdir} ${moddir} glm
+	@/bin/rm -rf ${objdir} ${moddir} glm glm+
 
 #${objdir}/%.o: ${srcdir}%.F90 ${incdir}/glm.h ${moddir} ${objdir}
 #	$(F90) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
@@ -301,6 +309,9 @@ ${objdir}/%.o: ${srcdir}/%.c ${incdir}/glm.h
 
 libglm_wq_aed2.so: ${objdir}/glm_zones.o ${objdir}/glm_aed2.o ${objdir}/glm_plugin.o
 	$(LD) -shared $(LDFLAGS) -o $@ $^ $(AED2LIBS)
+
+libglm_wq_aed2+.so: ${objdir}/glm_zones.o ${objdir}/glm_aed2.o ${objdir}/glm_plugin.o
+	$(LD) -shared $(LDFLAGS) -o $@ $^ $(AED2PLBS)
 
 libglm_wq_fabm.so: ${objdir}/glm_zones.o ${objdir}/glm_fabm.o ${objdir}/ode_solvers.o ${objdir}/glm_plugin.o
 	$(LD) -shared $(LDFLAGS) -o $@ $^ $(FABMLIBS)
@@ -323,6 +334,5 @@ ${objdir}/ode_solvers.o: ${srcdir}/ode_solvers.F90
 	$(F90) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
 
 ${objdir}/glm_globals.o: ${srcdir}/glm_globals.c ${incdir}/glm_globals.h ${incdir}/glm.h
-${objdir}/glm_bubbler.o: ${srcdir}/glm_bubbler.c ${incdir}/glm_globals.h ${incdir}/glm.h
 ${objdir}/glm_plugin.o: ${srcdir}/glm_plugin.c ${incdir}/glm_plugin.h ${incdir}/glm.h
 

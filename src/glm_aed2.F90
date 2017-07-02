@@ -240,7 +240,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    CCHARACTER,INTENT(in) :: i_fname(*)
-   CINTEGER,INTENT(in)   :: len
+   CSIZET,INTENT(in)     :: len
    CINTEGER,INTENT(in)   :: MaxLayers
    CINTEGER,INTENT(out)  :: NumWQ_Vars, NumWQ_Ben
    AED_REAL,INTENT(in)   :: pKw
@@ -265,6 +265,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
    namlst = f_get_lun()
 
    IF ( aed2_init_core('.') /= 0 ) STOP "Initialisation of aed2_core failed"
+   CALL aed2_print_version
 
    !# Create model tree
    print *,"Reading aed2_models config from ",TRIM(fname)
@@ -454,7 +455,7 @@ CINTEGER FUNCTION aed2_is_var(id,i_vname,len) BIND(C, name=_WQ_IS_VAR)
 !ARGUMENTS
    CINTEGER,INTENT(in)   :: id
    CCHARACTER,INTENT(in) :: i_vname(*)
-   CINTEGER,INTENT(in)   :: len
+   CSIZET,INTENT(in)     :: len
 !LOCALS
    CHARACTER(len=45) :: vname
    TYPE(aed2_variable_t),POINTER :: tvar
@@ -1417,7 +1418,7 @@ CINTEGER FUNCTION aed2_var_index_c(name, len) BIND(C, name=_WQ_VAR_INDEX_C)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    CCHARACTER,INTENT(in) :: name(*)
-   CINTEGER,INTENT(in)   :: len
+   CSIZET,INTENT(in)     :: len
 !LOCALS
    CHARACTER(len=len+1) :: tn
    INTEGER              :: i

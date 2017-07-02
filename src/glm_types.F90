@@ -134,7 +134,7 @@ CONTAINS
 SUBROUTINE make_string(s1,s2,len)
    CHARACTER(len=*),INTENT(out) :: s1
    CHARACTER,INTENT(in) :: s2(*)
-   INTEGER,INTENT(in)   :: len
+   CSIZET,INTENT(in)    :: len
 !LOCALS
    INTEGER :: i
 !
