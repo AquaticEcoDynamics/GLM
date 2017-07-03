@@ -108,13 +108,7 @@
     #define snprintf _snprintf
     #define strcasecmp _stricmp
     #define strncasecmp _strnicmp
-    /* for some reason neither VisualC nor Intel C define these prototypes */
     double fmod(double x, double y);
-    //float fmodf(float x, float y);
-    //double round(double x);
-    #ifdef _VISUAL_C_
-      char *strndup(const char *s, size_t n);
-    #endif
   #endif
 
  #if DEBUG
