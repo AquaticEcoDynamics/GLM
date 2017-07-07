@@ -105,6 +105,12 @@ int main(int argc, char *argv[])
     printf("       |  General Lake Model (GLM)   Version %s    |\n", GLM_VERSION);
     printf("       ------------------------------------------------\n");
 
+#ifdef __GNUC__
+    printf("glm built using gcc version %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#elif defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+    printf("glm built using MSC version %ld\n", _MSC_VER);
+#endif
+
     if ( show_options ) {
        printf("--help  : show this blurb\n");
        printf("--nml <nmlfile> : get parameters from nmlfile\n");
