@@ -98,7 +98,6 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;glm-fabm.lib;fabm-glm.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <Version>2.3.0dev01</Version>
       <AdditionalLibraryDirectories>..\..\..\Extras\fabm\glm\$(Platform)-$(Configuration);..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;..\..\..\..\additions\lib_$(Platform)\;$(Platform)-$(Configuration);C:\Program Files\Intel\Composer XE 2011 SP1\compiler\lib\ia32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBCMTD;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
@@ -119,7 +118,6 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;glm-fabm.lib;fabm-glm.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <Version>2.3.0dev01</Version>
       <AdditionalLibraryDirectories>..\..\..\Extras\fabm\glm\$(Platform)-$(Configuration);..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;..\..\..\..\additions\lib_$(Platform)\;$(Platform)-$(Configuration);C:\Program Files\Intel\Composer XE 2011 SP1\compiler\lib\intel64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBCMTD;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
@@ -136,7 +134,6 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;glm-fabm.lib;fabm-glm.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <Version>2.3.0dev01</Version>
       <AdditionalLibraryDirectories>..\..\..\Extras\fabm\glm\$(Platform)-$(Configuration);..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;..\..\..\..\additions\lib_$(Platform)\;$(Platform)-$(Configuration);C:\Program Files\Intel\Composer XE 2011 SP1\compiler\lib\ia32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
@@ -156,7 +153,6 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;glm-fabm.lib;fabm-glm.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <Version>2.3.0dev01</Version>
       <AdditionalLibraryDirectories>..\..\..\Extras\fabm\glm\$(Platform)-$(Configuration);..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;..\..\..\..\additions\lib_$(Platform)\;$(Platform)-$(Configuration);C:\Program Files\Intel\Composer XE 2011 SP1\compiler\lib\intel64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>

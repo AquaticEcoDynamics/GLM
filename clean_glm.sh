@@ -13,6 +13,7 @@ if [ `uname -s` == "Linux" ] ; then
 fi
 if [ `uname -s` == "Darwin" ] ; then
   /bin/rm -rf ${CURDIR}/macos/glm.app
+  /bin/rm -rf ${CURDIR}/macos/glm+.app
 fi
 
 clean_outputs() {

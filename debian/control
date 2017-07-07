@@ -11,3 +11,11 @@ Depends: ${misc:Depends},
   libgd-dev
 Description: General Lake Model
  Model the bio-geo-chemical processes in lakes.
+
+Package: glm+
+Architecture: amd64
+Depends: ${misc:Depends},
+  libnetcdf-dev,
+  libgd-dev
+Description: General Lake Model Plus
+ Advanced modelling of the bio-geo-chemical processes in lakes.

@@ -261,6 +261,11 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
 
    lKw = pKw
 
+#ifdef __INTEL_COMPILER
+   print *,'glm_aed2 built using intel fortran version ', __INTEL_COMPILER
+#else
+   print *,'glm_aed2 built using gfortran version ', __GNUC__, '.', __GNUC_MINOR__, '.', __GNUC_PATCHLEVEL__
+#endif
    print *,'init_glm_aed2 from ', TRIM(fname)
    namlst = f_get_lun()
 

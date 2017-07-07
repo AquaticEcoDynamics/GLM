@@ -244,6 +244,11 @@ SUBROUTINE fabm_init_glm(i_fname,len,MaxLayers,NumWQVars,NumWQBen,pKw) BIND(C, n
 
    lKw = pKw
 
+#ifdef __INTEL_COMPILER
+   print *,'glm_fabm built using intel fortran version ', __INTEL_COMPILER
+#else
+   print *,'glm_fabm built using gfortran version ', __GNUC__, '.', __GNUC_MINOR__, '.', __GNUC_PATCHLEVEL__
+#endif
    print *,'init_glm_fabm from ', TRIM(fname)
    namlst = f_get_lun()
 
