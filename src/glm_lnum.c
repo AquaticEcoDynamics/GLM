@@ -184,7 +184,8 @@ void lnpe3(int NLayers, AED_REAL *iheight, AED_REAL *density, AED_REAL *xpp,
      * to the surface from there.                                             *
      **************************************************************************/
 
-    ij = (iheight[NLayers-1] * 10.0);
+    ij = (iheight[NLayers-1] * MphInc);
+    ij--;
 
     /**************************************************************************
      * initialize the loop. il is the current layer number, do the area       *
@@ -201,12 +202,12 @@ void lnpe3(int NLayers, AED_REAL *iheight, AED_REAL *density, AED_REAL *xpp,
 
     il = ibdep;
     ht = 0.0;
-    for (i_pe3 = 0; i_pe3 <= (ij-1); i_pe3++) {
+    for (i_pe3 = 0; i_pe3 <= ij; i_pe3++) {
         il = il + 1;
 
         dens = density[il];
         ht = ht + 0.1;
-        if (i_pe3 != 0) da = (dMphLevelArea[(i_pe3-1)+1] * 10.0);
+        if (i_pe3 != 0) da = (dMphLevelArea[(i_pe3-1)+1] * MphInc);
         zcvp = ab * ((0.1 * ht) - 0.005) + (da / 6) * ((0.03 * ht) - 0.001);
         zcv = zcv + zcvp;
         xpe = xpe + dens * zcvp;

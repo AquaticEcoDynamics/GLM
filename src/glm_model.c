@@ -501,10 +501,8 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
         //printf("WindSpeed = %10.5f\n",MetData.WindSpeed);
         //printf("SatVapDef = %10.5f\n",MetData.SatVapDef);
 
-        if (Lake[surfLayer].Height>0.1) {
-            //# Thermal transfers are done by do_surface_thermodynamics
-            do_surface_thermodynamics(jday, iclock, lw_ind, Latitude, SWold, SWnew);
-        }
+        //# Thermal transfers are done by do_surface_thermodynamics
+        do_surface_thermodynamics(jday, iclock, lw_ind, Latitude, SWold, SWnew);
 
 //      calc_mass_temp("After do_surface");
 
@@ -512,7 +510,7 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
         Light_Surface = Lake[surfLayer].Light/0.45;
 
         //# Mixing is done by do_mixing
-        // do_mixing();
+        do_mixing();
 
 //      calc_mass_temp("After do_mixing");
 

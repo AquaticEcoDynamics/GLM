@@ -449,7 +449,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
         if (Q_latentheat > 0.0) Q_latentheat = 0.0;
 
-        //Evaporative flux in m/s
+        // Evaporative flux in m/s
         if ( no_evap )
             SurfData.Evap = 0.0;
         else
@@ -850,8 +850,6 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         Lake[surfLayer].Height += (MetData.Snow * Lake[surfLayer].LayerArea * (1/10) * (noSecs / SecsPerDay));
         //SurfData.dailySnow += (MetData.Snow * Lake[surfLayer].LayerArea * (1.0/10.0) * (noSecs / SecsPerDay));
 
-        // MH VOLUME HACK
-        if (Lake[surfLayer].Height < 0.1)  Lake[surfLayer].Height = 0.1001 ;
         recalc_surface_salt();
     }
 

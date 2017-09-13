@@ -15,6 +15,8 @@
 !  min_z  - list of minimum values for the z component
 !  max_z  - list of maximum values for the z component
 !
+! For the moment really only the min/max values are worth
+! tinkering with
 !-----------------------------------------------------------
 &plots
   nplots = 9
@@ -27,19 +29,8 @@
 ! label_font = 'helvetica'
 ! label_size =  10
 
-! title = "Temperature", "Salinity",'DO','DIC','Ph','CH4','NO3','PO4','GreenIN'
-! vars  = 'temp','salt','aed_oxygen_oxy','aed_carbon_dic','aed_carbon_pH','aed_carbon_ch4','aed_nitrogen_nit','aed_phosphorus_frp','aed_phytoplankton_green_IN'
-! min_z =  0.0, 0.0,    0.0,    1.0,  0.0,  0.0,   0.,  0.,  0.
-! max_z = 27.0, 0.91, 800.0, 1800.0, 20.0, 28.0, 130., 10.,  5.
-!
-  title = 'Temperature', 'Salinity',     'DO',    'Green',    'Diatom',    'Crypto',    'NO3',    'PO4',    'Zoo01'
-  vars  =        'temp',     'salt','OXY_oxy','PHY_green','PHY_diatom','PHY_crypto','NIT_nit','PHS_frp','ZOO_zoo01'
-  min_z =           0.0,        0.0,      0.0,       10.0,         0.0,         0.0,       0.,      0.0,        0.0
-  max_z =          27.0,        1.00,   600.0,       20.0,        38.0,        12.0,      40.,      0.2,       20.0
-/
-
-!-----------------------------------------------------------
-&validation
-  time =
-  depths =
+  title = 'Temperature', 'Salinity',   'DO',      'Green',      'Diatom',   'Crypto',   'NO3',    'PO4',    'Zoo01'
+  vars  =    'temp',      'salt',   'OXY_oxy',   'PHY_green','PHY_diatom','PHY_crypto','NIT_nit','PHS_frp','ZOO_zoo01'
+  min_z =    -1.0,          0.0,      0.0,         0.0,           0.0,        0.0,        0.,      0.0,      0.0
+  max_z =    27.0,         1.00,    600.0,        20.0,          10.0,       15.0,       30.,      0.2,     20.0
 /
