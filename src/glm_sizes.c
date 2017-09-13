@@ -50,7 +50,7 @@
 
 int _storage_index(AED_REAL height, AED_REAL *y)
 {
-    AED_REAL _y = AMOD(height, 1.0);
+    AED_REAL _y = AMOD((height * MphInc), 1.0);
     int ij = height - _y;
     if (ij >= Nmorph) {
         _y += (ij - Nmorph);
@@ -64,16 +64,17 @@ int _storage_index(AED_REAL height, AED_REAL *y)
 AED_REAL _storage_volume(AED_REAL height)
 {
     AED_REAL y = 0.;
-    int ij = _storage_index((height * MphInc), &y);
+    int ij = _storage_index(height, &y);
 
-    return MphLevelVol[ij] + y * dMphLevelVol[ij];
+    if (ij >= 0) return MphLevelVol[ij] + y * dMphLevelVol[ij];
+    return MphLevelVol[0];
 }
 
 AED_REAL _storage_area(AED_REAL height)
 {
     AED_REAL y = 0.;
-    int ij = _storage_index((height * MphInc), &y);
+    int ij = _storage_index(height, &y);
 
-    if (ij != -1) return MphLevelArea[ij] + y * dMphLevelArea[ij];
-    return MphLevelArea[0] * height * MphInc;
+    if (ij >= 0) return MphLevelArea[ij] + y * dMphLevelArea[ij];
+    return MphLevelArea[0];
 }

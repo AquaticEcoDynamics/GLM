@@ -703,6 +703,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
             exit(1);
         }
         NumOut = num_outlet;
+        if (num_outlet<=0) num_outlet=1; // BEWARE: num_outlet is only used now for malloc
+                                         // remove this if you use it for anything else!!
         if ( flt_off_sw == NULL ) {
             flt_off_sw = malloc(sizeof(LOGICAL)*num_outlet);
             for (i = 0; i < NumOut; i++) flt_off_sw[i] = FALSE;
@@ -721,7 +723,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
                 }
             }
             Outflows[i].FloatOff = flt_off_sw[i];
-            if (Outflows[i].Type == 2 || Outflows[i].FloatOff ) {
+            if (Outflows[i].Type == 2 || Outflows[i].FloatOff) {
                 Outflows[i].FloatOff = TRUE;
                 Outflows[i].Type = 2;
             }
@@ -1123,8 +1125,11 @@ void create_lake(int namlst)
         y += (ij - Nmorph);
         ij = Nmorph;
     }
-    ij--;
-    VolAtCrest = MphLevelVol[ij] + y * dMphLevelVol[ij];
+    if (ij > 0) {
+        ij--;
+        VolAtCrest = MphLevelVol[ij] + y * dMphLevelVol[ij];
+    } else
+        VolAtCrest = MphLevelVol[0];
 
     memcpy(MphLevelVoldash, MphLevelVol, sizeof(AED_REAL) * Nmorph);    // MphLevelVoldash = MphLevelVol;
     memcpy(dMphLevelVolda, dMphLevelVol, sizeof(AED_REAL) * Nmorph);    // dMphLevelVolda = dMphLevelVol;
@@ -1235,7 +1240,7 @@ void initialise_lake(int namlst)
     }
 
     if ( (j = get_nml_listlen(namlst, "init_profiles", "wq_init_vals")) != (num_wq_vars * num_depths) )
-        fprintf(stderr, "WARNING: Initial profiles problem - epected %d wd_init_vals entries but got %d\n",
+        fprintf(stderr, "WARNING: Initial profiles problem - expected %d wd_init_vals entries but got %d\n",
                                              (num_wq_vars * num_depths), j);
 
     // Likewise for each of the listed wq vars
@@ -1251,9 +1256,9 @@ void initialise_lake(int namlst)
     }
 
     min_layers = (lake_depth / DMin) - 1;
-    if (min_layers > (MaxLayers-1)/2 ) min_layers = (MaxLayers-1)/2;
-    if ( min_layers > 50 ) min_layers = 50;
-    if ( min_layers < 3 ) min_layers = 3;
+    if (min_layers > (MaxLayers-1)/2) min_layers = (MaxLayers-1)/2;
+    if (min_layers > 50) min_layers = 50;
+    if (min_layers < 3) min_layers = 3;
 
     // Now interpolate into at least min_layers
     while (NumLayers <= min_layers) {

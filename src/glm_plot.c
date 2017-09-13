@@ -117,10 +117,10 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
        return;
     }
 
-    max_plots = nplots + 10;
+    max_plots = nplots + 12;
     theplots = malloc(max_plots*sizeof(int));
 
-    for (i = 0; i < max_plots+1; i++) theplots[i] = -1;
+    for (i = 0; i < max_plots; i++) theplots[i] = -1;
 
     glm_vers = malloc(strlen(GLM_VERSION) + 10);
     sprintf(glm_vers, "GLM-%s", GLM_VERSION);
@@ -147,7 +147,7 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
     h = 10;
     for (i = 0; i < nplots; i++) {
         int vn;
-        if ( ! (vn = intern_is_var(i, vars[i])) ) {
+        if ( !(vn = intern_is_var(i, vars[i])) ) {
             size_t l = strlen(vars[i]);
             if ( ! (vn = wq_is_var(&i, vars[i], &l)) ) {
                 fprintf(stderr, "No plottable var \"%s\"\n", vars[i]);

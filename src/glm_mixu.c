@@ -104,9 +104,14 @@ static void one_layer(int i, AED_REAL *xx, AED_REAL *dxx)
         y += (ij - Nmorph);
         ij = Nmorph;
     }
-    ij--; /* offset for 0 based index */
-    Lake[i].Vol1 = xx[ij] + y * dxx[ij];
-    Lake[i].LayerArea = MphLevelArea[ij] + y * dMphLevelArea[ij];
+    if (ij > 0) {  // CAB limit to 0 min.
+        ij--; // offset for 0 based index
+        Lake[i].Vol1 = xx[ij] + y * dxx[ij];
+        Lake[i].LayerArea = MphLevelArea[ij] + y * dMphLevelArea[ij];
+    } else {
+        Lake[i].Vol1 = xx[0];
+        Lake[i].LayerArea = MphLevelArea[0];
+    }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -136,15 +141,7 @@ void resize_internals(int icode, int lnu)
         for (k = 0; k < NumInf; k++)
             VolSum += Inflows[k].TotIn;
 
-//fprintf(stderr, "MIXU %i %12.4f %12.4f\n",NumLayers,Lake[surfLayer].Height,Lake[surfLayer].LayerVol );
-         if (NumLayers==1) {
-           if(Lake[surfLayer].Height<0.105) Lake[surfLayer].Height = 0.105;
-           one_layer(surfLayer, MphLevelVol, dMphLevelVol);
-//           fprintf(stderr, "MIX2 %i %12.4f %12.4f\n",NumLayers,Lake[surfLayer].Height,Lake[surfLayer].LayerVol );
- }
-
-//      while(1) {
-        while(NumLayers > 1) { // stop at 1
+        while(NumLayers >= 1) { // stop at 1
             one_layer(surfLayer, MphLevelVol, dMphLevelVol);
 
             Lake[surfLayer].Vol1 -= VolSum;
@@ -153,8 +150,9 @@ void resize_internals(int icode, int lnu)
             for (i = ln; i < surfLayer; i++)
                 one_layer(i, MphLevelVoldash, dMphLevelVolda);
 
-            if (surfLayer <= botmLayer ||
-                             Lake[surfLayer].Vol1 > Lake[surfLayer-1].Vol1)
+            if (surfLayer <= botmLayer)
+                break;
+            if (Lake[surfLayer].Vol1 > Lake[surfLayer-1].Vol1)
                 break;
 
             Lake[surfLayer-1].Vol1 = Lake[surfLayer].Vol1 + VolSum;
@@ -194,7 +192,7 @@ void resize_internals(int icode, int lnu)
             j++;
         }
         if (j >= Nmorph) j = Nmorph - 1;
-        Lake[surfLayer].Height = ((j+1) + ((VolSum - MphLevelVol[j]) / dMphLevelVol[j])) / 10.;
+        Lake[surfLayer].Height = ((j+1) + ((VolSum - MphLevelVol[j]) / dMphLevelVol[j])) / MphInc;
 
         if (lnu <= botmLayer) {
             l = 0;
@@ -202,11 +200,11 @@ void resize_internals(int icode, int lnu)
 
             /* find lowest layer (L) whose volume exceeds the first table entry */
             while (Lake[l].Vol1 <= MphLevelVoldash[0]) {
-                Lake[l].Height = (Lake[l].Vol1 / MphLevelVoldash[0]) / 10.;
+                Lake[l].Height = (Lake[l].Vol1 / MphLevelVoldash[0]) / MphInc;
                 l++;
             }
         } else {
-            x = Lake[lnu-1].Height * 10.;
+            x = Lake[lnu-1].Height * MphInc;
             y = AMOD(x, 1.0);
             j = (x - y) - 1;
             l = lnu;
@@ -223,18 +221,18 @@ void resize_internals(int icode, int lnu)
             }
             if (j >= Nmorph) j = Nmorph - 1;
 
-            Lake[k].Height = ((j+1) + (Lake[k].Vol1 - MphLevelVoldash[j]) / dMphLevelVolda[j]) / 10.;
+            Lake[k].Height = ((j+1) + (Lake[k].Vol1 - MphLevelVoldash[j]) / dMphLevelVolda[j]) / MphInc;
         }
 
         //# determine areas
         for (i = lnu; i <= surfLayer; i++) {
-            x = Lake[i].Height * 10.;
+            x = Lake[i].Height * MphInc;
             y = AMOD(x, 1.0);
             ij = (x - y) - 1;
             if (ij >= Nmorph) ij = Nmorph - 1;
 
-            if (ij != -1) Lake[i].LayerArea = MphLevelArea[ij] + y * dMphLevelArea[ij];
-            if (ij == -1) Lake[i].LayerArea = MphLevelArea[0] * Lake[i].Height * 10.;
+            if (ij >= 0) Lake[i].LayerArea = MphLevelArea[ij] + y * dMphLevelArea[ij];
+            else         Lake[i].LayerArea = MphLevelArea[0] * Lake[i].Height * MphInc;
         }
     }
 

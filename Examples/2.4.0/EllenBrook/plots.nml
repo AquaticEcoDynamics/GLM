@@ -4,8 +4,8 @@
 !-----------------------------------------------------------
 
 &plots_window
-  width = 1500
-  height = 900
+  width = 1000
+  height=  300
 /
 
 !-----------------------------------------------------------
@@ -19,7 +19,7 @@
 ! tinkering with
 !-----------------------------------------------------------
 &plots
-  nplots = 9
+  nplots = 2
   plot_width = 400
   plot_height = 200
 
@@ -29,8 +29,8 @@
 ! label_font = 'helvetica'
 ! label_size =  10
 
-  title = 'Temperature', 'Salinity',   'DO',      'Green',      'Diatom',   'Crypto',   'NO3',    'PO4',    'Zoo01'
-  vars  =    'temp',      'salt',   'OXY_oxy',   'PHY_green','PHY_diatom','PHY_crypto','NIT_nit','PHS_frp','ZOO_zoo01'
-  min_z =    -1.0,          0.0,      0.0,         0.0,           0.0,        0.0,        0.,      0.0,      0.0
-  max_z =    27.0,         1.00,    600.0,        20.0,          10.0,       15.0,       30.,      0.2,     20.0
+  title = 'Temperature', 'Salinity'
+  vars  = 'temp','salt'
+  min_z =  -1.0, 0.0
+  max_z =   6.0, 1.0
 /
