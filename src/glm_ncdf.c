@@ -59,6 +59,9 @@ static int HICE_id,HSNOW_id,HWICE_id;
 static int precip_id,evap_id,rho_id,rad_id,extc_id,i0_id,wnd_id;
 static int temp_id, salt_id, umean_id, uorb_id;
 
+#ifdef _WIN32
+    char *strndup(const char *s, size_t len);
+#endif
 
 /*============================================================================*/
 static void check_nc_error(int err);

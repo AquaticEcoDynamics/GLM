@@ -11,12 +11,8 @@ binary:
 	dh_testdir
 	-mkdir -p $(CURDIR)/debian/glm/usr/local/bin
 	-(cp $(CURDIR)/glm $(CURDIR)/debian/glm/usr/local/bin)
-	touch build-stamp
-	dh_compress
-	dh_fixperms
-	dh_installdeb
+	dh_install
 	dh_gencontrol
-	dh_md5sums
 	dh_builddeb
 
 

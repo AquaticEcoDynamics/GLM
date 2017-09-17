@@ -3,9 +3,10 @@ Section: science
 Priority: extra
 Maintainer: Aquatic EcoDynamics Group
 Standards-Version: 3.9.3
+Homepage: http://aed.see.uwa.edu.au/research/models/GLM/
 
 Package: glm
-Architecture: amd64
+Architecture: any
 Depends: ${misc:Depends},
   libnetcdf-dev,
   libgd-dev
@@ -13,7 +14,7 @@ Description: General Lake Model
  Model the bio-geo-chemical processes in lakes.
 
 Package: glm+
-Architecture: amd64
+Architecture: any
 Depends: ${misc:Depends},
   libnetcdf-dev,
   libgd-dev
