@@ -323,29 +323,32 @@ void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol)
     extern int csv_outlet_allinone, csv_outfl_nvars;
     extern int ofl_wq_idx[];
     static AED_REAL vol_tot, state_of_v[MaxCSVOutVars];
+
     //# work out which level the outflow is at now.
     for (lvl = botmLayer; lvl <= surfLayer; lvl++)
         if (Lake[lvl].Height >= DrawHeight) break;
 
-    if ( lvl > surfLayer ) return; // DrawHeight above the lake top
+    if ( lvl > surfLayer ) vol = 0.; // DrawHeight above the lake top
 
-    if ( csv_outlet_allinone ) {
-        if ( of_idx == 0 ) // initialize
-            vol_tot = 0;
+    else {
+        if ( csv_outlet_allinone ) {
+            if ( of_idx == 0 ) // initialize
+                vol_tot = 0;
 
-        for (i = 0; i < csv_outfl_nvars; i++) {
-            state_of_v[i] *= vol_tot;
-            state_of_v[i] += (vol * _WQ_Vars(ofl_wq_idx[i], lvl));
+            for (i = 0; i < csv_outfl_nvars; i++) {
+                state_of_v[i] *= vol_tot;
+                state_of_v[i] += (vol * _WQ_Vars(ofl_wq_idx[i], lvl));
+            }
+            vol_tot += vol;
+            for (i = 0; i < csv_outfl_nvars; i++)
+                state_of_v[i] /= vol_tot;
+
+            if ( of_idx != MaxOut ) return;
+            of_idx = 0;
+        } else if (wq_calc) {
+            for (i = 0; i < csv_outfl_nvars; i++)
+                if ( ofl_wq_idx[i] >= 0 ) state_of_v[i] = _WQ_Vars(ofl_wq_idx[i], lvl);
         }
-        vol_tot += vol;
-        for (i = 0; i < csv_outfl_nvars; i++)
-            state_of_v[i] /= vol_tot;
-
-        if ( of_idx != MaxOut ) return;
-        of_idx = 0;
-    } else if (wq_calc) {
-        for (i = 0; i < csv_outfl_nvars; i++)
-            if ( ofl_wq_idx[i] >= 0 ) state_of_v[i] = _WQ_Vars(ofl_wq_idx[i], lvl);
     }
 
     write_time_string(ts, jday, 0);
@@ -353,13 +356,15 @@ void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol)
     write_csv_outfl(of_idx, "time",       0.0,                     ts,   FALSE);
     write_csv_outfl(of_idx, "flow",       vol,                     NULL, FALSE);
 
-    write_csv_outfl(of_idx, "Temp",       Lake[lvl].Temp,          NULL, FALSE);
-    write_csv_outfl(of_idx, "Salt",       Lake[lvl].Salinity,      NULL, FALSE);
+    if (vol > 0. ) {
+        write_csv_outfl(of_idx, "Temp",   Lake[lvl].Temp,          NULL, FALSE);
+        write_csv_outfl(of_idx, "Salt",   Lake[lvl].Salinity,      NULL, FALSE);
 
-    if (wq_calc) {   //# must do each of the WQ vars
-        // # the first 3 vars are flow, temp and salt
-        for (i = 3; i < csv_outfl_nvars; i++)
-            write_csv_outfl_idx(of_idx, i,    state_of_v[i],       NULL, FALSE);
+        if (wq_calc) {   //# must do each of the WQ vars
+            // # the first 3 vars are flow, temp and salt
+            for (i = 3; i < csv_outfl_nvars; i++)
+                write_csv_outfl_idx(of_idx, i,  state_of_v[i],     NULL, FALSE);
+        }
     }
 
     //# force a newline
