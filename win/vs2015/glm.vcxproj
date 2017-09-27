@@ -129,7 +129,7 @@
       </Version>
       <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;.\$(PlatformName)-$(ConfigurationName)\lib\;..\..\..\..\additions\lib_$(Platform)\;$(Platform)-$(Configuration);C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\ia64_win;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <IgnoreSpecificDefaultLibraries>libcmtd.lib;msvcrt.lib;libmmt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <IgnoreSpecificDefaultLibraries>libcmtd.lib;libcmt.lib;msvcrt.lib;libmmt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

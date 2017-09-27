@@ -102,8 +102,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
      *-------------------------------------------*/
     char           *twq_lib = NULL;
     char           *wq_nml_file = "aed2.nml";
-//  int             ode_method;
-//  int             split_factor;
+    int             lode_method;
+    int             lsplit_factor;
 //  LOGICAL         bioshade_feedback;
 //  LOGICAL         repair_state;
 //  CLOGICAL        mobility_off;
@@ -291,8 +291,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "wq_setup",          TYPE_START,            NULL               },
           { "wq_lib",            TYPE_STR,              &twq_lib           },
           { "wq_nml_file",       TYPE_STR,              &wq_nml_file       },
-          { "ode_method",        TYPE_INT,              &ode_method        },
-          { "split_factor",      TYPE_INT,              &split_factor      },
+          { "ode_method",        TYPE_INT,              &lode_method       },
+          { "split_factor",      TYPE_INT,              &lsplit_factor     },
           { "bioshade_feedback", TYPE_BOOL,             &bioshade_feedback },
           { "repair_state",      TYPE_BOOL,             &repair_state      },
           { "mobility_off",      TYPE_BOOL,             &mobility_off      },
@@ -494,6 +494,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         bioshade_feedback = TRUE;
         repair_state      = FALSE;
         n_zones           = 0;
+    } else {
+        ode_method        = lode_method;
+        split_factor      = lsplit_factor;
     }
     if ( twq_lib != NULL ) strncpy(wq_lib, twq_lib, 128);
 

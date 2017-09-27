@@ -539,6 +539,7 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
 //printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
 
         check_layer_stability();
+
 //printf("n5 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
 //printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);
 //printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
