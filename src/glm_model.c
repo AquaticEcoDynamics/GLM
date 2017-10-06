@@ -60,7 +60,6 @@
 #include "glm_lnum.h"
 #include "glm_wqual.h"
 #include "glm_stress.h"
-#include "glm_bubbler.h"
 #if PLOTS
 #include <libplot.h>
 #include "glm_plot.h"
@@ -143,8 +142,6 @@ void init_model(int *jstart, int *nsave)
     psubday = timestep * (*nsave) / 86400.;
     plotstep = 0;
 #endif
-
-    if ( bubbler_on ) init_bubbler();
 
     //# Create the output files.
     init_output(*jstart, out_dir, out_fn, MaxLayers, Longitude, Latitude);
@@ -483,8 +480,6 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
 
 //  calc_mass_temp("Beg Day");
 
-    if ( bubbler_on ) read_bubbler(jday);
-
     noSecs = timestep;
     coef_wind_drag = CD;
 
@@ -609,8 +604,6 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
         //#If sub-daily re-set SWold
         if ( subdaily ) SWold = SWnew;
 
-        if ( bubbler_on ) do_bubbler(jday, iclock);
-
         iclock += noSecs;
     }   //# do while (iclock < 86400)
     /**************************************************************************
@@ -620,8 +613,6 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
 #if PLOTS
     plotstep = 0;
 #endif
-
-    if ( bubbler_on ) write_bubbler(jday);
 
     return stepnum;
 }
@@ -635,16 +626,12 @@ void end_model()
 {
     fputc('\n', stdout);
 
-    if ( bubbler_on ) print_bubbler();
-
     close_met_files();
     close_inflow_files();
     close_outflow_files();
     close_withdrtemp_files();
 
     if (wq_calc) wq_clean_glm();    //# deallocataes wq stuff
-
-    if ( bubbler_on ) done_bubbler();
 
     close_output();
 }
