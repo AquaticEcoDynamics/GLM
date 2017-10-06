@@ -251,25 +251,6 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL         sed_temp_peak_doy;
     /*-------------------------------------------*/
 
-    /*---------------------------------------------
-     * bubbler
-     *-------------------------------------------*/
-    extern LOGICAL         bubbler_on;
-    extern char           *bubbler_data_file;
-    extern AED_REAL        bubbler_aflow;
-    extern int             bubbler_nports;
-    extern AED_REAL        bubbler_bublen;
-    extern AED_REAL        bubbler_bdepth;
-    extern LOGICAL         bubbler_opopt;
-    extern AED_REAL        bubbler_ton;
-    extern AED_REAL        bubbler_toff;
-    extern LOGICAL         bubbler_intopt;
-    extern char           *bubbler_start;
-    extern char           *bubbler_stop;
-    extern LOGICAL         bubbler_eff;
-    extern char           *bubbler_eff_file;
-    /*-------------------------------------------*/
-
     int i, j, k;
     int namlst;
 
@@ -419,24 +400,6 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "diffuser",          TYPE_START,            NULL               },
           { "NumDif",            TYPE_INT,              &NumDif            },
           { "diff",              TYPE_DOUBLE|MASK_LIST, &mol_diffusivity   },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST bubbler[] = {
-          { "bubbler",           TYPE_START,            NULL               },
-          { "on",                TYPE_BOOL,             &bubbler_on        },
-          { "data_file",         TYPE_STR,              &bubbler_data_file },
-          { "aflow",             TYPE_DOUBLE,           &bubbler_aflow     },
-          { "nports",            TYPE_INT,              &bubbler_nports    },
-          { "bublen",            TYPE_DOUBLE,           &bubbler_bublen    },
-          { "bdepth",            TYPE_DOUBLE,           &bubbler_bdepth    },
-          { "opopt",             TYPE_BOOL,             &bubbler_opopt     },
-          { "ton",               TYPE_DOUBLE,           &bubbler_ton       },
-          { "toff",              TYPE_DOUBLE,           &bubbler_toff      },
-          { "intopt",            TYPE_BOOL,             &bubbler_intopt    },
-          { "start",             TYPE_STR,              &bubbler_start     },
-          { "stop",              TYPE_STR,              &bubbler_stop      },
-          { "eff",               TYPE_BOOL,             &bubbler_eff       },
-          { "eff_file",          TYPE_STR,              &bubbler_eff_file  },
           { NULL,                TYPE_END,              NULL               }
     };
     NAMELIST debugging[] = {
@@ -895,13 +858,6 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         wq_set_glm_data(Lake, &MaxLayers, &MetData, &SurfData, &dt);
     }
 
-
-    // -- bubbler
-
-    if ( get_namelist(namlst, bubbler) )
-        bubbler_on = FALSE;
-    if ( bubbler_on && (bubbler_data_file != NULL) )
-         open_bubbler_file(bubbler_data_file, NULL);
 
     get_namelist(namlst, debugging);
 

@@ -250,7 +250,6 @@ OBJS=${objdir}/glm_globals.o \
      ${objdir}/glm_types.o \
      ${objdir}/glm_const.o \
      ${objdir}/glm_restart.o \
-     ${objdir}/glm_bubbler.o \
      ${objdir}/glm_main.o
 
 ifeq ($(USE_DL),true)

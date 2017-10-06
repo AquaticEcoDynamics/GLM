@@ -66,18 +66,9 @@ typedef struct _withdrTemp_data_ {
     int wtemp_idx;
 } WithdrawalTempDataT;
 
-typedef struct _bubl_data_ {
-    int bubf;
-    int flow_idx;
-    int port_idx;
-    int depth_idx;
-    int length_idx;
-} BubbleDataT;
-
 static InflowDataT inf[MaxInf];
 static OutflowDataT outf[MaxOut];
 static WithdrawalTempDataT withdrTempf = { -1, -1 };
-static BubbleDataT bubl;
 
 static int metf;
 static int rain_idx, hum_idx, lwav_idx, sw_idx, atmp_idx, wind_idx, snow_idx,
@@ -310,25 +301,6 @@ void read_sub_daily_met(int julian, int iclock, MetDataType *met)
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-void read_bubble_data(int julian, AED_REAL *aFlow, int *nPorts,
-                                            AED_REAL *bDepth, AED_REAL *bLength)
-{
-    int csv;
-
-    csv = bubl.bubf;
-    find_day(csv, time_idx, julian);
-
-    *aFlow   = get_csv_val_r(csv, bubl.flow_idx);
-    *nPorts  = get_csv_val_i(csv, bubl.port_idx);
-    *bDepth  = get_csv_val_r(csv, bubl.depth_idx);
-    *bLength = get_csv_val_r(csv, bubl.length_idx);
-}
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
-
-/******************************************************************************
- *                                                                            *
- ******************************************************************************/
 static void locate_time_column(int csv, const char *which, const char *fname)
 {
     int lt_idx = -1;
@@ -506,26 +478,6 @@ void open_withdrtemp_file(const char *fname, const char *timefmt)
     locate_time_column(withdrTempf.withdrTempf, "withdrTemp", fname);
 
     withdrTempf.wtemp_idx = find_csv_var(withdrTempf.withdrTempf,"temp");
-}
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
-
-/******************************************************************************
- *                                                                            *
- ******************************************************************************/
-void open_bubbler_file(const char *fname, const char *timefmt)
-{
-    if ( (bubl.bubf = open_csv_input(fname, timefmt)) < 0 ) {
-        fprintf(stderr, "Failed to open '%s'\n", fname);
-        exit(1) ;
-    }
-
-//  locate_time_column(bubl.bubf, "bubbler", fname);
-
-    bubl.flow_idx = find_csv_var(bubl.bubf, "aFlow");
-    bubl.port_idx = find_csv_var(bubl.bubf, "nPorts");
-    bubl.depth_idx = find_csv_var(bubl.bubf, "bDepth");
-    bubl.length_idx = find_csv_var(bubl.bubf, "bLength");
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
