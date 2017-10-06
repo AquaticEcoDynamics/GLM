@@ -94,6 +94,7 @@ extern AED_REAL *zone_heights;   //* heights for sed_zones
 extern AED_REAL *zone_area;  //* areas for sed_zones
 
 
+extern CLOGICAL do_restart;
 extern CLOGICAL atm_stab;      // Account for non-neutral atmospheric stability
 
 /*----------------------------------------------------------------------------*/

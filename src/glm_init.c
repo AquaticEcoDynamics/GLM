@@ -98,6 +98,12 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-------------------------------------------*/
 
     /*---------------------------------------------
+     * glm restart
+     *-------------------------------------------*/
+    char           *restart_file = NULL;
+    /*-------------------------------------------*/
+
+    /*---------------------------------------------
      * wq setup
      *-------------------------------------------*/
     char           *twq_lib = NULL;
@@ -285,6 +291,11 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "coef_mix_hyp",      TYPE_DOUBLE,           &coef_mix_hyp      },
           { "non_avg",           TYPE_BOOL,             &non_avg           },
           { "deep_mixing",       TYPE_INT,              &deep_mixing       },
+          { NULL,                TYPE_END,              NULL               }
+    };
+    NAMELIST glm_restart[] = {
+          { "glm_restart",       TYPE_START,            NULL               },
+          { "restart_file",      TYPE_STR,              &restart_file      },
           { NULL,                TYPE_END,              NULL               }
     };
     NAMELIST wq_setup[] = {
@@ -482,6 +493,13 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     DMin = min_layer_thick;
     DMax = max_layer_thick;
     NumLayers = 0;
+
+    //-------------------------------------------------
+    if ( get_namelist(namlst, glm_restart) ) {
+        do_restart = FALSE;
+    } else {
+        do_restart = (restart_file != NULL);
+    }
 
     wq_calc   = TRUE;
 
