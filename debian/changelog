@@ -1,10 +1,11 @@
-glm (2.4.0rc2-0) UNRELEASED; urgency=low
+glm (2.4.0rc3-0) UNRELEASED; urgency=low
 
   [ Casper Boon ]
   * new version 2.4.0rc1
   * new version 2.4.0rc2
+  * new version 2.4.0rc3
 
- -- Casper Boon <casper@oldmail.ambinet.com.au>  Tue, 26 Sep 2017 12:11:37 +0800
+ -- Casper Boon <casper@eridanus>  Thu, 12 Oct 2017 11:14:00 +0800
 
 glm (2.2.1-0) UNRELEASED; urgency=low
 
