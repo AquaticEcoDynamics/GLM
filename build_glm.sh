@@ -45,7 +45,11 @@ fi
 
 if [ 1 = 0 ] ; then
 if [ "$FABM" = "true" ] ; then
-  export COMPILATION_MODE=production
+  if [ "$DEBUG" = "true" ] ; then
+    export COMPILATION_MODE=debug
+  else
+    export COMPILATION_MODE=production
+  fi
 
   if [ ! -d $FABMDIR ] ; then
     echo "FABM directory not found"

@@ -2,7 +2,7 @@
 
 package=glm
 year=2017
-version=2.4.0rc3
+version=2.4.0rc4
 release=0.0
 
 #export DH_VERBOSE=1
