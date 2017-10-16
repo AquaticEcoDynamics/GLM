@@ -1,12 +1,13 @@
-glm (2.4.0rc4-0) UNRELEASED; urgency=low
+glm (2.4.0rc5-0) UNRELEASED; urgency=low
 
   [ Casper Boon ]
   * new version 2.4.0rc1
   * new version 2.4.0rc2
   * new version 2.4.0rc3
   * new version 2.4.0rc4
+  * new version 2.4.0rc5
 
- -- Casper Boon <casper@eridanus>  Fri, 13 Oct 2017 10:31:49 +0800
+ -- Casper Boon <casper@eridanus>  Mon, 16 Oct 2017 13:25:13 +0800
 
 glm (2.2.1-0) UNRELEASED; urgency=low
 
