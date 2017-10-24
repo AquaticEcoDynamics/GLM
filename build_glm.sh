@@ -3,6 +3,8 @@
 if [ "$GLM_CONFIGURED" != "true" ] ; then
   . ./GLM_CONFIG
 
+  export FABM=false
+
   export OSTYPE=`uname -s`
 
   if [ "$FORTRAN_COMPILER" = "IFORT" ] ; then
@@ -43,7 +45,16 @@ else
   export CURDIR=`pwd`
 fi
 
-if [ 1 = 0 ] ; then
+if [ "$AED2DIR" = "" ] ; then
+  export AED2DIR=../libaed2
+fi
+if [ "$PLOTDIR" = "" ] ; then
+  export PLOTDIR=../libplot
+fi
+if [ "$UTILDIR" = "" ] ; then
+  export UTILDIR=../libutil
+fi
+
 if [ "$FABM" = "true" ] ; then
   if [ "$DEBUG" = "true" ] ; then
     export COMPILATION_MODE=debug
@@ -94,48 +105,10 @@ fi
 cd ${UTILDIR}
 make || exit 1
 
-fi
-
 if [ -f ${CURDIR}/src/glm ] ; then
   /bin/rm ${CURDIR}/src/glm
 fi
 cd ${CURDIR}
 make || exit 1
-
-cd ${CURDIR}
-
-if [ "$OSTYPE" = "Linux" ] ; then
-  VERSION=`grep GLM_VERSION src/glm.h | cut -f2 -d\"`
-  echo glm version $VERSION
-  if [ -f /etc/debian_version ] ; then
-    VERSDEB=`head -1 debian/changelog | cut -f2 -d\( | cut -f1 -d-`
-    echo debian version $VERSDEB
-    if [ "$VERSION" != "$VERSDEB" ] ; then
-      echo updating debian version
-      dch --newversion ${VERSION}-0 "new version ${VERSION}"
-    fi
-
-    fakeroot make -f debian/rules binary || exit 1
-  fi
-
-  cd ${CURDIR}/win
-  ${CURDIR}/vers.sh $VERSION
-  cd ${CURDIR}/win-dll
-  ${CURDIR}/vers.sh $VERSION
-
-  cd ${CURDIR}
-  if [ ! -d bin/ubuntu/$(lsb_release -rs) ] ; then
-    mkdir -p bin/ubuntu/$(lsb_release -rs)/
-  fi
-  mv ../glm*.deb bin/ubuntu/$(lsb_release -rs)/
-fi
-if [ "$OSTYPE" = "Darwin" ] ; then
-  if [ ! -d ${CURDIR}/bin/macos ] ; then
-     mkdir -p ${CURDIR}/bin/macos
-  fi
-  cd ${CURDIR}/macos
-  /bin/bash macpkg.sh ${HOMEBREW}
-  mv ${CURDIR}/macos/glm_*.zip ${CURDIR}/bin/macos/
-fi
 
 exit 0
