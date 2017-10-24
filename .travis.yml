@@ -12,6 +12,7 @@
   "script": [
     "source /opt/intel/bin/compilervars.sh intel64",
     "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/ism/bin/intel64",
+    "git clone --depth=50 --branch=master https://github.com/AquaticEcoDynamics/libutil.git AquaticEcoDynamics/libutil",
     "./build_glm.sh",
     "./glm-aed/src/glm --help"
   ],
