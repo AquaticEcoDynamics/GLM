@@ -2,48 +2,44 @@
 
 if [ "$GLM_CONFIGURED" != "true" ] ; then
   . ./GLM_CONFIG
-
-  export FABM=false
-
-  export OSTYPE=`uname -s`
-
-  if [ "$FORTRAN_COMPILER" = "IFORT" ] ; then
-    if [ -d /opt/intel/bin ] ; then
-      . /opt/intel/bin/compilervars.sh intel64
-    fi
-    which ifort >& /dev/null
-    if [ $? != 0 ] ; then
-      echo ifort compiler requested, but not found
-      exit 1
-    fi
-  fi
-
-  if [ "$FORTRAN_COMPILER" = "IFORT" ] ; then
-    export PATH="/opt/intel/bin:$PATH"
-    export FC=ifort
-    export NETCDFHOME=/opt/intel
-  else
-    export FC=gfortran
-    export NETCDFHOME=/usr
-    if [ "$OSTYPE" == "Darwin" ] ; then
-      export NETCDFHOME=/opt/local
-    fi
-  fi
-
-  export F77=$FC
-  export F90=$FC
-  export F95=$FC
-
-  export MPI=OPENMPI
-
-  export NETCDFINC=$NETCDFHOME/include
-  export NETCDFINCL=${NETCDFINC}
-  export NETCDFLIBDIR=$NETCDFHOME/lib
-  export NETCDFLIB=${NETCDFLIBDIR}
-  export NETCDFLIBNAME="-lnetcdff -lnetcdf"
-else
-  export CURDIR=`pwd`
 fi
+
+export OSTYPE=`uname -s`
+
+if [ "$FORTRAN_COMPILER" = "IFORT" ] ; then
+  if [ -d /opt/intel/bin ] ; then
+    . /opt/intel/bin/compilervars.sh intel64
+  fi
+  which ifort >& /dev/null
+  if [ $? != 0 ] ; then
+    echo ifort compiler requested, but not found
+    exit 1
+  fi
+fi
+
+if [ "$FORTRAN_COMPILER" = "IFORT" ] ; then
+  export PATH="/opt/intel/bin:$PATH"
+  export FC=ifort
+  export NETCDFHOME=/opt/intel
+else
+  export FC=gfortran
+  export NETCDFHOME=/usr
+  if [ "$OSTYPE" == "Darwin" ] ; then
+    export NETCDFHOME=/opt/local
+  fi
+fi
+
+export F77=$FC
+export F90=$FC
+export F95=$FC
+
+export MPI=OPENMPI
+
+export NETCDFINC=$NETCDFHOME/include
+export NETCDFINCL=${NETCDFINC}
+export NETCDFLIBDIR=$NETCDFHOME/lib
+export NETCDFLIB=${NETCDFLIBDIR}
+export NETCDFLIBNAME="-lnetcdff -lnetcdf"
 
 if [ "$AED2DIR" = "" ] ; then
   export AED2DIR=../libaed2
