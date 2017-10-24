@@ -15,8 +15,6 @@
     "git clone --depth=50 --branch=master https://github.com/AquaticEcoDynamics/libutil.git ../libutil",
     "git clone --depth=50 --branch=master https://github.com/AquaticEcoDynamics/libplot.git ../libplot",
     "git clone --depth=50 --branch=master https://github.com/AquaticEcoDynamics/libaed2.git ../libaed2",
-    "pwd",
-    "ls",
     "export FABM=false",
     "export AED2=true",
     "export USE_DL=false",
@@ -29,7 +27,7 @@
     "export UTILDIR=${CURDIR}/../libutil",
     "export GLM_CONFIGURED=true",
     "./build_glm.sh",
-    "./glm-aed/src/glm --help"
+    "./glm --help"
   ],
   "after_success": null,
   "group": "stable",
