@@ -249,6 +249,7 @@ OBJS=${objdir}/glm_globals.o \
      ${objdir}/glm_stress.o \
      ${objdir}/glm_bird.o \
      ${objdir}/glm_model.o \
+     ${objdir}/glm_restart.o \
      ${objdir}/glm_types.o \
      ${objdir}/glm_const.o \
      ${objdir}/glm_main.o
