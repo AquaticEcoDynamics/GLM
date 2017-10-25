@@ -89,36 +89,36 @@ endif
 ifeq ($(FORTRAN_COMPILER),)
   FORTRAN_COMPILER=GFORTRAN
 endif
-ifeq ($(COMPILATION_MODE),)
-  COMPILATION_MODE=production
-endif
 
 ifeq ($(FABM),true)
+  ifeq ($(DEBUG),true)
+    COMPILATION_MODE=debug
+  else
+    COMPILATION_MODE=production
+  endif
   ifeq ($(FABMDIR),)
     FABMDIR=../fabm-git
   endif
   DEFINES+=-DFABM
 
   ifeq ($(FABM_OLD_BUILD),true)
-    ifeq ($(COMPILATION_MODE),production)
-      FABMLIB=fabm_prod
-      WITH_CHECKS=false
-    endif
-    ifeq ($(COMPILATION_MODE),debug)
+    ifeq ($(DEBUG),true)
       FABMLIB=fabm_debug
       WITH_CHECKS=true
+    else
+      FABMLIB=fabm_prod
+      WITH_CHECKS=false
     endif
 
     FINCLUDES+=-I$(FABMDIR)/include -I$(FABMDIR)/src/drivers/glm -I$(FABMDIR)/modules/glm/$(FORTRAN_COMPILER)
     FABMLIBS=-L$(FABMDIR)/lib/glm/$(FORTRAN_COMPILER) -l$(FABMLIB)
   else
-    ifeq ($(COMPILATION_MODE),production)
+    ifeq ($(DEBUG),true)
+      FABMLIB=fabm
+      WITH_CHECKS=true
+    else
       FABMLIB=fabm
       WITH_CHECKS=false
-    endif
-    ifeq ($(COMPILATION_MODE),debug)
-      FABMLIB=fabm_debug
-      WITH_CHECKS=true
     endif
 
     FINCLUDES+=-I$(FABMDIR)/include -I$(FABMDIR)/src/drivers/glm -I$(FABMDIR)/build/modules
@@ -222,7 +222,9 @@ ifeq ($(WITH_PLOTS),true)
     endif
   endif
 endif
-#LIBS+=-lefence
+ifeq ($(DEBUG),true)
+  LIBS+=-lefence
+endif
 
 CFLAGS=-Wall -I$(UTILDIR) -I$(PLOTDIR) $(CINCLUDES) $(DEFINES) $(DEBUG_CFLAGS) $(OPT_CFLAGS)
 FFLAGS+=$(DEBUG_FFLAGS) $(OPT_FFLAGS)
@@ -249,7 +251,6 @@ OBJS=${objdir}/glm_globals.o \
      ${objdir}/glm_model.o \
      ${objdir}/glm_types.o \
      ${objdir}/glm_const.o \
-     ${objdir}/glm_restart.o \
      ${objdir}/glm_main.o
 
 ifeq ($(USE_DL),true)

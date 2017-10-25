@@ -953,8 +953,19 @@ void create_lake(int namlst)
         exit(1);
     }
 
-    if ( n_zones && zone_heights != NULL )
+    if ( n_zones > 0 && zone_heights != NULL ) {
+        if ( zone_heights[n_zones-1] < (crest_elev-base_elev) ) {
+            fprintf(stderr, "WARNING last zone height is less than maximum depth\n");
+            fprintf(stderr, "   adding an extra zone to compensate\n");
+            zone_heights = realloc(zone_heights, (n_zones+2)*sizeof(AED_REAL));
+            if ( zone_heights == NULL) {
+                fprintf(stderr, "Memory error ...\n"); exit(1);
+            }
+            zone_heights[n_zones++] = (crest_elev-base_elev)+1;
+        }
+
         zone_area = malloc(n_zones * sizeof(AED_REAL));
+    }
 
     Lake = malloc(sizeof(LakeDataType)*MaxLayers);
     memset(Lake, 0, sizeof(LakeDataType)*MaxLayers);

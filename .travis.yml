@@ -6,15 +6,15 @@
     "sudo apt-get update",
     "sudo apt-get -y install libnetcdf-dev build-essential libnetcdff5 libnetcdfc7 libnetcdfc++4 libcf0 netcdf-doc netcdf-bin",
     "sudo apt-get -y install libgd-dev libgd2-xpm-dev debhelper",
-    "chmod 755 ./install-icc.sh",
-    "sudo ./install-icc.sh --components icc,openmp,ipp,ifort --dest /opt/intel"
+    "chmod 755 .travis/install-icc.sh",
+    "sudo .travis/install-icc.sh --components icc,openmp,ipp,ifort --dest /opt/intel"
   ],
   "script": [
     "source /opt/intel/bin/compilervars.sh intel64",
     "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/ism/bin/intel64",
     "git clone --depth=50 --branch=master https://github.com/AquaticEcoDynamics/libutil.git ../libutil",
     "git clone --depth=50 --branch=master https://github.com/AquaticEcoDynamics/libplot.git ../libplot",
-    "git clone --depth=50 --branch=master https://github.com/AquaticEcoDynamics/libaed2.git ../libaed2",
+    "git clone --depth=50 --branch=dev https://github.com/AquaticEcoDynamics/libaed2.git ../libaed2",
     "export FABM=false",
     "export AED2=true",
     "export USE_DL=false",

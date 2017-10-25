@@ -896,7 +896,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
          IF ( zone_var .GE. 1 ) THEN
             column_sed(zone_var)%cell_sheet => z_sed_zones(zon)
     !       !MH WE NEED A COLUMN TO CC VAR MAP FOR BENTHIC GUYS
-            !CAB Yes, a map (or 2 maps) wuld be better, but QnD since this all needs reworking
+            !CAB Yes, a map (or 2 maps) would be better, but QnD since this all needs reworking
             sv = 0 ; sd = 0
             DO av=1,n_aed2_vars
                IF ( .NOT.  aed2_get_var(av, tvar) ) STOP "Error getting variable info"
@@ -910,7 +910,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
                   ENDIF
                ENDIF
             ENDDO
-            !print*,"Calling ben for zone ",zone_var,i,z_cc(i,31)
+            !print*,"Calling ben for zone ",zone_var,zon,z_sed_zones(zon)
          ENDIF
          IF ( benthic_mode .EQ. 3 ) THEN
             !# Zone is able to operated on by riparian and dry methods
@@ -921,6 +921,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
          !# They are stored in flux_ben (benthic vars) and flux_pel (water vars)
          flux_pel_pre = flux_pel
 
+!           print*,"Calling ben for zone ",zone_var,zon,z_sed_zones(zon)
          CALL aed2_calculate_benthic(column_sed, zon)
 
          !# Record benthic fluxes in the zone array

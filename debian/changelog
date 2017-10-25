@@ -1,7 +1,7 @@
-glm (2.9.0-0) UNRELEASED; urgency=low
+glm (2.7.0-0) UNRELEASED; urgency=low
 
   [ Casper Boon ]
-  * new version 2.9.0
+  * new version 2.7.0
 
  -- Casper Boon <casper.boon@uwa.edu.au>  Tue, 27 Sep 2017 13:40:43 +0800
 
