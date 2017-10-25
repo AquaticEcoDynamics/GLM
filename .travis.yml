@@ -6,8 +6,8 @@
     "sudo apt-get update",
     "sudo apt-get -y install libnetcdf-dev build-essential libnetcdff5 libnetcdfc7 libnetcdfc++4 libcf0 netcdf-doc netcdf-bin",
     "sudo apt-get -y install libgd-dev libgd2-xpm-dev debhelper",
-    "chmod 755 ./install-icc.sh",
-    "sudo ./install-icc.sh --components icc,openmp,ipp,ifort --dest /opt/intel"
+    "chmod 755 .travis/install-icc.sh",
+    "sudo .travis/install-icc.sh --components icc,openmp,ipp,ifort --dest /opt/intel"
   ],
   "script": [
     "source /opt/intel/bin/compilervars.sh intel64",
