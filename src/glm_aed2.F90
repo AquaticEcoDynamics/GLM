@@ -1356,21 +1356,21 @@ SUBROUTINE aed2_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE
    DO i=1,n_aed2_vars
       IF ( aed2_get_var(i, tv) ) THEN
          IF ( tv%diag ) THEN
-            !# Process and store diagnostic variables defined on the full domain.
+            !# Process and store diagnostic variables.
             IF ( tv%sheet ) THEN
                sd = sd + 1
                !# Process and store diagnostic variables defined on horizontal slices of the domain.
-               IF ( n_zones .GT. 0 ) THEN
-                  CALL store_nc_array(ncid, externalid(i), XYNT_SHAPE, n_zones, n_zones, array=cc_diag(1:n_zones, sd))
-               ELSE
+!              IF ( n_zones .GT. 0 ) THEN
+!                 CALL store_nc_array(ncid, externalid(i), XYNT_SHAPE, n_zones, n_zones, array=cc_diag(1:n_zones, sd))
+!              ELSE
                   CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc_diag_hz(sd))
-               ENDIF
+!              ENDIF
 #ifdef PLOTS
                IF ( do_plots .AND. plot_id_sd(sd).GE.0 ) CALL put_glm_val_s(plot_id_sd(sd),cc_diag_hz(sd))
 #endif
             ELSE
                d = d + 1
-               !# Store diagnostic variable values.
+               !# Store diagnostic variable values defined on the full domain.
                CALL store_nc_array(ncid, externalid(i), XYZT_SHAPE, wlev, nlev, array=cc_diag(:, d))
 #ifdef PLOTS
                IF ( do_plots .AND. plot_id_d(d).GE.0 ) CALL put_glm_val(plot_id_d(d), cc_diag(1:wlev, d))
