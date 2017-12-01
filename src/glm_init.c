@@ -445,6 +445,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     DMin = min_layer_thick;
     DMax = max_layer_thick;
     NumLayers = 0;
+    n_zones = 0;
 
     wq_calc   = TRUE;
 
@@ -462,6 +463,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         split_factor      = lsplit_factor;
     }
     if ( twq_lib != NULL ) strncpy(wq_lib, twq_lib, 128);
+    if (benthic_mode > 1 && n_zones <= 0) {
+        fprintf(stderr, "benthic mode > 1 but no zones defined; reverting to benthic mode 1\n");
+        benthic_mode = 1;
+    }
 
     //-------------------------------------------------
     if ( get_namelist(namlst, time) ) {
@@ -934,7 +939,7 @@ void create_lake(int namlst)
         exit(1);
     }
 
-    if ( n_zones>0 && zone_heights != NULL ) {
+    if ( n_zones > 0 && zone_heights != NULL ) {
         if ( zone_heights[n_zones-1] < (crest_elev-base_elev) ) {
             fprintf(stderr, "WARNING last zone height is less than maximum depth\n");
             fprintf(stderr, "   adding an extra zone to compensate\n");
@@ -976,7 +981,7 @@ void create_lake(int namlst)
         if (H[i] <= 0.0 ) ksto++;
 
         /* Create the zone areas */
-        if (benthic_mode > 1) {
+        if (benthic_mode > 1 && j < n_zones) {
             if ( zone_heights[j] <= H[i] ) {
                 zone_area[j] = A[i];
                 if ( i > 0 ) {
