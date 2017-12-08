@@ -158,7 +158,7 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
             LenAtOutflow = LenAtCrest;
             WidthAtOutflow = WidAtCrest;
         } else { //# Seepage use bottom layer (Eq. x & x in GLM manual)
-            LenAtOutflow = sqrt(Lake[Outflow_LayerNum].LayerArea*4.0/Pi*(LenAtCrest/WidAtCrest));
+            LenAtOutflow = sqrt(Lake[Outflow_LayerNum].LayerArea/Pi*(LenAtCrest/WidAtCrest));
             WidthAtOutflow = LenAtOutflow * WidAtCrest/LenAtCrest;
         }
     } else {
@@ -167,7 +167,7 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
             LenAtOutflow = Lake[surfLayer].LayerArea / WidAtCrest;
             WidthAtOutflow = WidAtCrest;
         } else { //# Fixed Offtake (Eq. x & x in GLM manual)
-            LenAtOutflow = sqrt(Lake[Outflow_LayerNum].LayerArea*4.0/Pi*(LenAtCrest/WidAtCrest));
+            LenAtOutflow = sqrt(Lake[Outflow_LayerNum].LayerArea/Pi*(LenAtCrest/WidAtCrest));
             WidthAtOutflow = LenAtOutflow * WidAtCrest/LenAtCrest;
         }
     }
