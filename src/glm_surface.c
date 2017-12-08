@@ -494,11 +494,11 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                     break;
                 case 3:
                     // Brutsaert (1975)
-                    eps_star = (1.0 + 0.275*CloudCover) * 0.642 * pow(MetData.SatVapDef/(MetData.AirTemp+Kelvin), 1/7) ;
+                    eps_star = (1.0 + 0.275*CloudCover) * 0.642 * pow(MetData.SatVapDef/(MetData.AirTemp+Kelvin), 1.0/7.0) ;
                     break;
                 case 4:
                     // Yajima 2014 - Tono Dam
-                    eps_star = (1.0 - pow(CloudCover, 2.796) ) * 0.642 * pow(MetData.SatVapDef/(MetData.AirTemp+Kelvin), 1/7) +
+                    eps_star = (1.0 - pow(CloudCover, 2.796) ) * 0.642 * pow(MetData.SatVapDef/(MetData.AirTemp+Kelvin), 1.0/7.0) +
                                                            0.955 * pow(CloudCover, 2.796) ;
                     break;
             }
