@@ -266,14 +266,15 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
 #else
    print *,'glm_aed2 built using gfortran version ', __GNUC__, '.', __GNUC_MINOR__, '.', __GNUC_PATCHLEVEL__
 #endif
-   print *,'init_glm_aed2 from ', TRIM(fname)
+   print *,'init_glm_aed2 using: ', TRIM(fname)
    namlst = f_get_lun()
 
+   write(*,"(/,5X,'---------- AED2 config : start ----------')")
    IF ( aed2_init_core('.') /= 0 ) STOP "Initialisation of aed2_core failed"
    CALL aed2_print_version
 
    !# Create model tree
-   print *,"Reading aed2_models config from ",TRIM(fname)
+   print *,"      Processing aed2_models config from ",TRIM(fname)
    OPEN(namlst,file=fname,action='read',status='old',iostat=status)
    IF ( status /= 0 ) CALL STOPIT("Cannot open file " // TRIM(fname))
 
@@ -288,6 +289,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
 
    !# should be finished with this file
    CLOSE(namlst)
+   print *,"      ... file parsing completed."
 
    n_aed2_vars = aed2_core_status(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
 
@@ -301,9 +303,9 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
 !   ENDDO
 !#endif
 
-   print*,'AED2 : n_aed2_vars = ', n_aed2_vars, ' MaxLayers = ', MaxLayers
-   print*,'AED2 : n_vars      = ', n_vars,      ' n_vars_ben= ', n_vars_ben
-   print*,'AED2 : n_vars_diag = ', n_vars_diag, ' n_vars_diag_sheet ', n_vars_diag_sheet
+   print "(/,5X,'AED2 : n_aed2_vars = ',I3,' ; MaxLayers         = ',I4)",n_aed2_vars,MaxLayers
+   print "(  5X,'AED2 : n_vars      = ',I3,' ; n_vars_ben        = ',I3)",n_vars,n_vars_ben
+   print "(  5X,'AED2 : n_vars_diag = ',I3,' ; n_vars_diag_sheet = ',I3,/)",n_vars_diag,n_vars_diag_sheet
 
    CALL check_data
 
@@ -331,6 +333,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
    CALL set_c_wqvars_ptr(cc)
 
    ALLOCATE(min_((n_vars + n_vars_ben))) ; ALLOCATE(max_((n_vars + n_vars_ben)))
+   print "(5X,'Confiured variables to simulate:')"
 
    j = 0
    DO i=1,n_aed2_vars
@@ -340,7 +343,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
             names(j) = TRIM(tvar%name)
             min_(j) = tvar%minimum
             max_(j) = tvar%maximum
-            print *,"AED2 var name(",j,") : ", TRIM(names(j))
+            print *,"     S(",j,") AED2 pelagic(3D) variable: ", TRIM(names(j))
          ENDIF
       ENDIF
    ENDDO
@@ -353,7 +356,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
             bennames(j) = TRIM(tvar%name)
             min_(n_vars+j) = tvar%minimum
             max_(n_vars+j) = tvar%maximum
-            print *,"AED2 var_ben name(",j,") : ", TRIM(bennames(j))
+            print *,"     B(",j,") AED2 benthic(2D) variable: ", TRIM(bennames(j))
          ENDIF
       ENDIF
    ENDDO
@@ -364,7 +367,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
          IF ( tvar%diag ) THEN
             IF ( .NOT.  tvar%sheet ) THEN
                j = j + 1
-               print *,"AED2 diag name(",j,") : ", TRIM(tvar%name)
+               print *,"     D(",j,") AED2 diagnostic 3Dvariable: ", TRIM(tvar%name)
             ENDIF
          ENDIF
       ENDIF
@@ -376,7 +379,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
          IF ( tvar%diag ) THEN
             IF (tvar%sheet ) THEN
                j = j + 1
-               print *,"AED2 diag sheet name(",j,") : ", TRIM(tvar%name)
+               print *,"     D(",j,") AED2 diagnostic 2Dvariable: ", TRIM(tvar%name)
             ENDIF
          ENDIF
       ENDIF
@@ -449,6 +452,8 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
    ALLOCATE(tss(MaxLayers),stat=rc)
    IF (rc /= 0) STOP 'allocate_memory(): Error allocating (tss)'
    tss = zero_
+
+   write(*,"(/,5X,'----------  AED2 config : end  ----------',/)")
 
 END SUBROUTINE aed2_init_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
