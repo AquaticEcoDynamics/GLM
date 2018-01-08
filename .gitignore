@@ -5,6 +5,8 @@ bin
 .DS*
 *.o
 *.mod
+*.so
+*.dylib
 glm
 glm.app
 glm+

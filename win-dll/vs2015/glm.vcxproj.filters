@@ -17,9 +17,6 @@
     <ClCompile Include="..\..\src\glm_bird.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_const.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\glm_csv.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -68,6 +65,9 @@
     <ClCompile Include="..\..\src\glm_plot.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\glm_restart.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\glm_stress.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -80,6 +80,15 @@
     <ClCompile Include="..\..\src\glm_wqual.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\glm_const.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\glm_plugin.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dlfcn.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\glm.h">
@@ -88,16 +97,16 @@
     <ClInclude Include="..\..\src\glm_bird.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\libplot.h">
+    <ClInclude Include="..\..\src\glm_csv.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\glm_const.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_csv.h">
+    <ClInclude Include="..\..\src\glm_deep.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_deep.h">
+    <ClInclude Include="..\..\src\glm_fabm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\glm_flow.h">
@@ -136,6 +145,9 @@
     <ClInclude Include="..\..\src\glm_plot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\glm_restart.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\glm_stress.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -146,6 +158,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\glm_util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\glm_wqual.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

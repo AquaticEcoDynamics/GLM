@@ -1,7 +1,17 @@
 
-Building for windows requires visual studio and Intel fortran and either Visual C++ or Intel C++.
+Building for Windows requires Visual Studio and Intel fortran and either Visual C++ or Intel C++.
 
-You will also need netcdf and a other 3rd party libraries. They are also available on our web page at :
+We use vs2015 Community with visual C and Intel fortran
+
+If you want to built with FABM included (the default) you will need to also install cmake
+
+   https://cmake.org/download/
+
+For fetching the sources it may be useful to have the command line git tools installed :
+
+  https://blogs.msdn.microsoft.com/devops/2013/03/08/use-the-git-command-prompt-to-supplement-visual-studio/
+
+You will also need netcdf and some other 3rd party libraries. They are also available on our web page at :
 
 netcdf :
 http://aed.see.uwa.edu.au/research/models/Extras/WinLibs.zip
