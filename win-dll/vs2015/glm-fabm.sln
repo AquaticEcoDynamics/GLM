@@ -1,6 +1,7 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "glm-fabm", "glm-fabm.vfproj", "{078DD61C-C7B7-4728-B574-6C23F753B7A4}"
 	ProjectSection(ProjectDependencies) = postProject
 		{BABAE57A-9D0A-73CC-BEBE-87002A6CCA5F} = {BABAE57A-9D0A-73CC-BEBE-87002A6CCA5F}

@@ -93,7 +93,7 @@ LIBS1=`find_libs local ${PKG}`
 #LIBS2=`find_libs intel ${PKG}`
 
 if [ "$FORTRAN_COMPILER" = "IFORT" ] ; then
-  PATH2=/opt/intel/lib
+  PATH2=/opt/intel
   PATH3=
   LIBS2="libifcore.dylib libsvml.dylib libimf.dylib libintlc.dylib"
   if [ "${PKG}" = "glm+" ] ; then
@@ -130,7 +130,9 @@ done
 
 # These fortran libraries
 for i in $LIBS2 ; do
-   cp $PATH2/$i ${PKG}.app/Contents/MacOS
+   #cp $PATH2/$i ${PKG}.app/Contents/MacOS
+   src=`find $PATH2 -name $i`
+   cp $src ${PKG}.app/Contents/MacOS
 # These are redundant since it seems intel fortran dylibs exclude the path from their names
    install_name_tool -id $i ${PKG}.app/Contents/MacOS/$i
    install_name_tool -change ${PATH3}$i '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}

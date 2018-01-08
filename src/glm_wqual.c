@@ -136,7 +136,7 @@ int prime_wq(const char *which)
     (*p_set_funcs)(set_c_wqvars_ptr, Mobility, define_mode_on,
                    define_mode_off, new_nc_variable, set_nc_attributes,
                    store_nc_array, store_nc_scalar, write_csv_point,
-                   put_xplot_val, put_glm_val, put_glm_val_s);
+                   put_glm_val, put_glm_val_s);
 #endif
 
 #else

@@ -71,7 +71,7 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
     AED_REAL  *min_z;
     AED_REAL  *max_z;
     AED_REAL   min_x, max_x;
-    AED_REAL   min_y, max_y;
+    AED_REAL   min_y = -1, max_y = -1;
     char      *glm_vers = NULL;
     char      *title_font = NULL;
     char      *label_font = NULL;
@@ -96,6 +96,8 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
           { "vars",           TYPE_STR|MASK_LIST,    &vars              },
           { "min_z",          TYPE_DOUBLE|MASK_LIST, &min_z             },
           { "max_z",          TYPE_DOUBLE|MASK_LIST, &max_z             },
+          { "min_y",          TYPE_DOUBLE|MASK_LIST, &min_y             },
+          { "max_y",          TYPE_DOUBLE|MASK_LIST, &max_y             },
           { NULL,             TYPE_END,              NULL               }
     };
 
@@ -141,8 +143,8 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
 
     min_x = jstart;
     max_x = jstart + ndays + (1-psubday);
-    min_y = 0;
-    max_y = crest;
+    if ( min_y == -1 ) min_y = 0;
+    if ( max_y == -1 ) max_y = crest;
     w = 10;
     h = 10;
     for (i = 0; i < nplots; i++) {

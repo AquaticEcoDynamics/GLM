@@ -501,8 +501,17 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
         //printf("WindSpeed = %10.5f\n",MetData.WindSpeed);
         //printf("SatVapDef = %10.5f\n",MetData.SatVapDef);
 
+//printf("n0 = %i3 %i3 %i3 \n",surfLayer, botmLayer, NumLayers);
+//printf("n1 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
+//printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);
+//printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
+
         //# Thermal transfers are done by do_surface_thermodynamics
         do_surface_thermodynamics(jday, iclock, lw_ind, Latitude, SWold, SWnew);
+
+//printf("n2 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
+//printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);
+//printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
 
 //      calc_mass_temp("After do_surface");
 
@@ -513,10 +522,16 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
         do_mixing();
 
 //      calc_mass_temp("After do_mixing");
+//printf("n3 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
+//printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);
+//printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
 
         //# Mix out instabilities, combine/split  layers
         check_layer_thickness();
         fix_radiation(Light_Surface);
+//printf("n4 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
+//printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);
+//printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
 
         check_layer_stability();
 

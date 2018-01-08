@@ -76,8 +76,12 @@ ifeq ($(OSTYPE),Darwin)
   endif
   #EXTRALINKFLAGS=-Wl,-no_compact_unwind
   EXTRALINKFLAGS=-Wl,-no_compact_unwind,-headerpad_max_install_names
+  SHARED=-dynamiclib -undefined dynamic_lookup
+  so_ext=dylib
 else
   EXTRALINKFLAGS=-Wl,--export-dynamic
+  SHARED=-shared
+  so_ext=so
 endif
 
 ifeq ($(FORTRAN_COMPILER),IFORT11)
@@ -126,7 +130,7 @@ ifeq ($(FABM),true)
   endif
 
   ifeq ($(USE_DL),true)
-    FABMTARGETS=libglm_wq_fabm.so
+    FABMTARGETS=libglm_wq_fabm.${so_ext}
   endif
 endif
 
@@ -144,7 +148,7 @@ ifeq ($(AED2),true)
   endif
 
   ifeq ($(USE_DL),true)
-    AED2TARGETS=libglm_wq_aed2.so
+    AED2TARGETS=libglm_wq_aed2.${so_ext}
   endif
 endif
 
@@ -287,8 +291,8 @@ glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS)
 	$(CC) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQPLIBS) $(FLIBS)
 
 clean: ${objdir} ${moddir}
-	@touch ${objdir}/1.o ${moddir}/1.mod 1.t 1__genmod.f90 glm 1.so glm_test_bird
-	@/bin/rm ${moddir}/*.mod ${objdir}/*.o *.t *__genmod.f90 *.so glm_test_bird
+	@touch ${objdir}/1.o ${moddir}/1.mod 1.t 1__genmod.f90 glm 1.${so_ext} glm_test_bird
+	@/bin/rm ${moddir}/*.mod ${objdir}/*.o *.t *__genmod.f90 *.${so_ext} glm_test_bird
 	@echo Made clean
 
 distclean: clean
@@ -300,22 +304,22 @@ distclean: clean
 ${objdir}/%.o: ${srcdir}/%.c ${incdir}/glm.h
 	$(CC) -fPIC $(CFLAGS) $(EXTRA_FLAGS) -D_C_VERSION_ -c $< -o $@
 
-%.so:
-	$(LD) -shared $(LDFLAGS) \
+%.${so_ext}:
+	$(LD) ${SHARED} $(LDFLAGS) \
                         -o $@ $^ -L/opt/intel/lib/intel64/ $(LIBS)
 
 #                        -E -Bdynamic -undefined suppress -o $@ $^ -L/opt/intel/lib/intel64/ $(LIBS)
 
 # Build rules
 
-libglm_wq_aed2.so: ${objdir}/glm_zones.o ${objdir}/glm_aed2.o ${objdir}/glm_plugin.o
-	$(LD) -shared $(LDFLAGS) -o $@ $^ $(AED2LIBS)
+libglm_wq_aed2.${so_ext}: ${objdir}/glm_zones.o ${objdir}/glm_aed2.o ${objdir}/glm_plugin.o
+	$(CC) ${SHARED} $(LDFLAGS) -o $@ $^ $(AED2LIBS)
 
-libglm_wq_aed2+.so: ${objdir}/glm_zones.o ${objdir}/glm_aed2.o ${objdir}/glm_plugin.o
-	$(LD) -shared $(LDFLAGS) -o $@ $^ $(AED2PLBS)
+libglm_wq_aed2+.${so_ext}: ${objdir}/glm_zones.o ${objdir}/glm_aed2.o ${objdir}/glm_plugin.o
+	$(CC) ${SHARED} $(LDFLAGS) -o $@ $^ $(AED2PLBS)
 
-libglm_wq_fabm.so: ${objdir}/glm_zones.o ${objdir}/glm_fabm.o ${objdir}/ode_solvers.o ${objdir}/glm_plugin.o
-	$(LD) -shared $(LDFLAGS) -o $@ $^ $(FABMLIBS)
+libglm_wq_fabm.${so_ext}: ${objdir}/glm_zones.o ${objdir}/glm_fabm.o ${objdir}/ode_solvers.o ${objdir}/glm_plugin.o
+	$(CC) ${SHARED} $(LDFLAGS) -o $@ $^ $(FABMLIBS)
 
 # special needs dependancies
 

@@ -34,8 +34,6 @@
 
 #include "glm.h"
 
-#ifndef _FORTRAN_SOURCE_
-
 typedef void (*set_c_wqvars_ptr_t)(AED_REAL *iwqvars);
 typedef void (*Mobility_t)(int *N, AED_REAL *dt, AED_REAL *h, AED_REAL *A,
                          AED_REAL *ww, AED_REAL *min_C, AED_REAL *cc);
@@ -51,7 +49,6 @@ typedef void (*store_nc_array_t)(int ncid, int id, int var_shape, int nvals,
 typedef void (*store_nc_scalar_t)(int ncid, int id, int var_shape, AED_REAL scalar);
 
 typedef void (*write_csv_point_t)(int f, const char *name, AED_REAL val, const char *cval, int last);
-typedef void (*put_xplot_val_t)(char *name, int wlev, AED_REAL *val);
 typedef void (*put_glm_val_t)(int plot_id, AED_REAL *val);
 typedef void (*put_glm_val_s_t)(int plot_id, AED_REAL *val);
 
@@ -67,7 +64,6 @@ typedef struct _plugin_funcs_ {
     store_nc_scalar_t   store_nc_scalar;
 
     write_csv_point_t   write_csv_point;
-    put_xplot_val_t     put_xplot_val;
     put_glm_val_t       put_glm_val;
     put_glm_val_s_t     put_glm_val_s;
 } plugin_funcs;
@@ -82,7 +78,6 @@ typedef void (*set_funcs_t)(
     store_nc_array_t    store_nc_array,
     store_nc_scalar_t   store_nc_scalar,
     write_csv_point_t   write_csv_point,
-    put_xplot_val_t     put_xplot_val,
     put_glm_val_t       put_glm_val,
     put_glm_val_s_t     put_glm_val_s);
 
@@ -99,10 +94,7 @@ void set_funcs(
     store_nc_array_t    store_nc_array,
     store_nc_scalar_t   store_nc_scalar,
     write_csv_point_t   write_csv_point,
-    put_xplot_val_t     put_xplot_val,
     put_glm_val_t       put_glm_val,
     put_glm_val_s_t     put_glm_val_s);
-
-#endif
 
 #endif

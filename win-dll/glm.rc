@@ -12,7 +12,7 @@
 
 //==============================================================================
 //
-APP_ICON                 ICON    DISCARDABLE     "glm+.ico"
+APP_ICON                 ICON    DISCARDABLE     "glm.ico"
 
 //==============================================================================
 APP_MENU MENU DISCARDABLE
@@ -27,8 +27,8 @@ END
 
 //==============================================================================
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,4,1alpha2
- PRODUCTVERSION 2,4,1alpha2
+ FILEVERSION 2,4,1alpha1
+ PRODUCTVERSION 2,4,1alpha1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -44,13 +44,13 @@ BEGIN
         BLOCK "0c0904b0"
         BEGIN
             VALUE "CompanyName", "AED Group; University of Western Australia"
-            VALUE "FileDescription", "General Lake Model (GLM) with AED+"
-            VALUE "FileVersion", 2.4.1alpha2
+            VALUE "FileDescription", "General Lake Model (GLM)"
+            VALUE "FileVersion", 2.4.1alpha1
             VALUE "InternalName", "version.rc"
             VALUE "LegalCopyright", "Copyright (C) 2017"
             VALUE "OriginalFilename", "version.rc"
-            VALUE "ProductName", "GLM+"
-            VALUE "ProductVersion", 2.4.1alpha2
+            VALUE "ProductName", "GLMp"
+            VALUE "ProductVersion", 2.4.1alpha1
         END
     END
     BLOCK "VarFileInfo"

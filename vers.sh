@@ -6,6 +6,12 @@ if [ "$vers" = "" ] ; then
   exit 1
 fi
 
+OSTYPE=`uname -s`
+if [ "${OSTYPE}" = "Darwin" ] ; then
+  EXTN=' ""'
+else
+  EXTN=''
+fi
 
 for FILE in ./glm.rc ./glm+.rc ; do
   OFV=`grep FILEVERSION ${FILE} | sed 's/^[ \t]*//' | cut -f2 -d\ `
@@ -13,11 +19,11 @@ for FILE in ./glm.rc ./glm+.rc ; do
   ver2=`echo $vers | sed "s/\./,/g"`
 
   if [ "$ver2" != "$OFV" ] ; then
-    echo sed -i "s/${OFV}/${ver2}/" ${FILE}
-    sed -i "s/${OFV}/${ver2}/" ${FILE}
+    echo sed -e "s/${OFV}/${ver2}/" -i${EXTN} ${FILE}
+    sed -e "s/${OFV}/${ver2}/" -i${EXTN} ${FILE}
     OFV=`grep FileVersion ${FILE} | sed 's/^[ \t]*//' | cut -f3 -d\ `
-    echo sed -i "s/${OFV}/${vers}/" ${FILE}
-    sed -i "s/${OFV}/${vers}/" ${FILE}
+    echo sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
+    sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
   else
     echo no change to version number in ${FILE}
   fi

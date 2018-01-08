@@ -56,7 +56,6 @@ void set_funcs(
     store_nc_array_t    store_nc_array,
     store_nc_scalar_t   store_nc_scalar,
     write_csv_point_t   write_csv_point,
-    put_xplot_val_t     put_xplot_val,
     put_glm_val_t       put_glm_val,
     put_glm_val_s_t     put_glm_val_s)
 {
@@ -71,7 +70,6 @@ void set_funcs(
     funcs.store_nc_scalar   = store_nc_scalar;
 
     funcs.write_csv_point   = write_csv_point;
-    funcs.put_xplot_val     = put_xplot_val;
     funcs.put_glm_val       = put_glm_val;
     funcs.put_glm_val_s     = put_glm_val_s;
 }
@@ -128,16 +126,6 @@ static char *make_c_string(const char *in, int len)
     char *t = malloc(len + 1);
     strncpy(t, in, len); t[len] = 0;
     return t;
-}
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
-
-/******************************************************************************/
-void put_xplot_val_(char *name, int *len, int *wlev, AED_REAL *val)
-{
-    char *n = make_c_string(name, *len);
-    (*funcs.put_xplot_val)(n, *wlev, val);
-    free(n);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

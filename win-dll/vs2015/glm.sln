@@ -1,10 +1,12 @@
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glm", "glm.vcxproj", "{5CDBCC36-B1AF-4861-84A6-A469B8C10B2B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libplot", "..\..\..\libplot\win\vs2010\libplot.vcxproj", "{C16EC5B0-C713-4564-A4D0-497EE322E68B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libplot", "..\..\..\libplot\win\vs2015\libplot.vcxproj", "{C16EC5B0-C713-4564-A4D0-497EE322E68B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libutil", "..\..\..\libutil\win\vs2010\libutil.vcxproj", "{8EF4B62A-1CAF-4C2A-AF8F-FBAF3350EA84}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libutil", "..\..\..\libutil\win\vs2015\libutil.vcxproj", "{8EF4B62A-1CAF-4C2A-AF8F-FBAF3350EA84}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -57,7 +57,9 @@
 #include "glm_wqual.h"
 #include "glm_plot.h"
 
+#ifdef PLOTS
 #include "libplot.h"
+#endif
 
 /* for WQ interface */
 void wq_write_glm(int ncid, int wlev, int nlev, int *lvl, int point_nlevs)

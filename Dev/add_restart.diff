@@ -1,0 +1,200 @@
+diff -NaBur -x .git -x b -x a a/Makefile b/Makefile
+--- a/Makefile	2018-01-01 15:49:20.000000000 +0800
++++ b/Makefile	2018-01-06 10:17:46.113197122 +0800
+@@ -248,6 +248,7 @@
+      ${objdir}/glm_deep.o \
+      ${objdir}/glm_stress.o \
+      ${objdir}/glm_bird.o \
++     ${objdir}/glm_restart.o \
+      ${objdir}/glm_model.o \
+      ${objdir}/glm_types.o \
+      ${objdir}/glm_const.o \
+diff -NaBur -x .git -x b -x a a/src/glm_globals.c b/src/glm_globals.c
+--- a/src/glm_globals.c	2017-10-25 12:51:18.000000000 +0800
++++ b/src/glm_globals.c	2018-01-06 10:16:31.897066918 +0800
+@@ -57,6 +57,7 @@
+ int Num_WQ_Vars;         //# number of water quality variables
+ int Num_WQ_Ben;          //# number of benthic water quality variables
+ CLOGICAL atm_stab = FALSE;   // Account for non-neutral atmospheric stability
++CLOGICAL do_restart = FALSE;
+ 
+ //------------------------------------------------------------------------------
+ 
+diff -NaBur -x .git -x b -x a a/src/glm_globals.h b/src/glm_globals.h
+--- a/src/glm_globals.h	2017-10-25 12:51:18.000000000 +0800
++++ b/src/glm_globals.h	2018-01-06 10:16:31.897066918 +0800
+@@ -94,6 +94,7 @@
+ extern AED_REAL *zone_area;  //* areas for sed_zones
+ 
+ 
++extern CLOGICAL do_restart;
+ extern CLOGICAL atm_stab;      // Account for non-neutral atmospheric stability
+ 
+ /*----------------------------------------------------------------------------*/
+diff -NaBur -x .git -x b -x a a/src/glm_init.c b/src/glm_init.c
+--- a/src/glm_init.c	2017-12-24 09:52:05.000000000 +0800
++++ b/src/glm_init.c	2018-01-06 10:16:31.897066918 +0800
+@@ -98,6 +98,12 @@
+     /*-------------------------------------------*/
+ 
+     /*---------------------------------------------
++     * glm restart
++     *-------------------------------------------*/
++    char           *restart_file = NULL;
++    /*-------------------------------------------*/
++
++    /*---------------------------------------------
+      * wq setup
+      *-------------------------------------------*/
+     char           *twq_lib = NULL;
+@@ -268,6 +274,11 @@
+           { "deep_mixing",       TYPE_INT,              &deep_mixing       },
+           { NULL,                TYPE_END,              NULL               }
+     };
++    NAMELIST glm_restart[] = {
++          { "glm_restart",       TYPE_START,            NULL               },
++          { "restart_file",      TYPE_STR,              &restart_file      },
++          { NULL,                TYPE_END,              NULL               }
++    };
+     NAMELIST wq_setup[] = {
+           { "wq_setup",          TYPE_START,            NULL               },
+           { "wq_lib",            TYPE_STR,              &twq_lib           },
+@@ -447,6 +458,13 @@
+     NumLayers = 0;
+     n_zones = 0;
+ 
++    //-------------------------------------------------
++    if ( get_namelist(namlst, glm_restart) ) {
++        do_restart = FALSE;
++    } else {
++        do_restart = (restart_file != NULL);
++    }
++
+     wq_calc   = TRUE;
+ 
+     if ( get_namelist(namlst, wq_setup) ) {
+diff -NaBur -x .git -x b -x a a/src/glm_model.c b/src/glm_model.c
+--- a/src/glm_model.c	2018-01-05 17:36:25.000000000 +0800
++++ b/src/glm_model.c	2018-01-06 10:16:31.897066918 +0800
+@@ -60,6 +60,7 @@
+ #include "glm_lnum.h"
+ #include "glm_wqual.h"
+ #include "glm_stress.h"
++#include "glm_restart.h"
+ #if PLOTS
+ #include <libplot.h>
+ #include "glm_plot.h"
+@@ -101,6 +102,8 @@
+ 
+     init_model(&jstart, &nsave);
+ 
++    if ( do_restart ) load_restart();
++
+     begn = time(NULL);
+     printf("Wall clock start time :  %s", ctime_r(&begn, buf));
+     if (non_avg)
+diff -NaBur -x .git -x b -x a a/src/glm_restart.c b/src/glm_restart.c
+--- a/src/glm_restart.c	1970-01-01 08:00:00.000000000 +0800
++++ b/src/glm_restart.c	2018-01-06 10:16:31.897066918 +0800
+@@ -0,0 +1,60 @@
++/******************************************************************************
++ *                                                                            *
++ * glm_restart.c                                                              *
++ *                                                                            *
++ * Developed by :                                                             *
++ *     AquaticEcoDynamics (AED) Group                                         *
++ *     School of Earth & Environment                                          *
++ *     The University of Western Australia                                    *
++ *                                                                            *
++ *     http://aed.see.uwa.edu.au/                                             *
++ *                                                                            *
++ * Copyright 2017 -  The University of Western Australia                      *
++ *                                                                            *
++ *  This file is part of GLM (General Lake Model)                             *
++ *                                                                            *
++ *  GLM is free software: you can redistribute it and/or modify               *
++ *  it under the terms of the GNU General Public License as published by      *
++ *  the Free Software Foundation, either version 3 of the License, or         *
++ *  (at your option) any later version.                                       *
++ *                                                                            *
++ *  GLM is distributed in the hope that it will be useful,                    *
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of            *
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
++ *  GNU General Public License for more details.                              *
++ *                                                                            *
++ *  You should have received a copy of the GNU General Public License         *
++ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.     *
++ *                                                                            *
++ ******************************************************************************/
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++
++#include "glm.h"
++
++#include "glm_types.h"
++#include "glm_globals.h"
++
++extern char *restart_file;
++
++
++/******************************************************************************/
++void load_restart()
++{
++}
++/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
++
++
++/******************************************************************************/
++void create_restart()
++{
++}
++/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
++
++
++/******************************************************************************/
++void update_restart()
++{
++}
++/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+diff -NaBur -x .git -x b -x a a/src/glm_restart.h b/src/glm_restart.h
+--- a/src/glm_restart.h	1970-01-01 08:00:00.000000000 +0800
++++ b/src/glm_restart.h	2018-01-06 10:16:31.897066918 +0800
+@@ -0,0 +1,37 @@
++/******************************************************************************
++ *                                                                            *
++ * glm_restart.h                                                              *
++ *                                                                            *
++ * Developed by :                                                             *
++ *     AquaticEcoDynamics (AED) Group                                         *
++ *     School of Earth & Environment                                          *
++ *     The University of Western Australia                                    *
++ *                                                                            *
++ *     http://aed.see.uwa.edu.au/                                             *
++ *                                                                            *
++ * Copyright 2017 -  The University of Western Australia                      *
++ *                                                                            *
++ *  This file is part of GLM (General Lake Model)                             *
++ *                                                                            *
++ *  GLM is free software: you can redistribute it and/or modify               *
++ *  it under the terms of the GNU General Public License as published by      *
++ *  the Free Software Foundation, either version 3 of the License, or         *
++ *  (at your option) any later version.                                       *
++ *                                                                            *
++ *  GLM is distributed in the hope that it will be useful,                    *
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of            *
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
++ *  GNU General Public License for more details.                              *
++ *                                                                            *
++ *  You should have received a copy of the GNU General Public License         *
++ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.     *
++ *                                                                            *
++ ******************************************************************************/
++#ifndef _GLM_RESTART_H_
++#define _GLM_RESTART_H_
++
++void load_restart(void);
++void create_restart(void);
++void update_restart(void);
++
++#endif
