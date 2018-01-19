@@ -96,7 +96,9 @@
   #define NC_REALTYPE NC_DOUBLE
   #define NC_FILLER NC_FILL_DOUBLE
   typedef double DOUBLETYPE;
-  typedef unsigned char CLOGICAL;
+// Although this should be unsigned char that appears to cause addressing issues so back to int for now
+//  typedef unsigned char CLOGICAL;
+  typedef int CLOGICAL;
 
   #define TRUE  1
   #define FALSE 0
