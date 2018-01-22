@@ -268,7 +268,7 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
 
     /**************************************************************************
      * Energy_Conv measures energy released by convective overturn            *
-     * (ie. cooled dense water falling; Krays Turner deepening)               *
+     * (ie. cooled dense water falling; Kraus Turner deepening)               *
      **************************************************************************/
     Energy_Conv = half * coef_mix_conv * g * dMdz/(Dens_Epil*noSecs)*noSecs;
     if (Energy_Conv < zero) Energy_Conv = zero;
@@ -306,11 +306,12 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
         if (Meta_topLayer > botmLayer) delzkm1 = Lake[Meta_topLayer].Height - Lake[Meta_topLayer-1].Height;
         redg = gprime(Dens_Epil,Lake[Meta_topLayer].Density);
         Energy_RequiredMix = half * (redg * Epi_dz + coef_mix_turb * q_sqr) * delzkm1 ;
-        //# Not enough energy to entrain any more layers into the mixed layer
 
+        //# Not enough energy to entrain any more layers into the mixed layer
         if (Energy_AvailableMix < Energy_RequiredMix) break;
+
         //# Entrain the layer Meta_topLayer
-        add_this_layer(&VMsum,&Tsum,&Ssum,&Mass_Epi,&MeanTemp,&MeanSalt, &Dens_Epil,Meta_topLayer);
+        add_this_layer(&VMsum,&Tsum,&Ssum,&Mass_Epi,&MeanTemp,&MeanSalt,&Dens_Epil,Meta_topLayer);
 
         //# Just used energy to entrain another layer into the mixed layer so remove
         Energy_AvailableMix -= Energy_RequiredMix;
@@ -388,21 +389,21 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
      * Half_Seiche_Period is one half the seiche period                       *
      * Time_start_shear is the start of shear forcing (hours from sim start)  *
      * Time_count_end_shear is the end of shear forcing (hours from sim start)*
-     * TD is the damping time                                                 *
+     * dt_damp is the damping time                                            *
      **************************************************************************/
     if (Half_Seiche_Period <= zero) {
          AED_REAL EffectiveForceTime;
          Half_Seiche_Period = LengthAtThermo / (2.0 * IntWaveSpeed * secshr);
          EffectiveForceTime = Half_Seiche_Period;
          if (U_star > zero) {
-            AED_REAL HTB = Epi_Thick+Hypl_Thick;
-            AED_REAL TD = 2.0*(HTB/tdfac)*(HTB/U_star_sqr)
-                        * (Hypl_Thick/Epi_Thick)*pow((gPrimeTwoLayer*Epi_Thick*Hypl_Thick/HTB), 0.25)
+            AED_REAL Lake_Depth = Epi_Thick+Hypl_Thick;
+            AED_REAL dt_damp = 2.0*(Lake_Depth/tdfac)*(Lake_Depth/U_star_sqr)
+                        * (Hypl_Thick/Epi_Thick) * pow((gPrimeTwoLayer*Epi_Thick*Hypl_Thick/Lake_Depth), 0.25)
                         / (sqrt(2.0*LengthAtThermo)*secshr)*sqrt(Visc);
             EffectiveForceTime = 1.59 * Half_Seiche_Period;
-            if (TD/Half_Seiche_Period < 10.0)
+            if (dt_damp/Half_Seiche_Period < 10.0)
                 // Add damping factor to effective time
-                EffectiveForceTime = (1.0+ 0.59 *(1.0-(1/cosh(TD/Half_Seiche_Period-1.0))))*Half_Seiche_Period;
+                EffectiveForceTime = (1.0+ 0.59 *(1.0-(1/cosh(dt_damp/Half_Seiche_Period-1.0))))*Half_Seiche_Period;
          }
          Time_start_shear = Time_count_sim;
          Time_count_end_shear = Time_start_shear + EffectiveForceTime;
@@ -440,7 +441,7 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
     if (u0 < 1E-7) u0 = zero;
     if (Slope < 1E-7) Slope = zero;
     u_f = u0 + Slope * Time_end_shear * secshr;
-    u_avgSQ = (u_f * u_f + u_f * u0 + u0 * u0) / 3.0;
+    u_avgSQ = (u_f*u_f + u_f*u0 + u0*u0) / 3.0;
     if (u_avgSQ < 1E-7) u_avgSQ = 1E-7;
     u_avg = sqrt(u_avgSQ);
     u0 = u_f;
@@ -779,7 +780,7 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
     }
 
     //# Here after position (ebot) of bottom of shear zone has been
-    //# determined and extra layer added if necessary
+    //# determined and extra layer added, if necessary
     T = fabs(eTop-eBot);
     if (T < eps6) return Dens;
 
@@ -845,7 +846,7 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
         }
     }
 
-    //# Here after bottom half of shear zone has at least three layers
+    //# Here after bottom half of shear zone has at least three layers,
     //# divide top half of shear zone into nl layers
     DNL = (eTop - Lake[k1-1].Height)/(nl);
     for (i = 1; i <= nl; i++) {
@@ -860,7 +861,7 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
     }
 
     //# The number of the layer just below the mixed region is now j1=k1+nl-1
-    //# unless top = .t.  if top=.t.,then layer j1 is the mixed region
+    //# unless top = T ... if top=T, then layer j1 is the mixed region
     if (!top) {
         NumLayers = k1 + nl + 1;
         Lake[surfLayer].Temp = MeanTemp;
@@ -880,8 +881,7 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
     //# Calculate volumes
     resize_internals(1,botmLayer);
 
-    //# relax density structure within shear zone
-
+    //# Relax density structure within shear zone
     up = TRUE;
     ir = nl-2;
     while(1) {
@@ -936,17 +936,15 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
         }
     }
 
-    //# Here after relaxation complete. reset mixed region variables.
+    //# Here after relaxation complete, reset the mixed region variables
     Dens = Lake[surfLayer].Density;
     MeanTemp = Lake[surfLayer].Temp;
     MeanSalt = Lake[surfLayer].Salinity;
+    for (wqvidx = 0; wqvidx < Num_WQ_Vars; wqvidx++)
+        WQ_VarsM[wqvidx] = _WQ_Vars(wqvidx, surfLayer);
 
     //Vol_Epi = Lake[surfLayer].LayerVol;
     //Mass_Epi = Vol_Epi*Dens;
-
-
-    for (wqvidx = 0; wqvidx < Num_WQ_Vars; wqvidx++)
-        WQ_VarsM[wqvidx] = _WQ_Vars(wqvidx, surfLayer);
 
     dbgprt("End KH NumLayers, surfLayer, botmLayer, j1, k1 = %d,%d,%d,%d,%d\n",NumLayers, surfLayer, botmLayer, j1, k1);
 

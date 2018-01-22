@@ -107,24 +107,26 @@ static AED_REAL f_T(AED_REAL U, AED_REAL F, AED_REAL h)
 
 /******************************************************************************
  *                                                                            *
- * Swart (1974)                                                               *
- *                                                                            *
- *  as cited in http://nora.nerc.ac.uk/8360/1/POL_ID_189.pdf eqn 2.3.8        *
  *                                                                            *
  ******************************************************************************/
-static AED_REAL wave_friction_factor(AED_REAL Uorb, AED_REAL F, AED_REAL h)
+static AED_REAL wave_friction_factor(AED_REAL Uorb, AED_REAL dens)
 {
-    //AED_REAL a = Hs / ( 2 * sinh(two_Pi * h / L) ) ;
-    //AED_REAL a = Uorb*T/two_Pi  ;
-    //return exp(5.213 * pow(a / Ks, -0.194) - 5.977);
+    // Swart (1974) and Kleinhans & Grasmeijer (2006) Eq.9
+    // also cited in http://nora.nerc.ac.uk/8360/1/POL_ID_189.pdf eqn 2.3.8
 
-    //Swart (1974)
-    return MIN(0.00251 * exp(5.21 * pow((MAX(Uorb, 0.0001) * MAX(T, 1) / (2 * two_Pi * Ks)), -0.19)), 0.1);
+    return MIN( exp(-5.977 + 5.213 * pow((MAX(Uorb, 0.0001) * MAX(T, 1) / (2 * two_Pi * Ks)), -0.194)), 0.1);
 
+    // and Le Roux (2001) Eq 15. as:
+    //return MIN(0.00251 * exp(5.213 * pow((MAX(Uorb, 0.0001) * MAX(T, 1) / (2 * two_Pi * Ks)), -0.19)), 0.1);
+
+    //# Le Roux (2001) ??
+    //AED_REAL beta = zero
+    //return MIN( (2.0*beta*9.81*2650.0*d_50)/( MAX(Uorb,0.0001)*MAX(Uorb,0.0001)*dens ), 0.1);
 }
 
 /******************************************************************************
  * calc_layer_stress                                                          *
+ *                                                                            *
  *   U : Wind velocity 10m above the surface                                  *
  *   F : Fetch                                                                *
  ******************************************************************************/
@@ -172,7 +174,7 @@ void calc_layer_stress(AED_REAL U, AED_REAL F)
 
             dens = Lake[i].Density;
             Lake[i].LayerStress = dens *
-                     ((0.5 * wave_friction_factor(Uorb, F, h) * pow(Uorb, 2)) +
+                     ((0.5 * wave_friction_factor(Uorb, dens) * pow(Uorb, 2)) +
                                                    (f_c(h) * pow(Ucur, 2) / 8));
 
 #if DEBUG_STRESS

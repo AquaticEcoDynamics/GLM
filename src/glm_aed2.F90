@@ -274,7 +274,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
    CALL aed2_print_version
 
    !# Create model tree
-   print *,"      Processing aed2_models config from ",TRIM(fname)
+   print *,"     Processing aed2_models config from ",TRIM(fname)
    OPEN(namlst,file=fname,action='read',status='old',iostat=status)
    IF ( status /= 0 ) CALL STOPIT("Cannot open file " // TRIM(fname))
 

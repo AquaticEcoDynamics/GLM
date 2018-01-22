@@ -131,7 +131,7 @@ void do_deep_mixing()
         for (i = 0; i < NumLayers; i++)
           Lake[i].Epsilon = coef_mix_hyp;
     }
-    else if (deep_mixing == 2) { //original routine to calculate diffusivity
+    else if (deep_mixing == 2) { //Weinstock/DYRESM routine to calculate diffusivity
         flag = TRUE;
         //# Look for any density variation
         if (iTop > botmLayer) {
@@ -170,9 +170,10 @@ void do_deep_mixing()
             }
             //* Exponent for diffusivity equation
             dif_exp=(-1.0 * sqr(Lake[surfLayer].Height-H_sml-Lake[i].Height))/H_sig;
+
             //* Dissipation (Eq. X GLM manual)
             if (dif_exp < exchk2) Lake[i].Epsilon = zero;
-            else                   Lake[i].Epsilon *= (exp(dif_exp)+1.E-7);
+            else                  Lake[i].Epsilon *= (exp(dif_exp)+1.E-7);
         }
 
         if (iTop == botmLayer) Lake[iTop].Epsilon = zero;
@@ -377,7 +378,7 @@ void do_dissipation()
      * Estimate rate of working by the wind (Patterson et al. 1977; p3)       *
      **************************************************************************/
     WindSpeedX = MetData.WindSpeed;
-    WindPower = 1.9344 * 0.24 * WindSpeedX * WindSpeedX * WindSpeedX * 1.E-6;
+    WindPower = 1.9344 * 0.24 * 1.E-6 * WindSpeedX * WindSpeedX * WindSpeedX ;
 
     uStar = 0.0;
     if (!ice) uStar = sqrt(1.612E-6*pow(WindSpeedX, 2));

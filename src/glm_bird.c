@@ -100,7 +100,7 @@ int config_bird(int namlst)
  ******************************************************************************/
 AED_REAL calc_bird(AED_REAL lon, AED_REAL lat, int jday, int iclock, AED_REAL TZ)
 {
-    AED_REAL Phi_day;          // Day Angle :- Position of the earth in sun's orbit
+    AED_REAL phi_day;          // Day Angle :- Position of the earth in sun's orbit
     AED_REAL ETR;              // Extra Terrestrial Beam Intensity
                                // Correction of Earth Sun Distance based on elliptical path of the sun
     AED_REAL ZenithAngle;      // Zenith Angle
@@ -117,8 +117,8 @@ AED_REAL calc_bird(AED_REAL lon, AED_REAL lat, int jday, int iclock, AED_REAL TZ
     AED_REAL Taa = 0.;
     AED_REAL Tas = 0.;
     AED_REAL rs = 0.;          // Scattered Radiation
-    AED_REAL Phi_db = 0.;      // Direct Beam Horizontal Radiation
-    AED_REAL Phi_as = 0.;
+    AED_REAL phi_db = 0.;      // Direct Beam Horizontal Radiation
+    AED_REAL phi_as = 0.;
     AED_REAL GHI = 0.;         // Global Horizontal Irradiation
 
     /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -128,7 +128,7 @@ AED_REAL calc_bird(AED_REAL lon, AED_REAL lat, int jday, int iclock, AED_REAL TZ
     ZenithAngle = zenith_angle(lon, lat, day, iclock, TZ);
 
     // Day Angle :- Position of the earth in sun's orbit
-    Phi_day = (two_Pi*(day-1)/365);
+    phi_day = (two_Pi*(day-1)/365);
 
     // Extra Terrestrial Beam Intensity
     // Correction of Earth Sun Distance based on elliptical path of the sun
@@ -173,13 +173,13 @@ AED_REAL calc_bird(AED_REAL lon, AED_REAL lat, int jday, int iclock, AED_REAL TZ
 
         // Direct Beam Radiation (Extra-Terrestrial)
         if (ZenithAngle < 90)
-            Phi_db = 0.9662 * ETR * Trayleigh * Toz * Tm * Twater * Ta * cos(ZenithAngle * deg2rad) ;
+            phi_db = 0.9662 * ETR * Trayleigh * Toz * Tm * Twater * Ta * cos(ZenithAngle * deg2rad) ;
 
-        Phi_as = 0.79 * ETR * Toz * Tm * Twater * Taa * cos(ZenithAngle * deg2rad) *
+        phi_as = 0.79 * ETR * Toz * Tm * Twater * Taa * cos(ZenithAngle * deg2rad) *
                    (0.5 * (1-Trayleigh) + 0.84*(1.-Tas)) / (1-AirMass + pow(AirMass, 1.02));
 
         // Global Horizontal Irradiation
-        GHI = (Phi_db + Phi_as)/(1 - Albedo * rs) ;
+        GHI = (phi_db + phi_as)/(1 - Albedo * rs) ;
     }
 
     return GHI;

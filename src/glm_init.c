@@ -435,6 +435,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     fprintf(stderr, "Reading config from %s\n",glm_nml_file);
 
+    //-------------------------------------------------
     // Open the namelist file.
     if ( (namlst = open_namelist(glm_nml_file)) < 0 ) {
         fprintf(stderr,"Error opening namelist file %s\n", glm_nml_file);
@@ -897,8 +898,8 @@ void create_lake(int namlst)
     /*-------------------------------------------*/
 
 
-    int kar;                // first layer with a positive area
-    int ksto;               // first layer with a positive storage
+    int kar;                     // first layer with a positive area
+    int ksto;                    // first layer with a positive storage
 #ifndef _VISUAL_C_
     // The visual c compiler doesn't like this so must malloc manually
     AED_REAL alpha_b[MaxLayers]; // interpolation coefficient for volume
@@ -907,11 +908,11 @@ void create_lake(int namlst)
     AED_REAL *alpha_b;           // interpolation coefficient for volume
     AED_REAL *beta_b;            // interpolation coefficient for area
 #endif
-    int lanext;             // temporary variable for interpolating area
-    int lvnext;             // temporary variable for interpolating volume
+    int lanext;                  // temporary counter for interpolating area
+    int lvnext;                  // temporary counter for interpolating volume
     AED_REAL x, y;
-    int i,j;
-    int ij;
+    int i,z,b;
+    int ij,mi;
 
     NAMELIST morphometry[] = {
           { "morphometry",       TYPE_START,            NULL               },
@@ -949,7 +950,7 @@ void create_lake(int namlst)
         V = NULL;
     }
 
-    base_elev = H[0]; crest_elev = H[bsn_vals-1];
+    base_elev = H[0];  crest_elev = H[bsn_vals-1];
 
     printf("Maximum lake depth is %f\n", crest_elev - base_elev);
 
@@ -982,32 +983,32 @@ void create_lake(int namlst)
 
     if ( V == NULL ) V = malloc(sizeof(AED_REAL)*bsn_vals);
     V[0] = 0.;
-    for (i = 1; i < bsn_vals; i++) {
-        if ( (A[i] < A[i-1]) || (H[i] < H[i-1]) ) {
+    for (b = 1; b < bsn_vals; b++) {
+        if ( (A[b] < A[b-1]) || (H[b] < H[b-1]) ) {
             fprintf(stderr, "Error. H and A in morphometry must be monotonically increasing\n");
             fprintf(stderr, "A[%d] = %f; A[%d] = %f; H[%d] = %f; H[%d] = %f\n",
-                             i-1, A[i-1], i, A[i], i-1, H[i-1], i, H[i]);
+                             b-1, A[b-1], b, A[b], b-1, H[b-1], b, H[b]);
             exit(1);
         }
-        V[i] = V[i-1] + (  (A[i-1]+(A[i]-A[i-1])/2.0) * (H[i] - H[i-1]));
+        V[b] = V[b-1] + (  (A[b-1]+(A[b]-A[b-1])/2.0) * (H[b] - H[b-1]));
     }
 
-    j = 0;
-    for (i = 0; i < bsn_vals; i++) {
-        H[i] -= Base;
+    z = 0;
+    for (b = 0; b < bsn_vals; b++) {
+        H[b] -= Base;
 
-        if (A[i] <= 0.0 ) kar++;
-        if (H[i] <= 0.0 ) ksto++;
+        if (A[b] <= 0.0 ) kar++;
+        if (H[b] <= 0.0 ) ksto++;
 
         /* Create the zone areas */
-        if (benthic_mode > 1 && j < n_zones) {
-            if ( zone_heights[j] <= H[i] ) {
-                zone_area[j] = A[i];
-                if ( i > 0 ) {
-                    zone_area[j] += A[i-1];
-                    zone_area[j] /= 2;
+        if (benthic_mode > 1 && z < n_zones) {
+            if ( zone_heights[z] <= H[b] ) {
+                zone_area[z] = A[b];
+                if ( b > 0 ) {
+                    zone_area[z] += A[b-1];
+                    zone_area[z] /= 2;
                 }
-                j++;
+                z++;
             }
         }
     }
@@ -1037,22 +1038,22 @@ void create_lake(int namlst)
     // Loop from the bottom to top of the provided depth points given in
     // &morphometry to calculate the bathymetric interpolation coefficients,
     // "a" and "b", at each level
-    for (i = 1; i < (bsn_vals-1); i++) {
-        if (V[i] > 0.0)
-            alpha_b[i] = log10(V[i+1]/V[i]) / log10(H[i+1] / H[i]);
+    for (b = 1; b < (bsn_vals-1); b++) {
+        if (V[b] > 0.0)
+            alpha_b[b] = log10(V[b+1]/V[b]) / log10(H[b+1] / H[b]);
 
-        dbgprt( " i = %2d V[i+1] = %24.18e V[i] = %24.18e ALOG10 = %24.18e\n", i, V[i+1], V[i], log10(V[i+1]/V[i]));
-        dbgprt( " i = %2d H[i+1] = %24.18e H[i] = %24.18e ALOG10 = %24.18e\n", i, H[i+1], H[i], log10(H[i+1]/H[i]));
-        dbgprt( " i = %2d  alpha_b[i] = %24.18e\n", i, alpha_b[i]);
+        dbgprt( " b = %2d V[b+1] = %24.18e V[b] = %24.18e ALOG10 = %24.18e\n", b, V[b+1], V[b], log10(V[b+1]/V[b]));
+        dbgprt( " b = %2d H[b+1] = %24.18e H[b] = %24.18e ALOG10 = %24.18e\n", b, H[b+1], H[b], log10(H[b+1]/H[b]));
+        dbgprt( " b = %2d  alpha_b[b] = %24.18e\n", b, alpha_b[b]);
 
-        if (A[i] > 0.0)
-            beta_b[i] = log10(A[i+1]/A[i]) / log10(H[i+1] / H[i]);
+        if (A[b] > 0.0)
+            beta_b[b] = log10(A[b+1]/A[b]) / log10(H[b+1] / H[b]);
 
-        dbgprt( " i = %2d A[i+1] = %24.18e A[i] = %24.18e ALOG10 = %24.18e\n", i, A[i+1], A[i], log10(A[i+1]/A[i]));
-        dbgprt( " i = %2d H[i+1] = %24.18e H[i] = %24.18e ALOG10 = %24.18e\n", i, H[i+1], H[i], log10(H[i+1]/H[i]));
-        dbgprt( " i = %2d  beta_b[i] = %24.18e\n", i, beta_b[i]);
+        dbgprt( " b = %2d A[b+1] = %24.18e A[b] = %24.18e ALOG10 = %24.18e\n", b, A[b+1], A[b], log10(A[b+1]/A[b]));
+        dbgprt( " b = %2d H[b+1] = %24.18e H[b] = %24.18e ALOG10 = %24.18e\n", b, H[b+1], H[b], log10(H[b+1]/H[b]));
+        dbgprt( " b = %2d beta_b[b] = %24.18e\n", b, beta_b[b]);
     }
-    // The values of a and b exponents for layer 0 are not used as the
+    // The values of exponents  a and b for layer 0 are not used as the
     // area and volume are assumed to vary linearly from the
     // lake bottom to the top of the first layer
     alpha_b[0] = 1.0;
@@ -1061,47 +1062,47 @@ void create_lake(int namlst)
     alpha_b[bsn_vals-1] = alpha_b[bsn_vals-2];
     beta_b[bsn_vals-1] = beta_b[bsn_vals-2];
 
-    // Now prepare a refined depth-area-volume relationship using finer depth
-    // increments to support layer interpolations later in the simulation
+    // Now prepare the refined depth-area-volume relationship using finer depth
+    // increments (MphInc) to support layer interpolations later in the simulation
     // Note: kar is the first layer with a positive A
     // and  ksto is the first layer with a positive V
-    j = -1;
-    for (i = 0; i < Nmorph; i++) {
-    	h_z = (i+1.0)/MphInc;
+    b = -1;
+    for (mi = 0; mi < Nmorph; mi++) {
+    	h_z = (mi+1.0)/MphInc;
 
-        while (j != (bsn_vals-2)) {
-            j++;
-            if (h_z < H[j+1]) break;
+        while (b != (bsn_vals-2)) {
+            b++;
+            if (h_z < H[b+1]) break;
         }
 
         // Interpolate A and V for all depths below the
         // first layer that is a non-zero table entry (ie blank)
-        if (j == 0) {
+        if (b == 0) {
             lvnext = MAX(1, ksto);
             lanext = MAX(1, kar);
-            MphLevelVol[i] = V[lvnext] * h_z / H[lvnext];
-            MphLevelArea[i] = A[lanext] * h_z / H[lanext];
+            MphLevelVol[mi] = V[lvnext] * h_z / H[lvnext];
+            MphLevelArea[mi] = A[lanext] * h_z / H[lanext];
         } else {
-            if (j < ksto)
-                MphLevelVol[i] = V[ksto] * h_z / H[ksto];
+            if (b < ksto)
+                MphLevelVol[mi] = V[ksto] * h_z / H[ksto];
             else
-                MphLevelVol[i] = V[j] * pow((h_z / H[j]), alpha_b[j]);
+                MphLevelVol[mi] = V[b] * pow((h_z / H[b]), alpha_b[b]);
 
-            dbgprt( " i=%2d j = %2d V = %24.18f H = %24.18f alpha_b = %24.18f\n", i, j, V[j], H[j], alpha_b[j]);
-            dbgprt( " h_z = %24.18f and result is %24.18f pow = %24.18f\n", h_z, MphLevelVol[i], pow(h_z / H[j], alpha_b[j]));
+            dbgprt( " mi=%2d j = %2d V = %24.18f H = %24.18f alpha_b = %24.18f\n", mi, b, V[b], H[b], alpha_b[b]);
+            dbgprt( " h_z = %24.18f and result is %24.18f pow = %24.18f\n", h_z, MphLevelVol[mi], pow(h_z / H[b], alpha_b[b]));
 
-            if (j < kar)
-                MphLevelArea[i] = A[kar] * h_z / H[kar];
+            if (b < kar)
+                MphLevelArea[mi] = A[kar] * h_z / H[kar];
             else
-                MphLevelArea[i] = A[j] * pow((h_z / H[j]), beta_b[j]);
+                MphLevelArea[mi] = A[b] * pow((h_z / H[b]), beta_b[b]);
         }
-        j--;
+        b--;
     }
 
     // Calculate change between points for volume and area
-    for (i = 0; i < Nmorph-1; i++) {
-        dMphLevelVol[i] = (MphLevelVol[i+1] - MphLevelVol[i]);
-        dMphLevelArea[i] = (MphLevelArea[i+1] - MphLevelArea[i]);
+    for (mi = 0; mi < Nmorph-1; mi++) {
+        dMphLevelVol[mi] = (MphLevelVol[mi+1] - MphLevelVol[mi]);
+        dMphLevelArea[mi] = (MphLevelArea[mi+1] - MphLevelArea[mi]);
     }
     dMphLevelVol[Nmorph-1] = dMphLevelVol[Nmorph-2];
     dMphLevelArea[Nmorph-1] = dMphLevelArea[Nmorph-2];

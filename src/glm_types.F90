@@ -81,25 +81,26 @@ MODULE glm_types
    !# Structured type for Met vars
    TYPE,BIND(C) :: MetDataType
       AED_REAL :: Rain             !# rainfall
+      AED_REAL :: Snow             !# snowfall
       AED_REAL :: RelHum           !# relative humidty
       AED_REAL :: SatVapDef        !# vapour pressure
       AED_REAL :: LongWave         !# longwave radiation
       AED_REAL :: ShortWave        !# shortwave radiation
       AED_REAL :: AirTemp          !# temperature
       AED_REAL :: WindSpeed        !# windspeed
-      AED_REAL :: Snow             !# snowfall
+      AED_REAL :: WindDir          !# Wind Direction
       AED_REAL :: RainConcPO4      !# Concentration of PO4 in rain
-      AED_REAL :: RainConcTp       !# Concentration of TP in rain
+      AED_REAL :: RainConcTP       !# Concentration of TP in rain
       AED_REAL :: RainConcNO3      !# Concentration of NO3 in rain
       AED_REAL :: RainConcNH4      !# Concentration of NH4 in rain
-      AED_REAL :: RainConcTn       !# Concentration of TN in rain
+      AED_REAL :: RainConcTN       !# Concentration of TN in rain
       AED_REAL :: RainConcSi       !# Concentration of SI in rain
-      AED_REAL :: WindDir          !# Wind Direction
    END TYPE MetDataType
 
    !#===========================================================#!
    !# Structured type for Surface Data vars
    TYPE,BIND(C) :: SurfaceDataType
+      AED_REAL :: albedo           !# Daily surface albedo
       AED_REAL :: Evap             !# Evaporation
       AED_REAL :: HeightBlackIce   !# height of ice layer
       AED_REAL :: HeightWhiteIce   !# height of white ice layer
@@ -116,7 +117,6 @@ MODULE glm_types
       AED_REAL :: dailyInflow      !# Total Daily Inflow (ML/day)
       AED_REAL :: dailyOutflow     !# Total Daily Outflow (ML/day)
       AED_REAL :: dailyOverflow    !# Total Daily Overflow (ML/day)
-      AED_REAL :: albedo           !# Daily surface albedo
    END TYPE SurfaceDataType
 #endif
 
