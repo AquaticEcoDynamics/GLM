@@ -133,10 +133,10 @@ AED_REAL calc_bird(AED_REAL lon, AED_REAL lat, int jday, int iclock, AED_REAL TZ
     // Extra Terrestrial Beam Intensity
     // Correction of Earth Sun Distance based on elliptical path of the sun
     // where did this come from ?
-    ETR = I_sc * (1.00011 + 0.034221*cos(   two_Pi*Phi_day) +
-                            0.00128 *sin(   two_Pi*Phi_day) +
-                            0.000719*cos(2*(two_Pi*Phi_day)) +
-                            0.000077*sin(2*(two_Pi*Phi_day)) );
+    ETR = I_sc * (1.00011 + 0.034221*cos(   two_Pi*phi_day) +
+                            0.00128 *sin(   two_Pi*phi_day) +
+                            0.000719*cos(2*(two_Pi*phi_day)) +
+                            0.000077*sin(2*(two_Pi*phi_day)) );
 
     // Air Mass
     if (ZenithAngle < 89)
