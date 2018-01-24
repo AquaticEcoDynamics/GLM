@@ -197,6 +197,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
     AED_REAL SUMPO4, SUMTP, SUMNO3, SUMNH4, SUMTN, SUMSI;
 
+    AED_REAL flankArea, NotPARLight_s, NotPARLight_sm1;
+
     //# New parameters for sediment heat flux estimate
     AED_REAL KSED;
     AED_REAL TYEAR;
@@ -247,18 +249,18 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
 
     /**********************************************************************
-     * Assess surface shortwave flux into water ro ice
-     * and add to surafce layer, plus work out heating
+     * Assess surface shortwave flux hitting the water or ice
+     * and add to the surface layer, plus work out heating
      *********************************************************************/
 
-    //# Get shortwave - either from provided sub-daily data, or approximate
-    //# note, convert julian days to days since the start of the year
+    //# Get shortwave - either from provided sub-daily data, or approximate from daily
+    //# note, convert "julian days" to the "days since the start of the year"
     Q_shortwave = calculate_qsw(day_of_year(jday - 1), day_of_year(jday), iclock, Latitude, SWOld, ShortWave, WindSp);
 
     // Into the surfLayer goes qsw(surfLayer)-qsw(surfLayer-1) over the
     // area common to layers surfLayer and surfLayer-1, and qsw(surfLayer)
     // over the rest of area(surfLayer) units of heat[surfLayer] are
-    // joules/sec; units of area(surfLayer) are 10**6 m**2
+    // joules/sec; units of area(surfLayer) are 10**6 m**2 (MH v2.4 check arent they m2 now?)
     for (i = (botmLayer+1); i <= surfLayer; i++)
         LayerThickness[i] = Lake[i].Height-Lake[i-1].Height;
 
@@ -282,13 +284,20 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     // PAR entering the layer below the surface layer
     Lake[surfLayer-1].Light = Lake[surfLayer].Light * exp(-Lake[surfLayer].ExtcCoefSW*LayerThickness[surfLayer]);
 
+    // not using Q_shortwave here as it hasnt been attenuated through  ice.
+    NotPARLight_s = (1-0.45)*(Lake[surfLayer].Light/0.45) ;
+    NotPARLight_sm1 = NotPARLight_s * exp(-2.*Lake[surfLayer].ExtcCoefSW*LayerThickness[surfLayer]);
+
     // Heating due to PAR
-    heat[surfLayer] = ( Lake[surfLayer-1].LayerArea * (Lake[surfLayer].Light - Lake[surfLayer-1].Light) +
-                       (Lake[surfLayer].LayerArea - Lake[surfLayer-1].LayerArea) * Lake[surfLayer].Light * 0.1);
+    flankArea = Lake[surfLayer].LayerArea - Lake[surfLayer-1].LayerArea;
+    heat[surfLayer] = Lake[surfLayer-1].LayerArea * (Lake[surfLayer].Light - Lake[surfLayer-1].Light) ;
+    heat[surfLayer] = heat[surfLayer] + flankArea * (Lake[surfLayer].Light + Lake[surfLayer-1].Light*0.1);
+    //heat[surfLayer] = heat[surfLayer] + (Lake[surfLayer].LayerArea - Lake[surfLayer-1].LayerArea) * Lake[surfLayer].Light * 0.1);
 
     // Heating due to NIR/UV (all assumed to be absorbed in the surface layer only)
     //heat[surfLayer] = heat[surfLayer] + 0.55 * Q_shortwave * Lake[surfLayer].LayerArea;
-    heat[surfLayer] = heat[surfLayer] + (1 - 0.45) * (Lake[surfLayer].Light / 0.45) * Lake[surfLayer].LayerArea;
+    heat[surfLayer] = heat[surfLayer] + Lake[surfLayer-1].LayerArea * (NotPARLight_s - NotPARLight_sm1);
+    heat[surfLayer] = heat[surfLayer] + flankArea * (NotPARLight_s + NotPARLight_sm1*0.1);
 
     // Total daily short wave radiation (J/day), stored for lake.csv
     SurfData.dailyQsw += Lake[surfLayer].LayerArea * Q_shortwave * noSecs;
@@ -520,7 +529,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                 case 1:
                     // Idso and Jackson (1969)
                     // eps_star = (1.0 + 0.275*CloudCover)*(1.0 - 0.261 * exp(-0.000777 * pow(-MetData.AirTemp, 2.0))); //
-                    eps_star = (1.0 + 0.17 * CloudCover * CloudCover)*(1.0 - 0.261 * exp(-0.000777 * pow(-MetData.AirTemp, 2.0)));
+                    eps_star = (1.0 + 0.275*CloudCover)*(1.0 - 0.261 * exp(-0.000777 * pow(MetData.AirTemp, 2.0)));
                     break;
                 case  2:
                     // Swinbank (1963)
@@ -532,7 +541,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                     break;
                 case 4:
                     // Yajima 2014 - Tono Dam
-                    eps_star = (1.0 - pow(CloudCover, 2.796) ) * 0.642 * pow(MetData.SatVapDef/(MetData.AirTemp+Kelvin), 1/7) +
+                    eps_star = (1.0 - pow(CloudCover, 2.796) ) * 1.24 * pow(MetData.SatVapDef/(MetData.AirTemp+Kelvin), 1/7) +
                                                            0.955 * pow(CloudCover, 2.796) ;
                     break;
             }
@@ -750,9 +759,15 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
          * i and i-1 and QSW[i] over the rest of AREA[i]                      *
          * units of heat[i) are joules/sec; units of AREA[i] are 10**6 m**2   *
          *--------------------------------------------------------------------*/
-        for (i = surfLayer-1; i >= (botmLayer+1); i--)
-            heat[i] = (Lake[i-1].LayerArea * (Lake[i].Light - Lake[i-1].Light) +
-                       Lake[i].Light * (Lake[i].LayerArea - Lake[i-1].LayerArea) * 0.1) ;
+        for (i = surfLayer-1; i >= (botmLayer+1); i--){
+            flankArea = Lake[i].LayerArea - Lake[i-1].LayerArea;
+            heat[i] = (Lake[i-1].LayerArea * (Lake[i].Light - Lake[i-1].Light));
+            heat[i] = heat[i] + flankArea * (Lake[i].Light + Lake[i-1].Light*0.1); // 10% reflectance
+
+            //MH non PAR temporary hack:
+            if (i == surfLayer-1)
+              heat[i] = heat[i] + NotPARLight_sm1*Lake[i].LayerArea;
+        }
         heat[botmLayer] = Lake[botmLayer].Light * Lake[botmLayer].LayerArea;
     }
 
@@ -841,16 +856,17 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
      * on Mendota ends up cooling Kinneret! Beware when using default values.     *
      * LAW: Added a switch and parameterization so we can experiment with this.   *
      ******************************************************************************/
-
+  //   printf("sed_heat_sw_b4 = %10.5f\n",Lake[botmLayer].Temp);
     if(sed_heat_sw){
         // Input of heat from the sediments - based on rogers et al heat flux
         // sediment temperature measurements for lake mendota (birge et al 1927)
         // and basically invariant at 5m at deep station, LayerThickness is required
         // LAW: Modified to use cosine so user and specify peak day coefficient
         kDays = day_of_year(jday);
-        TYEAR = sed_temp_mean + sed_temp_amplitude * cos(((kDays-sed_temp_peak_doy)*2.*Pi)/365.);
-        ZSED = 6.;
-        KSED = 1.2;
+        TYEAR = sed_temp_mean[0] ; //+ sed_temp_amplitude[0] * cos(((kDays-sed_temp_peak_doy[0])*2.*Pi)/365.);
+        //ZSED = 6.;
+        ZSED = 0.5;
+        KSED = 10.2;
         for (i = botmLayer+1; i <= surfLayer; i++) {
             Lake[i].Temp += ((KSED*(TYEAR-Lake[i].Temp)/ZSED)*
                       (Lake[i].LayerArea-Lake[i-1].LayerArea)*
@@ -860,6 +876,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                                    Lake[botmLayer].LayerArea*LayerThickness[botmLayer] *
                                noSecs)/(SPHEAT*Lake[botmLayer].Density*Lake[botmLayer].LayerVol);
     }
+  //  printf("sed_heat_sw_af = %10.5f\n",Lake[botmLayer].Temp);
 
     // precipitation, evaporation in the absence of ice
     if (! ice) {
@@ -977,6 +994,10 @@ AED_REAL calculate_qsw(int kDays,     // Days since start of year for yesterday
     //# Initialize Temp_ice to the Air Temperature
     Temp_ice = MetData.AirTemp;
 
+    //# Get current Solar Zenith Angle
+    AED_REAL sza = MIN(90.0,zenith_angle(Longitude, Latitude, mDays, iclock, timezone_r));  //degrees
+    AED_REAL csza = cos(Pi * sza/180);
+
     // Put in wind factor, set ice flag, determine resultant albedo
     if (ice) {
         // Albedo of ice cover depends on ice thickness, cover type & temperature
@@ -1007,7 +1028,6 @@ AED_REAL calculate_qsw(int kDays,     // Days since start of year for yesterday
             }
 
         }
-
         Albedo1 = Albedo0;
 
     } else {
@@ -1026,21 +1046,17 @@ AED_REAL calculate_qsw(int kDays,     // Days since start of year for yesterday
                 }
                 break;
             case 2: { // Briegleb et al. (1986), B scheme in Scinocca et al 2006
-                    AED_REAL sza = zenith_angle(Longitude, Latitude, mDays, iclock, timezone_r);  //degrees
-                    if (sza < 80) {
-                        AED_REAL csza = cos(Pi * sza/180);
-                        Albedo1 = ((2.6 / (1.1 * pow(csza, 1.7) - 0.065)) +
-                                  (15 * (csza-0.1) * (csza-0.5) * (csza-1))) /100.;
-                    } else
-                        Albedo1 = 0.3;
+                    Albedo1 = ((2.6/(1*pow(csza, 1.7)+0.065)) + (15*(csza-0.1)*(csza-0.5)*(csza-1)))/100;
+                //  if (sza < 80) {
+                //      AED_REAL csza = cos(Pi * sza/180);
+                //      Albedo1 = ((2.6 / (1.0 * pow(csza, 1.7) - 0.065)) +
+                //                (15 * (csza-0.1) * (csza-0.5) * (csza-1))) /100.;
+                //  } else
+                //      Albedo1 = 0.4;
                 }
                 break;
              case 3: { // Yajima and Yamamoto (2014)
-                    AED_REAL sza = zenith_angle(Longitude, Latitude, mDays, iclock, timezone_r);  //degrees
-                    AED_REAL csza = cos(Pi * sza/180);
-
-                    // from excel, need fixing
-                    Albedo1 = MAX(0.01, 0.001 * MetData.RelHum * pow(1-csza, 0.33) -
+                    Albedo1 = MAX(0.02, 0.001 * MetData.RelHum * pow(1-csza, 0.33) -
                                         0.001 * WindSp * pow(1-csza, -0.57) -
                                         0.001 * 6 * pow(1-csza, 0.829));
                 }
@@ -1048,10 +1064,10 @@ AED_REAL calculate_qsw(int kDays,     // Days since start of year for yesterday
             default : break;
         }
     }
+    //# Increment the daily albedo for this time-step, if within daylight hours
+    if (sza<89.) SurfData.albedo += Albedo1;
 
-    // Add albedo tracking to help debug ice/snow duration
-    SurfData.albedo = Albedo1;
-
+    //# Now either assign BC value if sub-daily, or compute if BC is daily only
     if ( subdaily )
         lQSW = ShortWave * (1.0-Albedo1);
     else {
@@ -1341,6 +1357,11 @@ AED_REAL  atmos_stability(AED_REAL *Q_latentheat,
     *Q_sensible = -CHW * rho_air * cp_air * U_sensH * dT;
     *Q_latentheat = -CHW * rho_air * U_sensH * dq * Latent_Heat_Evap;
 
+    printf("*Q_sensible = %10.5f\n",*Q_sensible);
+    printf("*Q_sensible_still = %10.5f\n",Q_sensible_still);
+    printf("*Q_latentheat = %10.5f\n",*Q_latentheat);
+    printf("*Q_latentheat_still = %10.5f\n",Q_latentheat_still);
+
     // Limit minimum to still air value
     if (Q_sensible_still < *Q_sensible)
         *Q_sensible = Q_sensible_still;
@@ -1348,6 +1369,8 @@ AED_REAL  atmos_stability(AED_REAL *Q_latentheat,
         *Q_latentheat = Q_latentheat_still;
 
     // Link stability corrected drag to main code
+    printf("CD4 = %10.5f\n",CD4);
+    printf("CHW = %10.5f\n",CHW);
     return CD4;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

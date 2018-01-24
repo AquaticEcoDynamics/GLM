@@ -383,11 +383,17 @@ void do_model_non_avg(int jstart, int nsave)
         jday++;
 
         //# Initialise daily values for volume and heat balance output
+        //SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
+        //SurfData.dailyQsw = 0.; SurfData.dailyQe = 0.;
+        //SurfData.dailyQh = 0.; SurfData.dailyQlw = 0.;
+        //SurfData.dailyInflow = 0.;
+        //SurfData.dailyOutflow = 0.; SurfData.dailyOverflow = 0.;
         SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
         SurfData.dailyQsw = 0.; SurfData.dailyQe = 0.;
         SurfData.dailyQh = 0.; SurfData.dailyQlw = 0.;
-        SurfData.dailyInflow = 0.;
+        SurfData.dailyInflow = 0.; SurfData.dailySnow = 0.;
         SurfData.dailyOutflow = 0.; SurfData.dailyOverflow = 0.;
+        SurfData.albedo = 0.;
 
         read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, WQNew);
         //# Set to today's inflow

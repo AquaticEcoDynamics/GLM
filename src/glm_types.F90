@@ -59,16 +59,16 @@ MODULE glm_types
       AED_REAL :: Density          !# density kg/m3
       AED_REAL :: Temp             !# temperature
       AED_REAL :: Salinity         !# salinity
-      AED_REAL :: Height           !# 1-D depth array
-      AED_REAL :: MeanHeight       !# Mean depth of a layer
+      AED_REAL :: Height           !# layer heights above the bottom
+      AED_REAL :: MeanHeight       !# mean height of a layer
       AED_REAL :: LayerVol         !# volume of layer
       AED_REAL :: LayerArea        !# area of layer
 
-      AED_REAL :: Light            !# solar radiation over water layer depths
-      AED_REAL :: ExtcCoefSW       !# light extinction coefficient
+      AED_REAL :: Light            !# PAR, photosynthetically active radiation
+      AED_REAL :: ExtcCoefSW       !# Kd, light extinction coefficient
 
-      AED_REAL :: Vol1
-      AED_REAL :: Epsilon
+      AED_REAL :: Vol1             !# Cumulative volume to this layer top
+      AED_REAL :: Epsilon          !# Diffusivity
 
       AED_REAL :: Umean            !# Mean velocity
       AED_REAL :: Uorb             !# Orbital velocity

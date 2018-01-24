@@ -246,9 +246,13 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
      * sed_heat
      *-------------------------------------------*/
     extern CLOGICAL         sed_heat_sw;
-    extern AED_REAL         sed_temp_mean;
-    extern AED_REAL         sed_temp_amplitude;
-    extern AED_REAL         sed_temp_peak_doy;
+    extern AED_REAL         sed_heat_Ksoil;
+    extern AED_REAL         sed_temp_depth;
+    AED_REAL               *sed_temp_mean       = NULL;
+    AED_REAL               *sed_temp_amplitude  = NULL;
+    AED_REAL               *sed_temp_peak_doy   = NULL;
+    //extern AED_REAL         sed_temp_amplitude;
+    //extern AED_REAL         sed_temp_peak_doy;
     /*-------------------------------------------*/
 
     int i, j, k;
@@ -426,9 +430,11 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     };
     NAMELIST sed_heat[] = {
           { "sed_heat",          TYPE_START,            NULL               },
-          { "sed_temp_mean",     TYPE_DOUBLE,           &sed_temp_mean     },
-          { "sed_temp_amplitude",TYPE_DOUBLE,           &sed_temp_amplitude},
-          { "sed_temp_peak_doy", TYPE_DOUBLE,           &sed_temp_peak_doy },
+          { "sed_heat_Ksoil",    TYPE_DOUBLE,           &sed_heat_Ksoil    },
+          { "sed_temp_depth",    TYPE_DOUBLE,           &sed_temp_depth    },
+          { "sed_temp_mean",     TYPE_DOUBLE|MASK_LIST, &sed_temp_mean     },
+          { "sed_temp_amplitude",TYPE_DOUBLE|MASK_LIST, &sed_temp_amplitude},
+          { "sed_temp_peak_doy", TYPE_DOUBLE|MASK_LIST, &sed_temp_peak_doy },
           { NULL,                TYPE_END,              NULL               }
     };
 /*----------------------------------------------------------------------------*/
@@ -611,15 +617,25 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     //--------------------------------------------------------------------------
     // sediment heat (sed_heat)
+    printf("*starting sed_heat = %10.5f\n",sed_heat_Ksoil);
 
-    sed_temp_mean      = 9.7;
-    sed_temp_amplitude = 2.7;
-    sed_temp_peak_doy  = 151;
+    sed_heat_Ksoil     = 5.0;
+    sed_temp_depth     = 0.1;
+//    sed_temp_mean[0]   = 9.7;
+    printf("*starting sed_heat = %10.5f\n",sed_temp_depth);
+  //  sed_temp_amplitude = 2.7;
+  //  sed_temp_peak_doy  = 151;
     if ( get_namelist(namlst, sed_heat) ) {
          sed_heat_sw = FALSE;
          fprintf(stderr,"No sed_heat section, turning off sediment heating\n");
-    } else
+    } else {
          sed_heat_sw = TRUE;
+         fprintf(stderr,"Sed_heat section present, simulating sediment heating\n");
+    }
+    printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[0]);
+    printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[1]);
+
+
 
     open_met_file(meteo_fl, snow_sw, rain_sw, timefmt_m);
     config_bird(namlst);
