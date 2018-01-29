@@ -140,8 +140,7 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
     ILP = FALSE;
 
     //# Reset Delta_V (layer specific withdrawal amount) for all layers as zero
-    for (i = botmLayer; i <= surfLayer; i++) Delta_V[i]=0.0;
-
+    for (i = botmLayer; i < MaxLayers; i++) Delta_V[i]=0.0;
 
     /***********************************************************************
      * Determine offtake level, length, width and flow                     *
@@ -188,12 +187,14 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
         if (surfLayer == botmLayer) {
             if (Delta_V[0] >= Lake[0].LayerVol)
                 Delta_V[0] = Lake[0].LayerVol - 1.0;
+                Delta_V[0] = 0.9 * Lake[0].LayerVol;
         } else {
             for (i = botmLayer; i < surfLayer; i++) {
                 if (Delta_V[i] >= Lake[i].LayerVol) {
-                    Delta_V[i+1] = Delta_V[i+1] + Delta_V[i] - Lake[i].LayerVol + 1.0;
-                    Delta_V[i] = Lake[i].LayerVol - 1.0;
+                    Delta_V[i+1] = Delta_V[i+1] + Delta_V[i] - 0.9*(Lake[i].LayerVol);
+                    Delta_V[i] = 0.9 * (Lake[i].LayerVol);
                 }
+                //printf("Delta_V[i]p = %d, %10.5f,%10.5f,%10.5f\n",i, Lake[i].LayerVol,Delta_V[i],Delta_V[i+1]);
              }
         }
     } else {
@@ -345,16 +346,16 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
         //# Correction if any layer should be emptied.
         for (i = botmLayer; i < surfLayer; i++) {
             if (Delta_V[i] >= Lake[i].LayerVol) {
-                Delta_V[i+1] = Delta_V[i+1] + Delta_V[i] - Lake[i].LayerVol + 1.0;
-                Delta_V[i] = Lake[i].LayerVol - 1.0;
+                Delta_V[i+1] = Delta_V[i+1] + (Delta_V[i] - 0.9*Lake[i].LayerVol);
+                Delta_V[i] = 0.9*(Lake[i].LayerVol) ;
             }
         }
     }
 
     //# Now have Delta_V[i] for all layers and can remove it.
-    for (i = botmLayer; i <= surfLayer; i++)
-         if (Delta_V[i] >= 1E-5) Lake[i].LayerVol -= Delta_V[i];
-
+    for (i = botmLayer; i <= surfLayer; i++){
+         if (Delta_V[i] > zero) Lake[i].LayerVol -= Delta_V[i];
+    }
     Lake[botmLayer].Vol1 = Lake[botmLayer].LayerVol;
     for (i = (botmLayer+1); i <= surfLayer; i++)
         Lake[i].Vol1 = Lake[i-1].Vol1 + Lake[i].LayerVol;
@@ -371,9 +372,9 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
 AED_REAL do_outflows(int jday)
 {
     int i;
-    AED_REAL DrawHeight = -1; //# Height of withdraw [m]
-    AED_REAL VolSum = Lake[surfLayer].Vol1; //# Lake volume prior to outflows [Ml]
-    AED_REAL SeepDraw = 0.0; //# Seepage volume [Ml]
+    AED_REAL DrawHeight = -1; //# Height of withdraw [m from bottom]
+    AED_REAL VolSum = Lake[surfLayer].Vol1; //# Lake volume prior to outflows [m3]
+    AED_REAL SeepDraw = 0.0; //# Seepage volume [m3]
 
     if ( Delta_V == NULL ) Delta_V = malloc(sizeof(AED_REAL) * MaxLayers);
 
@@ -422,7 +423,13 @@ AED_REAL do_outflows(int jday)
         write_outflow(i, jday, DrawHeight, tVolSum - Lake[surfLayer].Vol1);
     }
     if (seepage) {
-        SeepDraw = (seepage_rate / Lake[botmLayer].Height) * Lake[botmLayer].LayerVol;
+      if (seepage_rate>zero) {
+        // Darcy's Law used, so input rate is hydraulic conductivity (m/day) x hydraulic head
+        SeepDraw = seepage_rate * Lake[surfLayer].Height * Lake[surfLayer].LayerArea * 0.95;
+      } else {
+        // Constant seepage assumed, so input rate is dh (m/day)
+        SeepDraw = -seepage_rate * Lake[surfLayer].LayerArea * 0.95; // 0.95 added since the effective area of seeping is probably a bit less than max area of water innundation???
+      }
         do_single_outflow(0., SeepDraw, NULL);
     }
 
@@ -442,8 +449,12 @@ AED_REAL do_overflow(int jday)
     AED_REAL VolSum = Lake[surfLayer].Vol1;
     AED_REAL DrawHeight = 0.;
 
-    if (VolSum > VolAtCrest)
+    if (VolSum > VolAtCrest){
+        // if weir_overflow : to add weir equations here.
+        //
+        // else
         do_single_outflow(CrestLevel, (VolSum - VolAtCrest), NULL);
+    }
 
     write_outflow(MaxOut, jday, DrawHeight, VolSum - Lake[surfLayer].Vol1);
 
