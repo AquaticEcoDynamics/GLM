@@ -204,6 +204,7 @@ typedef char filname[80];
        AED_REAL dailyOutflow;    // Total Daily Outflow (ML/day)
        AED_REAL dailyOverflow;   // Total Daily Overflow (ML/day)
        AED_REAL albedo;          // Daily surface albedo
+       AED_REAL dailyzonL;          // Daily surface albedo
    } SurfaceDataType;
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

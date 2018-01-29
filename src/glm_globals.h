@@ -130,15 +130,16 @@ extern AED_REAL mol_diffusivity[];
 // SURFACE
 extern SurfaceDataType SurfData; //* Surface Data
 extern MetDataType MetData;      //* Meteorological data
-extern CLOGICAL catchrain;
-extern CLOGICAL atm_stab;      // Account for non-neutral atmospheric stability
-extern AED_REAL rain_threshold;
 extern AED_REAL runoff_coef;
+extern AED_REAL rain_threshold;
+extern CLOGICAL catchrain;
+extern int atm_stab;         //* Account for non-neutral atmospheric stability
 extern AED_REAL coef_wind_drag;   //* = 0.0013;
+extern AED_REAL coef_wind_chwn;   //* = 0.0013;
 extern AED_REAL CD;               //* = 0.0013;
 extern AED_REAL CE;               //* = 0.0013;
 extern AED_REAL CH;               //* = 0.0013;
-extern int      subdaily; //* = FALSE;
+extern int      subdaily;         //* = FALSE;
 extern int      rad_mode;
 extern int      albedo_mode;
 extern int      cloud_mode;
@@ -187,6 +188,8 @@ extern AED_REAL sed_temp_depth;
 extern AED_REAL *sed_temp_mean;
 extern AED_REAL *sed_temp_amplitude;
 extern AED_REAL *sed_temp_peak_doy;
+extern AED_REAL *sed_reflectivity;
+extern AED_REAL *sed_roughness;
 
 /*----------------------------------------------------------------------------*/
 // FETCH

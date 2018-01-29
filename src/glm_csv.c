@@ -190,10 +190,13 @@ void init_csv_output(const char *out_dir)
         csv_header_var (csv_lake_file, "H_s"); //, "m");
         csv_header_var (csv_lake_file, "L");
         csv_header_var (csv_lake_file, "T");
-        csv_header_var(csv_lake_file, "LakeNumber");
-        csv_header_var(csv_lake_file, "Max dT/dz");
+        csv_header_var (csv_lake_file, "LakeNumber");
+        csv_header_var (csv_lake_file, "Max dT/dz");
         csv_header_var (csv_lake_file, "CD");
-        csv_header_end(csv_lake_file);
+        csv_header_var (csv_lake_file, "CH");
+        csv_header_var (csv_lake_file, "z/L");
+        csv_header_var (csv_lake_file, "coef_wind_drag");
+        csv_header_end (csv_lake_file);
     } else
         csv_lake_file = -1;
 

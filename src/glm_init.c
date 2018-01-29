@@ -248,9 +248,11 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern CLOGICAL         sed_heat_sw;
     extern AED_REAL         sed_heat_Ksoil;
     extern AED_REAL         sed_temp_depth;
-    AED_REAL               *sed_temp_mean       = NULL;
-    AED_REAL               *sed_temp_amplitude  = NULL;
-    AED_REAL               *sed_temp_peak_doy   = NULL;
+    extern AED_REAL         *sed_temp_mean       ;
+    extern AED_REAL         *sed_temp_amplitude  ;
+    extern AED_REAL         *sed_temp_peak_doy   ;
+    extern AED_REAL         *sed_reflectivity    ;
+    extern AED_REAL         *sed_roughness       ;
     //extern AED_REAL         sed_temp_amplitude;
     //extern AED_REAL         sed_temp_peak_doy;
     /*-------------------------------------------*/
@@ -276,6 +278,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "coef_mix_hyp",      TYPE_DOUBLE,           &coef_mix_hyp      },
           { "non_avg",           TYPE_BOOL,             &non_avg           },
           { "deep_mixing",       TYPE_INT,              &deep_mixing       },
+    //    { "surface_mixing",    TYPE_INT,              &surface_mixing    },
           { NULL,                TYPE_END,              NULL               }
     };
     NAMELIST glm_restart[] = {
@@ -292,9 +295,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "bioshade_feedback", TYPE_BOOL,             &bioshade_feedback },
           { "repair_state",      TYPE_BOOL,             &repair_state      },
           { "mobility_off",      TYPE_BOOL,             &mobility_off      },
-          { "benthic_mode",      TYPE_INT,              &benthic_mode      },
-          { "n_zones",           TYPE_INT,              &n_zones           },
-          { "zone_heights",      TYPE_DOUBLE|MASK_LIST, &zone_heights      },
+//          { "benthic_mode",      TYPE_INT,              &benthic_mode      },
+//          { "n_zones",           TYPE_INT,              &n_zones           },
+//          { "zone_heights",      TYPE_DOUBLE|MASK_LIST, &zone_heights      },
           { NULL,                TYPE_END,              NULL               }
     };
     NAMELIST time[] = {
@@ -435,6 +438,11 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "sed_temp_mean",     TYPE_DOUBLE|MASK_LIST, &sed_temp_mean     },
           { "sed_temp_amplitude",TYPE_DOUBLE|MASK_LIST, &sed_temp_amplitude},
           { "sed_temp_peak_doy", TYPE_DOUBLE|MASK_LIST, &sed_temp_peak_doy },
+          { "benthic_mode",      TYPE_INT,              &benthic_mode      },
+          { "n_zones",           TYPE_INT,              &n_zones           },
+          { "zone_heights",      TYPE_DOUBLE|MASK_LIST, &zone_heights      },
+          { "sed_reflectivity",  TYPE_DOUBLE|MASK_LIST, &sed_reflectivity  },
+          { "sed_roughness",     TYPE_DOUBLE|MASK_LIST, &sed_roughness     },
           { NULL,                TYPE_END,              NULL               }
     };
 /*----------------------------------------------------------------------------*/
@@ -595,6 +603,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         exit(1);
     }
     coef_wind_drag = CD;
+    coef_wind_chwn = CH;
 
     //--------------------------------------------------------------------------
     // snowice

@@ -56,7 +56,7 @@ AED_REAL Kw;             //# background light attenuation (m**-1)
 
 int Num_WQ_Vars;         //# number of water quality variables
 int Num_WQ_Ben;          //# number of benthic water quality variables
-CLOGICAL atm_stab = FALSE;   // Account for non-neutral atmospheric stability
+int atm_stab = 0;   // Account for non-neutral atmospheric stability
 CLOGICAL do_restart = FALSE;
 
 //------------------------------------------------------------------------------
@@ -93,6 +93,7 @@ AED_REAL mol_diffusivity[MaxDif];
 // CD is the coef wind drag specified in the config, coef_wind_drag gets set to
 // CD every time around the daily loop, coef_wind_drag is used in the loop
 AED_REAL coef_wind_drag = 0.0013;
+AED_REAL coef_wind_chwn = 0.0013;
 AED_REAL CD = 0.0013;
 AED_REAL CE = 0.0013;
 AED_REAL CH = 0.0013;
@@ -161,6 +162,8 @@ AED_REAL sed_temp_depth     = 0.1;
 AED_REAL   *sed_temp_mean = NULL;
 AED_REAL   *sed_temp_amplitude = NULL;
 AED_REAL   *sed_temp_peak_doy = NULL;
+AED_REAL   *sed_reflectivity = NULL;
+AED_REAL   *sed_roughness = NULL;
 
 //------------------------------------------------------------------------------
 // FETCH

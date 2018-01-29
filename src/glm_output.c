@@ -297,10 +297,10 @@ void write_diags(int jday, AED_REAL LakeNum)
     write_csv_lake("Max Temp",        max_temp(Lake, NumLayers), NULL, FALSE);
     write_csv_lake("Min Temp",        min_temp(Lake, NumLayers), NULL, FALSE);
     write_csv_lake("Surface Temp",    Lake[surfLayer].Temp,      NULL, FALSE);
-    write_csv_lake("Daily Qsw",       SurfData.dailyQsw / Lake[surfLayer].LayerArea,         NULL, FALSE);
-    write_csv_lake("Daily Qe",        SurfData.dailyQe / Lake[surfLayer].LayerArea,          NULL, FALSE);
-    write_csv_lake("Daily Qh",        SurfData.dailyQh / Lake[surfLayer].LayerArea,          NULL, FALSE);
-    write_csv_lake("Daily Qlw",       SurfData.dailyQlw / Lake[surfLayer].LayerArea,         NULL, FALSE);
+    write_csv_lake("Daily Qsw",       SurfData.dailyQsw / Lake[surfLayer].LayerArea/SecsPerDay,         NULL, FALSE);
+    write_csv_lake("Daily Qe",        SurfData.dailyQe / Lake[surfLayer].LayerArea/SecsPerDay,          NULL, FALSE);
+    write_csv_lake("Daily Qh",        SurfData.dailyQh / Lake[surfLayer].LayerArea/SecsPerDay,          NULL, FALSE);
+    write_csv_lake("Daily Qlw",       SurfData.dailyQlw / Lake[surfLayer].LayerArea/SecsPerDay,         NULL, FALSE);
     write_csv_lake("Light",           Lake[surfLayer].Light,     NULL, FALSE);
     write_csv_lake("Benthic Light",   Benthic_Light_pcArea,      NULL, FALSE);
 
@@ -310,7 +310,10 @@ void write_diags(int jday, AED_REAL LakeNum)
 
     write_csv_lake("LakeNumber",      LakeNum,                   NULL, FALSE);
     write_csv_lake("Max dT/dz",    max_dtdz_at(Lake, NumLayers), NULL, FALSE);
-    write_csv_lake("coef_wind_drag", coef_wind_drag,             NULL, TRUE);
+    write_csv_lake("CD",              coef_wind_drag,            NULL, FALSE);
+    write_csv_lake("CH",              coef_wind_chwn,            NULL, FALSE);
+    write_csv_lake("z/L",             SurfData.dailyzonL*(noSecs/SecsPerDay), NULL, FALSE);
+    write_csv_lake("coef_wind_drag",  coef_wind_drag,            NULL, TRUE);
 
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

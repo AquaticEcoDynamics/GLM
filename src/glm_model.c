@@ -258,7 +258,7 @@ void do_model(int jstart, int nsave)
         SurfData.dailyQh = 0.; SurfData.dailyQlw = 0.;
         SurfData.dailyInflow = 0.; SurfData.dailySnow = 0.;
         SurfData.dailyOutflow = 0.; SurfData.dailyOverflow = 0.;
-        SurfData.albedo = 0.;
+        SurfData.albedo = 0.; SurfData.dailyzonL = 0.;
 
         read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, WQNew);
         //# Averaging of flows
@@ -393,7 +393,7 @@ void do_model_non_avg(int jstart, int nsave)
         SurfData.dailyQh = 0.; SurfData.dailyQlw = 0.;
         SurfData.dailyInflow = 0.; SurfData.dailySnow = 0.;
         SurfData.dailyOutflow = 0.; SurfData.dailyOverflow = 0.;
-        SurfData.albedo = 0.;
+        SurfData.albedo = 0.; SurfData.dailyzonL = 0.;
 
         read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, WQNew);
         //# Set to today's inflow
@@ -414,8 +414,12 @@ void do_model_non_avg(int jstart, int nsave)
         read_daily_withdraw_temp(jday, &WithdrTempNew);
         WithdrawalTemp = WithdrTempNew;
 
+        printf("*MetData.LongWave = %10.5f\n",MetData.LongWave);
         read_daily_met(jday, &MetData);
         SWnew = MetData.ShortWave;
+
+        printf("*MetData.LongWave = %10.5f\n",MetData.LongWave);
+
 
 #if DEBUG
         fprintf(stderr, "------- next day - do_model_non_avg -------\n");
