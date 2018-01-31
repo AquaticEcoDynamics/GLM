@@ -170,6 +170,7 @@ void init_csv_output(const char *out_dir)
         csv_header_var (csv_lake_file, "Overflow Vol"); //, "m3");
         csv_header_var (csv_lake_file, "Evaporation"); //, "m3");
         csv_header_var (csv_lake_file, "Rain"); //, "m3");
+        csv_header_var (csv_lake_file, "Local Runoff"); //, "m3");
         csv_header_var (csv_lake_file, "Snowfall"); //, "m3");
         csv_header_var (csv_lake_file, "Lake Level"); //, "m");
         csv_header_var (csv_lake_file, "Surface Area"); //, "m2");

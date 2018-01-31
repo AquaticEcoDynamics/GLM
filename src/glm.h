@@ -87,6 +87,9 @@
   #define surfLayer (NumLayers-1)
   #define botmLayer 0
 
+  #define onshoreLayer (surfLayer+2)
+  #define offshoreLayer (surfLayer+1)
+
 // This is how we sort out the differences in multidimensional array indexing
   #define _IDX_2d(di,dj,i,j) (((di) * (j)) + (i))
   #define WQ_INF_(a,i,j) a[_IDX_2d(MaxInf,MaxVars,i,j)]

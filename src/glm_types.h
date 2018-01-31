@@ -195,6 +195,7 @@ typedef char filname[80];
        AED_REAL RhoSnow;          // Density of snow layer in kg/m^3
        AED_REAL dailyEvap;       // Daily Evaporation (ML/day)
        AED_REAL dailyRain;       // Daily Rain (ML/day)
+       AED_REAL dailyRunoff;     // Daily Runoff (m3/day)
        AED_REAL dailySnow;       // Daily Snow (ML/day)
        AED_REAL dailyQsw;        // Daily Heat Flux (J/day)
        AED_REAL dailyQe;         // Daily Latent Heat(J/day)

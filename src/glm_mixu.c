@@ -117,9 +117,9 @@ static void one_layer(int i, AED_REAL *xx, AED_REAL *dxx)
 
 
 /******************************************************************************
- * From the given physical data evaluates arrays of depths and areas          *
- * corresponding to an array of volumes (icode=2) or arrays of volume         *
- * and areas from depths (icode=1) starting at layer LNU                      *
+ * From the given physical data, this function evaluates arrays of depths     *
+ * and areas corresponding to an array of volumes (icode=2) or arrays of      *
+ * volume and areas from depths (icode=1); starting at layer LNU              *
  ******************************************************************************/
 void resize_internals(int icode, int lnu)
 {
@@ -220,8 +220,9 @@ void resize_internals(int icode, int lnu)
                 j++;
             }
             if (j >= Nmorph) j = Nmorph - 1;
+            if (j < 0) j = 0;
 
-            Lake[k].Height = ((j+1) + (Lake[k].Vol1 - MphLevelVoldash[j]) / dMphLevelVolda[j]) / MphInc;
+            Lake[k].Height = ((j+1) + (MAX( Lake[k].Vol1 - MphLevelVoldash[j],zero)) / dMphLevelVolda[j]) / MphInc;
         }
 
         //# determine areas

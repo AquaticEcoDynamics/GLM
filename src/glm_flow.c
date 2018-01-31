@@ -448,17 +448,30 @@ AED_REAL do_overflow(int jday)
 {
     AED_REAL VolSum = Lake[surfLayer].Vol1;
     AED_REAL DrawHeight = 0.;
+    AED_REAL overflow = 0.;
 
+    // Too much water for the entire lake domain, remove this first
+    if (VolSum > MaxVol){
+      do_single_outflow((CrestHeight+MaxHeight/2), (VolSum - MaxVol), NULL);
+      overflow = VolSum - Lake[surfLayer].Vol1;
+    }
+    VolSum = Lake[surfLayer].Vol1;
+    // Water above the crest, which will overflow based on a weir equation
     if (VolSum > VolAtCrest){
-        // if weir_overflow : to add weir equations here.
-        //
-        // else
-        do_single_outflow(CrestLevel, (VolSum - VolAtCrest), NULL);
+
+        AED_REAL ovfl_Q, ovfl_dz;
+
+        ovfl_dz = MAX( Lake[surfLayer].Height - CrestHeight, zero );
+        ovfl_Q = 2./3. * crest_factor * pow(2*g,0.5) * crest_width * pow(ovfl_dz,1.5);
+        ovfl_Q  = MIN( (VolSum - VolAtCrest) , ovfl_Q );
+
+        do_single_outflow(CrestHeight, ovfl_Q , NULL);
+        overflow += ovfl_Q ;
     }
 
-    write_outflow(MaxOut, jday, DrawHeight, VolSum - Lake[surfLayer].Vol1);
+    write_outflow(MaxOut, jday, DrawHeight, overflow);
 
-    return VolSum - Lake[surfLayer].Vol1;
+    return overflow;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -700,11 +713,14 @@ AED_REAL do_inflows()
 
     AED_REAL Inflow_width;    //# Width of inflow [m]
     AED_REAL VolSum = Lake[surfLayer].Vol1; //# Total lake volume before inflows
+    AED_REAL RunoffFlowRate;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
-    if ( NumInf <= 0 ) return 0.; // nothing to do
 
+    if ( NumInf <= 0 ) return zero; // nothing more to do
+
+    // Array allocation for WQ in the inflow parcels
     if ( WQ_VarsS == NULL )   WQ_VarsS = malloc(Num_WQ_Vars * sizeof(AED_REAL));
     if ( WQ_VarsTmp == NULL ) WQ_VarsTmp = malloc(NumInf * sizeof(wq_partic_t));
     memset(WQ_VarsS, 0, (Num_WQ_Vars * sizeof(AED_REAL)));
@@ -720,6 +736,7 @@ AED_REAL do_inflows()
      **************************************************************************/
      WaveNumSquared = zero;
      vel = zero;
+
      for (iRiver = NumInf-1; iRiver >= 0; iRiver--) {
         if (Inflows[iRiver].FlowRate*Inflows[iRiver].Factor != zero && !Inflows[iRiver].SubmFlag) {
             Alpha = Inflows[iRiver].Alpha;
@@ -869,6 +886,7 @@ AED_REAL do_inflows()
             }
         }
 
+
         //# Reset the number of insertions per river to be zero.
         for (k = 0; k < NumInf; k++) Inflows[k].NoIns = 0;
 
@@ -892,7 +910,7 @@ AED_REAL do_inflows()
         iRiver = iRiv;
     }
 
-    //# Make adjustments to correct layer volumes.
+    //# Make adjustments to update the layer heights, based on these vol changes
     resize_internals(2,botmLayer);
     check_layer_thickness();
 

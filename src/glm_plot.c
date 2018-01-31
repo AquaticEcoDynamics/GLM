@@ -174,7 +174,7 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
             set_plot_y_limits(theplots[i], min_y, max_y);
             set_plot_z_limits(theplots[i], min_z[i], max_z[i]);
         } else {
-            set_plot_y_label(theplots[i], "m-mol/L");
+            set_plot_y_label(theplots[i], "mmol/m3");
             set_plot_y_limits(theplots[i], min_z[i], max_z[i]);
         }
         set_plot_version(theplots[i], glm_vers);
@@ -182,6 +182,8 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
         if ( n_zones > 0 ) {
             int j;
             for (j = 0; j < n_zones; j++) show_h_line(i, zone_heights[j]);
+        } else {
+          show_h_line(i, CrestHeight);
         }
     }
     free(glm_vers);

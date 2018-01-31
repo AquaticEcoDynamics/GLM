@@ -58,6 +58,7 @@ extern int *WQ_VarsIdx;
 
 static AED_REAL   base_elev;
 static AED_REAL   crest_elev;
+static AED_REAL   max_elev;
 extern LOGICAL    seepage;
 extern AED_REAL   seepage_rate;
 
@@ -95,6 +96,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 //  AED_REAL        coef_mix_hyp;
 //  CLOGICAL        non_avg;
 //  int             deep_mixing;
+    extern int      density_model;
     /*-------------------------------------------*/
 
     /*---------------------------------------------
@@ -164,6 +166,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 //  AED_REAL        CD;
 //  AED_REAL        CE;
 //  AED_REAL        CH;
+    extern AED_REAL salt_fall;
     extern AED_REAL wind_factor;
     extern AED_REAL sw_factor;
     extern AED_REAL lw_factor;
@@ -199,7 +202,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
      * outflow
      *-------------------------------------------*/
     int             num_outlet;
-    LOGICAL        *flt_off_sw   = NULL;
+    LOGICAL        *flt_off_sw     = NULL;
     int            *outlet_type    = NULL;
     int             crit_O2        = -1;
     int             crit_O2_dep    = -1;
@@ -278,7 +281,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "coef_mix_hyp",      TYPE_DOUBLE,           &coef_mix_hyp      },
           { "non_avg",           TYPE_BOOL,             &non_avg           },
           { "deep_mixing",       TYPE_INT,              &deep_mixing       },
-    //    { "surface_mixing",    TYPE_INT,              &surface_mixing    },
+          { "surface_mixing",    TYPE_INT,              &surface_mixing    },
+          { "littoral_sw",       TYPE_BOOL,             &littoral_sw       },
+          { "density_model",     TYPE_INT,              &density_model     },
           { NULL,                TYPE_END,              NULL               }
     };
     NAMELIST glm_restart[] = {
@@ -334,6 +339,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "met_sw",            TYPE_BOOL,             &met_sw            },
           { "lw_type",           TYPE_STR,              &lw_type           },
           { "rain_sw",           TYPE_BOOL,             &rain_sw           },
+          { "salt_fall",         TYPE_DOUBLE,           &salt_fall         },
      //   { "snow_sw",           TYPE_BOOL,             &snow_sw           },
           { "meteo_fl",          TYPE_STR,              &meteo_fl          },
           { "subdaily",          TYPE_BOOL,             &subdaily          },
@@ -399,6 +405,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "outflow_factor",    TYPE_DOUBLE|MASK_LIST, &outflow_factor    },
           { "seepage",           TYPE_BOOL,             &seepage           },
           { "seepage_rate",      TYPE_DOUBLE,           &seepage_rate      },
+          { "crest_width",       TYPE_DOUBLE,           &crest_width      },
+          { "crest_factor",      TYPE_DOUBLE,           &crest_factor      },
           { "time_fmt",          TYPE_STR,              &timefmt_o         },
           { "timezone",          TYPE_DOUBLE,           &timezone_o        },
           { NULL,                TYPE_END,              NULL               }
@@ -743,10 +751,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
                 Outflows[i].Type = 2;
             }
             if ( Outflows[i].FloatOff ) {
-                if ( (outl_elvs[i] > (crest_elev-base_elev)) || (outl_elvs[i] < 0.0) ) {
+                if ( (outl_elvs[i] > (max_elev-base_elev)) || (outl_elvs[i] < 0.0) ) {
                     fprintf(stderr,
-                    "Floating outflow (%124lf) above surface or deeper than lake depth (%12.4lf)\n",
-                                    outl_elvs[i], crest_elev - base_elev);
+                    "Floating outflow (%124lf) is above lake surface or deeper than lake depth (%12.4lf)\n",
+                                    outl_elvs[i], max_elev - base_elev);
                     exit(1);
                 }
                 Outflows[i].OLev = outl_elvs[i];  // if floating outlet make it is relative to surface
@@ -966,8 +974,11 @@ void create_lake(int namlst)
         exit(1);
     }
 
-    if (base_elev != MISVAL || crest_elev != MISVAL) {
-        fprintf(stderr, "values for base_elev and crest_elev are no longer used\n");
+    //if (base_elev != MISVAL || crest_elev != MISVAL) {
+    //    fprintf(stderr, "values for base_elev and crest_elev are no longer used\n");
+    //}
+    if (base_elev != MISVAL ) {
+        fprintf(stderr, "value for base_elev is no longer used; A[1] is assumed.\n");
     }
     if ( V != NULL ) {
         fprintf(stderr, "values for V are no longer used\n");
@@ -975,24 +986,29 @@ void create_lake(int namlst)
         V = NULL;
     }
 
-    base_elev = H[0];  crest_elev = H[bsn_vals-1];
+    base_elev = H[0];  max_elev = H[bsn_vals-1];
+    if ( crest_elev == MISVAL ) {
+        fprintf(stderr, "values for crest_elev not provided, assuming max elevation, H[bsn]\n");
+      //free(V);
+        crest_elev = H[bsn_vals-1];
+    }
 
-    printf("Maximum lake depth is %f\n", crest_elev - base_elev);
+    printf("Maximum lake depth is %f\n", max_elev - base_elev);
 
-    if ( (MaxLayers * DMax) < (crest_elev - base_elev) ) {
+    if ( (MaxLayers * DMax) < (max_elev - base_elev) ) {
         fprintf(stderr, "Configuration Error. MaxLayers * max_layer_height < depth of the lake\n");
         exit(1);
     }
 
     if ( n_zones > 0 && zone_heights != NULL ) {
-        if ( zone_heights[n_zones-1] < (crest_elev-base_elev) ) {
+        if ( zone_heights[n_zones-1] < (max_elev-base_elev) ) {
             fprintf(stderr, "WARNING last zone height is less than maximum depth\n");
             fprintf(stderr, "   adding an extra zone to compensate\n");
             zone_heights = realloc(zone_heights, (n_zones+2)*sizeof(AED_REAL));
             if ( zone_heights == NULL) {
                 fprintf(stderr, "Memory error ...\n"); exit(1);
             }
-            zone_heights[n_zones++] = (crest_elev-base_elev)+1;
+            zone_heights[n_zones++] = (max_elev-base_elev)+1;
         }
 
         zone_area = malloc(n_zones * sizeof(AED_REAL));
@@ -1043,16 +1059,17 @@ void create_lake(int namlst)
      * The model creates a refined lookup-table of depth-area-volume for later*
      * use. The maximum number of elements in the internal lookup table is    *
      * defined as Nmorph and calculated based on the highest supplied lake    *
-     * depth index into storage arrays may be calculated as 10* the maximum   *
+     * depth; index into storage arrays may be calculated as 10* the maximum  *
      * lake depth. Since the surface layer height is calculated after inflows *
-     * and outflows, the height may be temporarily above the crest level,     *
+     * and outflows, the height may be temporarily above the max lake level,  *
      * and therefore 10 additional layers are included                        *
      **************************************************************************/
     Nmorph = ( ( H[bsn_vals-1] * MphInc ) + 1.0 / 1000.0 ) + 10;
 
     allocate_storage();
 
-    CrestLevel = crest_elev - Base;
+    CrestHeight = crest_elev - Base;
+    MaxHeight = max_elev - Base;
     LenAtCrest = bsn_len;
     WidAtCrest = bsn_wid;
 
@@ -1136,8 +1153,22 @@ void create_lake(int namlst)
     VMin = MphLevelVol[Nmorph-1] * VMin;
     VMax = MphInc * VMin;
 
-    // Calculate storage at crest level, VolAtCrest
-    x = CrestLevel * MphInc;
+    // Calculate storage at maximum lake level, MaxVol
+    x = MaxHeight * MphInc;
+    y = AMOD(x, 1.0);
+    ij = x - y;
+    if (ij >= Nmorph) {
+        y += (ij - Nmorph);
+        ij = Nmorph;
+    }
+    if (ij > 0) {
+        ij--;
+        MaxVol = MphLevelVol[ij] + y * dMphLevelVol[ij];
+    } else
+        MaxVol = MphLevelVol[0];
+
+    // Calculate storage at crest/overflow level, VolAtCrest
+    x = CrestHeight * MphInc;
     y = AMOD(x, 1.0);
     ij = x - y;
     if (ij >= Nmorph) {
@@ -1150,9 +1181,12 @@ void create_lake(int namlst)
     } else
         VolAtCrest = MphLevelVol[0];
 
+    fprintf(stderr,"VolAtCrest= %10.5f, and Max Lake Vol= %10.5f (m3)\n", VolAtCrest, MaxVol);
+
     memcpy(MphLevelVoldash, MphLevelVol, sizeof(AED_REAL) * Nmorph);    // MphLevelVoldash = MphLevelVol;
     memcpy(dMphLevelVolda, dMphLevelVol, sizeof(AED_REAL) * Nmorph);    // dMphLevelVolda = dMphLevelVol;
     if ( V != NULL ) free(V);
+
 //  if ( A != NULL ) free(A);
 //  if ( H != NULL ) free(H);
 
@@ -1224,7 +1258,7 @@ void initialise_lake(int namlst)
             Lake[i].Salinity = the_sals[i];
         }
 
-        if (the_heights[num_depths-1] > CrestLevel) {
+        if (the_heights[num_depths-1] > CrestHeight) {
             fprintf(stderr, "maximum height is greater than crest level\n");
             exit(1);
         }
@@ -1310,6 +1344,11 @@ void initialise_lake(int namlst)
     // calculate the density from the temp and salinity just read in
     for (i = botmLayer; i < NumLayers; i++)
         Lake[i].Density = calculate_density(Lake[i].Temp, Lake[i].Salinity);
+
+    if (littoral_sw) {
+        Lake[onshoreLayer].Temp = Lake[surfLayer].Temp;
+        Lake[offshoreLayer].Temp = Lake[surfLayer].Temp;
+    }
 
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

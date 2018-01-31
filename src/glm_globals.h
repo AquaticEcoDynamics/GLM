@@ -95,10 +95,12 @@ extern AED_REAL *zone_area;  //* areas for sed_zones
 extern CLOGICAL do_restart;
 /*----------------------------------------------------------------------------*/
 
-extern AED_REAL CrestLevel; //* crest elevation of reservoir
+extern AED_REAL MaxHeight; //* maxmimum height of reservoir
+extern AED_REAL CrestHeight; //* crest height of reservoir
 extern AED_REAL LenAtCrest; //* length of reservoir at crest
 extern AED_REAL WidAtCrest; //* width of reservoir at crest
 extern AED_REAL VolAtCrest; //* volume at crest level
+extern AED_REAL MaxVol; //* volume at max level
 extern AED_REAL Base;       //* bottom elevation of reservoir
 
 extern AED_REAL Benthic_Light_pcArea;
@@ -121,6 +123,8 @@ extern AED_REAL WithdrawalTemp;
 extern AED_REAL fac_range_upper, fac_range_lower;
 extern AED_REAL MINlaketemp;
 
+extern AED_REAL crest_width;
+extern AED_REAL crest_factor;
 /*----------------------------------------------------------------------------*/
 //
 extern int NumDif;
@@ -143,7 +147,7 @@ extern int      subdaily;         //* = FALSE;
 extern int      rad_mode;
 extern int      albedo_mode;
 extern int      cloud_mode;
-
+extern AED_REAL salt_fall;
 /*----------------------------------------------------------------------------*/
 // MORPHOMETRY
 extern int Nmorph;             //* Number of data points
@@ -172,6 +176,9 @@ extern AED_REAL coef_mix_hyp;   //# efficiency of hypolimnetic mixing
 extern CLOGICAL mobility_off;
 extern CLOGICAL non_avg;
 extern int      deep_mixing;    //# = 0 => off > 0 => on
+extern int      surface_mixing;
+
+extern int      density_model;
 
 /*----------------------------------------------------------------------------*/
 // SNOWICE

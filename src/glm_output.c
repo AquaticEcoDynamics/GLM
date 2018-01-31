@@ -107,7 +107,7 @@ void init_output(int jstart, const char *out_dir, const char *out_fn,
     if ( do_plots ) {
         int i;
         for (i = 0; i < 10; i++) plot_id[i] = -1;
-        init_plots(jstart,nDays,CrestLevel);
+        init_plots(jstart,nDays,MaxHeight);
     }
 #endif
 }
@@ -286,6 +286,7 @@ void write_diags(int jday, AED_REAL LakeNum)
     write_csv_lake("Overflow Vol",    SurfData.dailyOverflow,    NULL, FALSE);
     write_csv_lake("Evaporation",     SurfData.dailyEvap,        NULL, FALSE);
     write_csv_lake("Rain",            SurfData.dailyRain,        NULL, FALSE);
+    write_csv_lake("Local Runoff",    SurfData.dailyRunoff,      NULL, FALSE);
     write_csv_lake("Snowfall",        SurfData.dailySnow,        NULL, FALSE);
     write_csv_lake("Lake Level",      Lake[surfLayer].Height,    NULL, FALSE);
     write_csv_lake("Surface Area",    Lake[surfLayer].LayerArea, NULL, FALSE);

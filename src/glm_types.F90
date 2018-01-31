@@ -109,6 +109,7 @@ MODULE glm_types
       AED_REAL :: RhoSnow          !# Density of snow layer in kg/m^3
       AED_REAL :: dailyEvap        !# Daily Evaporation (ML/day)
       AED_REAL :: dailyRain        !# Daily Rain (ML/day)
+      AED_REAL :: dailyRunoff      !# Daily Rain (m3/day)
       AED_REAL :: dailySnow        !# Daily Snow (ML/day)
       AED_REAL :: dailyQsw         !# Daily Short Wave Radiation (J/day)
       AED_REAL :: dailyQe          !# Daily Latent Heat(J/day)

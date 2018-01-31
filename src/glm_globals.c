@@ -61,14 +61,16 @@ CLOGICAL do_restart = FALSE;
 
 //------------------------------------------------------------------------------
 
-AED_REAL CrestLevel; //# crest elevation of reservoir
-AED_REAL LenAtCrest; //# length of reservoir at crest
-AED_REAL WidAtCrest; //# width of reservoir at crest
-AED_REAL VolAtCrest; //# volume at crest level
-AED_REAL Base;       //# bottom elevation of reservoir
+AED_REAL Base;        //# bottom elevation of reservoir
+AED_REAL MaxHeight;   //# maxmimum height of reservoir
+AED_REAL CrestHeight; //# crest height of reservoir
+AED_REAL LenAtCrest;  //# length of reservoir at crest
+AED_REAL WidAtCrest;  //# width of reservoir at crest
+AED_REAL VolAtCrest;  //# volume at crest level
+AED_REAL MaxVol;      //# volume at maximum level
+AED_REAL MaxArea;
 AED_REAL Benthic_Light_pcArea;
 AED_REAL Benthic_Imin = 0.;
-AED_REAL MaxArea;
 
 //------------------------------------------------------------------------------
 
@@ -85,6 +87,9 @@ CLOGICAL COUPLoxy = FALSE;
 AED_REAL WithdrawalTemp;
 AED_REAL fac_range_upper = -1, fac_range_lower = -1;
 AED_REAL MINlaketemp;
+
+AED_REAL crest_width = 6.0;
+AED_REAL crest_factor = 0.61;
 
 //------------------------------------------------------------------------------
 
@@ -134,6 +139,7 @@ AED_REAL coef_mix_hyp = 0.5;    //# efficiency of hypolimnetic mixing
 
 CLOGICAL non_avg = FALSE;
 int deep_mixing = 2;
+int surface_mixing = 1;
 
 //
 CLOGICAL catchrain = FALSE;
@@ -144,7 +150,9 @@ int      rad_mode = 0;
 int      albedo_mode = 1;
 int      cloud_mode = 1;
 
+AED_REAL salt_fall = 0.0;
 
+int      density_model = 0;
 //------------------------------------------------------------------------------
 // SNOWICE
 AED_REAL snow_albedo_factor = 1.0;
@@ -176,7 +184,7 @@ AED_REAL    fetch_porosity = 1.;
 
 //------------------------------------------------------------------------------
 // LITTORAL
-CLOGICAL littoral_sw        = TRUE;
+CLOGICAL littoral_sw        = FALSE;
 
 //------------------------------------------------------------------------------
 

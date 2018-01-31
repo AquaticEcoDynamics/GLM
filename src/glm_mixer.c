@@ -295,6 +295,7 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
     //# Add stirring energy to available mixing energy
     Energy_AvailableMix += Energy_TotStir;
 
+
     /**************************************************************************
      * Now loop through layers using the stirring energy to mix. Computes    *
      * the energy required to mix next layer and compare with available       *
@@ -324,6 +325,8 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
         }
     }
 
+
+  if (surface_mixing==1) {
     /**************************************************************************
      *                                                                        *
      * STEP 3 - SHEAR PRODUCTION                                              *
@@ -544,6 +547,8 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
     Thermocline_Height = Lake[Meta_topLayer].Height;
     gPrimeTwoLayer = GPEFFC / Epi_Thick;
 
+}
+
     //# Now update and average water quality
     for (wqvidx=0; wqvidx < Num_WQ_Vars; wqvidx++) {
          WQ_VarsM[wqvidx] = 0.0;
@@ -553,6 +558,8 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
          // divide by the volume
          WQ_VarsM[wqvidx] = WQ_VarsM[wqvidx] / (Lake[surfLayer].Vol1-Lake[Meta_topLayer].Vol1);
     }
+
+  if (surface_mixing==1 && coef_mix_KH > zero) {
 
     /**************************************************************************
      *                                                                        *
@@ -568,6 +575,8 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
     DepMX = Lake[Meta_topLayer].Height;
 
     *_Dens_Epil = Dens_Epil; *_Meta_topLayer = Meta_topLayer;
+
+    }
 
     //# Check if insufficient energy to mix this time step so keep count of mixing model time count
     if (Time_count_sim < Time_count_end_shear)  return IS_MIXED;
@@ -607,7 +616,6 @@ void do_mixing()
     switch ( mixed_layer_deepening(WQ_VarsM, Mixer_Count, &Meta_topLayer , &Dens_Epil) ) {
         case DEEPENED_BOT:
             //# Here if deepened to bottom
-
             OldSlope = zero; //# Old slope = zero as fully mixed
             Energy_AvailableMix = zero;   //# Total available energy to mix reset to zero as lake fully mixed
             FO = zero;
@@ -622,7 +630,6 @@ void do_mixing()
 
          case MOMENTUM_CUT:
             //# Here if momentum cutoff
-
             Mixer_Count = 0;  //# Reset mixing model step count (note: not reset if case IS_MIXED)
             FSUM = zero;
             Half_Seiche_Period = zero;  //# Reset one half the seiche period
@@ -639,7 +646,6 @@ void do_mixing()
 
         case IS_MIXED:
             //# Meta_topLayer+1 becomes the surface layer == mixed epilimnion layers
-
             Lake[Meta_topLayer+1].Height = Lake[surfLayer].Height;
             Lake[Meta_topLayer+1].Temp = MeanTemp;
             Lake[Meta_topLayer+1].Salinity = MeanSalt;

@@ -99,6 +99,9 @@ void check_layer_thickness(void)
 /*----------------------------------------------------------------------------*/
     dbgprt(" CHKLAY 01 lake[44].depth = %20.15f\n", Lake[44].Height);
 
+    for (i = botmLayer; i <= surfLayer; i++)
+       printf("check_layer_thickness = %d - %10.5f,\n",i,Lake[i].Height);
+
     //# Check against vmin
     KLAST=botmLayer;
     // while (1) { //
@@ -182,7 +185,6 @@ void check_layer_thickness(void)
     while(1) {
         if (VSUMCHK) return;
 
-
         for (i = KLAST; i <= surfLayer; i++) {
             if (i == botmLayer)
                 DELDP=Lake[i].Height;
@@ -203,6 +205,7 @@ void check_layer_thickness(void)
             V = Lake[i].LayerVol/M;
             D = DELDP/M;
             if (V <= VMax && D <= DMax) break;
+            if (Lake[surfLayer].Height<0.3) break;
             M++;
 
             // if M+surfLayer is greater than the max no. of layers, a mistake will occur
@@ -259,6 +262,7 @@ void check_layer_thickness(void)
 
         // get new depths for layers i thru surfLayer
         resize_internals(2,i);
+
     }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

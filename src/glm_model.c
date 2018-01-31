@@ -259,6 +259,7 @@ void do_model(int jstart, int nsave)
         SurfData.dailyInflow = 0.; SurfData.dailySnow = 0.;
         SurfData.dailyOutflow = 0.; SurfData.dailyOverflow = 0.;
         SurfData.albedo = 0.; SurfData.dailyzonL = 0.;
+        SurfData.dailyRunoff = 0.;
 
         read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, WQNew);
         //# Averaging of flows
@@ -394,6 +395,7 @@ void do_model_non_avg(int jstart, int nsave)
         SurfData.dailyInflow = 0.; SurfData.dailySnow = 0.;
         SurfData.dailyOutflow = 0.; SurfData.dailyOverflow = 0.;
         SurfData.albedo = 0.; SurfData.dailyzonL = 0.;
+        SurfData.dailyRunoff = 0.;
 
         read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, WQNew);
         //# Set to today's inflow
@@ -414,12 +416,8 @@ void do_model_non_avg(int jstart, int nsave)
         read_daily_withdraw_temp(jday, &WithdrTempNew);
         WithdrawalTemp = WithdrTempNew;
 
-        printf("*MetData.LongWave = %10.5f\n",MetData.LongWave);
         read_daily_met(jday, &MetData);
         SWnew = MetData.ShortWave;
-
-        printf("*MetData.LongWave = %10.5f\n",MetData.LongWave);
-
 
 #if DEBUG
         fprintf(stderr, "------- next day - do_model_non_avg -------\n");
@@ -431,11 +429,13 @@ void do_model_non_avg(int jstart, int nsave)
 
         SurfData.dailyInflow = do_inflows(); //# Do inflow for all streams
 
-        //# Do withdrawal for all offtakes
-        SurfData.dailyOutflow = do_outflows(jday);
+        if(Lake[surfLayer].Vol1>zero) {
+          //# Do withdrawal for all offtakes
+          SurfData.dailyOutflow = do_outflows(jday);
 
-        //# Take care of any overflow
-        SurfData.dailyOverflow = do_overflow(jday);
+          //# Take care of any overflow
+          SurfData.dailyOverflow = do_overflow(jday);
+        }
 
         check_layer_thickness();
 
@@ -488,10 +488,7 @@ void calc_mass_temp(const char *msg)
 int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL SWnew)
 {
     int iclock = 0;  //# The seconds counter during a day
-    int littoralLayer = 0;  //# this is index of layerList that corresponds to littoral zone
     AED_REAL Light_Surface; //# Light at the surface of the lake after do_surface
-
-//  calc_mass_temp("Beg Day");
 
     noSecs = timestep;
     coef_wind_drag = CD;
@@ -509,30 +506,21 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
 
         stepnum++;
 
-        //printf("LongWave = %10.5f\n",MetData.LongWave);
-        //printf("AirTemp = %10.5f\n",MetData.AirTemp);
-        //printf("WindSpeed = %10.5f\n",MetData.WindSpeed);
-        //printf("SatVapDef = %10.5f\n",MetData.SatVapDef);
-
-//printf("n0 = %i3 %i3 %i3 \n",surfLayer, botmLayer, NumLayers);
-//printf("n1 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
+//printf("n0 = %d %d %d \n",surfLayer, botmLayer, NumLayers);
+//printf("n1 = %10.5f %10.5f\n",Lake[surfLayer].Vol1, Lake[botmLayer].Vol1);
 //printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);
-//printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
+//printf("nh = %10.5f %10.5f %10.5f %10.5f\n",Lake[0].Height, Lake[1].Height,Lake[2].Height,Lake[3].Height);
 
         //# Thermal transfers are done by do_surface_thermodynamics
         do_surface_thermodynamics(jday, iclock, lw_ind, Latitude, SWold, SWnew);
-
-//printf("n2 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
-//printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);
-//printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
-
-//      calc_mass_temp("After do_surface");
 
         //# Save surface light to use at end of sub-daily time loop
         Light_Surface = Lake[surfLayer].Light/0.45;
 
         //# Mixing is done by do_mixing
-        do_mixing();
+        if ( surface_mixing > 0 )
+            do_mixing();
+
 
 //      calc_mass_temp("After do_mixing");
 //printf("n3 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
@@ -546,47 +534,30 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
 //printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);
 //printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
 
-        check_layer_stability();
-
+        if ( surface_mixing > -1 ){
+             check_layer_stability();
+             fix_radiation(Light_Surface);
+        }
 //printf("n5 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
 //printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);
 //printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
 
-        // MH Littoral zone - temporary temp duplication
-        if ( littoral_sw ) {
-            littoralLayer = surfLayer+1 ;
-            if (NumLayers>1) {
-                Lake[littoralLayer].Height = Lake[surfLayer].Height;
-                Lake[littoralLayer].MeanHeight = Lake[surfLayer].MeanHeight;
-                Lake[littoralLayer].Temp = Lake[surfLayer].Temp*1.1;
-                Lake[littoralLayer].Salinity = Lake[surfLayer].Salinity;
-                Lake[littoralLayer].LayerVol = Lake[surfLayer].LayerVol- Lake[surfLayer-1].LayerVol;
-                Lake[littoralLayer].LayerArea = Lake[surfLayer].LayerArea- Lake[surfLayer-1].LayerArea;
-            } else {
-                Lake[littoralLayer].Height = Lake[surfLayer].Height;
-                Lake[littoralLayer].MeanHeight = Lake[surfLayer].MeanHeight;
-                Lake[littoralLayer].Temp = Lake[surfLayer].Temp;
-                Lake[littoralLayer].Salinity = Lake[surfLayer].Salinity;
-                Lake[littoralLayer].LayerVol = Lake[surfLayer].LayerVol/2.;
-                Lake[littoralLayer].LayerArea = Lake[surfLayer].LayerArea/2.;
-            }
-        }
 
         // flag in &glm_setup (int deep_mixing 0 = off, >0 = on)
         if ( deep_mixing > 0 ) {
             //# Estimate dissipation from energy inputs, buoyancy frequency etc
-            if (NumLayers > 1) do_dissipation();
+            if (NumLayers > 3) do_dissipation();
 
 //          calc_mass_temp("After do_dissipation");
 
             //# Do deep mixing integrations
-            //# If reservoir is completely mixed (NumLayers=1) then skip deep mixing
-            if (NumLayers > 1) do_deep_mixing();
+            //# If reservoir is mixed (NumLayers<3) then skip deep mixing
+            if (NumLayers > 3) do_deep_mixing();
 
             //# Check mixed layers for volume
             check_layer_thickness();
-            fix_radiation(Light_Surface);
         }
+        fix_radiation(Light_Surface);
 
         //# Calculate the percent benthic area where the light level is greater
         //# than the minimum level required for production
