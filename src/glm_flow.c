@@ -65,6 +65,8 @@ static AED_REAL extra_volume(AED_REAL d1, AED_REAL d2,
                                  AED_REAL SurfaceHeight, InflowDataType *Inflow);
 static void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType *outf);
 static int new_storage(int *iRiv);
+AED_REAL delta_volume(AED_REAL z1, AED_REAL z2, AED_REAL da, AED_REAL avdel,
+                 AED_REAL hh, AED_REAL delt, AED_REAL delb);
 /*----------------------------------------------------------------------------*/
 
 static AED_REAL *WQ_VarsS = NULL;
@@ -76,6 +78,9 @@ static int checkjday = -1;
 
 LOGICAL seepage = FALSE;
 AED_REAL seepage_rate = 0.0;
+AED_REAL hBot;           //# Height of bottom of withdrawal layer
+AED_REAL hTop;           //# Height of top of withdrawal layer
+
 
 static FILE **sc_files = NULL;
 static AED_REAL SpecialConditionDraw(int jday, int i);
@@ -92,19 +97,18 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
     AED_REAL ThickOutflow;   //# Thickness of withdrawal layer
     AED_REAL DeltaBot;       //# Lower half withdrawal layer thickness
     AED_REAL DeltaTop;       //# Upper half withdrawal layer thickness
+    AED_REAL DeltaTotal;
+    AED_REAL DeltaAvg;          //#
     AED_REAL Delta_rho;      //# Density difference between outflow layer i above or below
     AED_REAL Delta_z;        //# Width over which density gradient is calculated
-    AED_REAL zBot;           //# Height of bottom of withdrawal layer
-    AED_REAL zTop;           //# Height of top of withdrawal layer
     AED_REAL Q_outf;         //# Flow rate of the outflow, converted to m3/s
     AED_REAL F2,F3;          //* Froude number powers
     AED_REAL Grashof;        //# Grashof number
     AED_REAL R;              //# Outflow parameter
-    AED_REAL AVDEL;          //#
-    AED_REAL DASNK;          //# Level above W.L. from which fluid is drawn
-    AED_REAL DT;             //#
+    AED_REAL DeltaSinkDepth; //# Level above W.L. from which fluid is drawn; length scale water above will drop
+    AED_REAL HeightLayerBot; //# Height of GLM water layer immediately below the withdrawal thckness
+    AED_REAL HeightLayerTop; //# Height of GLM water layer at the top of the withdrawal thickness
     AED_REAL Q_outf_star;    //# Flow rate of the outflow estimated from summing dV's
-    AED_REAL TEL;
     AED_REAL Viscos;         //# Vertical diffusivity of momentum averaged over the withdrawal thickness
     AED_REAL Nsqrd_outflow;  //# Brunt-Vaisala frequency squared
 
@@ -127,6 +131,7 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
         if (Lake[i].Height >=  HeightOfOutflow) break;
 
     Outflow_LayerNum = i;
+//    printf("HeightOfOutflow is %10.5f; Outflow type is %d in layer %d\n",HeightOfOutflow, outf->Type, Outflow_LayerNum);
 
     //# Return if reservoir surface is below outlet level
     if (i > surfLayer) return;
@@ -138,6 +143,8 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
     DeltaTop = 0.;
     Delta_z = 0.;
     ILP = FALSE;
+
+    HeightLayerBot = zero;   HeightLayerTop = zero;
 
     //# Reset Delta_V (layer specific withdrawal amount) for all layers as zero
     for (i = botmLayer; i < MaxLayers; i++) Delta_V[i]=0.0;
@@ -198,7 +205,7 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
              }
         }
     } else {
-        Outflow_half = 1; //# Start with withdraw from layers above outlet
+        Outflow_half = 1;      //# Start with withdraw from layers above outlet
         Layer_i = Outflow_LayerNum + 1;
         while (1) {
             if (Layer_i > surfLayer) Layer_i = surfLayer;
@@ -287,49 +294,56 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
                 Layer_i--;
         }
 
+
+        /**********************************************************************
+         * Force a hard check of layer thickness                              *
+         **********************************************************************/
+        if (DeltaTop>outflow_thick_limit) DeltaTop=outflow_thick_limit;
+        if (DeltaBot>outflow_thick_limit) DeltaBot=outflow_thick_limit;
+
+
         /**********************************************************************
          * Calculate top and bottom of withdrawal layer and distance above    *
          * withdrawal layer from which fluid is drawn.                        *
          **********************************************************************/
-        zTop = HeightOfOutflow + DeltaTop;
-        zBot = HeightOfOutflow - DeltaBot;
+        hTop = HeightOfOutflow + DeltaTop;
+        hBot = HeightOfOutflow - DeltaBot;
 
-        TEL = DeltaTop + DeltaBot;
-        DASNK = flow / WidthAtOutflow / LenAtOutflow;
-        AVDEL = TEL / 2.0;
-        zTop += DASNK;
-        if (zTop >  Lake[surfLayer].Height) zTop = Lake[surfLayer].Height;
+        DeltaTotal = DeltaTop + DeltaBot;
+        DeltaAvg = DeltaTotal / 2.0;
+        DeltaSinkDepth = flow / (WidthAtOutflow * LenAtOutflow);
+        hTop += DeltaSinkDepth;
+        if (hTop >  Lake[surfLayer].Height) hTop = Lake[surfLayer].Height;
 
-        //# Find the indices of the layers containing
-        //# zTop and zBot
-
-        //locate iBot
+        //# Find the indices of the layers containing hTop and hBot
+        // first, locate iBot
         for (i = botmLayer; i <= Outflow_LayerNum; i++)
-            if (Lake[i].Height  >=  zBot) break;
-        //# If zBot higher than the bottom of the sink, note an error.
+            if (Lake[i].Height  >=  hBot) break;
+        // if hBot higher than the bottom of the sink, note an error.
         if (i > Outflow_LayerNum)
-            fprintf(stderr,"Error do_outflows - bottom of withdrawal layer above outlet bottom\n");
-
+            fprintf(stderr,"ERROR: do_outflows - bottom of withdrawal layer above outlet bottom\n");
+        // otherwise set layer index
         iBot = i;
 
-        //# locate iTop
+        // now, locate iTop
         for (i = Outflow_LayerNum; i <= surfLayer; i++)
-            if (Lake[i].Height >= zTop) break;
+            if (Lake[i].Height >= hTop) break;
 
+        // and set layer index
         iTop = i;
 
-        //# if all drawn from one layer.
-        if (iBot == iTop)
+        //# Assign the volumes to be taken, after checking if all drawn from one layer
+        if (iBot == iTop || single_layer_draw )
+            // entire flow from the chosen layer matching the draw height
             Delta_V[Outflow_LayerNum] = flow;
         else {
-            //# Calculate the Delta_V[i), the portion of fluid drawn from the ith layer.
+            // calculate Delta_V[i], the portion of water taken from the ith layer
             for (i = iBot; i <= iTop; i++) {
-                AED_REAL db = zero;
-                if (i != botmLayer) db = Lake[i-1].Height;
-                if (i == iBot) db = zBot;
-                DT = Lake[i].Height;
-                if (i == iTop) DT = zTop;
-                Delta_V[i] = delta_volume(db, DT, DASNK, AVDEL, HeightOfOutflow, DeltaTop, DeltaBot);
+                if (i != botmLayer) HeightLayerBot = Lake[i-1].Height;
+                if (i == iBot) HeightLayerBot = hBot;
+                HeightLayerTop = Lake[i].Height;
+                if (i == iTop) HeightLayerTop = hTop;
+                Delta_V[i] = delta_volume(HeightLayerBot, HeightLayerTop, DeltaSinkDepth, DeltaAvg, HeightOfOutflow, DeltaTop, DeltaBot);
             }
 
             //# Proportion drawn from each layer is known. Now match the
@@ -352,15 +366,26 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
         }
     }
 
-    //# Now have Delta_V[i] for all layers and can remove it.
+    /**********************************************************************
+     * Now we have Delta_V[i] for all layers we can remove it             *
+     **********************************************************************/
     for (i = botmLayer; i <= surfLayer; i++){
+      //if(Delta_V[i]>zero) printf("%d DeltaV %8.4f; flow %10.4f;%10.4f %d %d %d %10.1f %10.1f \n",i,Delta_V[i],flow,Q_outf_star,Outflow_LayerNum,iBot,iTop,hBot,hTop);
          if (Delta_V[i] > zero) Lake[i].LayerVol -= Delta_V[i];
     }
+
+    /**********************************************************************
+     * Recompute volumes                                                  *
+     **********************************************************************/
     Lake[botmLayer].Vol1 = Lake[botmLayer].LayerVol;
     for (i = (botmLayer+1); i <= surfLayer; i++)
         Lake[i].Vol1 = Lake[i-1].Vol1 + Lake[i].LayerVol;
 
+    /**********************************************************************
+    * Update layer heights                                                *
+    **********************************************************************/
     resize_internals(2, botmLayer);
+
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -409,7 +434,7 @@ AED_REAL do_outflows(int jday)
         } else if ( Outflows[i].Type == 2 ) {
             DrawHeight = Lake[surfLayer].Height - Outflows[i].OLev;
             //# Let it sit on the bottom if the lake has drained
-            if (DrawHeight < 0.) DrawHeight = 0.;
+            if (DrawHeight < 0.) DrawHeight = 0.11;
         /**********************************************************************
          * 3, 4 and 5 are the special additions by Michael Weber              *
          **********************************************************************/
@@ -420,7 +445,7 @@ AED_REAL do_outflows(int jday)
 
         do_single_outflow(DrawHeight, Outflows[i].Draw, &Outflows[i]);
 
-        write_outflow(i, jday, DrawHeight, tVolSum - Lake[surfLayer].Vol1);
+        write_outflow(i, jday, DrawHeight, tVolSum-Lake[surfLayer].Vol1, Outflows[i].Draw, hBot, hTop);
     }
     if (seepage) {
       if (seepage_rate>zero) {
@@ -452,7 +477,7 @@ AED_REAL do_overflow(int jday)
 
     // Too much water for the entire lake domain, remove this first
     if (VolSum > MaxVol){
-      do_single_outflow((CrestHeight+MaxHeight/2), (VolSum - MaxVol), NULL);
+      do_single_outflow((CrestHeight+(MaxHeight-CrestHeight)*0.9), (VolSum - MaxVol), NULL);
       overflow = VolSum - Lake[surfLayer].Vol1;
     }
     VolSum = Lake[surfLayer].Vol1;
@@ -469,7 +494,7 @@ AED_REAL do_overflow(int jday)
         overflow += ovfl_Q ;
     }
 
-    write_outflow(MaxOut, jday, DrawHeight, overflow);
+    write_outflow(MaxOut, jday, DrawHeight, overflow, zero, CrestHeight, MaxHeight);
 
     return overflow;
 }
@@ -713,7 +738,6 @@ AED_REAL do_inflows()
 
     AED_REAL Inflow_width;    //# Width of inflow [m]
     AED_REAL VolSum = Lake[surfLayer].Vol1; //# Total lake volume before inflows
-    AED_REAL RunoffFlowRate;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
@@ -1373,3 +1397,85 @@ AED_REAL SpecialConditionDraw(int jday, int i)
     }
     return DrawHeight;
 }
+
+
+
+/******************************************************************************
+ * Function to calculate the proportion of fluid withdrawn from any layer,    *
+ * given the depth of its top and bottom, using a curve which fits the region *
+ * of water drawn in a given time to decide which set of withdrawal curves to *
+ * use. If large withdrawal use first set, otherwise the 2nd.                 *
+ ******************************************************************************/
+AED_REAL delta_volume(AED_REAL z1, AED_REAL z2, AED_REAL da, AED_REAL avdel,
+                      AED_REAL hh, AED_REAL DeltaTop, AED_REAL DeltaBot)
+{
+    AED_REAL a, da4, da7, s1, s2, s3,
+             tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, z3;
+    AED_REAL dV = 0.0;
+
+/*----------------------------------------------------------------------------*/
+    if (da >= 0.9*avdel) {
+        // Curves for large withdrawal
+        s1 = (z1 - hh) / avdel;
+        s2 = (z2 - hh) / avdel;
+        a = da / avdel;
+
+        // If top and bottom of layer fall within lower curve
+        if (z1 <= 0.25*a*avdel+hh) {
+            tmp1 = s1 + 2.0 / a / (1.0 + 0.5*a*(DeltaBot/avdel + s1));
+            tmp2 = s2 + 2.0 / a / (1.0 + 0.5*a*(DeltaBot/avdel + s2));
+            dV  = tmp1 - tmp2;
+        } else if (z2 >= hh+0.25*avdel*a) {
+            //  If layer falls within upper curve
+            tmp1 = exp(-1 * sqrt(2.0) * (DeltaTop/avdel + 0.75*a));
+            tmp2 = 1.0 + 0.5 * a * DeltaBot / avdel + sqr(a)/8.0;
+            tmp3 = (1 - 1.0 / sqr(tmp2)) * sqr((1 + tmp1) / (1 - tmp1));
+            tmp4 = sqrt(2.0) * (s1 - DeltaTop / avdel - a);
+            tmp5 = sqrt(2.0) * (s2 - DeltaTop / avdel - a);
+            tmp6 = 4.0 / (1 + exp(tmp4)) + tmp4;
+            tmp7 = 4.0 / (1 + exp(tmp5)) + tmp5;
+            dV = (tmp6 - tmp7) / sqrt(2.0) * tmp3;
+        } else {
+            //  If join of curves lies within the layer
+            s3 = 0.25*a;
+            tmp2 = s2 + 2.0 / a / (1.0 + 0.5*a*(DeltaBot/avdel + s2));
+            tmp1 = s3 + 2.0 / a / (1.0 + 0.5*a*(DeltaBot/avdel + s3));
+            dV = tmp1 - tmp2;
+            tmp1 = exp(-1 * sqrt(2.0) * (DeltaTop / avdel + 0.75*a));
+            tmp2 = 1.0 + 0.5 * a * DeltaBot / avdel + sqr(a)/8.0;
+            tmp3 = (1 - 1.0 / sqr(tmp2)) * sqr((1+tmp1) / (1-tmp1));
+            tmp4 = sqrt(2.0) * (s1 - DeltaTop/avdel - a);
+            tmp5 = sqrt(2.0) * (s3 - DeltaTop/avdel - a);
+            tmp6 = 4.0 / (1 + exp(tmp4)) + tmp4;
+            tmp7 = 4.0 / (1 + exp(tmp5)) + tmp5;
+            dV = dV + (tmp6 - tmp7) / sqrt(2.0) * tmp3;
+        }
+    } else {
+        //  Curves for small withdrawal
+        da4 = da / 4.0;
+        da7 = da * 0.75;
+        if (z1 <= da4 + hh) {
+            //  If top and bottom fall within lower curve
+            tmp1 = z1 + (DeltaBot + da4) / Pi * sin(Pi * (z1 - hh - da4) / (DeltaBot + da4));
+            tmp2 = z2 + (DeltaBot + da4) / Pi * sin(Pi * (z2 - hh - da4) / (DeltaBot + da4));
+            dV = tmp1 - tmp2;
+        } else if (z2 >= hh+da4) {
+            //  If layer falls within upper curve
+            tmp1 = z1 + (DeltaTop + da7) / Pi * sin(Pi * (z1 - hh - da4) / (DeltaTop + da7));
+            tmp2 = z2 + (DeltaTop + da7) / Pi * sin(Pi * (z2 - hh - da4) / (DeltaTop + da7));
+            dV = tmp1 - tmp2;
+        } else {
+            // If join of curves falls within the layer
+            z3 = 0.25 * da + hh;
+            tmp1 = z3 + (DeltaBot + da4) / Pi * sin(Pi * (z3 - hh - da4) / (DeltaBot + da4));
+            tmp2 = z2 + (DeltaBot + da4) / Pi * sin(Pi * (z2 - hh - da4) / (DeltaBot + da4));
+            dV = tmp1 - tmp2;
+            tmp3 = z3 + (DeltaTop + da7) / Pi * sin(Pi * (z3 - hh - da4) / (DeltaTop + da7));
+            tmp4 = z1 + (DeltaTop + da7) / Pi * sin(Pi * (z1 - hh - da4) / (DeltaTop + da7));
+            dV = tmp4 - tmp3 + dV;
+        }
+    }
+
+    return dV;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

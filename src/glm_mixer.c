@@ -287,7 +287,7 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
 
     Energy_TotStir = Energy_Conv + Energy_WindStir;
 
-    q_cub = 2.0 * Energy_TotStir / (coef_mix_conv * noSecs) ;
+    q_cub = 2.0 * Energy_TotStir / ( MAX(coef_mix_conv,0.05) * noSecs) ;
 
     if (q_cub <= zero) q_cub = 1e-10;
     q_sqr = pow(q_cub, (2.0/3.0));
@@ -458,6 +458,7 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
 
     Energy_Shear = half * coef_mix_shear * (u_avg * u_avg * (zsml_tilda + del_xi / 6.0) + u_avg * xi * del_u / 3.0)
            + redg * xi * (xi * zsml_tilda / (twfour * (Lake[surfLayer].Height - Lake[Meta_topLayer].Height)) - del_xi / twelve);
+
     if (Energy_Shear < zero) Energy_Shear = zero;
 
     //# Add available kinetic energy
@@ -471,17 +472,22 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
         PrevThick = Epi_Thick;
         u_eff = u_avg;
 
-        //# Compute energy available for mixing next layer
+
+        //# Thickness of surface layer and bext layer down
         delzkm1 = Lake[Meta_topLayer].Height;
         if (Meta_topLayer > botmLayer) delzkm1 = Lake[Meta_topLayer].Height - Lake[Meta_topLayer-1].Height;
         Epi_dz = Lake[surfLayer].Height - Lake[Meta_topLayer].Height;
-        Energy_Deepen = half * coef_mix_shear * (u_eff * u_eff * (delzkm1 + del_xi / 6.0) + u_eff * xi * del_u / 3.0)  +
-                 redg * xi * (xi * delzkm1 / (twfour * Epi_dz) - del_xi / twelve);
+
+        //# Compute energy available for mixing next layer
+        Energy_Deepen = half * coef_mix_shear * (u_eff * u_eff * (delzkm1 + del_xi / 6.0) + u_eff * xi * del_u / 3.0)
+                      + redg * xi * (xi * delzkm1 / (twfour * Epi_dz) - del_xi / twelve);
 
         if (Energy_Deepen < zero) Energy_Deepen = zero;
 
         //# Add available kinetic energy
         Energy_AvailableMix += Energy_Deepen;
+
+        //Energy_AvailableMix =zero;
 
         //# Compute energy required to entrain next layer
         Energy_RequiredMix = (redg * Epi_dz + coef_mix_turb * q_sqr) * delzkm1 / 2.0;
@@ -559,7 +565,6 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
          WQ_VarsM[wqvidx] = WQ_VarsM[wqvidx] / (Lake[surfLayer].Vol1-Lake[Meta_topLayer].Vol1);
     }
 
-  if (surface_mixing==1 && coef_mix_KH > zero) {
 
     /**************************************************************************
      *                                                                        *
@@ -569,19 +574,19 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
      * billows. This is done in a separate routine                            *
      * Only call the routine if the user has bothered to make CKH>0           *
      **************************************************************************/
-     if (coef_mix_KH > zero)
+     if (coef_mix_KH > zero && surface_mixing==1)
          Dens_Epil = kelvin_helmholtz(&Meta_topLayer, &Epi_botmLayer, Dens_Epil, WQ_VarsM);
+
 
     DepMX = Lake[Meta_topLayer].Height;
 
     *_Dens_Epil = Dens_Epil; *_Meta_topLayer = Meta_topLayer;
 
-    }
-
-    //# Check if insufficient energy to mix this time step so keep count of mixing model time count
+    //# Check if insufficient energy to mix this time step,
+    //  and keep count of mixing model time count
     if (Time_count_sim < Time_count_end_shear)  return IS_MIXED;
 
-    //# All available energy used reset mixing model step count
+    //# All available energy used, reset mixing model step count
     return MOMENTUM_CUT;
 }
 
@@ -598,12 +603,11 @@ void do_mixing()
     AED_REAL *WQ_VarsM;
 #endif
 
-    AED_REAL Dens_Epil;  //# Mean epilimnion density [kg/m3]
-    AED_REAL Vol_Hypl;   //# Volume of hypolimnion [m^3]
-    int Meta_topLayer;   //# Index for top layer of hypolimnion
-
-    int i, wqvidx;
-    static int Mixer_Count = 0;  //# Mixer model step counter
+    int i, wqvidx;                //# Counters
+    int Meta_topLayer;            //# Index for top layer of hypolimnion
+    AED_REAL Dens_Epil;           //# Mean epilimnion density [kg/m3]
+    AED_REAL Vol_Hypl;            //# Volume of hypolimnion [m^3]
+    static int Mixer_Count = 0;   //# Mixer model step counter
 
 /*----------------------------------------------------------------------------*/
 
@@ -611,7 +615,7 @@ void do_mixing()
     WQ_VarsM = malloc(sizeof(AED_REAL) * Num_WQ_Vars);
 #endif
 
-    Mixer_Count++; //# Increment mixing step counter
+    Mixer_Count++;  //# Increment mixing step counter
 
     switch ( mixed_layer_deepening(WQ_VarsM, Mixer_Count, &Meta_topLayer , &Dens_Epil) ) {
         case DEEPENED_BOT:
@@ -693,8 +697,8 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
 {
     AED_REAL secshr = 3600.0;
 
-    AED_REAL Delta_Mix;      //Thickness of mixing layer [m]
     AED_REAL Surface_Height; //# Height of lake surface
+    AED_REAL Delta_Mix;      //Thickness of mixing layer [m]
     AED_REAL eps = 0.02;     //# Minimum tolerance
     AED_REAL eps6;           //# Six times minimum tolerance (0.12)
     AED_REAL t_billow;       //# Time period for billowing effects
@@ -729,7 +733,6 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
     eps6 = 6. * eps;
 
     //# Compute Delta_Mix
-
     t_billow = u_avg / (gPrimeTwoLayer * secshr);
     bilshear = t_billow / Time_end_shear;
     Delta_Mix = 0.;
@@ -737,6 +740,7 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
     if (surfLayer <= botmLayer || bilshear > 10.0) return Dens;
 
     Delta_Mix = (coef_mix_KH*u_avg*u_avg)/(gPrimeTwoLayer*2.0*cosh(bilshear));
+
     //# Limit the thickness of the mixing layer to less than either the hypolimnion or epilimnion
     HMIN = MIN(Epi_dz, Thermocline_Height);
     if (Delta_Mix > HMIN) Delta_Mix = HMIN;

@@ -242,6 +242,7 @@ void put_glm_val(int plot_id, AED_REAL *val)
 {
     int i;
     AED_REAL todayish;
+    AED_REAL height_for_plot, val_for_plot;
 
 /*----------------------------------------------------------------------------*/
     if ( !do_plots || plot_id >= nplots || today <= 0 ) return;
@@ -250,8 +251,15 @@ void put_glm_val(int plot_id, AED_REAL *val)
     todayish *= plotstep;
     todayish += today;
 
-    for (i = 0; i < NumLayers; i++)
-        plot_value(theplots[plot_id], todayish, Lake[i].Height, val[i]);
+    for (i = 0; i < NumLayers; i++) {
+        height_for_plot = Lake[i].Height;
+        val_for_plot = val[i];
+        if( Lake[surfLayer].Height<0.01005) {
+          height_for_plot = 0.0;
+          val_for_plot = 0.0;
+        }
+        plot_value(theplots[plot_id], todayish, height_for_plot, val_for_plot);
+    }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

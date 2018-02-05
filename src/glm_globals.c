@@ -91,6 +91,9 @@ AED_REAL MINlaketemp;
 AED_REAL crest_width = 6.0;
 AED_REAL crest_factor = 0.61;
 
+CLOGICAL single_layer_draw = FALSE;
+AED_REAL outflow_thick_limit = 100.0;
+
 //------------------------------------------------------------------------------
 
 int NumDif;

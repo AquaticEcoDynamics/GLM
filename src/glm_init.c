@@ -213,6 +213,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     AED_REAL       *target_temp    = NULL;
     AED_REAL        min_lake_temp;
     LOGICAL         mix_withdraw;
+    extern AED_REAL outflow_thick_limit;
+    extern LOGICAL  single_layer_draw;
     LOGICAL         coupl_oxy_sw;
     extern AED_REAL fac_range_upper;
     extern AED_REAL fac_range_lower;
@@ -405,8 +407,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "outflow_factor",    TYPE_DOUBLE|MASK_LIST, &outflow_factor    },
           { "seepage",           TYPE_BOOL,             &seepage           },
           { "seepage_rate",      TYPE_DOUBLE,           &seepage_rate      },
-          { "crest_width",       TYPE_DOUBLE,           &crest_width      },
+          { "crest_width",       TYPE_DOUBLE,           &crest_width       },
           { "crest_factor",      TYPE_DOUBLE,           &crest_factor      },
+          { "outflow_thick_limit", TYPE_DOUBLE,         &outflow_thick_limit },
+          { "single_layer_draw", TYPE_BOOL,             &single_layer_draw },
           { "time_fmt",          TYPE_STR,              &timefmt_o         },
           { "timezone",          TYPE_DOUBLE,           &timezone_o        },
           { NULL,                TYPE_END,              NULL               }
@@ -753,7 +757,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
             if ( Outflows[i].FloatOff ) {
                 if ( (outl_elvs[i] > (max_elev-base_elev)) || (outl_elvs[i] < 0.0) ) {
                     fprintf(stderr,
-                    "Floating outflow (%124lf) is above lake surface or deeper than lake depth (%12.4lf)\n",
+                    "Depth of floating outflow (%124lf) is above lake surface or deeper than lake depth (%12.4lf)\n",
                                     outl_elvs[i], max_elev - base_elev);
                     exit(1);
                 }
@@ -992,8 +996,10 @@ void create_lake(int namlst)
       //free(V);
         crest_elev = H[bsn_vals-1];
     }
+    if (crest_elev > max_elev) crest_elev = max_elev;
 
     printf("Maximum lake depth is %f\n", max_elev - base_elev);
+    printf("Depth where flow will occur over the crest is %f\n", crest_elev - base_elev);
 
     if ( (MaxLayers * DMax) < (max_elev - base_elev) ) {
         fprintf(stderr, "Configuration Error. MaxLayers * max_layer_height < depth of the lake\n");

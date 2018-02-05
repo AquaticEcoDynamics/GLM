@@ -125,6 +125,10 @@ extern AED_REAL MINlaketemp;
 
 extern AED_REAL crest_width;
 extern AED_REAL crest_factor;
+
+extern CLOGICAL single_layer_draw;
+extern AED_REAL outflow_thick_limit;
+
 /*----------------------------------------------------------------------------*/
 //
 extern int NumDif;

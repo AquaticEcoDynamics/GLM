@@ -185,7 +185,7 @@ int _intern_is_var(const char *v)
     if ( do_plots ) {
         if (strcasecmp("temp", v) == 0) return 1;
         if (strcasecmp("salt", v) == 0) return 2;
-        if (strcasecmp("rad",  v) == 0) return 3;
+        if (strcasecmp("radn", v) == 0) return 3;
         if (strcasecmp("extc", v) == 0) return 4;
         if (strcasecmp("dens", v) == 0) return 5;
         if (strcasecmp("uorb", v) == 0) return 6;
@@ -238,7 +238,6 @@ void write_output(int jday, int iclock, int nsave, int stepnum)
                 }
             }
 
-
             write_csv_point(i, "temp", Lake[lvl[i]].Temp,     NULL, FALSE);
             write_csv_point(i, "salt", Lake[lvl[i]].Salinity, NULL, FALSE);
         }
@@ -272,6 +271,9 @@ void write_diags(int jday, AED_REAL LakeNum)
 
     if ( csv_lake_file < 0 ) return;
 
+    AED_REAL lake_level = Lake[surfLayer].Height;
+    if (lake_level<0.011) lake_level=zero;
+
     //# Output at end of day
     write_time_string(ts, jday, SecsPerDay);
 
@@ -288,7 +290,7 @@ void write_diags(int jday, AED_REAL LakeNum)
     write_csv_lake("Rain",            SurfData.dailyRain,        NULL, FALSE);
     write_csv_lake("Local Runoff",    SurfData.dailyRunoff,      NULL, FALSE);
     write_csv_lake("Snowfall",        SurfData.dailySnow,        NULL, FALSE);
-    write_csv_lake("Lake Level",      Lake[surfLayer].Height,    NULL, FALSE);
+    write_csv_lake("Lake Level",      lake_level,                NULL, FALSE);
     write_csv_lake("Surface Area",    Lake[surfLayer].LayerArea, NULL, FALSE);
     write_csv_lake("Black Ice",       SurfData.HeightBlackIce,   NULL, FALSE);
     write_csv_lake("Snow Height",     SurfData.HeightSnow,       NULL, FALSE);
@@ -323,7 +325,7 @@ void write_diags(int jday, AED_REAL LakeNum)
 /******************************************************************************
  * Write the outflow data file with WQ variables.                             *
  ******************************************************************************/
-void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol)
+void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol, AED_REAL vol_bc, AED_REAL hwBot, AED_REAL hwTop)
 {
     char ts[64];
     int i, lvl;
@@ -372,6 +374,10 @@ void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol)
             for (i = 3; i < csv_outfl_nvars; i++)
                 write_csv_outfl_idx(of_idx, i,  state_of_v[i],     NULL, FALSE);
         }
+
+        write_csv_outfl(of_idx, "hbot",      hwBot,                NULL, FALSE);
+        write_csv_outfl(of_idx, "htop",      hwTop,                NULL, FALSE);
+        write_csv_outfl(of_idx, "flbc",      vol_bc,               NULL, FALSE);
     }
 
     //# force a newline

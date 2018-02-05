@@ -99,9 +99,6 @@ void check_layer_thickness(void)
 /*----------------------------------------------------------------------------*/
     dbgprt(" CHKLAY 01 lake[44].depth = %20.15f\n", Lake[44].Height);
 
-    for (i = botmLayer; i <= surfLayer; i++)
-       printf("check_layer_thickness = %d - %10.5f,\n",i,Lake[i].Height);
-
     //# Check against vmin
     KLAST=botmLayer;
     // while (1) { //

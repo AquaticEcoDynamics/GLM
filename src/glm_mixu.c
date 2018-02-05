@@ -222,7 +222,7 @@ void resize_internals(int icode, int lnu)
             if (j >= Nmorph) j = Nmorph - 1;
             if (j < 0) j = 0;
 
-            Lake[k].Height = ((j+1) + (MAX( Lake[k].Vol1 - MphLevelVoldash[j],zero)) / dMphLevelVolda[j]) / MphInc;
+            Lake[k].Height = ((j+1) + ( Lake[k].Vol1 - MphLevelVoldash[j] ) / dMphLevelVolda[j]) / MphInc;
         }
 
         //# determine areas

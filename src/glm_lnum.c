@@ -132,9 +132,9 @@ AED_REAL calculate_lake_number(void)
 /******************************************************************************
  *                                                                            *
  *    This subroutine interpolates the depth                                  *
- *    and density data onto a series of points of increment every             *
- *    0.1 m. The interpolation assumes that all 3 parameters are              *
- *    of constant value within each layer.(ZERO'th ORDER INTERPOL.)           *
+ *    and density data onto a series of points that increment every           *
+ *    0.1m (MphInc). The interpolation assumes that all 3 parameters are      *
+ *    of constant value within each layer, ie. a zero'th order interpolation. *
  *                                                                            *
  ******************************************************************************/
 static int interpolate_layer_data(AED_REAL *iheight, AED_REAL *density)
@@ -143,7 +143,7 @@ static int interpolate_layer_data(AED_REAL *iheight, AED_REAL *density)
     int i,j;
 
     i = 0;
-    this_height = 0.1;
+    this_height = 0.1;     // MH: should make MphInc instead fo 0.1 ?
 
     for (j = 0; j < NumLayers; j++) {
         while (this_height <= Lake[j].Height) {
@@ -152,7 +152,8 @@ static int interpolate_layer_data(AED_REAL *iheight, AED_REAL *density)
             this_height += 0.1;
             i++;
             if ( i > Nmorph ) {
-                fprintf(stderr, "NLayers greater than Nmorph\n");
+                fprintf(stderr, "\nERROR: layer height for interpolation exceeds H[Nmorph]\n");
+                fprintf(stderr, "\nERROR: lake dpeth exceeds the maximum lake level?\n");
                 exit(1);
             }
         }

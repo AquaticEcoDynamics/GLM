@@ -99,86 +99,6 @@ AED_REAL gprime(AED_REAL rho1, AED_REAL rho2)
 #endif
 
 
-/******************************************************************************
- * Function to calculate the proportion of fluid withdrawn from any layer,    *
- * given the depth of its top and bottom, using a curve which fits the region *
- * of fluid drawn in a given time to decide which set of withdrawal curves to *
- * use. If large withdrawal use first set, otherwise the 2nd.                 *
- ******************************************************************************/
-AED_REAL delta_volume(AED_REAL z1, AED_REAL z2, AED_REAL da, AED_REAL avdel,
-              AED_REAL hh, AED_REAL DeltaTop, AED_REAL DeltaBot)
-{
-    AED_REAL a, da4, da7, s1, s2, s3,
-             tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, z3;
-    AED_REAL ret = 0.0;
-
-/*----------------------------------------------------------------------------*/
-    if (da >= 0.9*avdel) {
-        // Curves for large withdrawal.
-        s1 = (z1 - hh) / avdel;
-        s2 = (z2 - hh) / avdel;
-        a = da / avdel;
-
-        // If top and bottom of layer fall within lower curve.
-        if (z1 <= 0.25*a*avdel+hh) {
-            tmp1 = s1 + 2.0 / a / (1.0 + 0.5*a*(DeltaBot/avdel + s1));
-            tmp2 = s2 + 2.0 / a / (1.0 + 0.5*a*(DeltaBot/avdel + s2));
-            ret  = tmp1 - tmp2;
-        } else if (z2 >= hh+0.25*avdel*a) {
-            //  If layer falls within upper curve.
-            tmp1 = exp(-1 * sqrt(2.0) * (DeltaTop/avdel + 0.75*a));
-            tmp2 = 1.0 + 0.5 * a * DeltaBot / avdel + sqr(a)/8.0;
-            tmp3 = (1 - 1.0 / sqr(tmp2)) * sqr((1 + tmp1) / (1 - tmp1));
-            tmp4 = sqrt(2.0) * (s1 - DeltaTop / avdel - a);
-            tmp5 = sqrt(2.0) * (s2 - DeltaTop / avdel - a);
-            tmp6 = 4.0 / (1 + exp(tmp4)) + tmp4;
-            tmp7 = 4.0 / (1 + exp(tmp5)) + tmp5;
-            ret = (tmp6 - tmp7) / sqrt(2.0) * tmp3;
-        } else {
-            //  If join of curves lies within the layer.
-            s3 = 0.25*a;
-            tmp2 = s2 + 2.0 / a / (1.0 + 0.5*a*(DeltaBot/avdel + s2));
-            tmp1 = s3 + 2.0 / a / (1.0 + 0.5*a*(DeltaBot/avdel + s3));
-            ret = tmp1 - tmp2;
-            tmp1 = exp(-1 * sqrt(2.0) * (DeltaTop / avdel + 0.75*a));
-            tmp2 = 1.0 + 0.5 * a * DeltaBot / avdel + sqr(a)/8.0;
-            tmp3 = (1 - 1.0 / sqr(tmp2)) * sqr((1+tmp1) / (1-tmp1));
-            tmp4 = sqrt(2.0) * (s1 - DeltaTop/avdel - a);
-            tmp5 = sqrt(2.0) * (s3 - DeltaTop/avdel - a);
-            tmp6 = 4.0 / (1 + exp(tmp4)) + tmp4;
-            tmp7 = 4.0 / (1 + exp(tmp5)) + tmp5;
-            ret = ret + (tmp6 - tmp7) / sqrt(2.0) * tmp3;
-        }
-    } else {
-        //  Curves for small withdrawal
-        da4 = da / 4.0;
-        da7 = da * 0.75;
-        if (z1 <= da4 + hh) {
-            //  If top and bottom fall within lower curve.;
-            tmp1 = z1 + (DeltaBot + da4) / Pi * sin(Pi * (z1 - hh - da4) / (DeltaBot + da4));
-            tmp2 = z2 + (DeltaBot + da4) / Pi * sin(Pi * (z2 - hh - da4) / (DeltaBot + da4));
-            ret = tmp1 - tmp2;
-        } else if (z2 >= hh+da4) {
-            //  If layer falls within upper curve.
-            tmp1 = z1 + (DeltaTop + da7) / Pi * sin(Pi * (z1 - hh - da4) / (DeltaTop + da7));
-            tmp2 = z2 + (DeltaTop + da7) / Pi * sin(Pi * (z2 - hh - da4) / (DeltaTop + da7));
-            ret = tmp1 - tmp2;
-        } else {
-            // If join of curves falls within the layer.
-            z3 = 0.25 * da + hh;
-            tmp1 = z3 + (DeltaBot + da4) / Pi * sin(Pi * (z3 - hh - da4) / (DeltaBot + da4));
-            tmp2 = z2 + (DeltaBot + da4) / Pi * sin(Pi * (z2 - hh - da4) / (DeltaBot + da4));
-            ret = tmp1 - tmp2;
-            tmp3 = z3 + (DeltaTop + da7) / Pi * sin(Pi * (z3 - hh - da4) / (DeltaTop + da7));
-            tmp4 = z1 + (DeltaTop + da7) / Pi * sin(Pi * (z1 - hh - da4) / (DeltaTop + da7));
-            ret = tmp4 - tmp3 + ret;
-        }
-    }
-
-    return ret;
-}
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
 
 /******************************************************************************
  * This function combines two layers and return the mean concentration        *
@@ -284,7 +204,10 @@ int internal_var(const char *name)
 {
     if ( strncasecmp(name, "flow", 4) == 0 ||
          strncasecmp(name, "temp", 4) == 0 ||
-         strncasecmp(name, "salt", 4) == 0 )
+         strncasecmp(name, "salt", 4) == 0 ||
+         strncasecmp(name, "flbc", 4) == 0 ||
+         strncasecmp(name, "htop", 4) == 0 ||
+         strncasecmp(name, "hbot", 4) == 0 )
         return 1;
     return 0;
 }

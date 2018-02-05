@@ -411,8 +411,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                           + flankArea * (NotPARLight_s - NotPARLight_sm1*0.95);
     }
 
-    for (i = botmLayer; i <= surfLayer; i++)
-       printf("layer_check = %d - %10.5f, %10.5f, %10.5f, %10.5f \n",i,LayerThickness[i],Lake[i].Temp,Lake[i].Density,heat[i]);
+//    for (i = botmLayer; i <= surfLayer; i++)
+//       printf("layer_check = %d - %10.5f, %10.5f, %10.5f, %10.5f \n",i,LayerThickness[i],Lake[i].Temp,Lake[i].Density,heat[i]);
 
 
 
@@ -1107,7 +1107,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
             _WQ_Vars(wqidx, surfLayer) = combine_vol(_WQ_Vars(wqidx, surfLayer), Lake[surfLayer].LayerVol,
                                                                    zero, rainvol);
 
-        printf("hgt check = %d - %10.5f, %10.5f, %10.5f \n",NumLayers,Lake[surfLayer].Temp,Lake[surfLayer].Height,Lake[botmLayer].Height);
+//                                                                         printf("hgt check = %d - %10.5f, %10.5f, %10.5f \n",NumLayers,Lake[surfLayer].Temp,Lake[surfLayer].Height,Lake[botmLayer].Height);
 
 
         // Add snow directly to surface layer height if there is no ice.
