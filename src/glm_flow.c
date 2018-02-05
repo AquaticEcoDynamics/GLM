@@ -194,7 +194,7 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
         if (surfLayer == botmLayer) {
             if (Delta_V[0] >= Lake[0].LayerVol)
                 Delta_V[0] = Lake[0].LayerVol - 1.0;
-                Delta_V[0] = 0.9 * Lake[0].LayerVol;
+            Delta_V[0] = 0.9 * Lake[0].LayerVol;
         } else {
             for (i = botmLayer; i < surfLayer; i++) {
                 if (Delta_V[i] >= Lake[i].LayerVol) {

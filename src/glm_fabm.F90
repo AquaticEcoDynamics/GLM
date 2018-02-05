@@ -60,10 +60,9 @@
 #define _EVEN_NEWER_
 
 #ifdef __GFORTRAN__
-#  define _LINK_POINTER_(dst, src)  CALL link_pointer(dst, src)
-#  warning   "gfortran version does not work yet"
-#else
-#  define _LINK_POINTER_(dst, src)  dst => src
+#  if __GNUC__ < 8
+#    error   "You will need gfortran version 8 or better"
+#  endif
 #endif
 
 
@@ -505,33 +504,6 @@ END FUNCTION fabm_is_var
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-#ifdef __GFORTRAN__
-!###############################################################################
-!# This is a fudge for gFortran. I'm guessing intel fortran creates the
-!# required structures in global space for the associations, but gfortran
-!# only creates them on the local stack so they are lost once the subroutine
-!# that was called from C exits.
-!# Linking fails with "undefined reference to `span.0'"
-!# It only applies to Lake which is the only array.
-!# This routine is accessed by the macro _LINK_POINTER_ which for non-gfortran
-!# compilers will just be dst => src but for gfortran becauses a routine
-!# which is passed the temporary structure which it copies to global space.
-!#
-!# As it happens, this only gets us past the build problems - the pointers are
-!# clearly not right yet - it doesnt run - and it may be a while before it can
-!###############################################################################
-SUBROUTINE link_pointer(dst, src)
-!ARGUMENTS
-   AED_REAL,POINTER,DIMENSION(:),INTENT(out) :: dst
-   AED_REAL,DIMENSION(:),TARGET,INTENT(in)   :: src
-!-------------------------------------------------------------------------------
-!BEGIN
-   dst => src
-END SUBROUTINE link_pointer
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#endif
-
-
 !###############################################################################
 SUBROUTINE fabm_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_) &
                                                  BIND(C, name=_WQ_SET_GLM_DATA)
@@ -550,14 +522,14 @@ SUBROUTINE fabm_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_) &
    CALL C_F_POINTER(Lake, theLake, [MaxLayers])
 
    !# Save pointers to external dynamic variables that we need later (in do_glm_fabm)
-   _LINK_POINTER_(z, theLake%Height)
-   _LINK_POINTER_(temp, theLake%Temp)
-   _LINK_POINTER_(salt, theLake%Salinity)
-   _LINK_POINTER_(rho, theLake%Density)
-   _LINK_POINTER_(area, theLake%LayerArea)
-   _LINK_POINTER_(rad, theLake%Light)
-   _LINK_POINTER_(extc_coef, theLake%ExtcCoefSW)
-   _LINK_POINTER_(layer_stress, theLake%LayerStress)
+   z => theLake%Height
+   temp => theLake%Temp
+   salt => theLake%Salinity
+   rho => theLake%Density
+   area => theLake%LayerArea
+   rad => theLake%Light
+   extc_coef => theLake%ExtcCoefSW
+   layer_stress => theLake%LayerStress
 
    IF (benthic_mode .GT. 1) zz => z
 

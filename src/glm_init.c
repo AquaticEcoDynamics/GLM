@@ -647,14 +647,16 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
   //  sed_temp_amplitude = 2.7;
   //  sed_temp_peak_doy  = 151;
     if ( get_namelist(namlst, sed_heat) ) {
-         sed_heat_sw = FALSE;
-         fprintf(stderr,"No sed_heat section, turning off sediment heating\n");
+        sed_heat_sw = FALSE;
+        sed_reflectivity = malloc(2*sizeof(AED_REAL));
+        sed_reflectivity[0] = 0.;
+        fprintf(stderr,"No sed_heat section, turning off sediment heating\n");
     } else {
-         sed_heat_sw = TRUE;
-         fprintf(stderr,"Sed_heat section present, simulating sediment heating\n");
+        sed_heat_sw = TRUE;
+        fprintf(stderr,"Sed_heat section present, simulating sediment heating\n");
+        printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[0]);
+        printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[1]);
     }
-    printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[0]);
-    printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[1]);
 
 
 

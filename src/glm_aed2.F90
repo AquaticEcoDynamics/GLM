@@ -45,24 +45,16 @@
 #define _NO_ODE_ 1
 
 #ifdef __GFORTRAN__
-#  define _LINK_POINTER_(dst, src)  CALL link_pointer(dst, src)
-#  warning   "gfortran version does not work yet"
-#  if __GNUC__ >= 4
-#    if __GNUC__ == 4 && __GNUC_MINOR__ >=  9
-#      define isnan(x) ieee_is_nan(x)
-#      define HAVE_IEEE_ARITH
-#    endif
+#  if __GNUC__ < 8
+#    error   "You will need gfortran version 8 or better"
 #  endif
 #else
-#  define _LINK_POINTER_(dst, src)  dst => src
 #  ifndef isnan
 #    define isnan(x) ieee_is_nan(x)
 #    define HAVE_IEEE_ARITH
 #  endif
 #endif
 
-!#define _LINK_POINTER_(dst, src)  CALL link_pointer(dst, src)
-!#define _LINK_POINTER_(dst, src)  dst => src
 
 !-------------------------------------------------------------------------------
 MODULE glm_aed2
@@ -137,7 +129,7 @@ MODULE glm_aed2
 
    !# External variables
    AED_REAL :: dt, dt_eff   ! External and internal time steps
-   INTEGER  :: w_adv_ctr    ! Scheme for vertical advection (0 IF not used)
+!  INTEGER  :: w_adv_ctr    ! Scheme for vertical advection (0 IF not used)
    AED_REAL,POINTER,DIMENSION(:) :: rad, z, salt, temp, rho, area
    AED_REAL,POINTER,DIMENSION(:) :: extc_coef, layer_stress
    AED_REAL,POINTER :: precip, evap, bottom_stress
@@ -521,37 +513,6 @@ END FUNCTION aed2_is_var
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-#ifdef __GFORTRAN__
-!###############################################################################
-!# This is a fudge for gFortran.
-!#
-!# see : https://gcc.gnu.org/bugzilla/show_bug.cgi?id=40737
-!#
-!# It only applies to Lake which is the only array.
-!# This routine is accessed by the macro _LINK_POINTER_ which for non-gfortran
-!# compilers will just be dst => src but for gfortran is a call becauses a routine
-!# is passed the temporary structure which it copies to global space.
-!# (Also gfortran segfaults on : layer_stress => theLake%LayerStress which is a
-!# bit weird.)
-!#
-!# As it happens, this only gets us past the build problems - the pointers are
-!# clearly not right yet - it doesnt run - and it may be a while before it can
-!#
-!# various prints (commented out) below are for debugging the gfortran issue
-!###############################################################################
-SUBROUTINE link_pointer(dst, src)
-!ARGUMENTS
-   AED_REAL,POINTER,DIMENSION(:),INTENT(out) :: dst
-   AED_REAL,DIMENSION(:),TARGET,INTENT(in)   :: src
-!-------------------------------------------------------------------------------
-!BEGIN
-   dst => src
-!print*,'src(1) = ',src(1),' dst(1) = ',dst(1)
-END SUBROUTINE link_pointer
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#endif
-
-
 !###############################################################################
 SUBROUTINE aed2_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_) &
                                                   BIND(C, name=_WQ_SET_GLM_DATA)
@@ -570,23 +531,14 @@ SUBROUTINE aed2_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_) &
    CALL C_F_POINTER(Lake, theLake, [MaxLayers])
 
    !# Save pointers to external dynamic variables that we need later (in do_glm_wq)
-   _LINK_POINTER_(z,    theLake%Height)
-!print*,"Initial height ", z(1), theLake(1)%Height
-   _LINK_POINTER_(temp, theLake%Temp)
-!print*,"Initial Temp   ", temp(1), theLake(1)%Temp
-!print*,"Initial height ", z(1), theLake(1)%Height
-   _LINK_POINTER_(salt, theLake%Salinity)
-!print*,"Initial Salt   ", salt(1), theLake(1)%Salinity
-!print*,"Initial Temp   ", temp(1), theLake(1)%Temp
-!print*,"Initial height ", z(1), theLake(1)%Height
-   _LINK_POINTER_(rho,  theLake%Density)
-   _LINK_POINTER_(area, theLake%LayerArea)
-   _LINK_POINTER_(rad,  theLake%Light)
-   _LINK_POINTER_(extc_coef, theLake%ExtcCoefSW)
-   _LINK_POINTER_(layer_stress, theLake%LayerStress)
-
-!print*,"Initial height ", z(1), theLake(1)%Height
-!STOP
+   z    => theLake%Height
+   temp => theLake%Temp
+   salt => theLake%Salinity
+   rho  => theLake%Density
+   area => theLake%LayerArea
+   rad  => theLake%Light
+   extc_coef => theLake%ExtcCoefSW
+   layer_stress => theLake%LayerStress
 
    IF (benthic_mode .GT. 1) zz => z
    ALLOCATE(depth(MaxLayers))
