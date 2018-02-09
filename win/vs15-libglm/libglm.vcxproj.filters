@@ -44,9 +44,6 @@
     <ClCompile Include="..\..\src\glm_lnum.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_main.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\glm_mixer.c">
       <Filter>Source Files</Filter>
     </ClCompile>

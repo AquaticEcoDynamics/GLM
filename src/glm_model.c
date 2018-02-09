@@ -462,6 +462,116 @@ void do_model_non_avg(int jstart, int nsave)
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
+void do_model_coupled(int step_start, int step_end,
+           AED_REAL *FlowNew, AED_REAL *DrawNew, AED_REAL *elevation, int nsave )
+{
+    //static AED_REAL WithdrawalTemp;
+    AED_REAL    SWold, SWnew;
+
+   /***************************************************************************
+    *CAB Note: these WQ arrays should be sized to Num_WQ_Vars not MaxVars,    *
+    *           look into that later ....                                     *
+    ***************************************************************************/
+    AED_REAL SaltNew[MaxInf], TempNew[MaxInf], WQNew[MaxInf * MaxVars];
+
+    int jday, ntot, stepnum, cDays;
+
+    int i, j;
+
+/*----------------------------------------------------------------------------*/
+    memset(WQNew, 0, sizeof(AED_REAL)*MaxInf*MaxVars);
+
+    /**************************** Start Simulation ****************************/
+    fputs("Simulation begins...\n", stdout);
+
+    ntot = 0;
+    stepnum = 0;
+    SWold = 0.;
+
+    jday = step_start - 1;
+    cDays = step_end - step_start + 1;
+
+    /**************************************************************************
+     * Loop over all days                                                     *
+     **************************************************************************/
+    while (ntot < cDays) {
+        ntot++;
+        jday++;
+
+        //# Initialise daily values for volume and heat balance output
+        SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
+        SurfData.dailyQsw = 0.; SurfData.dailyQe = 0.;
+        SurfData.dailyQh = 0.; SurfData.dailyQlw = 0.;
+        SurfData.dailyInflow = 0.; SurfData.dailySnow = 0.;
+        SurfData.dailyOutflow = 0.; SurfData.dailyOverflow = 0.;
+        SurfData.albedo = 0.; SurfData.dailyzonL = 0.;
+        SurfData.dailyRunoff = 0.;
+
+    //  read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, WQNew);
+        //# Set to today's inflow
+        //# To get daily inflow (i.e. m3/day) times by SecsPerDay
+        for (i = 0; i < NumInf; i++) {
+            Inflows[i].FlowRate = FlowNew[i] * SecsPerDay;
+            Inflows[i].TemInf   = TempNew[i];
+            Inflows[i].SalInf   = SaltNew[i];
+            for (j = 0; j < Num_WQ_Vars; j++)
+                Inflows[i].WQInf[j] = WQ_INF_(WQNew, i, j);
+        }
+
+    //  read_daily_outflow(jday, NumOut, DrawNew);
+        //# To get daily outflow (i.e. m3/day) times by SecsPerDay
+        for (i = 0; i < NumOut; i++)
+            Outflows[i].Draw = DrawNew[i] * SecsPerDay;
+
+    //  read_daily_withdraw_temp(jday, &WithdrTempNew);
+    //  WithdrawalTemp = WithdrTempNew;
+
+        read_daily_met(jday, &MetData);
+        SWnew = MetData.ShortWave;
+
+#if DEBUG
+        fprintf(stderr, "------- next day - do_model_non_avg -------\n");
+#endif
+        stepnum = do_subdaily_loop(stepnum, jday, nsave, SWold, SWnew);
+//if ( n_steps_done > END_STEPS ) return;
+
+        //# End of forcing-mixing-diffusion loop
+
+        SurfData.dailyInflow = do_inflows(); //# Do inflow for all streams
+
+        if(Lake[surfLayer].Vol1>zero) {
+          //# Do withdrawal for all offtakes
+          SurfData.dailyOutflow = do_outflows(jday);
+
+          //# Take care of any overflow
+          SurfData.dailyOverflow = do_overflow(jday);
+        }
+
+        check_layer_thickness();
+
+        /*************************************************************************
+         * End of daily calculations, Prepare for next day and return.           *
+         *************************************************************************/
+        SWold = SWnew;
+
+#ifdef XPLOTS
+        if ( xdisp )
+            flush_all_plots();
+        else
+#endif
+            printf("Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDays,  EOLN);
+
+        write_diags(jday, calculate_lake_number());
+
+    }   //# do while (ntot < ndays)
+    /*----------########### End of main daily loop ################-----------*/
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
 void calc_mass_temp(const char *msg)
 {
     AED_REAL Lake_Mass; //# Total mass of lake [kg]

@@ -1687,8 +1687,6 @@ static AED_REAL psi_hw(AED_REAL zL)
 
 
 
-
-
 /******************************************************************************
  *                                                                            *
  * solpond watfiv ncs. ez. mae,cengel, time = (, 10), p = 20                  *
@@ -1715,12 +1713,7 @@ static AED_REAL psi_hw(AED_REAL zL)
  *       rb     = reflectivity of bottom surface (diffuse)                    *
  *                                                                            *
  ******************************************************************************/
-//#include <stdlib.h>
-//#include <math.h>
 
-#define dsqrt sqrt
-#define dcos   cos
-#define dexp   exp
 
 void solpond(int nband, int npoint,
     double depth, double rb, double hdir, double anglei, double hdif,
@@ -1732,29 +1725,6 @@ static double fdif(double rindex, double critw, double h, double cmu, int n);
 static double ref(double ri, double cr, double cmu);
 static void gaus10(double ri, double cr, double c, double d, double (*f)(), int n, double h, double *v);
 
-// int main(int argc, const char *argv[])
-// {
-//    /** These are the inputs - read from terminal in original fortran **/
-//    int    nband, npoint;
-//    double depth, rb, hdir, anglei, hdif;
-//    double energy[20], absorb[20];
-//
-//    /* and this is the result array */
-//    double gx[100];
-// /*
-//    read, nband, depth, rb, hdir, anglei, hdif, npoint
-//    read, (energy(i), i=1, nband), (absorb(j), j=1, nband)
-// */
-//
-//    solpond(nband, npoint, depth, rb, hdir, anglei, hdif, energy, absorb, gx);
-//
-// /*
-//    write(3,60)(gx(j), j=i, npoint)
-// 60  format(" ", t10, f8.3)
-// */
-//    exit(0);
-// }
-// ******************************************************************************/
 
 /******************************************************************************
  *                                                                            *
@@ -1790,7 +1760,7 @@ void solpond(int nband, int npoint,
     rinver = 1.0 / rindex;
     critw = sqrt(1.0 - pow(rinver, 2));
     cangle = cos(anglei * pi/180.0);
-    rmu = dsqrt(pow(rindex, 2) + pow(cangle, 2) - 1.0) / rindex;
+    rmu = sqrt(pow(rindex, 2) + pow(cangle, 2) - 1.0) / rindex;
 
     for (k = 0; k < nband; k++) {
         hkdir = energy[k] * hdir;
@@ -1803,7 +1773,7 @@ void solpond(int nband, int npoint,
         gaus10(rinver, critw, critw, 1.0, fct, 1, a2, &vint2);
         alpha = vint1 + vint2;
 
-        gbk = ((1.0-ref(rindex, crita, cangle)) * hkdir * dexp(-a/rmu) +
+        gbk = ((1.0-ref(rindex, crita, cangle)) * hkdir * exp(-a/rmu) +
            2.0 * pow(rindex, 2) * hkdif*vdif) / (1.0-2.0*rb*alpha);
 
         x = 0.0;
@@ -1818,23 +1788,29 @@ void solpond(int nband, int npoint,
             gaus10(rinver, critw, critw, 1.0, fct, 1, xpa, &vdir2);
             vdirx = vdir1 + vdir2;
 
-            gxk = absorb[k]*((1.0-ref(rindex, crita, cangle))*dexp(-x/rmu)*
+            gxk = absorb[k]*((1.0-ref(rindex, crita, cangle))*exp(-x/rmu)*
                    hkdir/rmu+2.0 * pow(rindex, 2) * hkdif*vdifx+2.0*rb*gbk*(vdirx+em2));
 
             gx[j] += gxk;
             x = j * del;
         }
     }
-
 }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
+
+/******************************************************************************
+ *                                                                            *
+ *    this subroutine performs numerical integration                          *
+ *    using a 10 - point gausian quadrature                                   *
+ *                                                                            *
+ *    c = lower bound on integration                                          *
+ *    d = upper bound on integration                                          *
+ *    v = value of integral                                                   *
+ *    f = function to be integrated                                           *
+ *                                                                            *
+ ******************************************************************************/
 void gaus10(double ri, double cr, double c, double d, double (*f)(), int n, double h, double *v)
-//    this subroutine performs numerical integration
-//    using a 10 - point gausian quadrature
-//    c = lower bound on integration
-//    d = upper bound on integration
-//    v = value of integral
-//    f = function to be integrated
 {
 //  implicit real*8(a-h,o-z),integer*4(i,n)
 
@@ -1867,64 +1843,98 @@ void gaus10(double ri, double cr, double c, double d, double (*f)(), int n, doub
         *v += (*f)(ri, cr, h, a, n) * b;
     }
 }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
-double fct(double ri, double cr, double h, double cmu, int n)
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
+static double fct(double ri, double cr, double h, double cmu, int n)
 {
 //  implicit real*8(a-h,o-z), integer*4(i,n)
-    return ref(ri, cr, cmu) * pow(cmu, n) * dexp(-h/cmu);
+    return ref(ri, cr, cmu) * pow(cmu, n) * exp(-h/cmu);
 }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
-double expint(double ri, double cr, double h, double cmu, int n)
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
+static double expint(double ri, double cr, double h, double cmu, int n)
 //    this function is to determine exponential
 {
 //  implicit real*8(a-h,o-z),integer*4(i,n)
-    return pow(cmu, (n-2)) * dexp(-h/cmu);
+    return pow(cmu, (n-2)) * exp(-h/cmu);
 }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
+/******************************************************************************
+ *                                                                            *
+ *    this function calculates the fresnel reflectivity                       *
+ *    cmu = cosine of the angle of incidence                                  *
+ *    ri = relative refractive index of the refracting medium                 *
+ *    cr = critical cmu value below which reflectivity is unity               *
+ *                                                                            *
+ ******************************************************************************/
 //    integral functions
-double ref(double ri, double cr, double cmu)
-//    this function calculates the fresnel reflectivity
-//    cmu = cosine of the angle of incidence
-//    ri = relative refractive index of the refracting medium
-//    cr = critical cmu value below which reflectivity is unity
+static double ref(double ri, double cr, double cmu)
 {
 //  implicit real*8(a-h,o-z),integer*4(i,n)
     double ssine, rcos;
 
     if (cmu < cr) return 1.0;
 
-    ssine = dsqrt(pow(ri, 2) - 1.0+ pow(cmu, 2));
+    ssine = sqrt(pow(ri, 2) - 1.0+ pow(cmu, 2));
     rcos = pow(ri, 2) * cmu;
     return 0.50 * pow(((ssine-cmu)/(ssine+cmu)), 2) +
            0.50 * pow(((rcos-ssine)/(rcos+ssine)), 2);
 }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
-double fdif(double rindex, double critw, double h, double cmu, int n)
-//    this function is to determine the refracted diffuse radiation
+/******************************************************************************
+ *                                                                            *
+ *    this function is to determine the refracted diffuse radiation           *
+ *                                                                            *
+ ******************************************************************************/
+static double fdif(double rindex, double critw, double h, double cmu, int n)
 {
 //  implicit real*8(a-h,o-z),integer*4(i,n)
     double cmup;
 
     if (cmu < critw) return 0.0;
 
-    cmup = dsqrt(1.0 - pow(rindex, 2) * (1.0 - pow(cmu, 2)));
-    return (1.0-ref(rindex, 0.0, cmup)) * pow(cmu, n) * dexp(-h/cmu);
+    cmup = sqrt(1.0 - pow(rindex, 2) * (1.0 - pow(cmu, 2)));
+    return (1.0-ref(rindex, 0.0, cmup)) * pow(cmu, n) * exp(-h/cmu);
 }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-
-
-
-
-/////////////////////////////////////
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
 static void soiltemp(int m, double wv)
 {
-    double  w[m+1],t[m+1],tn[m+1],k[m+1],cp[m],a[m+1],b[m],c[m],d[m],z[m+1];
+#ifndef _VISUAL_C_
+    // The visual c compiler doesn't like this so must malloc manually
+    AED_REAL  w[m+1],t[m+1],tn[m+1],k[m+1],cp[m],a[m+1],b[m],c[m],d[m],z[m+1];
+#else
+    AED_REAL *w, *t, *tn, *k, *cp, *a, *b, *c, *d, *z;
+#endif
     int ta = 20, am = 15, bd = 1.3, tb = 20;
     int i;
 
-    double ti, dt, da, f, g, mc, c1, c2, c3, c4;
+    AED_REAL ti, dt, da, f, g, mc, c1, c2, c3, c4;
 
+#ifdef _VISUAL_C_
+    w =  malloc(sizeof(AED_REAL) * (m+1));
+    t =  malloc(sizeof(AED_REAL) * (m+1));
+    tn = malloc(sizeof(AED_REAL) * (m+1));
+    k =  malloc(sizeof(AED_REAL) * (m+1));
+    cp = malloc(sizeof(AED_REAL) * m);
+    a =  malloc(sizeof(AED_REAL) * (m+1));
+    b =  malloc(sizeof(AED_REAL) * m);
+    c =  malloc(sizeof(AED_REAL) * m);
+    d =  malloc(sizeof(AED_REAL) * m);
+    z =  malloc(sizeof(AED_REAL) * (m+1));
+#endif
 
     k[0] = 20;    // boundary layer conductance in w/(m^2 k)
 
@@ -1975,10 +1985,15 @@ static void soiltemp(int m, double wv)
             t[i] = tn[i];
         }
     } while (da < 5);
+#ifdef _VISUAL_C_
+    free(w); free(t); free(tn); free(k); free(cp);
+    free(a); free(b); free(c);  free(d); free(z);
+#endif
 }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-/*
+#if 0
 SUBROUTINE CalcZeroWindHeatFluxes(airTemp_C, surfTemp_C, vapPressure,      &
                                   atmosPressure, surfWaterDensity,         &
                                   zeroWindLatentHeatFlux,                  &
@@ -2093,4 +2108,4 @@ SUBROUTINE CalcZeroWindHeatFluxes(airTemp_C, surfTemp_C, vapPressure,      &
 
 
 END SUBROUTINE CalcZeroWindHeatFluxes
-*/
+#endif
