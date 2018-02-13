@@ -198,7 +198,7 @@ void resize_internals(int icode, int lnu)
             l = 0;
             j = 0;
 
-            /* find lowest layer (L) whose volume exceeds the first table entry */
+            /* find lowest layer (l) whose volume exceeds the first table entry */
             while (l <= surfLayer && Lake[l].Vol1 <= MphLevelVoldash[0]) {
                 Lake[l].Height = (Lake[l].Vol1 / MphLevelVoldash[0]) / MphInc;
                 l++;
