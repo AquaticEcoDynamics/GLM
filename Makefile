@@ -11,7 +11,7 @@
 #                                                                             #
 #      http://aed.see.uwa.edu.au/                                             #
 #                                                                             #
-#  Copyright 2013 - 2016 -  The University of Western Australia               #
+#  Copyright 2013 - 2018 -  The University of Western Australia               #
 #                                                                             #
 #   GLM is free software: you can redistribute it and/or modify               #
 #   it under the terms of the GNU General Public License as published by      #

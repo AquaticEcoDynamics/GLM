@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aed.see.uwa.edu.au/                                             *
  *                                                                            *
- * Copyright 2013 - 2016 -  The University of Western Australia               *
+ * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 #endif
 
     printf("       ------------------------------------------------\n");
-    printf("       |  General Lake Model (GLM)   Version %s    |\n", GLM_VERSION);
+    printf("       |  General Lake Model (GLM)   Version %-10s    |\n", GLM_VERSION);
     printf("       ------------------------------------------------\n");
 
 #ifdef __GNUC__

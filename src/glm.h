@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aed.see.uwa.edu.au/                                             *
  *                                                                            *
- * Copyright 2013 - 2016 -  The University of Western Australia               *
+ * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -35,7 +35,7 @@
 #endif
 #define USE_FILLVALUE 1
 
-#define GLM_VERSION  "2.8.0alpha1"
+#define GLM_VERSION  "2.8.0alpha2"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -99,7 +99,7 @@
   #define NC_REALTYPE NC_DOUBLE
   #define NC_FILLER NC_FILL_DOUBLE
   typedef double DOUBLETYPE;
-// Although this should be unsigned char that appears to cause addressing issues so back to int for now
+// Although this should be an unsigned char, that appears to cause addressing issues so back to int for now
 //  typedef unsigned char CLOGICAL;
   typedef int CLOGICAL;
 

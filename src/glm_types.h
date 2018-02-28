@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aed.see.uwa.edu.au/                                             *
  *                                                                            *
- * Copyright 2013 - 2016 -  The University of Western Australia               *
+ * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -33,6 +33,10 @@
 #define _GLM_TYPES_H_
 
 #include "glm.h"
+
+/************************* Important Note *************************************
+ * The order of entries in these structures MUST match those in glm_types.F90 *
+ ************************* Important Note *************************************/
 
 #define MaxPar        37
 #define MaxOut        20     /* Maximum number of outflows */
@@ -161,7 +165,7 @@ typedef char filname[80];
        AED_REAL Umean;           // Mean velocity
        AED_REAL Uorb;            // Maximum orbital velocity
        AED_REAL Ucur;            // Current velocity
-       AED_REAL LayerStress;    // Layer Stress
+       AED_REAL LayerStress;     // Layer Stress
    } LakeDataType;
 
    /*===========================================================*/
@@ -182,6 +186,7 @@ typedef char filname[80];
        AED_REAL RainConcTn;      // Concentration of TN in rain
        AED_REAL RainConcSi;      // Concentration of SI in rain
        AED_REAL WindDir;         // Wind direction
+       AED_REAL As;              // Area of sheltering
    } MetDataType;
 
    /*===========================================================*/
@@ -192,7 +197,7 @@ typedef char filname[80];
        AED_REAL HeightWhiteIce;  // height of white ice layer
        AED_REAL HeightSnow;      // height of snow layer
        AED_REAL dHt;             // change in thickness of either the snow or ice layer
-       AED_REAL RhoSnow;          // Density of snow layer in kg/m^3
+       AED_REAL RhoSnow;         // Density of snow layer in kg/m^3
        AED_REAL dailyEvap;       // Daily Evaporation (ML/day)
        AED_REAL dailyRain;       // Daily Rain (ML/day)
        AED_REAL dailyRunoff;     // Daily Runoff (m3/day)
@@ -205,7 +210,7 @@ typedef char filname[80];
        AED_REAL dailyOutflow;    // Total Daily Outflow (ML/day)
        AED_REAL dailyOverflow;   // Total Daily Overflow (ML/day)
        AED_REAL albedo;          // Daily surface albedo
-       AED_REAL dailyzonL;          // Daily surface albedo
+       AED_REAL dailyzonL;       // Daily surface albedo
    } SurfaceDataType;
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

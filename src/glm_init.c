@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aed.see.uwa.edu.au/                                             *
  *                                                                            *
- * Copyright 2013 - 2016 -  The University of Western Australia               *
+ * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -168,6 +168,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 //  AED_REAL        CH;
     extern AED_REAL salt_fall;
     extern AED_REAL wind_factor;
+    extern int      fetch_mode;
+    extern AED_REAL fetch_aws;
+    extern AED_REAL fetch_xws;
+    extern char *   fetch_fws;
     extern AED_REAL sw_factor;
     extern AED_REAL lw_factor;
     extern AED_REAL at_factor;
@@ -258,8 +262,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL         *sed_temp_peak_doy   ;
     extern AED_REAL         *sed_reflectivity    ;
     extern AED_REAL         *sed_roughness       ;
-    //extern AED_REAL         sed_temp_amplitude;
-    //extern AED_REAL         sed_temp_peak_doy;
+  //extern AED_REAL          sed_temp_amplitude;
+  //extern AED_REAL          sed_temp_peak_doy;
     /*-------------------------------------------*/
 
     int i, j, k;
@@ -302,9 +306,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "bioshade_feedback", TYPE_BOOL,             &bioshade_feedback },
           { "repair_state",      TYPE_BOOL,             &repair_state      },
           { "mobility_off",      TYPE_BOOL,             &mobility_off      },
-//          { "benthic_mode",      TYPE_INT,              &benthic_mode      },
-//          { "n_zones",           TYPE_INT,              &n_zones           },
-//          { "zone_heights",      TYPE_DOUBLE|MASK_LIST, &zone_heights      },
+//        { "benthic_mode",      TYPE_INT,              &benthic_mode      },
+//        { "n_zones",           TYPE_INT,              &n_zones           },
+//        { "zone_heights",      TYPE_DOUBLE|MASK_LIST, &zone_heights      },
           { NULL,                TYPE_END,              NULL               }
     };
     NAMELIST time[] = {
@@ -350,6 +354,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "albedo_mode",       TYPE_INT,              &albedo_mode       },
           { "cloud_mode",        TYPE_INT,              &cloud_mode        },
           { "wind_factor",       TYPE_DOUBLE,           &wind_factor       },
+          { "fetch_mode",        TYPE_INT,              &fetch_mode        },
+          { "Aws",               TYPE_DOUBLE,           &fetch_aws         }, // (for mode 1 ) scalar
+          { "Xws",               TYPE_DOUBLE,           &fetch_xws         }, // (for mode 2 ) scalar?
+          { "Fws",               TYPE_STR,              &fetch_fws         }, // (for mode 3 ) not sure how to do this ...
           { "sw_factor",         TYPE_DOUBLE,           &sw_factor         },
           { "lw_factor",         TYPE_DOUBLE,           &lw_factor         },
           { "at_factor",         TYPE_DOUBLE,           &at_factor         },
@@ -642,10 +650,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     sed_heat_Ksoil     = 5.0;
     sed_temp_depth     = 0.1;
-//    sed_temp_mean[0]   = 9.7;
+//  sed_temp_mean[0]   = 9.7;
     printf("*starting sed_heat = %10.5f\n",sed_temp_depth);
-  //  sed_temp_amplitude = 2.7;
-  //  sed_temp_peak_doy  = 151;
+//  sed_temp_amplitude = 2.7;
+//  sed_temp_peak_doy  = 151;
     if ( get_namelist(namlst, sed_heat) ) {
         sed_heat_sw = FALSE;
         sed_reflectivity = malloc(2*sizeof(AED_REAL));
@@ -980,9 +988,6 @@ void create_lake(int namlst)
         exit(1);
     }
 
-    //if (base_elev != MISVAL || crest_elev != MISVAL) {
-    //    fprintf(stderr, "values for base_elev and crest_elev are no longer used\n");
-    //}
     if (base_elev != MISVAL ) {
         fprintf(stderr, "value for base_elev is no longer used; A[1] is assumed.\n");
     }

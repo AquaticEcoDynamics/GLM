@@ -13,7 +13,7 @@
  *                                                                            *
  *     http://aed.see.uwa.edu.au/                                             *
  *                                                                            *
- * Copyright 2013 - 2016 -  The University of Western Australia               *
+ * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -187,10 +187,10 @@ void calc_layer_stress(AED_REAL U, AED_REAL F)
                                     surfLayer-i, Lake[i].LayerStress, U, F, h, dens, (ice)?"true":"false");
 //              exit(0);
             } else {
-               if ( h < 1. && i < surfLayer-3) {
-                   fprintf(stderr, "step  %6d L(S-%3d) OK h %e\n", stepno, surfLayer-i, h);
-//                 exit(0);
-               }
+                if ( h < 1. && i < surfLayer-3) {
+                    fprintf(stderr, "step  %6d L(S-%3d) OK h %e\n", stepno, surfLayer-i, h);
+//                  exit(0);
+                }
             }
 #endif
         }
@@ -203,18 +203,17 @@ void calc_layer_stress(AED_REAL U, AED_REAL F)
     BottomStress = Lake[botmLayer].LayerStress;
 
 #if DEBUG_STRESS_CSV
-     fprintf(csv_dbg, "%d, %e, %e, %e, %e, %e, %e\n",
+    fprintf(csv_dbg, "%d, %e, %e, %e, %e, %e, %e\n",
                 stepno, U, F, Lake[surfLayer].Uorb, Lake[0].Uorb,
                               Lake[surfLayer].LayerStress, Lake[0].LayerStress);
 
-//   fprintf(stderr, "step %6d L(S-%3d) Taub at the bottom %e ; U = %e ; F = %e ; h %e ice %s\n",
+//  fprintf(stderr, "step %6d L(S-%3d) Taub at the bottom %e ; U = %e ; F = %e ; h %e ice %s\n",
 //                                      stepno, surfLayer, Lake[0].LayerStress, U, F, h, (ice)?"true":"false");
 
     seenit = TRUE;
     stepno++;
 #endif
 }
-
 
 
 /******************************************************************************
