@@ -44,6 +44,14 @@ ifeq ($(UTILDIR),)
   UTILDIR=../libutil
 endif
 
+ifeq ($(WITH_CHECKS),)
+  ifeq ($(DEBUG),true)
+    WITH_CHECKS=true
+  else
+    WITH_CHECKS=false
+  endif
+endif
+
 srcdir=src
 incdir=src
 objdir=obj
@@ -111,18 +119,14 @@ ifeq ($(FABM),true)
       WITH_CHECKS=true
     else
       FABMLIB=fabm_prod
-      WITH_CHECKS=false
     endif
 
     FINCLUDES+=-I$(FABMDIR)/include -I$(FABMDIR)/src/drivers/glm -I$(FABMDIR)/modules/glm/$(FORTRAN_COMPILER)
     FABMLIBS=-L$(FABMDIR)/lib/glm/$(FORTRAN_COMPILER) -l$(FABMLIB)
   else
+    FABMLIB=fabm
     ifeq ($(DEBUG),true)
-      FABMLIB=fabm
       WITH_CHECKS=true
-    else
-      FABMLIB=fabm
-      WITH_CHECKS=false
     endif
 
     FINCLUDES+=-I$(FABMDIR)/include -I$(FABMDIR)/src/drivers/glm -I$(FABMDIR)/build/modules
