@@ -11,7 +11,7 @@
 #                                                                             #
 #      http://aed.see.uwa.edu.au/                                             #
 #                                                                             #
-#  Copyright 2013 - 2016 -  The University of Western Australia               #
+#  Copyright 2013 - 2018 -  The University of Western Australia               #
 #                                                                             #
 #   GLM is free software: you can redistribute it and/or modify               #
 #   it under the terms of the GNU General Public License as published by      #
@@ -42,6 +42,14 @@ endif
 
 ifeq ($(UTILDIR),)
   UTILDIR=../libutil
+endif
+
+ifeq ($(WITH_CHECKS),)
+  ifeq ($(DEBUG),true)
+    WITH_CHECKS=true
+  else
+    WITH_CHECKS=false
+  endif
 endif
 
 srcdir=src
@@ -111,18 +119,14 @@ ifeq ($(FABM),true)
       WITH_CHECKS=true
     else
       FABMLIB=fabm_prod
-      WITH_CHECKS=false
     endif
 
     FINCLUDES+=-I$(FABMDIR)/include -I$(FABMDIR)/src/drivers/glm -I$(FABMDIR)/modules/glm/$(FORTRAN_COMPILER)
     FABMLIBS=-L$(FABMDIR)/lib/glm/$(FORTRAN_COMPILER) -l$(FABMLIB)
   else
+    FABMLIB=fabm
     ifeq ($(DEBUG),true)
-      FABMLIB=fabm
       WITH_CHECKS=true
-    else
-      FABMLIB=fabm
-      WITH_CHECKS=false
     endif
 
     FINCLUDES+=-I$(FABMDIR)/include -I$(FABMDIR)/src/drivers/glm -I$(FABMDIR)/build/modules

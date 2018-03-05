@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aed.see.uwa.edu.au/                                             *
  *                                                                            *
- * Copyright 2013 - 2016 -  The University of Western Australia               *
+ * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -184,6 +184,11 @@ AED_REAL   *fetch_dirs = NULL;
 AED_REAL   *fetch_scale = NULL;
 AED_REAL    fetch_height = 0.;
 AED_REAL    fetch_porosity = 1.;
+
+int         fetch_mode = 0;
+AED_REAL    fetch_aws = 0.;
+AED_REAL    fetch_xws = 0.;
+char *      fetch_fws = NULL;
 
 //------------------------------------------------------------------------------
 // LITTORAL

@@ -13,7 +13,7 @@
  *                                                                            *
  *     http://aed.see.uwa.edu.au/                                             *
  *                                                                            *
- * Copyright 2013 - 2016 -  The University of Western Australia               *
+ * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -565,6 +565,8 @@ void do_model_coupled(int step_start, int step_end,
 
     }   //# do while (ntot < ndays)
     /*----------########### End of main daily loop ################-----------*/
+
+    *elevation = Lake[surfLayer].Height;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

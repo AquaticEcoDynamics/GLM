@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aed.see.uwa.edu.au/                                             *
  *                                                                            *
- * Copyright 2013 - 2016 -  The University of Western Australia               *
+ * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -79,7 +79,6 @@ static int time_idx = -1;
 int lw_ind = 0;
 static int have_snow = FALSE, have_rain_conc = FALSE;
 static int have_fetch = FALSE;
-extern LOGICAL fetch_sw;
 
 static int n_steps;
 
@@ -263,7 +262,7 @@ void read_daily_met(int julian, MetDataType *met)
             submet[idx].RainConcSi  = 0.;
         }
 
-        if ( have_fetch )
+        if ( fetch_mode == 2 )
              submet[idx].WindDir = get_csv_val_r(csv, wdir_idx);
         else submet[idx].WindDir = 0. ;
 

@@ -15,7 +15,7 @@
 !#                                                                             #
 !#     http://aed.see.uwa.edu.au/                                              #
 !#                                                                             #
-!# Copyright 2013 - 2016 -  The University of Western Australia                #
+!# Copyright 2013 - 2018 -  The University of Western Australia                #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
