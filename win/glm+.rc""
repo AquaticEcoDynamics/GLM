@@ -45,12 +45,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "AED Group; University of Western Australia"
             VALUE "FileDescription", "General Lake Model (GLM) with AED+"
-            VALUE "FileVersion", 2.8.0alpha1
+            VALUE "FileVersion", 2.8.0alpha0
             VALUE "InternalName", "version.rc"
             VALUE "LegalCopyright", "Copyright (C) 2017"
             VALUE "OriginalFilename", "version.rc"
             VALUE "ProductName", "GLM+"
-            VALUE "ProductVersion", 2.8.0alpha1
+            VALUE "ProductVersion", 2.8.0alpha0
         END
     END
     BLOCK "VarFileInfo"
