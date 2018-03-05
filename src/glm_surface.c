@@ -451,7 +451,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
     solpond(nband, npoint, depth, rb, hdir, anglei, hdif, energy, absorb, gx);
 
-    printf(">solpond = %10.1f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",gx[0],gx[1],gx[2],gx[3],gx[4],gx[5],gx[6],gx[7],gx[8]);
+    //printf(">solpond = %10.1f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",gx[0],gx[1],gx[2],gx[3],gx[4],gx[5],gx[6],gx[7],gx[8]);
 
     // MH
 
