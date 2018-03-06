@@ -152,6 +152,11 @@ AED_REAL runoff_coef = 0.3;
 int      rad_mode = 0;
 int      albedo_mode = 1;
 int      cloud_mode = 1;
+int      light_mode = 1;
+int      n_bands = 2;
+AED_REAL   *light_extc = NULL;
+AED_REAL   *energy_frac = NULL;
+
 
 AED_REAL salt_fall = 0.0;
 

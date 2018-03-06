@@ -45,6 +45,7 @@ void read_daily_withdraw_temp(int julian, AED_REAL *withdrTemp);
 void open_met_file(const char *fname, int snow_sw, int rain_sw,
                                                            const char *timefmt);
 void read_daily_met(int julian, MetDataType *met);
+AED_REAL get_fetch(AED_REAL windDir);
 void read_sub_daily_met(int julian,int iclock, MetDataType *met);
 
 void close_met_files(void);

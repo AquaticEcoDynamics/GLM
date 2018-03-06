@@ -52,7 +52,7 @@
 
 
 void solpond(int nband, int npoint,
-             double depth, double rb, double hdir, double anglei, double hdif,
+             double depth, double *delz, double rb, double hdir, double anglei, double hdif,
              double *energy, double *absorb, double *gx);
 
 static double expint(double ri, double cr, double h, double cmu, int n);
@@ -166,8 +166,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     const AED_REAL  eps_water = 0.985;     //# emissivity of the water surface
 /*----------------------------------------------------------------------------*/
 
-    const int nband = 4;
-    const int npoint = 10;
+    int nband = 4;
+    int npoint = 10;
 
 #ifndef _VISUAL_C_
     // The visual c compiler on doesn't like this so must malloc manually
@@ -177,7 +177,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
     AED_REAL energy[nband];
     AED_REAL absorb[nband];
-    AED_REAL gx[npoint];
+    AED_REAL gx[MaxLayers];
+//    AED_REAL depths[MaxLayers];
 
 #else
     AED_REAL *LayerThickness;
@@ -188,6 +189,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     AED_REAL *energy;
     AED_REAL *absorb;
     AED_REAL *gx;
+//    AED_REAL *depths;
 #endif
 
     AED_REAL p_atm;          //# Atmospheric pressure in hectopascals, eg. 101300 Pa
@@ -436,22 +438,40 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
     // ---- MH TEST SOLPOND IN PROGRESS ---- //
     //# Advanced option - compute the light penetration suing the integral of light adsorption
-    depth = 10; //Lake[surfLayer].Height;
+    depth = Lake[surfLayer].Height;
     rb = 0.3;
     anglei = 10;
     hdir = Q_shortwave * 0.9;
     hdif = Q_shortwave * 0.1;
 
-    memset(energy, 0, sizeof(AED_REAL)*nband);
-    memset(absorb, 0, sizeof(AED_REAL)*nband);
-    memset(gx, 0, sizeof(AED_REAL)*npoint);
 
-    energy[0] = 0.51; energy[1] = 0.45; energy[2] = 0.035; energy[3] = 0.005;
-    absorb[0] = 1.; absorb[1] = 0.5; absorb[2] = 4.; absorb[3] = 4.;
+    npoint = NumLayers+1;
+  //  nband = n_bands;
 
-    solpond(nband, npoint, depth, rb, hdir, anglei, hdif, energy, absorb, gx);
+  //  printf(">solpond = \n");
+  //  memset(energy, 0, sizeof(AED_REAL)*n_bands);
+  //  memset(absorb, 0, sizeof(AED_REAL)*n_bands);
+    memset(gx, 0, sizeof(AED_REAL)*MaxLayers);
+  //  memset(depths, 0, sizeof(AED_REAL)*(surfLayer+1));
+  //  for (i = botmLayer; i <= surfLayer; i++)
+  //      Lake[i].Density = calculate_density(Lake[i].Temp,Lake[i].Salinity);
+  //  printf(">solpond 2 = \n");
+//    energy[0] = 0.51; energy[1] = 0.45; energy[2] = 0.035; energy[3] = 0.005;
+//    absorb[0] = 1.; absorb[1] = 0.5; absorb[2] = 4.; absorb[3] = 4.;
+//    for (i = 0; i < nband; i++) {
+//      energy[i] = energy_frac[i];
+//      absorb[i] = light_extc[i];
+//    }
 
-    //printf(">solpond = %10.1f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",gx[0],gx[1],gx[2],gx[3],gx[4],gx[5],gx[6],gx[7],gx[8]);
+//    printf(">solpond 3 = \n");
+
+//    printf(">solpond = %10.1f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",energy[0],energy[1],energy[2],energy[3],absorb[0],absorb[1],absorb[2],absorb[3]);
+
+    //solpond(n_bands, npoint, depth, rb, hdir, anglei, hdif, energy, absorb, gx);
+    solpond(n_bands, npoint, depth, LayerThickness, rb, hdir, anglei, hdif, energy_frac, light_extc, gx);
+
+    printf(">solpond = %10.1f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",gx[0],gx[1],gx[2],gx[3],gx[4],gx[5],gx[6],gx[7],gx[8]);
+
 
     // MH
 
@@ -1731,7 +1751,7 @@ static AED_REAL psi_hw(AED_REAL zL)
  *                                                                            *
  ******************************************************************************/
 void solpond(int nband, int npoint,
-    double depth, double rb, double hdir, double anglei, double hdif,
+    double depth, double *delz, double rb, double hdir, double anglei, double hdif,
     double *energy, double *absorb, double *gx)
 {
 // implicit real*8(a-h,o-z),integer*4(i,n)
@@ -1761,6 +1781,8 @@ void solpond(int nband, int npoint,
     cangle = cos(anglei * pi/180.0);
     rmu = sqrt(pow(rindex, 2) + pow(cangle, 2) - 1.0) / rindex;
 
+
+
     for (k = 0; k < nband; k++) {
         hkdir = energy[k] * hdir;
         hkdif = energy[k] * hdif;
@@ -1776,7 +1798,12 @@ void solpond(int nband, int npoint,
            2.0 * pow(rindex, 2) * hkdif*vdif) / (1.0-2.0*rb*alpha);
 
         x = 0.0;
-        del = a/(npoint-1);
+        //del = a/(npoint-1);
+        //del = zero;
+
+
+        gx[0] += hkdir + hkdif;
+
         for (j = 0; j < npoint; j++) {
             xpa = a+x;
             xm = a-x;
@@ -1790,8 +1817,11 @@ void solpond(int nband, int npoint,
             gxk = absorb[k]*((1.0-ref(rindex, crita, cangle))*exp(-x/rmu)*
                    hkdir/rmu+2.0 * pow(rindex, 2) * hkdif*vdifx+2.0*rb*gbk*(vdirx+em2));
 
-            gx[j] += gxk;
-            x = (j+1) * del;
+            gx[j+1] += gxk;
+
+            //del += delz[((npoint-1)-j)-1];
+            //x = (j+1) * del;
+            x += delz[((npoint-1)-j)-1];
         }
     }
 }

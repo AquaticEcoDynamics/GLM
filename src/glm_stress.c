@@ -214,33 +214,3 @@ void calc_layer_stress(AED_REAL U, AED_REAL F)
     stepno++;
 #endif
 }
-
-
-/******************************************************************************
- * get_fetch                                                                  *
- ******************************************************************************/
-AED_REAL get_fetch(AED_REAL windDir)
-{
-    AED_REAL fetch_s;
-    int i = 0;
-
-    while (windDir > 360.) windDir -= 360.;
-
-    while (i < fetch_ndirs && windDir < fetch_dirs[i])
-        i++;
-
-    if ( i > 0 && i < fetch_ndirs ) {
-        // the easy case.
-        fetch_s = fetch_scale[i-1] +
-                   (fetch_scale[i] - fetch_scale[i-1]) *
-                    (windDir - fetch_dirs[i-1]) / (fetch_dirs[i] - fetch_dirs[i-1]);
-    } else if ( i == 0 ) fetch_s = fetch_scale[0];
-    else {
-        fetch_s = fetch_scale[fetch_ndirs-1] +
-                   (fetch_scale[0] - fetch_scale[fetch_ndirs-1]) *
-                    (windDir - fetch_dirs[fetch_ndirs-1]) /
-                       (fetch_dirs[0] - fetch_dirs[fetch_ndirs-1]);
-    }
-
-    return fetch_s;
-}

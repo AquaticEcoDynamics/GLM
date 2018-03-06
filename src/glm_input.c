@@ -42,6 +42,7 @@
 #include "glm_util.h"
 #include "aed_csv.h"
 #include "glm_bird.h"
+#include "glm_input.h"
 
 
 //#define dbgprt(...) fprintf(stderr, __VA_ARGS__)
@@ -162,6 +163,7 @@ void read_daily_met(int julian, MetDataType *met)
 {
     int csv, i, idx, err = 0;
     AED_REAL now, tomorrow, t_val, sol;
+    AED_REAL eff_area, surf_area, ld, x_ws;
 
 //  fprintf(stderr, "READ DAILY MET for %d\n", julian);
     now = julian;
@@ -262,9 +264,29 @@ void read_daily_met(int julian, MetDataType *met)
             submet[idx].RainConcSi  = 0.;
         }
 
-        if ( fetch_mode == 2 )
+
+        if ( fetch_mode == 2 || fetch_mode == 3 )
              submet[idx].WindDir = get_csv_val_r(csv, wdir_idx);
         else submet[idx].WindDir = 0. ;
+
+        // wind-sheltering
+        switch ( fetch_mode ) {
+            case 0 : // no change to the wind-speed
+            case 1 : // effective area based on general relationship
+                eff_area = surf_area* tanh(surf_area/fetch_aws);
+                submet[idx].WindSpeed = submet[idx].WindSpeed * eff_area/surf_area;
+                break;
+            case 2 : // Markfort model, based on wind direction
+                ld = LenAtCrest+WidAtCrest/2;
+                x_ws = get_fetch(submet[idx].WindDir);
+                eff_area = ld*ld/2 *acos(x_ws/ld) - (x_ws/ld)*pow(ld*ld-x_ws*x_ws,0.5);
+                submet[idx].WindSpeed = submet[idx].WindSpeed * eff_area/surf_area;
+                break;
+            case 3 : // just scale based on the wind direction directly
+                eff_area = get_fetch(submet[idx].WindDir);
+                submet[idx].WindSpeed = submet[idx].WindSpeed * eff_area;
+                break;
+        }
 
         i++;
 
@@ -275,6 +297,35 @@ void read_daily_met(int julian, MetDataType *met)
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
+
+/******************************************************************************
+ * get_fetch                                                                  *
+ ******************************************************************************/
+AED_REAL get_fetch(AED_REAL windDir)
+{
+    AED_REAL fetch_s;
+    int i = 0;
+
+    while (windDir > 360.) windDir -= 360.;
+
+    while (i < fetch_ndirs && windDir < fetch_dirs[i])
+        i++;
+
+    if ( i > 0 && i < fetch_ndirs ) {
+        // the easy case.
+        fetch_s = fetch_scale[i-1] +
+                   (fetch_scale[i] - fetch_scale[i-1]) *
+                    (windDir - fetch_dirs[i-1]) / (fetch_dirs[i] - fetch_dirs[i-1]);
+    } else if ( i == 0 ) fetch_s = fetch_scale[0];
+    else {
+        fetch_s = fetch_scale[fetch_ndirs-1] +
+                   (fetch_scale[0] - fetch_scale[fetch_ndirs-1]) *
+                    (windDir - fetch_dirs[fetch_ndirs-1]) /
+                       (fetch_dirs[0] - fetch_dirs[fetch_ndirs-1]);
+    }
+
+    return fetch_s;
+}
 
 /******************************************************************************
  *                                                                            *

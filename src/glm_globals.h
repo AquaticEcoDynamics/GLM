@@ -151,6 +151,11 @@ extern int      subdaily;         //* = FALSE;
 extern int      rad_mode;
 extern int      albedo_mode;
 extern int      cloud_mode;
+extern int      light_mode;
+extern int      n_bands;
+extern AED_REAL   *light_extc;
+extern AED_REAL   *energy_frac;
+
 extern AED_REAL salt_fall;
 /*----------------------------------------------------------------------------*/
 // MORPHOMETRY
@@ -186,7 +191,6 @@ extern int      density_model;
 
 /*----------------------------------------------------------------------------*/
 // SNOWICE
-extern CLOGICAL sed_heat_sw;
 extern AED_REAL snow_albedo_factor;
 extern AED_REAL snow_rho_max;
 extern AED_REAL snow_rho_min;

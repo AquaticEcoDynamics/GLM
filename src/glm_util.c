@@ -36,6 +36,7 @@
 #include "glm.h"
 #include "glm_types.h"
 #include "glm_const.h"
+#include "glm_globals.h"
 
 /******************************************************************************
  * Calculate the Zenith Angle in degrees.                                     *
@@ -135,7 +136,7 @@ AED_REAL combine_vol(AED_REAL c1,AED_REAL v1,AED_REAL c2,AED_REAL v2)
  * (deg C) and salinity (ppm) based on UNESCO (1981) polynomial               *
  *                                                                            *
  ******************************************************************************/
-AED_REAL calculate_density(AED_REAL temp, AED_REAL salt)
+static AED_REAL calculate_density_UNESCO(AED_REAL temp, AED_REAL salt)
 {
     AED_REAL dpure;
     AED_REAL t1,t2,t3,t4,t5,tm;
@@ -186,6 +187,117 @@ AED_REAL calculate_density(AED_REAL temp, AED_REAL salt)
     csal2  =  term[14] * s2;
 
     return dpure + csal1 + csal32 + csal2;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ * Calculates specific volume from Absolute Salinity, Conservative            *
+ * Temperature and pressure, using the computationally-efficient              *
+ * polynomial expression for specific volume (Roquet et al., 2014).           *
+ *                                                                            *
+ * sa     : Absolute Salinity                               [g/kg]            *
+ * ct     : Conservative Temperature (ITS-90)               [deg C]           *
+ * p      : sea pressure                                    [dbar]            *
+ *          ( i.e. absolute pressure - 10.1325 dbar )                         *
+ *                                                                            *
+ * specvol: specific volume                                 [m^3/kg]          *
+ *                                                                            *
+ * This code was taken from the "Gibbs-SeaWater (GSW) Oceanographic Toolbox"  *
+ *                                                                            *
+ *   ---------------------------------------------------------------------    *
+ *                                                                            *
+ * Licence for the use of the Gibbs SeaWater (GSW) Oceanographic Toolbox      *
+ *                                                                            *
+ * Copyright (c) 2011, SCOR/IAPSO WG127 (Scientific Committee on Oceanic      *
+ * Research/ International Association for the Physical Sciences of the       *
+ * Oceans, Working Group 127).                                                *
+ *                                                                            *
+ * All rights reserved.                                                       *
+ *                                                                            *
+ * Redistribution and use, in source and binary forms, without modification,  *
+ * is permitted provided that the following conditions are met:               *
+ *                                                                            *
+�*� * Redistributions of source code must retain the above copyright notice,  *
+ *    this list of conditions and the following disclaimer.                   *
+ *                                                                            *
+�*� * Redistributions in binary form must reproduce the above copyright       *
+ *    notice, this list of conditions and the following disclaimer in the     *
+ *    documentation and/or other materials provided with the distribution.    *
+ *                                                                            *
+�*  * Neither the name of SCOR/IAPSO WG127 nor the names of its contributors  *
+ *    may be used to endorse or promote products derived from this software   *
+ *    without specific prior written permission.                              *
+ *                                                                            *
+ *                                                                            *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"*
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE  *
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE *
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE  *
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR        *
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF       *
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS   *
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN    *
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)    *
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE *
+ * POSSIBILITY OF SUCH DAMAGE.                                                *
+ *                                                                            *
+ * The software is available from http://www.TEOS-10.org                      *
+ *                                                                            *
+ ******************************************************************************/
+#include "gsw_const.h"
+
+static AED_REAL gsw_specvol(AED_REAL sa, AED_REAL ct, AED_REAL p)
+{
+    GSW_TEOS10_CONSTANTS;
+    GSW_SPECVOL_COEFFICIENTS;
+    AED_REAL  xs, ys, z, value;
+
+    xs      = sqrt(gsw_sfac*sa + offset);
+    ys      = ct*0.025;
+    z       = p*1e-4;
+
+    value = v000
+        + xs*(v010 + xs*(v020 + xs*(v030 + xs*(v040 + xs*(v050
+        + v060*xs))))) + ys*(v100 + xs*(v110 + xs*(v120 + xs*(v130 + xs*(v140
+        + v150*xs)))) + ys*(v200 + xs*(v210 + xs*(v220 + xs*(v230 + v240*xs)))
+        + ys*(v300 + xs*(v310 + xs*(v320 + v330*xs)) + ys*(v400 + xs*(v410
+        + v420*xs) + ys*(v500 + v510*xs + v600*ys))))) + z*(v001 + xs*(v011
+        + xs*(v021 + xs*(v031 + xs*(v041 + v051*xs)))) + ys*(v101 + xs*(v111
+        + xs*(v121 + xs*(v131 + v141*xs))) + ys*(v201 + xs*(v211 + xs*(v221
+        + v231*xs)) + ys*(v301 + xs*(v311 + v321*xs) + ys*(v401 + v411*xs
+        + v501*ys)))) + z*(v002 + xs*(v012 + xs*(v022 + xs*(v032 + v042*xs)))
+        + ys*(v102 + xs*(v112 + xs*(v122 + v132*xs)) + ys*(v202 + xs*(v212
+        + v222*xs) + ys*(v302 + v312*xs + v402*ys))) + z*(v003 + xs*(v013
+        + v023*xs) + ys*(v103 + v113*xs + v203*ys) + z*(v004 + v014*xs + v104*ys
+        + z*(v005 + v006*z)))));
+
+    return (value);
+}
+/******************************************************************************
+ ******************************************************************************/
+static AED_REAL calculate_density_TEOS(AED_REAL temp, AED_REAL salt)
+{
+    return (1.0/gsw_specvol(salt,temp,atm_pressure_sl/100.));
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ * Function to calculate the density (rho) of water at a given temperature    *
+ * (deg C) and salinity (ppm)                                                 *
+ *                                                                            *
+ ******************************************************************************/
+AED_REAL calculate_density(AED_REAL temp, AED_REAL salt)
+{
+    switch (density_model) {
+        case 0 : return calculate_density_UNESCO(temp, salt);
+        case 1 : return calculate_density_TEOS(temp, salt);
+//      case 2 => custom etc .
+    }
+    return MISVAL;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

@@ -94,7 +94,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 //  AED_REAL        coef_mix_cs;
 //  AED_REAL        coef_mix_kh;
 //  AED_REAL        coef_mix_hyp;
-//  CLOGICAL        non_avg;
+    CLOGICAL        non_avg;
 //  int             deep_mixing;
     extern int      density_model;
     /*-------------------------------------------*/
@@ -180,6 +180,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern int      rad_mode;
     extern int      albedo_mode;
     extern int      cloud_mode;
+    extern int      light_mode;
     char           *timefmt_m = NULL;
     extern AED_REAL timezone_m;
     /*-------------------------------------------*/
@@ -250,6 +251,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL    fetch_height;
     extern AED_REAL    fetch_porosity;
     /*-------------------------------------------*/
+    extern AED_REAL   *light_extc;
+    extern AED_REAL   *energy_frac;
 
     /*---------------------------------------------
      * sed_heat
@@ -277,24 +280,19 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "min_layer_vol",     TYPE_DOUBLE,           &min_layer_vol     },
           { "min_layer_thick",   TYPE_DOUBLE,           &min_layer_thick   },
           { "max_layer_thick",   TYPE_DOUBLE,           &max_layer_thick   },
-          { "Kw",                TYPE_DOUBLE,           &Kw                },
-          { "Benthic_Imin",      TYPE_DOUBLE,           &Benthic_Imin      },
-          { "coef_mix_conv",     TYPE_DOUBLE,           &coef_mix_conv     },
-          { "coef_wind_stir",    TYPE_DOUBLE,           &coef_wind_stir    },
-          { "coef_mix_turb",     TYPE_DOUBLE,           &coef_mix_turb     },
-          { "coef_mix_shear",    TYPE_DOUBLE,           &coef_mix_shear    },
-          { "coef_mix_KH",       TYPE_DOUBLE,           &coef_mix_KH       },
-          { "coef_mix_hyp",      TYPE_DOUBLE,           &coef_mix_hyp      },
-          { "non_avg",           TYPE_BOOL,             &non_avg           },
-          { "deep_mixing",       TYPE_INT,              &deep_mixing       },
-          { "surface_mixing",    TYPE_INT,              &surface_mixing    },
-          { "littoral_sw",       TYPE_BOOL,             &littoral_sw       },
           { "density_model",     TYPE_INT,              &density_model     },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST glm_restart[] = {
-          { "glm_restart",       TYPE_START,            NULL               },
-          { "restart_file",      TYPE_STR,              &restart_file      },
+          { "littoral_sw",       TYPE_BOOL,             &littoral_sw       },
+          { "non_avg",           TYPE_BOOL,             &non_avg           },
+//        { "Kw",                TYPE_DOUBLE,           &Kw                },
+//        { "Benthic_Imin",      TYPE_DOUBLE,           &Benthic_Imin      },
+//        { "coef_mix_conv",     TYPE_DOUBLE,           &coef_mix_conv     },
+//        { "coef_wind_stir",    TYPE_DOUBLE,           &coef_wind_stir    },
+//        { "coef_mix_turb",     TYPE_DOUBLE,           &coef_mix_turb     },
+//        { "coef_mix_shear",    TYPE_DOUBLE,           &coef_mix_shear    },
+//        { "coef_mix_KH",       TYPE_DOUBLE,           &coef_mix_KH       },
+//        { "coef_mix_hyp",      TYPE_DOUBLE,           &coef_mix_hyp      },
+//        { "deep_mixing",       TYPE_INT,              &deep_mixing       },
+//        { "surface_mixing",    TYPE_INT,              &surface_mixing    },
           { NULL,                TYPE_END,              NULL               }
     };
     NAMELIST wq_setup[] = {
@@ -346,18 +344,14 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "lw_type",           TYPE_STR,              &lw_type           },
           { "rain_sw",           TYPE_BOOL,             &rain_sw           },
           { "salt_fall",         TYPE_DOUBLE,           &salt_fall         },
-     //   { "snow_sw",           TYPE_BOOL,             &snow_sw           },
           { "meteo_fl",          TYPE_STR,              &meteo_fl          },
           { "subdaily",          TYPE_BOOL,             &subdaily          },
           { "atm_stab",          TYPE_BOOL,             &atm_stab          },
           { "rad_mode",          TYPE_INT,              &rad_mode          },
           { "albedo_mode",       TYPE_INT,              &albedo_mode       },
           { "cloud_mode",        TYPE_INT,              &cloud_mode        },
-          { "wind_factor",       TYPE_DOUBLE,           &wind_factor       },
           { "fetch_mode",        TYPE_INT,              &fetch_mode        },
-          { "Aws",               TYPE_DOUBLE,           &fetch_aws         }, // (for mode 1 ) scalar
-          { "Xws",               TYPE_DOUBLE,           &fetch_xws         }, // (for mode 2 ) scalar?
-          { "Fws",               TYPE_STR,              &fetch_fws         }, // (for mode 3 ) not sure how to do this ...
+          { "wind_factor",       TYPE_DOUBLE,           &wind_factor       },
           { "sw_factor",         TYPE_DOUBLE,           &sw_factor         },
           { "lw_factor",         TYPE_DOUBLE,           &lw_factor         },
           { "at_factor",         TYPE_DOUBLE,           &at_factor         },
@@ -366,11 +360,15 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "CD",                TYPE_DOUBLE,           &CD                },
           { "CE",                TYPE_DOUBLE,           &CE                },
           { "CH",                TYPE_DOUBLE,           &CH                },
+          { "Aws",               TYPE_DOUBLE,           &fetch_aws         }, // (for mode 1 ) scalar
+          { "Xws",               TYPE_DOUBLE,           &fetch_xws         }, // (for mode 2 ) scalar?
+          { "Fws",               TYPE_STR,              &fetch_fws         }, // (for mode 3 ) not sure how to do this ...
           { "catchrain",         TYPE_BOOL,             &catchrain         },
           { "rain_threshold",    TYPE_DOUBLE,           &rain_threshold    },
           { "runoff_coef",       TYPE_DOUBLE,           &runoff_coef       },
           { "time_fmt",          TYPE_STR,              &timefmt_m         },
           { "timezone",          TYPE_DOUBLE,           &timezone_m        },
+     //   { "snow_sw",           TYPE_BOOL,             &snow_sw           },
           { NULL,                TYPE_END,              NULL               }
     };
     NAMELIST inflow[] = {
@@ -423,22 +421,34 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "timezone",          TYPE_DOUBLE,           &timezone_o        },
           { NULL,                TYPE_END,              NULL               }
     };
-    NAMELIST diffuser[] = {
-          { "diffuser",          TYPE_START,            NULL               },
-          { "NumDif",            TYPE_INT,              &NumDif            },
-          { "diff",              TYPE_DOUBLE|MASK_LIST, &mol_diffusivity   },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST debugging[] = {
-          { "debugging",         TYPE_START,            NULL               },
-          { "disable_evap",      TYPE_BOOL,             &no_evap           },
-          { NULL,                TYPE_END,              NULL               }
-    };
     NAMELIST snowice[] = {
           { "snowice",           TYPE_START,            NULL               },
           { "snow_albedo_factor",TYPE_DOUBLE,           &snow_albedo_factor},
           { "snow_rho_max",      TYPE_DOUBLE,           &snow_rho_max      },
           { "snow_rho_min",      TYPE_DOUBLE,           &snow_rho_min      },
+          { NULL,                TYPE_END,              NULL               }
+    };
+    NAMELIST mixing[] = {
+          { "mixing",            TYPE_START,            NULL               },
+          { "surface_mixing",    TYPE_INT,              &surface_mixing    },
+          { "coef_mix_conv",     TYPE_DOUBLE,           &coef_mix_conv     },
+          { "coef_wind_stir",    TYPE_DOUBLE,           &coef_wind_stir    },
+          { "coef_mix_turb",     TYPE_DOUBLE,           &coef_mix_turb     },
+          { "coef_mix_shear",    TYPE_DOUBLE,           &coef_mix_shear    },
+          { "coef_mix_KH",       TYPE_DOUBLE,           &coef_mix_KH       },
+          { "deep_mixing",       TYPE_INT,              &deep_mixing       },
+          { "coef_mix_hyp",      TYPE_DOUBLE,           &coef_mix_hyp      },
+          { "diff",              TYPE_DOUBLE|MASK_LIST, &mol_diffusivity   }, //
+          { NULL,                TYPE_END,              NULL               }
+    };
+    NAMELIST light[] = {
+          { "light",             TYPE_START,            NULL               },
+          { "light_mode",        TYPE_INT,              &light_mode        },
+          { "n_bands",           TYPE_INT,              &n_bands           },
+          { "light_extc",        TYPE_DOUBLE|MASK_LIST, &light_extc        },
+          { "energy_frac",       TYPE_DOUBLE|MASK_LIST, &energy_frac       },
+          { "Benthic_Imin",      TYPE_DOUBLE,           &Benthic_Imin      },
+          { "Kw",                TYPE_DOUBLE,           &Kw                },
           { NULL,                TYPE_END,              NULL               }
     };
     NAMELIST fetch[] = {
@@ -451,28 +461,44 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "edge_porosity",     TYPE_DOUBLE,           &fetch_porosity    },
           { NULL,                TYPE_END,              NULL               }
     };
-    NAMELIST sed_heat[] = {
-          { "sed_heat",          TYPE_START,            NULL               },
-          { "sed_heat_Ksoil",    TYPE_DOUBLE,           &sed_heat_Ksoil    },
-          { "sed_temp_depth",    TYPE_DOUBLE,           &sed_temp_depth    },
-          { "sed_temp_mean",     TYPE_DOUBLE|MASK_LIST, &sed_temp_mean     },
-          { "sed_temp_amplitude",TYPE_DOUBLE|MASK_LIST, &sed_temp_amplitude},
-          { "sed_temp_peak_doy", TYPE_DOUBLE|MASK_LIST, &sed_temp_peak_doy },
+    NAMELIST sediment[] = {
+          { "sediment",          TYPE_START,            NULL               },
           { "benthic_mode",      TYPE_INT,              &benthic_mode      },
           { "n_zones",           TYPE_INT,              &n_zones           },
           { "zone_heights",      TYPE_DOUBLE|MASK_LIST, &zone_heights      },
           { "sed_reflectivity",  TYPE_DOUBLE|MASK_LIST, &sed_reflectivity  },
           { "sed_roughness",     TYPE_DOUBLE|MASK_LIST, &sed_roughness     },
+          { "sed_temp_mean",     TYPE_DOUBLE|MASK_LIST, &sed_temp_mean     },
+          { "sed_temp_amplitude",TYPE_DOUBLE|MASK_LIST, &sed_temp_amplitude},
+          { "sed_temp_peak_doy", TYPE_DOUBLE|MASK_LIST, &sed_temp_peak_doy },
+          { "sed_heat_Ksoil",    TYPE_DOUBLE,           &sed_heat_Ksoil    },
+          { "sed_temp_depth",    TYPE_DOUBLE,           &sed_temp_depth    },
+          { NULL,                TYPE_END,              NULL               }
+    };
+    NAMELIST restart[] = {
+          { "restart",           TYPE_START,            NULL               },
+          { "restart_file",      TYPE_STR,              &restart_file      },
+          { NULL,                TYPE_END,              NULL               }
+    };
+    NAMELIST diffuser[] = {
+          { "diffuser",          TYPE_START,            NULL               },
+          { "NumDif",            TYPE_INT,              &NumDif            },
+          { "diff",              TYPE_DOUBLE|MASK_LIST, &mol_diffusivity   },
+          { NULL,                TYPE_END,              NULL               }
+    };
+    NAMELIST debugging[] = {
+          { "debugging",         TYPE_START,            NULL               },
+          { "disable_evap",      TYPE_BOOL,             &no_evap           },
           { NULL,                TYPE_END,              NULL               }
     };
 /*----------------------------------------------------------------------------*/
 
-    fprintf(stderr, "Reading config from %s\n",glm_nml_file);
+    fprintf(stderr, "\nReading config from %s\n",glm_nml_file);
 
     //-------------------------------------------------
     // Open the namelist file.
     if ( (namlst = open_namelist(glm_nml_file)) < 0 ) {
-        fprintf(stderr,"Error opening namelist file %s\n", glm_nml_file);
+        fprintf(stderr,"\nError opening the glm namelist file %s\n", glm_nml_file);
         exit(1);
     }
 
@@ -481,9 +507,16 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     coef_inf_entrain = 0.;
     Kw = 0.2;
 
+    //-------------------------------------------------
     if ( get_namelist(namlst, glm_setup) != 0 ) {
-       fprintf(stderr,"Error reading the 'glm_setup' namelist from %s\n", glm_nml_file);
+       fprintf(stderr,"\nError reading the 'glm_setup' namelist from %s\n", glm_nml_file);
        exit(1);
+    }
+
+    //-------------------------------------------------
+    if ( get_namelist(namlst, mixing) ) {
+        fprintf(stderr,"\nError reading the 'mixing' namelist from %s\n", glm_nml_file);
+        exit(1);
     }
 
     MaxLayers = max_layers;
@@ -494,14 +527,14 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     n_zones = 0;
 
     //-------------------------------------------------
-    if ( get_namelist(namlst, glm_restart) ) {
+    if ( get_namelist(namlst, restart) ) {
         do_restart = FALSE;
     } else {
         do_restart = (restart_file != NULL);
     }
 
+    //-------------------------------------------------
     wq_calc   = TRUE;
-
     if ( get_namelist(namlst, wq_setup) ) {
         fprintf(stderr, "No WQ config\n");
         twq_lib           = "aed2";
@@ -625,6 +658,12 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     coef_wind_drag = CD;
     coef_wind_chwn = CH;
 
+    //-------------------------------------------------
+    if ( get_namelist(namlst, light) ) {
+        fprintf(stderr,"\nError reading the 'light' namelist from %s\n", glm_nml_file);
+        exit(1);
+    }
+
     //--------------------------------------------------------------------------
     // snowice
     snow_albedo_factor = 1.0;
@@ -654,18 +693,17 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     printf("*starting sed_heat = %10.5f\n",sed_temp_depth);
 //  sed_temp_amplitude = 2.7;
 //  sed_temp_peak_doy  = 151;
-    if ( get_namelist(namlst, sed_heat) ) {
+    if ( get_namelist(namlst, sediment) ) {
         sed_heat_sw = FALSE;
         sed_reflectivity = malloc(2*sizeof(AED_REAL));
         sed_reflectivity[0] = 0.;
-        fprintf(stderr,"No sed_heat section, turning off sediment heating\n");
+        fprintf(stderr,"No sediment section, turning off sediment heating\n");
     } else {
         sed_heat_sw = TRUE;
-        fprintf(stderr,"Sed_heat section present, simulating sediment heating\n");
+        fprintf(stderr,"Sediment section present, simulating sediment heating\n");
         printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[0]);
         printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[1]);
     }
-
 
 
     open_met_file(meteo_fl, snow_sw, rain_sw, timefmt_m);
