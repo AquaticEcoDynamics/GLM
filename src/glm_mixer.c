@@ -222,7 +222,7 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
             AED_REAL delZk    = Lake[Epi_botmLayer].Height - Lake[Epi_botmLayer-1].Height;
             ZeroMom = ZeroMom + (Lake[Epi_botmLayer].Density - rho0) * delZk;
             FirstMom = FirstMom + (Lake[Epi_botmLayer].Density - rho0) * delZk * Lake[Epi_botmLayer].MeanHeight;
-            if (Dens_Epil < Lake[Epi_botmLayer-1].Density) break;
+            if (Dens_Epil < (Lake[Epi_botmLayer-1].Density+1e-6)) break;
         } else {
             ZeroMom  = ZeroMom  + (Lake[botmLayer].Density - rho0)* Lake[botmLayer].Height;
             FirstMom = FirstMom + (Lake[botmLayer].Density - rho0) * Lake[botmLayer].Height * Lake[botmLayer].MeanHeight;
@@ -274,7 +274,6 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
     Energy_Conv = half * coef_mix_conv * g * dMdz/(Dens_Epil*noSecs)*noSecs;
     if (Energy_Conv < zero) Energy_Conv = zero;
 
-
     /**************************************************************************
      *                                                                        *
      * STEP 2 - STIRRING                                                      *
@@ -296,6 +295,7 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
     //# Add stirring energy to available mixing energy
     Energy_AvailableMix += Energy_TotStir;
 
+//Energy_AvailableMix = zero;
 
     /**************************************************************************
      * Now loop through layers using the stirring energy to mix. Computes     *
@@ -489,7 +489,7 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
         //# Add available kinetic energy
         Energy_AvailableMix += Energy_Deepen;
 
-        //Energy_AvailableMix =zero;
+      //  Energy_AvailableMix =zero;
 
         //# Compute energy required to entrain next layer, Er
         Energy_RequiredMix = (redg * Epi_dz + coef_mix_turb * q_sqr) * delzkm1 / 2.0;
