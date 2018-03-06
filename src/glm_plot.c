@@ -131,9 +131,13 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
     maxy = height;
 
     set_progname(glm_vers);
+#ifdef PLOTS
 #ifdef XPLOTS
-    if ( xdisp )
+    if ( xdisp ) {
         if ( init_plotter_max(max_plots, &maxx, &maxy) < 0 ) exit(1);
+    } else 
+#endif
+        if (do_plots) init_plotter_no_gui();
 #endif
 
     acrs = (maxx + 90) / (100 + plot_width);
@@ -254,9 +258,9 @@ void put_glm_val(int plot_id, AED_REAL *val)
     for (i = 0; i < NumLayers; i++) {
         height_for_plot = Lake[i].Height;
         val_for_plot = val[i];
-        if( Lake[surfLayer].Height<0.01005) {
-          height_for_plot = 0.0;
-          val_for_plot = 0.0;
+        if (Lake[surfLayer].Height < 0.01005) {
+            height_for_plot = 0.0;
+            val_for_plot = 0.0;
         }
         plot_value(theplots[plot_id], todayish, height_for_plot, val_for_plot);
     }

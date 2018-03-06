@@ -82,11 +82,20 @@ static char EOLN = '\r';
 #define mod(a,b) ((a) % (b))
 
 /*----------------------------------------------------------------------------*/
+#if defined(_WIN32)
+__declspec(dllexport) void __cdecl init_model(int *jstart, int *nsave);
+__declspec(dllexport) void __cdecl do_model_coupled(int step_start, int step_end,
+	AED_REAL *FlowNew, AED_REAL *DrawNew, AED_REAL *elevation, int nsave);
+__declspec(dllexport) void __cdecl end_model(void);
+#else
 void init_model(int *jstart, int *nsave);
+void do_model_coupled(int step_start, int step_end,
+	AED_REAL *FlowNew, AED_REAL *DrawNew, AED_REAL *elevation, int nsave);
+void end_model(void);
+#endif
 void do_model(int jstart, int nsave);
 void do_model_non_avg(int jstart, int nsave);
 int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL SWnew);
-void end_model(void);
 
 //int n_steps_done = 0;
 //#define END_STEPS 30

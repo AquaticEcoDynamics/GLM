@@ -106,7 +106,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\include;..\..\..\libplot\include;..\..\..\libutil\include;..\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AED2;FABM;PLOTS;XPLOTS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AED2;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -129,7 +129,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\include;..\..\..\libplot\include;..\..\..\libutil\include;..\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AED2;FABM;PLOTS;XPLOTS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AED2;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -148,7 +148,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <AdditionalIncludeDirectories>..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\include;..\..\..\libplot\include;..\..\..\libutil\include;..\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AED2;FABM;PLOTS;XPLOTS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AED2;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -171,7 +171,7 @@
     </Midl>
     <ClCompile>
       <AdditionalIncludeDirectories>..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\include;..\..\..\libplot\include;..\..\..\libutil\include;..\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AED2;FABM;PLOTS;XPLOTS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AED2;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>

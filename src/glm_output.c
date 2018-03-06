@@ -395,7 +395,14 @@ void close_output()
     glm_close_csv_output();
 
 #ifdef PLOTS
-    if ( do_plots ) do_cleanup(saveall);
+    if ( do_plots ) {
+        extern char *all_plots_name;
+        if ( saveall > 1 && all_plots_name ) {
+            save_all_plots_named(all_plots_name);
+            saveall = 0;
+        }
+        do_cleanup(saveall);
+    }
 #endif
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

@@ -42,8 +42,8 @@ const AED_REAL Stefan_Boltzman = 5.67E-8;  //# Stefan-Boltzman constant
 const AED_REAL Kelvin = 273.15;     // Used for Celsius to Kelvin conversion
 
 // Water
-const AED_REAL rho0		   = 1.0e3; //* Density of water standard to convert specific density to density in kg/m3
-const AED_REAL Visc      =  0.00000114;
+const AED_REAL rho0 = 1.0e3; //* Density of water standard to convert specific density to density in kg/m3
+const AED_REAL Visc = 0.00000114;
 const AED_REAL Latent_Heat_Evap = 2.453E+6;  // Latent heat of evaporation J/kg   // 2.501e6-2370*Ts
 const AED_REAL SPHEAT = 4185.5;      // Specific heat of water  J/(kg·K) (15 °C, 101.325 kPa)
 
@@ -61,10 +61,6 @@ const AED_REAL c_gas   = 1.0E3 * 8.31436 / 28.966;
 const AED_REAL cp_air          = 1005.0;  // Specific heat of air
 const AED_REAL atm_pressure_sl = 1013.25;  //# Atmospheric pressure in hectopascals @ sea level ==101300 Pa
 //const AED_REAL Rspecific       = 287.058; // Gas constant  J/kg/K
-
-
-
-
 
 // Factors and conversions (space and time)
 const AED_REAL AreaFactor   = 1.0e6; //* Multiplicative factor to get area to m**2

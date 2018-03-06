@@ -45,6 +45,7 @@
 #endif
 #endif
 
+char *all_plots_name = NULL;
 
 extern char glm_nml_file[];
 extern void run_model(void);
@@ -83,6 +84,10 @@ int main(int argc, char *argv[])
         }
         else if (strcmp(*argv, "--save-all-in-one") == 0)
             saveall = 2;
+            if ( argc > 1 && strncmp(argv[1], "--", 2) != 0 ) {
+                argv++; argc--;
+                all_plots_name = *argv;
+            }
 #endif
         else {
             if (strcmp(*argv, "--help") != 0)
@@ -101,9 +106,9 @@ int main(int argc, char *argv[])
 # endif
 #endif
 
-    printf("       ------------------------------------------------\n");
-    printf("       |  General Lake Model (GLM)   Version %-10s    |\n", GLM_VERSION);
-    printf("       ------------------------------------------------\n");
+    printf("       ----------------------------------------------------\n");
+    printf("       |  General Lake Model (GLM)   Version %-12s |\n", GLM_VERSION);
+    printf("       ----------------------------------------------------\n");
 
 #ifdef __GNUC__
     printf("glm built using gcc version %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
@@ -121,6 +126,7 @@ int main(int argc, char *argv[])
 #endif
        printf("--saveall : save plots to png files\n");
        printf("--save-all-in-one : save all plots to png file\n");
+       printf("--save-all-in-one <destfile> : save all plots to png file <destfile>\n");
 #endif
     }
     else if ( all_ok ) {

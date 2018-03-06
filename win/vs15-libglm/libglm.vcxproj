@@ -106,7 +106,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\include;..\..\..\libplot\include;..\..\..\libutil\include;..\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AED2;FABM;PLOTS;XPLOTS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AED2;CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -114,12 +114,14 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;glm-fabm.lib;fabm.lib;libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;libifport.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;libutil.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;libifport.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <Version>
       </Version>
       <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;$(Platform)-$(Configuration)\lib\;..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;..\..\..\..\additions\lib_$(Platform)\;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\ia32_win\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>libcmtd.lib;libmmt.lib;mscrt.lib</IgnoreSpecificDefaultLibraries>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -129,7 +131,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\include;..\..\..\libplot\include;..\..\..\libutil\include;..\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AED2;FABM;PLOTS;XPLOTS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AED2;CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -137,18 +139,20 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;glm-fabm.lib;fabm.lib;libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;libifport.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;libutil.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;libifport.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <Version>
       </Version>
       <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;$(Platform)-$(Configuration)\lib\;..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;..\..\..\..\additions\lib_$(Platform)\;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\intel64_win\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>libcmtd.lib;libmmt.lib;mscrt.lib</IgnoreSpecificDefaultLibraries>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <AdditionalIncludeDirectories>..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\include;..\..\..\libplot\include;..\..\..\libutil\include;..\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AED2;FABM;PLOTS;XPLOTS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AED2;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -157,7 +161,7 @@
       <UseMSVC>false</UseMSVC>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;glm-fabm.lib;fabm.lib;libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;libifport.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;libutil.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;libifport.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <Version>
       </Version>
       <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;$(Platform)-$(Configuration)\lib\;..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;..\..\..\..\additions\lib_$(Platform)\;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\ia32_win\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -171,7 +175,7 @@
     </Midl>
     <ClCompile>
       <AdditionalIncludeDirectories>..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\include;..\..\..\libplot\include;..\..\..\libutil\include;..\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AED2;FABM;PLOTS;XPLOTS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AED2;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -179,7 +183,7 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;glm-fabm.lib;fabm.lib;libutil.lib;libplot.lib;libpng.lib;libgd.lib;freetype2.lib;zlib.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;libifport.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glm-aed2.lib;libaed2.lib;libutil.lib;netcdf.lib;netcdff90.lib;hdf5.lib;hdf5_hl.lib;libifport.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <Version>
       </Version>
       <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;$(Platform)-$(Configuration)\lib\;..\..\..\..\WinLibs\NetCDF4_dll_$(Platform)\lib\;..\..\..\..\WinLibs\HDF5_dll_$(Platform)\lib\;..\..\..\..\additions\lib_$(Platform)\;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\intel64_win\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
