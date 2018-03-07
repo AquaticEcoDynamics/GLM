@@ -231,7 +231,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\glm.rc" />
+    <ResourceCompile Include="..\glm+.rc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\glm.ico" />

@@ -224,7 +224,7 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
             FirstMom = FirstMom + (Lake[Epi_botmLayer].Density - rho0) * delZk * Lake[Epi_botmLayer].MeanHeight;
             if (Dens_Epil < (Lake[Epi_botmLayer-1].Density+1e-6)) break;
         } else {
-            ZeroMom  = ZeroMom  + (Lake[botmLayer].Density - rho0)* Lake[botmLayer].Height;
+            ZeroMom  = ZeroMom  + (Lake[botmLayer].Density - rho0) * Lake[botmLayer].Height;
             FirstMom = FirstMom + (Lake[botmLayer].Density - rho0) * Lake[botmLayer].Height * Lake[botmLayer].MeanHeight;
         }
     }
@@ -489,7 +489,7 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
         //# Add available kinetic energy
         Energy_AvailableMix += Energy_Deepen;
 
-      //  Energy_AvailableMix =zero;
+//      Energy_AvailableMix =zero;
 
         //# Compute energy required to entrain next layer, Er
         Energy_RequiredMix = (redg * Epi_dz + coef_mix_turb * q_sqr) * delzkm1 / 2.0;
@@ -704,7 +704,7 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
     AED_REAL secshr = 3600.0;
 
     AED_REAL Surface_Height; //# Height of lake surface
-    AED_REAL Delta_Mix;      //Thickness of mixing layer [m]
+    AED_REAL Delta_Mix;      //# Thickness of mixing layer [m]
     AED_REAL eps = 0.02;     //# Minimum tolerance
     AED_REAL eps6;           //# Six times minimum tolerance (0.12)
     AED_REAL t_billow;       //# Time period for billowing effects
@@ -910,7 +910,7 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
 
         for (wqvidx=0; wqvidx < Num_WQ_Vars; wqvidx++)
             _WQ_Vars(wqvidx,k1) = combine_vol(_WQ_Vars(wqvidx,k1),   Lake[k1].LayerVol,
-                                     _WQ_Vars(wqvidx,k1-1), Lake[k1-1].LayerVol);
+                                              _WQ_Vars(wqvidx,k1-1), Lake[k1-1].LayerVol);
 
         Lake[k1-1].Density = Lake[k1].Density;
         Lake[k1-1].Temp = Lake[k1].Temp;

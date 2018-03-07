@@ -116,9 +116,9 @@
     double fmod(double x, double y);
   #endif
 
- #if DEBUG
-  #define CRASH(s) ( { int *x = (int*)1; fputs(s, stderr); *x = 1; } )
- #endif
+  #if DEBUG
+    #define CRASH(s) ( { int *x = (int*)1; fputs(s, stderr); *x = 1; } )
+  #endif
 //------------------------------------------------------------------------------
 #endif
 

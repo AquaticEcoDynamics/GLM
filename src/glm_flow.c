@@ -131,11 +131,10 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
         if (Lake[i].Height >=  HeightOfOutflow) break;
 
     Outflow_LayerNum = i;
-//    printf("HeightOfOutflow is %10.5f; Outflow type is %d in layer %d\n",HeightOfOutflow, outf->Type, Outflow_LayerNum);
+//  printf("HeightOfOutflow is %10.5f; Outflow type is %d in layer %d\n",HeightOfOutflow, outf->Type, Outflow_LayerNum);
 
     //# Return if reservoir surface is below outlet level
     if (i > surfLayer) return;
-
 
     WidthAtOutflow = 0.;
     LenAtOutflow = 0.;
@@ -343,7 +342,8 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
                 if (i == iBot) HeightLayerBot = hBot;
                 HeightLayerTop = Lake[i].Height;
                 if (i == iTop) HeightLayerTop = hTop;
-                Delta_V[i] = delta_volume(HeightLayerBot, HeightLayerTop, DeltaSinkDepth, DeltaAvg, HeightOfOutflow, DeltaTop, DeltaBot);
+                Delta_V[i] = delta_volume(HeightLayerBot, HeightLayerTop,
+                                DeltaSinkDepth, DeltaAvg, HeightOfOutflow, DeltaTop, DeltaBot);
             }
 
             //# Proportion drawn from each layer is known. Now match the
@@ -370,8 +370,8 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
      * Now we have Delta_V[i] for all layers we can remove it             *
      **********************************************************************/
     for (i = botmLayer; i <= surfLayer; i++){
-      //if(Delta_V[i]>zero) printf("%d DeltaV %8.4f; flow %10.4f;%10.4f %d %d %d %10.1f %10.1f \n",i,Delta_V[i],flow,Q_outf_star,Outflow_LayerNum,iBot,iTop,hBot,hTop);
-         if (Delta_V[i] > zero) Lake[i].LayerVol -= Delta_V[i];
+//      if(Delta_V[i]>zero) printf("%d DeltaV %8.4f; flow %10.4f;%10.4f %d %d %d %10.1f %10.1f \n",i,Delta_V[i],flow,Q_outf_star,Outflow_LayerNum,iBot,iTop,hBot,hTop);
+        if (Delta_V[i] > zero) Lake[i].LayerVol -= Delta_V[i];
     }
 
     /**********************************************************************

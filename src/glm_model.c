@@ -85,12 +85,12 @@ static char EOLN = '\r';
 #if defined(_WIN32)
 __declspec(dllexport) void __cdecl init_model(int *jstart, int *nsave);
 __declspec(dllexport) void __cdecl do_model_coupled(int step_start, int step_end,
-	AED_REAL *FlowNew, AED_REAL *DrawNew, AED_REAL *elevation, int nsave);
+        AED_REAL *FlowNew, AED_REAL *DrawNew, AED_REAL *elevation, int nsave);
 __declspec(dllexport) void __cdecl end_model(void);
 #else
 void init_model(int *jstart, int *nsave);
 void do_model_coupled(int step_start, int step_end,
-	AED_REAL *FlowNew, AED_REAL *DrawNew, AED_REAL *elevation, int nsave);
+        AED_REAL *FlowNew, AED_REAL *DrawNew, AED_REAL *elevation, int nsave);
 void end_model(void);
 #endif
 void do_model(int jstart, int nsave);

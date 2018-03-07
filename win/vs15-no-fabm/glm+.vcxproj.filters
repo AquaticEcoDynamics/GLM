@@ -156,7 +156,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\glm.rc">
+    <ResourceCompile Include="..\glm+.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
