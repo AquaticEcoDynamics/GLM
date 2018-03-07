@@ -443,6 +443,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
 
     // ---- MH TEST SOLPOND IN PROGRESS ---- //
+    if(light_mode == 2){
     //# Advanced option - compute the light penetration suing the integral of light adsorption
     depth = Lake[surfLayer].Height;
     rb = 0.3;
@@ -474,12 +475,13 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 //    printf(">solpond = %10.1f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",energy[0],energy[1],energy[2],energy[3],absorb[0],absorb[1],absorb[2],absorb[3]);
 
     //solpond(n_bands, npoint, depth, rb, hdir, anglei, hdif, energy, absorb, gx);
+
     solpond(n_bands, npoint, depth, LayerThickness, rb, hdir, anglei, hdif, energy_frac, light_extc, gx);
 
-    printf(">solpond = %10.1f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",
-                           gx[0],gx[1],gx[2],gx[3],gx[4],gx[5],gx[6],gx[7],gx[8]);
+    //printf(">solpond = %10.1f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",
+    //                       gx[0],gx[1],gx[2],gx[3],gx[4],gx[5],gx[6],gx[7],gx[8]);
 
-
+  }
     // MH
 
 

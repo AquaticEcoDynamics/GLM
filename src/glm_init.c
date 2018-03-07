@@ -685,12 +685,12 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     //--------------------------------------------------------------------------
     // sediment heat (sed_heat)
-    printf("*starting sed_heat = %10.5f\n",sed_heat_Ksoil);
+    printf("*starting sediment = %10.5f\n",sed_heat_Ksoil);
 
     sed_heat_Ksoil     = 5.0;
     sed_temp_depth     = 0.1;
 //  sed_temp_mean[0]   = 9.7;
-    printf("*starting sed_heat = %10.5f\n",sed_temp_depth);
+    printf("*starting sediment = %10.5f\n",sed_temp_depth);
 //  sed_temp_amplitude = 2.7;
 //  sed_temp_peak_doy  = 151;
     if ( get_namelist(namlst, sediment) ) {
