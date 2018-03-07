@@ -82,12 +82,13 @@ int main(int argc, char *argv[])
         else if (strcmp(*argv, "--saveall") == 0) {
             if ( saveall == 0) saveall = 1;
         }
-        else if (strcmp(*argv, "--save-all-in-one") == 0)
+        else if (strcmp(*argv, "--save-all-in-one") == 0) {
             saveall = 2;
             if ( argc > 1 && strncmp(argv[1], "--", 2) != 0 ) {
                 argv++; argc--;
                 all_plots_name = *argv;
             }
+        }
 #endif
         else {
             if (strcmp(*argv, "--help") != 0)
