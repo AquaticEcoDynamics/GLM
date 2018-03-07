@@ -45,20 +45,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "AED Group; University of Western Australia"
             VALUE "FileDescription", "General Lake Model (GLM)"
-<<<<<<< HEAD
-            VALUE "FileVersion", 2.8.0alpha1
-=======
             VALUE "FileVersion", 2.8.0alpha2
->>>>>>> origin/dev
             VALUE "InternalName", "version.rc"
             VALUE "LegalCopyright", "Copyright (C) 2018"
             VALUE "OriginalFilename", "version.rc"
             VALUE "ProductName", "GLM"
-<<<<<<< HEAD
-            VALUE "ProductVersion", 2.8.0alpha1
-=======
             VALUE "ProductVersion", 2.8.0alpha2
->>>>>>> origin/dev
         END
     END
     BLOCK "VarFileInfo"

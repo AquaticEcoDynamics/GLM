@@ -224,8 +224,11 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
     AED_REAL flankArea, NotPARLight_s, NotPARLight_sm1;
 
-    AED_REAL onshoreDensity, offshoreDensity;
-    AED_REAL onshoreVol, offshoreVol;
+    //# NB These are set to 1.0 to remove a "possibly uninitialised" warning
+    //#     They are initialised if litoral_sw is true, and only used if litoral_sw
+    //#     so it should be OK, but should check from time to time.
+    AED_REAL onshoreDensity = 1.0, offshoreDensity = 1.0;
+    AED_REAL onshoreVol = 1.0, offshoreVol = 1.0;
 
     //# New parameters for sediment heat flux estimate
     AED_REAL KSED, TYEAR, ZSED;
@@ -249,7 +252,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
     if ( catchrain  && MetData.Rain > rain_threshold) {
 
-        AED_REAL VolSum = Lake[surfLayer].Vol1;  //# Total lake volume before this inflow
+//      AED_REAL VolSum = Lake[surfLayer].Vol1;  //# Total lake volume before this inflow
 
         // Compute runoff in m3 for this time step
         catch_runoff = ( MaxArea - Lake[surfLayer].LayerArea ) *
@@ -291,6 +294,9 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     LayerThickness = malloc(sizeof(AED_REAL) * MaxLayers);
     heat = malloc(sizeof(AED_REAL) * MaxLayers);
     layer_zone = malloc(sizeof(int) * MaxLayers);
+    energy = malloc(sizeof(AED_REAL) * nband);
+    absorb = malloc(sizeof(AED_REAL) * nband);
+    gx = malloc(sizeof(AED_REAL) * MaxLayers);
 #endif
 
     Q_longwave = 0.;
@@ -470,7 +476,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     //solpond(n_bands, npoint, depth, rb, hdir, anglei, hdif, energy, absorb, gx);
     solpond(n_bands, npoint, depth, LayerThickness, rb, hdir, anglei, hdif, energy_frac, light_extc, gx);
 
-    printf(">solpond = %10.1f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",gx[0],gx[1],gx[2],gx[3],gx[4],gx[5],gx[6],gx[7],gx[8]);
+    printf(">solpond = %10.1f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",
+                           gx[0],gx[1],gx[2],gx[3],gx[4],gx[5],gx[6],gx[7],gx[8]);
 
 
     // MH
@@ -1192,6 +1199,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 #ifdef _VISUAL_C_
     free(LayerThickness);  free(heat);  free(layer_zone);
 
+    free(energy); free(absorb); free(gx);
 #endif
 
 }
@@ -1939,6 +1947,8 @@ static double fdif(double rindex, double critw, double h, double cmu, int n)
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
+#if 0
+// Not currently used ?
 static void soiltemp(int m, double wv)
 {
 #ifndef _VISUAL_C_
@@ -2020,6 +2030,7 @@ static void soiltemp(int m, double wv)
 #endif
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+#endif
 
 
 #if 0
@@ -2046,20 +2057,20 @@ SUBROUTINE CalcZeroWindHeatFluxes(airTemp_C, surfTemp_C, vapPressure,      &
   REAL, PARAMETER :: G_ACCN              = 1.28E+08    ![m hr^-2]
 
   ! ------ Local Variables ----------------
-  REAL :: alpha_e           !coeff. for evap. into still air (TVA,p5.14)
-  REAL :: alpha_h           !coeff. for sens. heat into still air (TVA,p5.17)
-  REAL :: C_0               !water vapour conc. at water surface      [-]
-  REAL :: C_a               !water vapour conc. of the ambient air    [-]
-  REAL :: delta_conc        !difference in water vapour concs.        [-]
-  REAL :: delta_rho         !difference in the air densities    [kg m^-3]
-  REAL :: delta_T           !difference in the air temperatures     [Cel]
-  REAL :: factor_1e         !variable for intermediate calculation step
-  REAL :: factor_1h         !   "      "       "            "       "
-  REAL :: factor_2          !   "      "       "            "       "
-  REAL :: htEvap            !height of water evap. in this time step  [m]
-  REAL :: rho_0             !air density at water surface       [kg m^-3]
-  REAL :: rho_a             !air density of the ambient air     [kg m^-3]
-  REAL :: satVapPressure    !saturated vapour pressure          [hPa]
+  REAL :: alpha_e          //coeff. for evap. into still air (TVA,p5.14)
+  REAL :: alpha_h          //coeff. for sens. heat into still air (TVA,p5.17)
+  REAL :: C_0              //water vapour conc. at water surface      [-]
+  REAL :: C_a              //water vapour conc. of the ambient air    [-]
+  REAL :: delta_conc       //difference in water vapour concs.        [-]
+  REAL :: delta_rho        //difference in the air densities    [kg m^-3]
+  REAL :: delta_T          //difference in the air temperatures     [Cel]
+  REAL :: factor_1e        //variable for intermediate calculation step
+  REAL :: factor_1h        //   "      "       "            "       "
+  REAL :: factor_2         //   "      "       "            "       "
+  REAL :: htEvap           //height of water evap. in this time step  [m]
+  REAL :: rho_0            //air density at water surface       [kg m^-3]
+  REAL :: rho_a            //air density of the ambient air     [kg m^-3]
+  REAL :: satVapPressure   //saturated vapour pressure          [hPa]
 
   !--------------------------------------------------
 
@@ -2119,21 +2130,21 @@ SUBROUTINE CalcZeroWindHeatFluxes(airTemp_C, surfTemp_C, vapPressure,      &
   END IF
 
 
-  !!$Diagnostic output:
-  !!$WRITE(LOG_FILE,*)
-  !!$WRITE(LOG_FILE,'(1X,"====lws==============================")')
-  !!$WRITE(LOG_FILE,'(1X,"CalcZeroWindHeatFluxes:   at end of this S/R")')
-  !!$WRITE(LOG_FILE,'(1X,3X,"airTemp_C = ",F7.3,3X,"surfTemp_C = ",F7.3,3X, &
-  !!$          &"delta_T = ",F7.3)')  airTemp_C, surfTemp_C, delta_T
-  !!$WRITE(LOG_FILE,'(1X,3X,"alpha_e = ",ES13.6,3X,"alpha_h = ",ES13.6)')     &
-  !!$                                                    alpha_e, alpha_h
-  !!$WRITE(LOG_FILE,'(1X,"Uwind = 0",3X,"C_0 = ",ES13.6,3X,"C_a = ",ES13.6, &
-  !!$        &3X,"delta_conc = ",ES13.6)') C_0, C_a, delta_conc
-  !!$WRITE(LOG_FILE,'(1X,3X,"htEvap = ",ES13.6)')  htEvap
-  !!$WRITE(LOG_FILE,'(1X,3X,"zeroWindLatentHeatFlux = ",ES13.6,"  [W m^-2]",3X, &
-  !!$                   &"zeroWindSensHeatFlux = ",ES13.6,"  [W m^-2]")')    &
-  !!$                     zeroWindLatentHeatFlux, zeroWindSensHeatFlux
-  !!$WRITE(LOG_FILE,'(1X,"====/lws=============================",/)')
+  //$Diagnostic output:
+  //$WRITE(LOG_FILE,*)
+  //$WRITE(LOG_FILE,'(1X,"====lws==============================")')
+  //$WRITE(LOG_FILE,'(1X,"CalcZeroWindHeatFluxes:   at end of this S/R")')
+  //$WRITE(LOG_FILE,'(1X,3X,"airTemp_C = ",F7.3,3X,"surfTemp_C = ",F7.3,3X, &
+  //$          &"delta_T = ",F7.3)')  airTemp_C, surfTemp_C, delta_T
+  //$WRITE(LOG_FILE,'(1X,3X,"alpha_e = ",ES13.6,3X,"alpha_h = ",ES13.6)')     &
+  //$                                                    alpha_e, alpha_h
+  //$WRITE(LOG_FILE,'(1X,"Uwind = 0",3X,"C_0 = ",ES13.6,3X,"C_a = ",ES13.6, &
+  //$        &3X,"delta_conc = ",ES13.6)') C_0, C_a, delta_conc
+  //$WRITE(LOG_FILE,'(1X,3X,"htEvap = ",ES13.6)')  htEvap
+  //$WRITE(LOG_FILE,'(1X,3X,"zeroWindLatentHeatFlux = ",ES13.6,"  [W m^-2]",3X, &
+  //$                   &"zeroWindSensHeatFlux = ",ES13.6,"  [W m^-2]")')    &
+  //$                     zeroWindLatentHeatFlux, zeroWindSensHeatFlux
+  //$WRITE(LOG_FILE,'(1X,"====/lws=============================",/)')
 
 
 END SUBROUTINE CalcZeroWindHeatFluxes

@@ -165,6 +165,8 @@ void read_daily_met(int julian, MetDataType *met)
     AED_REAL now, tomorrow, t_val, sol;
     AED_REAL eff_area, surf_area, ld, x_ws;
 
+    surf_area = Lake[surfLayer].LayerArea;
+
 //  fprintf(stderr, "READ DAILY MET for %d\n", julian);
     now = julian;
     tomorrow = now + 1.0;
@@ -468,7 +470,7 @@ void open_met_file(const char *fname, int snow_sw, int rain_sw,
  *                                                                            *
  ******************************************************************************/
 void open_inflow_file(int idx, const char *fname,
-                                   int nvars, char *vars[], const char *timefmt)
+                             int nvars, const char *vars[], const char *timefmt)
 {
     int j,k,l;
 
