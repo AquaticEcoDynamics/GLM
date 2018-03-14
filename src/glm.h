@@ -35,7 +35,7 @@
 #endif
 #define USE_FILLVALUE 1
 
-#define GLM_VERSION  "2.8.0alpha2"
+#define GLM_VERSION  "2.8.0alpha4"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -119,6 +119,16 @@
   #if DEBUG
     #define CRASH(s) ( { int *x = (int*)1; fputs(s, stderr); *x = 1; } )
   #endif
+
+  void _glm_dbg(const char *fmt, ...);
+  void _glm_dbg_on(void);
+  void _glm_dbg_off(void);
+
+  void _dbg_time(int jday, int iclock);
+  void _dbg_mixer(int d1, int d2, int d3,
+       int bl, int sl, int ebl, int mtl,
+       AED_REAL e1, AED_REAL e2, AED_REAL e3);
+
 //------------------------------------------------------------------------------
 #endif
 
@@ -129,7 +139,12 @@
 #endif
 
 #define sqr(x)  ((x)*(x))
+#if 0
 #define gprime(d1,d2) (((d2)-(d1))*g/(((d1)+(d2))/2.0))
+#else
+# ifndef _FORTRAN_SOURCE_
+  AED_REAL gprime(AED_REAL rho1, AED_REAL rho2);
+# endif
 #endif
 #define combine_vol(c1,v1,c2,v2) (((c1)*(v1)+(c2)*(v2))/((v1)+(v2)))
 
@@ -143,6 +158,7 @@
 #endif
 #ifndef _ZERO_
 #define _ZERO_ 0.
+#endif
 
 #define LW_CC    1
 #define LW_IN    2

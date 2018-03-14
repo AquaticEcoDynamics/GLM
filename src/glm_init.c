@@ -175,6 +175,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL sw_factor;
     extern AED_REAL lw_factor;
     extern AED_REAL at_factor;
+    extern AED_REAL at_offset;
     extern AED_REAL rh_factor;
     extern AED_REAL rain_factor;
     extern int      rad_mode;
@@ -355,6 +356,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "sw_factor",         TYPE_DOUBLE,           &sw_factor         },
           { "lw_factor",         TYPE_DOUBLE,           &lw_factor         },
           { "at_factor",         TYPE_DOUBLE,           &at_factor         },
+          { "at_offset",         TYPE_DOUBLE,           &at_offset         },
           { "rh_factor",         TYPE_DOUBLE,           &rh_factor         },
           { "rain_factor",       TYPE_DOUBLE,           &rain_factor       },
           { "CD",                TYPE_DOUBLE,           &CD                },

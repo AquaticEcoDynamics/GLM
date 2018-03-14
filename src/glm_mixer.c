@@ -109,11 +109,11 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer,
  ******************************************************************************/
 int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLayer, AED_REAL *_Dens_Epil)
 {
-    AED_REAL twelve = 12.0,
-             twfour = 24.0,
-             half = 0.500,
-             secshr = 3600.0,
-             tdfac = 8.33E-4;
+    const AED_REAL twelve = 12.0,
+                   twfour = 24.0,
+                   half = 0.500,
+                   secshr = 3600.0,
+                   tdfac = 8.33E-4;
 
     //* Wind parameters
     AED_REAL WindSpeedX;         //# Actual wind speed, accounting for wind factor or ice [m s-1]
@@ -172,6 +172,7 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
     int Meta_topLayer;           //# Index for top layer of hypolimnion
     int Epi_botmLayer;           //# Index for bottom layer of epilimnion
 
+    int loop_count = 0; // for debugging only
 
     /**************************************************************************
      * Initialise                                                             *
@@ -197,6 +198,10 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
     U_star_sqr = U_star*U_star;        //# U*^2 handy in mixing calcs
     U_star_cub = U_star*U_star*U_star; //# U*^3 handy in mixing calcs
 
+_dbg_mixer(1, 0, 0,     // step 1, before loop, loop_step
+           botmLayer, surfLayer,
+           -1, -1,      // Epi_botmLayer, Meta_topLayer, (not yet defined)
+           Energy_AvailableMix, missing, missing);
 
     /**************************************************************************
      *                                                                        *
@@ -219,15 +224,23 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
 
         //# Compute the 0th & 1st moments of density (about the bottom) (Eq 32)
         if (Epi_botmLayer != botmLayer) {
-            AED_REAL delZk    = Lake[Epi_botmLayer].Height - Lake[Epi_botmLayer-1].Height;
-            ZeroMom = ZeroMom + (Lake[Epi_botmLayer].Density - rho0) * delZk;
-            FirstMom = FirstMom + (Lake[Epi_botmLayer].Density - rho0) * delZk * Lake[Epi_botmLayer].MeanHeight;
-            if (Dens_Epil < (Lake[Epi_botmLayer-1].Density+1e-6)) break;
+            AED_REAL tRho = (Lake[Epi_botmLayer].Density - rho0) *
+                            (Lake[Epi_botmLayer].Height - Lake[Epi_botmLayer-1].Height);
+            ZeroMom  = ZeroMom  + tRho;
+            FirstMom = FirstMom + tRho * Lake[Epi_botmLayer].MeanHeight;
+
+            if (Dens_Epil < Lake[Epi_botmLayer-1].Density+1e-6) break;
         } else {
-            ZeroMom  = ZeroMom  + (Lake[botmLayer].Density - rho0) * Lake[botmLayer].Height;
-            FirstMom = FirstMom + (Lake[botmLayer].Density - rho0) * Lake[botmLayer].Height * Lake[botmLayer].MeanHeight;
+            AED_REAL tRho = (Lake[botmLayer].Density - rho0) * Lake[botmLayer].Height;
+            ZeroMom  = ZeroMom  + tRho;
+            FirstMom = FirstMom + tRho * Lake[Epi_botmLayer].MeanHeight;
         }
     }
+
+_dbg_mixer(1, 2, 0,     // step 1, after loop, loop_step
+           botmLayer, surfLayer,
+           Epi_botmLayer, -1,      // Epi_botmLayer, Meta_topLayer, (not yet defined)
+           Energy_AvailableMix, missing, missing);
 
     /**************************************************************************
      * Epi_botmLayer is now the bottom layer of the epilimnion / mixed layer  *
@@ -295,7 +308,11 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
     //# Add stirring energy to available mixing energy
     Energy_AvailableMix += Energy_TotStir;
 
-//Energy_AvailableMix = zero;
+loop_count = 0;
+_dbg_mixer(2, 0, 0,     // step 2, before loop, loop_step
+           botmLayer, surfLayer,
+           Epi_botmLayer, Meta_topLayer,      // Epi_botmLayer, Meta_topLayer, (not yet defined)
+           Energy_AvailableMix, missing, missing);
 
     /**************************************************************************
      * Now loop through layers using the stirring energy to mix. Computes     *
@@ -309,6 +326,11 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
         if (Meta_topLayer > botmLayer) delzkm1 = Lake[Meta_topLayer].Height - Lake[Meta_topLayer-1].Height;
         redg = gprime(Dens_Epil,Lake[Meta_topLayer].Density);
         Energy_RequiredMix = half * (redg * Epi_dz + coef_mix_turb * q_sqr) * delzkm1 ;
+
+_dbg_mixer(2, 1, ++loop_count,     // step 2, in loop, loop_step
+           botmLayer, surfLayer,
+           Epi_botmLayer, Meta_topLayer,
+           Energy_AvailableMix, Energy_RequiredMix, redg);
 
         //# Not enough energy to entrain any more layers into the mixed layer
         if (Energy_AvailableMix < Energy_RequiredMix) break;
@@ -328,6 +350,10 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
         }
     }
 
+_dbg_mixer(2, 2, 0,     // step 2, after loop, loop_step
+           botmLayer, surfLayer,
+           Epi_botmLayer, Meta_topLayer,
+           Energy_AvailableMix, Energy_RequiredMix, redg);
 
     /**************************************************************************
      *                                                                        *
@@ -358,11 +384,11 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
 
     Dens_Hypl = Hypl_Mass / Lake[Meta_topLayer].Vol1;
     gPrimeTwoLayer = gprime(Dens_Epil, Dens_Hypl);  //# gprime_effective
+    if (gPrimeTwoLayer <= 1E-7) gPrimeTwoLayer = 1E-7;
     Vol_Epi = Lake[surfLayer].Vol1 - Lake[Meta_topLayer].Vol1;
     Vol_Hypl = Lake[Meta_topLayer].Vol1;
     Epi_Thick = (Vol_Epi/(Lake[Meta_topLayer].LayerArea+Lake[surfLayer].LayerArea))*2.0;
     Hypl_Thick = (Vol_Hypl/Lake[Meta_topLayer].LayerArea)*2.0;
-    if (gPrimeTwoLayer <= 0.1E-6) gPrimeTwoLayer = 0.1E-6;
     IntWaveSpeed = sqrt((fabs(gPrimeTwoLayer)*Epi_Thick*Hypl_Thick)/(Epi_Thick+Hypl_Thick));
 
     /**************************************************************************
@@ -385,7 +411,6 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
      **************************************************************************/
     LengthAtThermo = sqrt(Lake[Meta_topLayer].LayerArea*4.0/Pi*(LenAtCrest/WidAtCrest));
 
-
     /**************************************************************************
      * Check momentum time counters                                           *
      * Half_Seiche_Period is one half the seiche period                       *
@@ -401,9 +426,10 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
          EffectiveForceTime = Half_Seiche_Period;
          if (U_star > zero) {
             AED_REAL Lake_Depth = Epi_Thick+Hypl_Thick;
-            AED_REAL dt_damp = 2.0*(Lake_Depth/tdfac)*(Lake_Depth/U_star_sqr)
-                        * (Hypl_Thick/Epi_Thick) * pow((gPrimeTwoLayer*Epi_Thick*Hypl_Thick/Lake_Depth), 0.25)
-                        / (sqrt(2.0*LengthAtThermo)*secshr)*sqrt(Visc);
+            AED_REAL dt_damp = 2.0*(Lake_Depth/tdfac)*(Lake_Depth/U_star_sqr) *
+                        (Hypl_Thick/Epi_Thick) *
+                        pow((gPrimeTwoLayer*Epi_Thick*Hypl_Thick/Lake_Depth), 0.25) /
+                        (sqrt(2.0*LengthAtThermo)*secshr)*sqrt(Visc);
             EffectiveForceTime = 1.59 * Half_Seiche_Period;
             if (dt_damp/Half_Seiche_Period < 10.0)
                 // Add damping factor to effective time
@@ -420,8 +446,8 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
     accn = U_star_sqr / Epi_Thick;
     FSUM = FSUM + accn;
     Slope = (accn-FO) + OldSlope;
-    if (accn == zero) Slope = zero;
-    else if (accn <= zero || fabs(Slope/accn) <= 1e-5) Slope = zero;
+    if (accn <= zero) Slope = zero;
+    else if (fabs(Slope/accn) <= 1e-5) Slope = zero;
     if (Slope < zero) Slope = zero;
 
     /**************************************************************************
@@ -458,8 +484,9 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
     if (del_deltaKH < 1.0E-10) del_deltaKH = 0.0;
 
     //# Energy from shear-mixing
-    Energy_Shear = half * coef_mix_shear * (u_avg * u_avg * (zsml_tilda + del_deltaKH / 6.0) + u_avg * deltaKH * del_u / 3.0)
-           + redg * deltaKH * (deltaKH * zsml_tilda / (twfour * (Lake[surfLayer].Height-Lake[Meta_topLayer].Height)) - del_deltaKH / twelve);
+    Energy_Shear = half * coef_mix_shear * (u_avg * u_avg * (zsml_tilda + del_deltaKH / 6.0) + u_avg * deltaKH * del_u / 3.0) +
+           redg * deltaKH * (deltaKH * zsml_tilda / (twfour * (Lake[surfLayer].Height - Lake[Meta_topLayer].Height)) -
+           del_deltaKH / twelve);
 
     if (Energy_Shear < zero) Energy_Shear = zero;
 
@@ -467,13 +494,18 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
     Energy_AvailableMix += Energy_Shear;
     GPEFFC = gPrimeTwoLayer * Epi_Thick;
 
+loop_count = 0;
+_dbg_mixer(3, 0, 0,     // step 2, before loop, loop_step
+           botmLayer, surfLayer,
+           Epi_botmLayer, Meta_topLayer,
+           Energy_AvailableMix, Energy_RequiredMix, redg);
+
     //# Now undergo deepening loop for shear production
     del_u = zero;
     while (TRUE) {
         //# Save current values of Epi_Thick and u_avg in case of mixing
         PrevThick = Epi_Thick;
         u_eff = u_avg;
-
 
         //# Thickness of surface layer and next layer down
         delzkm1 = Lake[Meta_topLayer].Height;
@@ -489,8 +521,6 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
         //# Add available kinetic energy
         Energy_AvailableMix += Energy_Deepen;
 
-//      Energy_AvailableMix =zero;
-
         //# Compute energy required to entrain next layer, Er
         Energy_RequiredMix = (redg * Epi_dz + coef_mix_turb * q_sqr) * delzkm1 / 2.0;
 
@@ -498,6 +528,11 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
         dbgprt("Energy_AvailableMix = %10.5f\n",Energy_AvailableMix);
         dbgprt("Energy_RequiredMix = %10.5f\n",Energy_RequiredMix);
         dbgprt( (Energy_AvailableMix < Energy_RequiredMix) ? "About to break\n":"");
+
+_dbg_mixer(3, 1, ++loop_count,     // step 2, in loop, loop_step
+           botmLayer, surfLayer,
+           Epi_botmLayer, Meta_topLayer,
+           Energy_AvailableMix, Energy_RequiredMix, redg);
 
         //# If there is insufficient energy to deepen then break
         if (Energy_AvailableMix < Energy_RequiredMix) break;
@@ -548,13 +583,16 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
         u0 = u_f;
     }
 
+_dbg_mixer(3, 2, 0,     // step 2, in loop, loop_step
+           botmLayer, surfLayer,
+           Epi_botmLayer, Meta_topLayer,
+           Energy_AvailableMix, Energy_RequiredMix, redg);
+
     //# Here if insufficient energy to entrain next layer
 
     //# Check momentum time counters for cutoff
     Thermocline_Height = Lake[Meta_topLayer].Height;
     gPrimeTwoLayer = GPEFFC / Epi_Thick;
-
-
 
     //# Now update and average water quality
     for (wqvidx=0; wqvidx < Num_WQ_Vars; wqvidx++) {
@@ -637,6 +675,7 @@ void do_mixing()
                      WQ_VarsM[wqvidx] = _WQ_Vars(wqvidx, i) * Lake[i].LayerVol + WQ_VarsM[wqvidx];
                  WQ_VarsM[wqvidx] = WQ_VarsM[wqvidx] / Lake[surfLayer].Vol1;
             }
+            /***** fall through ******/
 
          case MOMENTUM_CUT:
             //# Here if momentum cutoff
@@ -653,6 +692,7 @@ void do_mixing()
             //# So make epilimnion into one big layer adding Meta_topLayer+1 ... surfLayer
 
             //# Renumber mixed layers
+            /***** fall through ******/
 
         case IS_MIXED:
             //# Meta_topLayer+1 becomes the surface layer == mixed epilimnion layers
@@ -685,6 +725,7 @@ void do_mixing()
             dbgprt("End mix KH NumLayers, surfLayer, botmLayer, Meta_topLayer, Epi_botmLayer = %d,%d,%d,%d,%d\n",
                                                NumLayers, surfLayer, botmLayer, Meta_topLayer, Epi_botmLayer);
 
+            /***** fall through ******/
         default :
             break;
     }
@@ -893,14 +934,13 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
     Lake[surfLayer].Height = Surface_Height;
     Epi_dz = Lake[surfLayer].Height - Lake[surfLayer-1].Height;
 
-
     //# Calculate volumes
     resize_internals(1,botmLayer);
 
     //# Relax density structure within shear zone
     up = TRUE;
     ir = nl-2;
-    while(1) {
+    while (TRUE) {
         //# Mix middle two layers k1, k1-1
         Lake[k1].Temp = combine(Lake[k1].Temp,   Lake[k1].LayerVol,   Lake[k1].Density,
                                 Lake[k1-1].Temp, Lake[k1-1].LayerVol, Lake[k1-1].Density);
@@ -921,7 +961,7 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
 
         if (ir == botmLayer) break;
 
-        while(1) {
+        while (TRUE) {
             //# do loop mixes up (up = .true.) or down (up = .false.)
             for (i = botmLayer; i <= ir; i++) {
                 if (up) n = k1 + i - 1;

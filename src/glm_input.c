@@ -90,6 +90,7 @@ AED_REAL wind_factor = 1.0;   //# Windspeed scaling factor
 AED_REAL sw_factor   = 1.0;
 AED_REAL lw_factor   = 1.0;
 AED_REAL at_factor   = 1.0;
+AED_REAL at_offset   = 0.0;  //# add this to airtemp in met
 AED_REAL rh_factor   = 1.0;
 AED_REAL rain_factor = 1.0;
 
@@ -240,7 +241,8 @@ void read_daily_met(int julian, MetDataType *met)
                 break;
         }
 
-        submet[idx].AirTemp     = get_csv_val_r(csv, atmp_idx) * at_factor;
+    //  submet[idx].AirTemp     = get_csv_val_r(csv, atmp_idx) * at_factor;
+        submet[idx].AirTemp     = get_csv_val_r(csv, atmp_idx) * at_factor + at_offset;
         submet[idx].WindSpeed   = get_csv_val_r(csv, wind_idx) * wind_factor;
 
         // Read in rel humidity into svd (%), and convert to satvap

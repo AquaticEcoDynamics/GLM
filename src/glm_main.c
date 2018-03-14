@@ -46,6 +46,8 @@
 #endif
 
 char *all_plots_name = NULL;
+static int debug_on = FALSE;
+static int dbg_mix  = FALSE;
 
 extern char glm_nml_file[];
 extern void run_model(void);
@@ -68,6 +70,12 @@ int main(int argc, char *argv[])
         if ( strcmp(*argv, "--nml") == 0) {
             argv++; argc--;
             nmlfile = *argv;
+        }
+        else if (strcmp(*argv, "--debug") == 0) {
+            debug_on = TRUE;
+        }
+        else if (strcmp(*argv, "--dbgmix") == 0) {
+            dbg_mix = TRUE;
         }
 #ifdef PLOTS
 #ifdef XPLOTS
@@ -149,3 +157,63 @@ void crash_()
     *x = 0;
 }
 #endif
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+#include <stdarg.h>
+#include <aed_time.h>
+static FILE *dbgfile = NULL;
+void _glm_dbg(const char *fmt, ...)
+{
+    va_list nap;
+
+    if ( ! debug_on ) return;
+    if ( dbgfile == NULL ) dbgfile = fopen("glm_debug.log", "w");
+
+    if ( dbgfile == NULL ) dbgfile = stderr;
+
+    va_start(nap, fmt);
+    vfprintf(dbgfile, fmt, nap);
+    va_end(nap);
+}
+
+void _glm_dbg_on()  { debug_on = 1; }
+void _glm_dbg_off() { debug_on = 0; }
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+static FILE *mixcsv = NULL;
+void _dbg_mix_str(const char *fmt, ...)
+{
+    va_list nap;
+
+    if ( ! dbg_mix ) return;
+    if ( mixcsv == NULL ) {
+        mixcsv = fopen("glm_mixer.csv", "w");
+        if ( mixcsv == NULL ) dbg_mix = 0;
+        else fprintf(mixcsv,
+         "time,step,where,loop,bottom,surface,epi_bot,meta_top,Energy_AvailableMix,Energy_RequiredMix,redg\n");
+    }
+
+    if ( mixcsv == NULL ) return;
+
+    va_start(nap, fmt);
+    vfprintf(mixcsv, fmt, nap);
+    va_end(nap);
+}
+static char _ts[20];
+void _dbg_time(int jday, int iclock)
+{
+    if ( ! dbg_mix ) return;
+    write_time_string(_ts, jday, iclock + noSecs);
+}
+void _dbg_mixer(int d1, int d2, int d3,
+       int bl, int sl, int ebl, int mtl,
+       AED_REAL e1, AED_REAL e2, AED_REAL e3)
+{
+    if ( ! dbg_mix ) return;
+    _dbg_mix_str("%s,%d,%d,%d,%d,%d,%d,%e,%e,%e\n",
+       _ts,d1,d2,d3, bl,sl,ebl,mtl,e1,e2,e3);
+}
+
+void _mix_dbg_on()  { dbg_mix = 1; }
+void _mix_dbg_off() { dbg_mix = 0; }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

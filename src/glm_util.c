@@ -91,11 +91,18 @@ AED_REAL sqr(AED_REAL x) { return x*x; }
 #ifndef gprime
 /******************************************************************************
  * This function calculates reduced gravity (gprime) given two densities      *
- * Note +2000.0 is since rho passed in is actually sigma (rho-1000)           *
- * and rho_ref = (rho1 + rho2)                                                *
  ******************************************************************************/
 AED_REAL gprime(AED_REAL rho1, AED_REAL rho2)
-{ return g * (rho2 - rho1) / ((rho1 + rho2) / 2.0); }
+//{ return g * (rho2 - rho1) / ((rho1 + rho2) / 2.0); }
+{
+#define GTOLERANCE  1E-7
+    AED_REAL tmp = g * (rho2 - rho1) / ((rho1 + rho2) / 2.0);
+    if (fabs(tmp) < GTOLERANCE) {
+        if (tmp < 0) return -GTOLERANCE;
+        return GTOLERANCE;
+    }
+    return tmp;
+}
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif
 

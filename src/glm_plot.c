@@ -187,7 +187,7 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
             int j;
             for (j = 0; j < n_zones; j++) show_h_line(i, zone_heights[j]);
         } else {
-          show_h_line(i, CrestHeight);
+            show_h_line(i, CrestHeight);
         }
     }
     free(glm_vers);

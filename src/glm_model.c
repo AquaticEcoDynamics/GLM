@@ -66,9 +66,9 @@
 #include "glm_plot.h"
 #endif
 
-
 #include "aed_time.h"
 #include "aed_csv.h"
+
 
 /******************************************************************************/
 //#define dbgprt(...) fprintf(stderr, __VA_ARGS__)
@@ -626,6 +626,7 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
         }
 
         stepnum++;
+        _dbg_time(jday, iclock);
 
 //printf("n0 = %d %d %d \n",surfLayer, botmLayer, NumLayers);
 //printf("n1 = %10.5f %10.5f\n",Lake[surfLayer].Vol1, Lake[botmLayer].Vol1);

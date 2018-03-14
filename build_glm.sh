@@ -4,6 +4,20 @@ if [ "$GLM_CONFIGURED" != "true" ] ; then
   . ./GLM_CONFIG
 fi
 
+while [ $# -gt 0 ] ; do
+  case $1 in
+    --debug)
+      export DEBUG=true
+      ;;
+    --fence)
+      export FENCE=true
+      ;;
+    *)
+      ;;
+  esac
+  shift
+done
+
 export OSTYPE=`uname -s`
 
 if [ "$FORTRAN_COMPILER" = "IFORT" ] ; then

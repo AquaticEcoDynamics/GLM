@@ -81,7 +81,6 @@ AED_REAL seepage_rate = 0.0;
 AED_REAL hBot;           //# Height of bottom of withdrawal layer
 AED_REAL hTop;           //# Height of top of withdrawal layer
 
-
 static FILE **sc_files = NULL;
 static AED_REAL SpecialConditionDraw(int jday, int i);
 
@@ -156,7 +155,7 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
      * Assume:                                                             *
      *      1) that lake approximates as an ellipse                        *
      *      2) Area = pi/4 * Length * Width                                *
-     *      3) ratio Length:Width at outflow is sames as crest             *
+     *      3) ratio Length:Width at outflow is same as crest              *
      *                                                                     *
      ***********************************************************************/
     if (outf == NULL) {
@@ -370,7 +369,7 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
      * Now we have Delta_V[i] for all layers we can remove it             *
      **********************************************************************/
     for (i = botmLayer; i <= surfLayer; i++){
-//      if(Delta_V[i]>zero) printf("%d DeltaV %8.4f; flow %10.4f;%10.4f %d %d %d %10.1f %10.1f \n",i,Delta_V[i],flow,Q_outf_star,Outflow_LayerNum,iBot,iTop,hBot,hTop);
+//      if (Delta_V[i] > zero) printf("%d DeltaV %8.4f; flow %10.4f;%10.4f %d %d %d %10.1f %10.1f \n",i,Delta_V[i],flow,Q_outf_star,Outflow_LayerNum,iBot,iTop,hBot,hTop);
         if (Delta_V[i] > zero) Lake[i].LayerVol -= Delta_V[i];
     }
 
