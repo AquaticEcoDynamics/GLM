@@ -277,7 +277,7 @@ void debug_initialisation(int which) {
 
     _debug_print_lake(of);
 
-    fprintf(of, "crest = %20.15f base = %20.15f VolAtCrest = %20.15f\n", CrestLevel, Base, VolAtCrest);
+    fprintf(of, "crest = %20.15f base = %20.15f VolAtCrest = %20.15f\n", CrestHeight, Base, VolAtCrest);
 
     fprintf(of, " Nmorph = %d\n", Nmorph);
     fprintf(of, "IDX----------StoLA----------------MphLevelVol--------------------dMphLevelVol------------------dMphLevelArea--------------\n");

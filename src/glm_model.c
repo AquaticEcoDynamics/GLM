@@ -69,6 +69,7 @@
 #include "aed_time.h"
 #include "aed_csv.h"
 
+#include "glm_debug.h"
 
 /******************************************************************************/
 //#define dbgprt(...) fprintf(stderr, __VA_ARGS__)
@@ -151,7 +152,7 @@ void init_model(int *jstart, int *nsave)
     init_glm(jstart, out_dir, out_fn, nsave);
 
 #if PLOTS
-    psubday = timestep * (*nsave) / 86400.;
+    psubday = timestep * (*nsave) / SecsPerDay;
     plotstep = 0;
 #endif
 
@@ -206,7 +207,7 @@ static AED_REAL calc_benthic_light()
     if (Lake[botmLayer].Light * exp(-Lake[botmLayer].ExtcCoefSW*Lake[botmLayer].Height) >= Benthic_Imin)
         Benthic_Light_Area = Benthic_Light_Area + Lake[botmLayer].LayerArea;
 
-    return Benthic_Light_Area / Lake[surfLayer].LayerArea * 100./(86400./noSecs);
+    return Benthic_Light_Area / Lake[surfLayer].LayerArea * 100./(SecsPerDay/noSecs);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -619,7 +620,7 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
      **************************************************************************/
     iclock = 0;
     Benthic_Light_pcArea = 0.;
-    while (iclock < 86400) { //# iclock = seconds counter
+    while (iclock < iSecsPerDay) { //# iclock = seconds counter
         if ( subdaily ) {
             read_sub_daily_met(jday, iclock, &MetData);
             SWnew = MetData.ShortWave;
@@ -711,7 +712,7 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
         if ( subdaily ) SWold = SWnew;
 
         iclock += noSecs;
-    }   //# do while (iclock < 86400)
+    }   //# do while (iclock < iSecsPerDay)
     /**************************************************************************
      * End of sub-daily loop                                                  *
      **************************************************************************/

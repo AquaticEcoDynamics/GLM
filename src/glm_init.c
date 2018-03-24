@@ -637,6 +637,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     sw_factor = 1.0;
     lw_factor = 1.0;
     at_factor = 1.0;
+    at_offset = 0.0;
     rh_factor = 1.0;
     rain_factor = 1.0;
 

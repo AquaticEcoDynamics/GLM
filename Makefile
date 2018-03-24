@@ -161,7 +161,7 @@ FLIBS=
 # Select specific compiler bits
 ifeq ($(F90),ifort)
   FINCLUDES+=-I/opt/intel/include
-  DEBUG_FFLAGS=-g -traceback
+  DEBUG_FFLAGS=-g -traceback -DDEBUG=1
   OPT_FFLAGS=-O3
   FFLAGS=-warn all -module ${moddir} -i-static -mp1 -stand f08 $(DEFINES) $(FINCLUDES)
   ifeq ($(WITH_CHECKS),true)
@@ -177,7 +177,7 @@ ifeq ($(F90),ifort)
 else
   F90=gfortran
   FINCLUDES+=-I/usr/include
-  DEBUG_FFLAGS=-g -fbacktrace
+  DEBUG_FFLAGS=-g -fbacktrace -DDEBUG=1
   OPT_FFLAGS=-O3
   FFLAGS=-Wall -J ${moddir} -Wno-c-binding-type -ffree-line-length-none -std=f2008 $(DEFINES) $(FINCLUDES) -fall-intrinsics
   ifeq ($(WITH_CHECKS),true)
@@ -185,7 +185,8 @@ else
   endif
   FFLAGS+=-fdefault-real-8 -fdefault-double-8
   ifeq ($(OSTYPE),Darwin)
-    FLIBS+=-L/usr/local/gfortran/lib
+#   FLIBS+=-L/opt/local/gfortran/lib
+    FLIBS+=-L/opt/local/lib/gcc8
   endif
   FLIBS+=-lgfortran
 endif
@@ -196,7 +197,7 @@ ifneq ($(USE_DL),true)
 endif
 
 ifeq ($(DEBUG),true)
-  DEBUG_CFLAGS=-g -fbounds-check
+  DEBUG_CFLAGS=-g -fbounds-check -DDEBUG=1
   OPT_CFLAGS=
   OPT_FFLAGS=
 else
@@ -260,6 +261,7 @@ OBJS=${objdir}/glm_globals.o \
      ${objdir}/glm_restart.o \
      ${objdir}/glm_types.o \
      ${objdir}/glm_const.o \
+     ${objdir}/glm_debug.o \
      ${objdir}/glm_main.o
 
 ifeq ($(USE_DL),true)
@@ -276,7 +278,6 @@ else
     OBJS+=${objdir}/glm_fabm.o ${objdir}/ode_solvers.o
   endif
 endif
-
 
 all: $(TARGETS)
 
@@ -307,7 +308,7 @@ distclean: clean
 #	$(F90) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
 
 ${objdir}/%.o: ${srcdir}/%.c ${incdir}/glm.h
-	$(CC) -fPIC $(CFLAGS) $(EXTRA_FLAGS) -D_C_VERSION_ -c $< -o $@
+	$(CC) -fPIC $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
 
 %.${so_ext}:
 	$(LD) ${SHARED} $(LDFLAGS) \
@@ -345,4 +346,4 @@ ${objdir}/ode_solvers.o: ${srcdir}/ode_solvers.F90
 
 ${objdir}/glm_globals.o: ${srcdir}/glm_globals.c ${incdir}/glm_globals.h ${incdir}/glm.h
 ${objdir}/glm_plugin.o: ${srcdir}/glm_plugin.c ${incdir}/glm_plugin.h ${incdir}/glm.h
-
+${objdir}/glm_mixer.o: ${srcdir}/glm_mixer.c ${incdir}/glm_mixer.h ${incdir}/glm.h ${srcdir}/glm_debug.h

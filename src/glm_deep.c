@@ -109,7 +109,7 @@ void do_deep_mixing()
      * return if already mixed.                                               *
      * a semi-useless test given it is checked for before calling             *
      **************************************************************************/
-    if (iTop < 0) return ;
+    if (iTop < botmLayer) return ;
 
     exchk2 = -exchka;
 
@@ -219,7 +219,7 @@ void do_deep_mixing()
     //# Check for instabilities - call check_layer_stability to mix
     i = botmLayer + 1;
     while (i <= surfLayer) {
-        if (Lake[i].Density >= Lake[i-1].Density) {
+        if (Lake[i].Density > Lake[i-1].Density+1E-10) {
             check_layer_stability();
             break;
         }
@@ -554,9 +554,10 @@ void check_layer_stability()
         Lake[k-1].LayerVol = Lake[k-1].LayerVol + Lake[k].LayerVol;
         Lake[k-1].Vol1 = Lake[k].Vol1;
         Lake[k-1].LayerArea = Lake[k].LayerArea;
-        Lake[k-1].MeanHeight = Lake[0].Height/2.0;
         if ((k-1) != botmLayer)
             Lake[k-1].MeanHeight = (Lake[k-1].Height + Lake[k-2].Height) / 2.0;
+        else
+            Lake[k-1].MeanHeight = Lake[0].Height / 2.0;
         Lake[k-1].Density = calculate_density(Lake[k-1].Temp, Lake[k-1].Salinity);
         Lake[k-1].Epsilon = Lake[k].Epsilon;
 

@@ -45,6 +45,15 @@
 
 /******************************************************************************
  *                                                                            *
+ * VMsum                              [UPDATED]                               *
+ * Tsum                               [UPDATED]                               *
+ * Ssum                               [UPDATED]                               *
+ * VMLOC  :- combined volumetric mass [RETURNED]                              *
+ * TMLOC  :- Combined temperature     [RETURNED]                              *
+ * SMLOC  :- Combined salinity        [RETURNED]                              *
+ * DFLOC  :- Density                  [RETURNED]                              *
+ * idx    :- layer index              [USED]                                  *
+ *                                                                            *
  ******************************************************************************/
 void add_this_layer(AED_REAL *VMsum, AED_REAL *Tsum,
                     AED_REAL *Ssum, AED_REAL *VMLOC, AED_REAL *TMLOC,
@@ -58,9 +67,9 @@ void add_this_layer(AED_REAL *VMsum, AED_REAL *Tsum,
     *Tsum  += (Lake[idx].Temp * Layer_Mass);
     *Ssum  += (Lake[idx].Salinity * Layer_Mass);
 
-    *VMLOC = *VMsum;            //Combined volumetic mass
-    *TMLOC = *Tsum / (*VMLOC);  //Combined temperature
-    *SMLOC = *Ssum / (*VMLOC);  //Combined salinity
+    *VMLOC = *VMsum;            //# Combined volumetic mass
+    *TMLOC = *Tsum / (*VMLOC);  //# Combined temperature
+    *SMLOC = *Ssum / (*VMLOC);  //# Combined salinity
 
     *DFLOC = calculate_density(*TMLOC,*SMLOC);
 }

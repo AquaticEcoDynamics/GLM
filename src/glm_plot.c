@@ -135,7 +135,7 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
 #ifdef XPLOTS
     if ( xdisp ) {
         if ( init_plotter_max(max_plots, &maxx, &maxy) < 0 ) exit(1);
-    } else 
+    } else
 #endif
         if (do_plots) init_plotter_no_gui();
 #endif
