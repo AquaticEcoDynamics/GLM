@@ -122,6 +122,7 @@ void _DumpLake(int where, int extra);
 
 //#define _dbg_time(jday, iclock)
 //#define _DBG_MIXER_(d1, d2, d3, nl, ebl, mtl, e1, e2, e3)
+#define _glm_dbg(...)
 #define _DumpLake(where, extra)
 
 #endif

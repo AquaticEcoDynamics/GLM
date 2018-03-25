@@ -216,7 +216,7 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
 
     _DBG_MIXER_(1, 0, 0,     // step 1, before loop, loop_step
            NumLayers, Epi_botmLayer, Meta_topLayer,
-           Energy_AvailableMix, missing, missing);
+           Energy_AvailableMix, Energy_RequiredMix, redg);
 
     /**************************************************************************
      *                                                                        *
@@ -254,12 +254,21 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
 
     _DBG_MIXER_(1, 2, 0,     // step 1, after loop, loop_step
            NumLayers, Epi_botmLayer, Meta_topLayer,
-           Energy_AvailableMix, missing, missing);
+           Energy_AvailableMix, Energy_RequiredMix, redg);
 
     /**************************************************************************
      * Epi_botmLayer is now the bottom layer of the epilimnion / mixed layer  *
      * Dens_Epil is the density of the new epilimnion / mixed layer.          *
      **************************************************************************/
+
+    /**************************************************************************
+     * Meta_topLayer is now the top layer of the metalimnion                  *
+     * Epi_botmLayer is the bottom layer of the epilimnion                    *
+     * Therefore, Meta_topLayer+1 == Epi_botmLayer                            *
+     *                                                                        *
+     * Test if mixing hit the bottom, and update time counters                *
+     **************************************************************************/
+
 //  if ( Epi_botmLayer == botmLayer ) {
         //# This means lake is fully mixed so set all layers to mean properties
         for (i = Epi_botmLayer; i < surfLayer; i++) {
@@ -276,13 +285,6 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
         //# Epilimnion mean height is the middle of the single layer
         Epilimnion_Mid_Ht = (Lake[surfLayer].Height) / 2.0;
 
-    /**************************************************************************
-     * Meta_topLayer is now the top layer of the metalimnion                  *
-     * Epi_botmLayer is the bottom layer of the epilimnion                    *
-     * Therefore, Meta_topLayer+1 == Epi_botmLayer                            *
-     *                                                                        *
-     * Test if mixing hit the bottom, and update time counters                *
-     **************************************************************************/
     Meta_topLayer = Epi_botmLayer - 1;
     if (Epi_botmLayer == botmLayer) {
         //# This means that lake fully mixed: exit now with DEEPENED_BOT
@@ -325,22 +327,26 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
     loop_count = 0;
     _DBG_MIXER_(2, 0, 0,     // step 2, before loop, loop_step
            NumLayers, Epi_botmLayer, Meta_topLayer,
-           Energy_AvailableMix, missing, missing);
+           Energy_AvailableMix, Energy_RequiredMix, redg);
 
     /**************************************************************************
      * Now loop through layers using the stirring energy to mix. Computes     *
      * the energy required to mix next layer and compares with available      *
      * energy. If it hits the bottom it will return.                          *
      **************************************************************************/
-    while(1) {
+    while (TRUE) {
         //# Compute energy required to mix k-1 layer
         Epi_dz = Lake[surfLayer].Height - Lake[Meta_topLayer].Height;
-        delzkm1 = Lake[Meta_topLayer].Height;
-        if (Meta_topLayer > botmLayer) delzkm1 = Lake[Meta_topLayer].Height - Lake[Meta_topLayer-1].Height;
-        redg = gprime(Dens_Epil,Lake[Meta_topLayer].Density);
+
+        if (Meta_topLayer > botmLayer)
+            delzkm1 = Lake[Meta_topLayer].Height - Lake[Meta_topLayer-1].Height;
+        else
+            delzkm1 = Lake[Meta_topLayer].Height;
+
+        redg = gprime(Dens_Epil, Lake[Meta_topLayer].Density);
         Energy_RequiredMix = half * (redg * Epi_dz + coef_mix_turb * q_sqr) * delzkm1 ;
 
-    _DBG_MIXER_(2, 1, ++loop_count,     // step 2, in loop, loop_step
+        _DBG_MIXER_(2, 1, ++loop_count,     // step 2, in loop, loop_step
            NumLayers, Epi_botmLayer, Meta_topLayer,
            Energy_AvailableMix, Energy_RequiredMix, redg);
 
@@ -518,8 +524,10 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
         u_eff = u_avg;
 
         //# Thickness of surface layer and next layer down
-        delzkm1 = Lake[Meta_topLayer].Height;
-        if (Meta_topLayer > botmLayer) delzkm1 = Lake[Meta_topLayer].Height - Lake[Meta_topLayer-1].Height;
+        if (Meta_topLayer > botmLayer)
+            delzkm1 = Lake[Meta_topLayer].Height - Lake[Meta_topLayer-1].Height;
+        else
+            delzkm1 = Lake[Meta_topLayer].Height;
         Epi_dz = Lake[surfLayer].Height - Lake[Meta_topLayer].Height;
 
         //# Compute energy available for mixing next layer, Ea
@@ -539,7 +547,7 @@ int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count, int *_Meta_topLay
         dbgprt("Energy_RequiredMix = %10.5f\n",Energy_RequiredMix);
         dbgprt( (Energy_AvailableMix < Energy_RequiredMix) ? "About to break\n":"");
 
-    _DBG_MIXER_(3, 1, ++loop_count,     // step 2, in loop, loop_step
+        _DBG_MIXER_(3, 1, ++loop_count,     // step 2, in loop, loop_step
            NumLayers, Epi_botmLayer, Meta_topLayer,
            Energy_AvailableMix, Energy_RequiredMix, redg);
 
@@ -1006,8 +1014,9 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
     for (wqvidx = 0; wqvidx < Num_WQ_Vars; wqvidx++)
         WQ_VarsM[wqvidx] = _WQ_Vars(wqvidx, surfLayer);
 
-    //Vol_Epi = Lake[surfLayer].LayerVol;
-    //Mass_Epi = Vol_Epi*Dens;
+//  These 2 values are not used
+//  Vol_Epi = Lake[surfLayer].LayerVol;
+//  Mass_Epi = Vol_Epi*Dens;
 
     dbgprt("End KH NumLayers, surfLayer, botmLayer, j1, k1 = %d,%d,%d,%d,%d\n",NumLayers, surfLayer, botmLayer, j1, k1);
 

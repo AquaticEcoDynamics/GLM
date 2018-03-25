@@ -8,9 +8,9 @@ export USE_DL=false
 export WITH_PLOTS=true
 export WITH_XPLOTS=true
 
-export FORTRAN_COMPILER=IFORT
+# export FORTRAN_COMPILER=IFORT
 # NB: At the moment only ifort build actually works
-# export FORTRAN_COMPILER=GFORTRAN
+export FORTRAN_COMPILER=GFORTRAN
 
 # The default is MacPorts : uncomment the next line if you use "homebrew"
 #export HOMEBREW=true

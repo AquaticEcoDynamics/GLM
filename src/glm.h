@@ -120,15 +120,6 @@
     #define CRASH(s) ( { int *x = (int*)1; fputs(s, stderr); *x = 1; } )
   #endif
 
-  void _glm_dbg(const char *fmt, ...);
-  void _glm_dbg_on(void);
-  void _glm_dbg_off(void);
-
-  void _dbg_time(int jday, int iclock);
-  void _dbg_mixer(int d1, int d2, int d3,
-       int bl, int sl, int ebl, int mtl,
-       AED_REAL e1, AED_REAL e2, AED_REAL e3);
-
 //------------------------------------------------------------------------------
 #endif
 
@@ -139,7 +130,7 @@
 #endif
 
 #define sqr(x)  ((x)*(x))
-#if 0
+#if 1
 #define gprime(d1,d2) (((d2)-(d1))*g/(((d1)+(d2))/2.0))
 #else
 # ifndef _FORTRAN_SOURCE_
