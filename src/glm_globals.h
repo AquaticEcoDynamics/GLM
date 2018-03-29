@@ -69,39 +69,39 @@ extern int ncid;
 extern int ice;
 
 /*----------------------------------------------------------------------------*/
-extern int MaxLayers;   //* Maximum number of layers in this sim
-extern int NumLayers;   //* current number of layers
+extern int MaxLayers;   //# Maximum number of layers in this sim
+extern int NumLayers;   //# current number of layers
 extern LakeDataType *Lake;
 
 
 extern AED_REAL Latitude, Longitude;
 
-extern AED_REAL DMin;    //* minimum layer thickness
-extern AED_REAL DMax;    //* maximum layer thickness
-extern AED_REAL VMin;    //* minimum layer volume
-extern AED_REAL VMax;    //* maximum layer volume
+extern AED_REAL DMin;    //# minimum layer thickness
+extern AED_REAL DMax;    //# maximum layer thickness
+extern AED_REAL VMin;    //# minimum layer volume
+extern AED_REAL VMax;    //# maximum layer volume
 
-extern AED_REAL Kw;      //* background light attenuation (m**-1)
+extern AED_REAL Kw;            //# background light attenuation (m**-1)
 
-extern int wq_calc;      //* are we doing water quality calcs
-extern int Num_WQ_Vars;      //* number of water quality variables
-extern int Num_WQ_Ben;       //* number of benthic water quality variables
-extern AED_REAL *WQ_Vars;    //* water quality array : nlayers, nvars
+extern int wq_calc;            //# are we doing water quality calcs
+extern int Num_WQ_Vars;        //# number of water quality variables
+extern int Num_WQ_Ben;         //# number of benthic water quality variables
+extern AED_REAL *WQ_Vars;      //# water quality array : nlayers, nvars
 
-extern int       n_zones;    //* number of sediment zones
-extern AED_REAL *zone_heights;   //* heights for sed_zones
-extern AED_REAL *zone_area;  //* areas for sed_zones
+extern int       n_zones;      //# number of sediment zones
+extern AED_REAL *zone_heights; //# heights for sed_zones
+extern AED_REAL *zone_area;    //# areas for sed_zones
 
 extern CLOGICAL do_restart;
 /*----------------------------------------------------------------------------*/
 
-extern AED_REAL MaxHeight; //* maxmimum height of reservoir
-extern AED_REAL CrestHeight; //* crest height of reservoir
-extern AED_REAL LenAtCrest; //* length of reservoir at crest
-extern AED_REAL WidAtCrest; //* width of reservoir at crest
-extern AED_REAL VolAtCrest; //* volume at crest level
-extern AED_REAL MaxVol; //* volume at max level
-extern AED_REAL Base;       //* bottom elevation of reservoir
+extern AED_REAL MaxHeight;   //# maxmimum height of reservoir
+extern AED_REAL CrestHeight; //# crest height of reservoir
+extern AED_REAL LenAtCrest;  //# length of reservoir at crest
+extern AED_REAL WidAtCrest;  //# width of reservoir at crest
+extern AED_REAL VolAtCrest;  //# volume at crest level
+extern AED_REAL MaxVol;      //# volume at max level
+extern AED_REAL Base;        //# bottom elevation of reservoir
 
 extern AED_REAL Benthic_Light_pcArea;
 extern AED_REAL Benthic_Imin;
@@ -109,11 +109,11 @@ extern AED_REAL MaxArea;
 
 /*----------------------------------------------------------------------------*/
 // INFLOWS & OUTFLOWS
-extern int NumInf;                 //* number of inflows
-extern InflowDataType Inflows[];    //* Array of Inflows
+extern int NumInf;                 //# number of inflows
+extern InflowDataType Inflows[];   //# Array of Inflows
 
-extern int NumOut;                 //* Number of outflows
-extern OutflowDataType Outflows[];  //* Array of Outflows
+extern int NumOut;                 //# Number of outflows
+extern OutflowDataType Outflows[]; //# Array of Outflows
 extern int O2crit;
 extern int O2critdep;
 extern int O2critdays;
@@ -136,18 +136,18 @@ extern AED_REAL mol_diffusivity[];
 
 /*----------------------------------------------------------------------------*/
 // SURFACE
-extern SurfaceDataType SurfData; //* Surface Data
-extern MetDataType MetData;      //* Meteorological data
+extern SurfaceDataType SurfData; //# Surface Data
+extern MetDataType MetData;      //# Meteorological data
 extern AED_REAL runoff_coef;
 extern AED_REAL rain_threshold;
 extern CLOGICAL catchrain;
 extern int atm_stab;         //* Account for non-neutral atmospheric stability
-extern AED_REAL coef_wind_drag;   //* = 0.0013;
-extern AED_REAL coef_wind_chwn;   //* = 0.0013;
-extern AED_REAL CD;               //* = 0.0013;
-extern AED_REAL CE;               //* = 0.0013;
-extern AED_REAL CH;               //* = 0.0013;
-extern int      subdaily;         //* = FALSE;
+extern AED_REAL coef_wind_drag;   //# = 0.0013;
+extern AED_REAL coef_wind_chwn;   //# = 0.0013;
+extern AED_REAL CD;               //# = 0.0013;
+extern AED_REAL CE;               //# = 0.0013;
+extern AED_REAL CH;               //# = 0.0013;
+extern int      subdaily;         //# = FALSE;
 extern int      rad_mode;
 extern int      albedo_mode;
 extern int      cloud_mode;
@@ -159,27 +159,27 @@ extern AED_REAL   *energy_frac;
 extern AED_REAL salt_fall;
 /*----------------------------------------------------------------------------*/
 // MORPHOMETRY
-extern int Nmorph;             //* Number of data points
+extern int Nmorph;                //# Number of data points
 
 extern AED_REAL  MphInc;
-extern AED_REAL *MphLevelArea;    //* area of each layer determined by linear interpolation
-extern AED_REAL *dMphLevelArea;   //* gradients of area between 0.1m layers
-extern AED_REAL *dMphLevelVol;    //* gradients of volume between 0.1m layers
-extern AED_REAL *dMphLevelVolda;  //*
-extern AED_REAL *MphLevelVol;     //* volume of each layer determined by linear interpolation
-extern AED_REAL *MphLevelVoldash; //*
+extern AED_REAL *MphLevelArea;    //# area of each layer determined by linear interpolation
+extern AED_REAL *dMphLevelArea;   //# gradients of area between 0.1m layers
+extern AED_REAL *dMphLevelVol;    //# gradients of volume between 0.1m layers
+extern AED_REAL *dMphLevelVolda;  //#
+extern AED_REAL *MphLevelVol;     //# volume of each layer determined by linear interpolation
+extern AED_REAL *MphLevelVoldash; //#
 
 /*----------------------------------------------------------------------------*/
 // MIXING
 extern AED_REAL vel;
 extern AED_REAL WaveNumSquared;
 extern AED_REAL XMoment1;
-extern AED_REAL einff;   //* change in potential energy (see do_inflows)
-extern AED_REAL coef_mix_KH;    //* Kelvin-Helmholtz billows
-extern AED_REAL coef_mix_conv;  //* convective overturn
-extern AED_REAL coef_mix_shear; //* shear efficiency
-extern AED_REAL coef_mix_turb;  //* unsteady effects
-extern AED_REAL coef_wind_stir; //* wind stirring
+extern AED_REAL einff;          //# change in potential energy (see do_inflows)
+extern AED_REAL coef_mix_KH;    //# Kelvin-Helmholtz billows
+extern AED_REAL coef_mix_conv;  //# convective overturn
+extern AED_REAL coef_mix_shear; //# shear efficiency
+extern AED_REAL coef_mix_turb;  //# unsteady effects
+extern AED_REAL coef_wind_stir; //# wind stirring
 extern AED_REAL coef_mix_hyp;   //# efficiency of hypolimnetic mixing
 
 extern CLOGICAL mobility_off;
@@ -233,7 +233,7 @@ extern int noSecs;
 
 /*----------------------------------------------------------------------------*/
 // DEBUGGING
-extern CLOGICAL no_evap;   //* turn off evaporation
+extern CLOGICAL no_evap;   //# turn off evaporation
 
 
 /******************************************************************************/

@@ -1,4 +1,4 @@
-glm (2.8.0alpha4-0) UNRELEASED; urgency=low
+glm (2.8.0alpha5-0) UNRELEASED; urgency=low
 
   [ Casper Boon ]
   * new version 2.7.0
@@ -7,8 +7,9 @@ glm (2.8.0alpha4-0) UNRELEASED; urgency=low
   * new version 2.8.0alpha1
   * new version 2.8.0alpha2
   * new version 2.8.0alpha4
+  * new version 2.8.0alpha5
 
- -- Casper Boon <casper@eridanus>  Fri, 09 Mar 2018 08:46:28 +0800
+ -- Casper Boon <casper@eridanus>  Mon, 26 Mar 2018 09:36:21 +0800
 
 glm (2.0.4-0) UNRELEASED; urgency=low
 

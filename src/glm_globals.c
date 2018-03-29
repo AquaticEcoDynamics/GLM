@@ -98,8 +98,8 @@ AED_REAL outflow_thick_limit = 100.0;
 
 int NumDif;
 AED_REAL mol_diffusivity[MaxDif];
-// CD is the coef wind drag specified in the config, coef_wind_drag gets set to
-// CD every time around the daily loop, coef_wind_drag is used in the loop
+//# CD is the coef wind drag specified in the config, coef_wind_drag gets set to
+//# CD every time around the daily loop, coef_wind_drag is used in the loop
 AED_REAL coef_wind_drag = 0.0013;
 AED_REAL coef_wind_chwn = 0.0013;
 AED_REAL CD = 0.0013;

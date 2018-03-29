@@ -97,6 +97,8 @@ AED_REAL gprime(AED_REAL rho1, AED_REAL rho2)
 {
 #define GTOLERANCE  1E-7
     AED_REAL tmp = g * (rho2 - rho1) / ((rho1 + rho2) / 2.0);
+    if (tmp < 0)
+        fprintf(stderr, " gprime returns < 0 ( = %.12e) rho1 %.12e rho2 %.12e\n", tmp, rho1, rho2);
     if (fabs(tmp) < GTOLERANCE) {
         if (tmp < 0) return -GTOLERANCE;
         return GTOLERANCE;

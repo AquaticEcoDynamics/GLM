@@ -45,8 +45,9 @@
 #endif
 #endif
 
+#include "glm_debug.h"
+
 char *all_plots_name = NULL;
-static int debug_on = FALSE;
 
 extern char glm_nml_file[];
 extern void run_model(void);
