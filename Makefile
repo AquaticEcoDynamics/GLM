@@ -154,8 +154,9 @@ ifeq ($(AED2),true)
   ifeq ($(USE_DL),true)
     AED2TARGETS=libglm_wq_aed2.${so_ext}
   endif
-endif
 
+  GLM_DEPS+=$(AED2DIR)/lib/libaed2.a
+endif
 
 FLIBS=
 # Select specific compiler bits
@@ -293,7 +294,7 @@ ${moddir}:
 glm: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS)
 	$(CC) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQLIBS) $(FLIBS)
 
-glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS)
+glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS) ${AED2PLS}/lib/libaed2+.a
 	$(CC) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQPLIBS) $(FLIBS)
 
 clean: ${objdir} ${moddir}

@@ -438,9 +438,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "coef_mix_turb",     TYPE_DOUBLE,           &coef_mix_turb     },
           { "coef_mix_shear",    TYPE_DOUBLE,           &coef_mix_shear    },
           { "coef_mix_KH",       TYPE_DOUBLE,           &coef_mix_KH       },
-          { "deep_mixing",       TYPE_INT,              &deep_mixing       },
           { "coef_mix_hyp",      TYPE_DOUBLE,           &coef_mix_hyp      },
-          { "diff",              TYPE_DOUBLE|MASK_LIST, &mol_diffusivity   }, //
+          { "deep_mixing",       TYPE_INT,              &deep_mixing       },
+          { "diff",              TYPE_DOUBLE|MASK_LIST, &mol_diffusivity   },
           { NULL,                TYPE_END,              NULL               }
     };
     NAMELIST light[] = {
@@ -551,10 +551,6 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         split_factor      = lsplit_factor;
     }
     if ( twq_lib != NULL ) strncpy(wq_lib, twq_lib, 128);
-    if (benthic_mode > 1 && n_zones <= 0) {
-        fprintf(stderr, "benthic mode > 1 but no zones defined; reverting to benthic mode 1\n");
-        benthic_mode = 1;
-    }
 
     //-------------------------------------------------
     if ( get_namelist(namlst, time) ) {
@@ -593,7 +589,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( csv_point_nvars > MaxCSVOutVars ) { fprintf(stderr, "csv_point_nvars must be < %d\n", MaxCSVOutVars); exit(1); }
     if ( csv_outlet_nvars > MaxCSVOutVars ) { fprintf(stderr, "csv_outlet_nvars must be < %d\n", MaxCSVOutVars); exit(1); }
 
-    if ( csv_point_frombot == NULL ) {
+    if ( csv_point_frombot == NULL && csv_point_nlevs > 0) {
         // CAB this is a potential source of a memory leak.
         csv_point_frombot = malloc(sizeof(LOGICAL)*csv_point_nlevs);
         for (i = 0; i < csv_point_nlevs; i++) csv_point_frombot[i] = TRUE;
@@ -698,8 +694,6 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 //  sed_temp_peak_doy  = 151;
     if ( get_namelist(namlst, sediment) ) {
         sed_heat_sw = FALSE;
-        sed_reflectivity = malloc(2*sizeof(AED_REAL));
-        sed_reflectivity[0] = 0.;
         fprintf(stderr,"No sediment section, turning off sediment heating\n");
     } else {
         sed_heat_sw = TRUE;
@@ -707,7 +701,30 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[0]);
         printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[1]);
     }
+    if ( sed_reflectivity == NULL ) {
+        if ((i = n_zones) <= 1) i = 2;
+        sed_reflectivity = malloc(i*sizeof(AED_REAL));
+        if (n_zones <= 1) sed_reflectivity[0] = 0.;
+        else {
+            for (i = 0; i < n_zones; i++) sed_reflectivity[i] = 0.;
+        }
+    }
 
+    if (benthic_mode > 1 && n_zones <= 0) {
+        fprintf(stderr, "benthic mode > 1 but no zones defined; reverting to benthic mode 1\n");
+        benthic_mode = 1;
+    }
+/*
+fprintf(stderr, "n_zones %d\n", n_zones);
+for (i = 0; i < n_zones; i++) {
+    fprintf(stderr, "  sed_reflectivity[%d] = %e\n", i, sed_reflectivity[i]);
+    fprintf(stderr, "  sed_temp_mean[%d] = %e\n", i, sed_temp_mean[i]);
+    fprintf(stderr, "  sed_temp_amplitude[%d] = %e\n", i, sed_temp_amplitude[i]);
+    fprintf(stderr, "  sed_temp_peak_doy[%d] = %e\n", i, sed_temp_peak_doy[i]);
+    fprintf(stderr, "  zone_heights[%d] = %e\n", i, zone_heights[i]);
+    fprintf(stderr, "  sed_roughness[%d] = %e\n", i, sed_roughness[i]);
+}
+*/
 
     open_met_file(meteo_fl, snow_sw, rain_sw, timefmt_m);
     config_bird(namlst);
@@ -1164,7 +1181,7 @@ void create_lake(int namlst)
     // and  ksto is the first layer with a positive V
     b = -1;
     for (mi = 0; mi < Nmorph; mi++) {
-    	h_z = (mi+1.0)/MphInc;
+        h_z = (mi+1.0)/MphInc;
 
         while (b != (bsn_vals-2)) {
             b++;

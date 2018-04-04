@@ -546,15 +546,16 @@ SUBROUTINE aed2_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_) &
    ALLOCATE(sed_zones(MaxLayers))
    sed_zones = 0.
 
-   ALLOCATE(z_diag(n_zones, n_vars_diag)) ; z_diag = zero_
-   ALLOCATE(z_diag_hz(n_zones,n_vars_diag_sheet)) ; z_diag_hz = zero_
+   IF (benthic_mode .GT. 1) THEN
+      ALLOCATE(z_diag(n_zones, n_vars_diag)) ; z_diag = zero_
+      ALLOCATE(z_diag_hz(n_zones, n_vars_diag_sheet)) ; z_diag_hz = zero_
 
-
-   !# At this point we have z_cc allocated, so now we can copy the initial values
-   !# from cc benthic vars to it
-   DO i=1,n_zones
-      z_cc(i, n_vars+1:n_vars+n_vars_ben) = cc(1, n_vars+1:n_vars+n_vars_ben)
-   ENDDO
+      !# At this point we have z_cc allocated, so now we can copy the initial values
+      !# from cc benthic vars to it
+      DO i=1,n_zones
+         z_cc(i, n_vars+1:n_vars+n_vars_ben) = cc(1, n_vars+1:n_vars+n_vars_ben)
+      ENDDO
+   ENDIF
 
    precip => MetData%Rain
    evap   => SurfData%Evap
@@ -815,16 +816,16 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
    TYPE (aed2_column_t), INTENT(inout) :: column(:)
    TYPE (aed2_column_t), INTENT(inout) :: column_sed(:)
    INTEGER, INTENT(in) :: wlev, nsed
-   AED_REAL, INTENT(inout) :: flux_pel(:,:) !# (wlev, n_vars)
-   AED_REAL, INTENT(inout) :: flux_atm(:)   !# (n_vars)
-   AED_REAL, INTENT(inout) :: flux_ben(:)   !# (n_vars)
+   AED_REAL, INTENT(inout) :: flux_pel(:,:) !# (wlev, n_vars+n_vars_ben)
+   AED_REAL, INTENT(inout) :: flux_atm(:)   !# (n_vars+n_vars_ben)
+   AED_REAL, INTENT(inout) :: flux_ben(:)   !# (n_vars+n_vars_ben)
    AED_REAL, INTENT(inout) :: flux_zon(:,:) !# (n_zones)
 !
 !LOCALS
    INTEGER :: lev,zon,v_start,v_end,av,sv,sd
    AED_REAL :: scale
-   AED_REAL, DIMENSION(wlev, n_vars)    :: flux_pel_pre
-   AED_REAL, DIMENSION(n_zones, n_vars) :: flux_pel_z
+   AED_REAL, DIMENSION(wlev, n_vars+n_vars_ben)    :: flux_pel_pre
+   AED_REAL, DIMENSION(n_zones, n_vars+n_vars_ben) :: flux_pel_z
    LOGICAL :: splitZone
    TYPE(aed2_variable_t),POINTER :: tvar
 !-------------------------------------------------------------------------------
@@ -878,7 +879,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
          !# They are stored in flux_ben (benthic vars) and flux_pel (water vars)
          flux_pel_pre = flux_pel
 
-!           print*,"Calling ben for zone ",zone_var,zon,z_sed_zones(zon)
+!        print*,"Calling ben for zone ",zone_var,zon,z_sed_zones(zon)
          CALL aed2_calculate_benthic(column_sed, zon)
 
          !# Record benthic fluxes in the zone array
@@ -1317,13 +1318,14 @@ SUBROUTINE aed2_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE
             IF ( tv%sheet ) THEN
                sd = sd + 1
                !# Process and store diagnostic variables defined on horizontal slices of the domain.
-!              IF ( n_zones .GT. 0 ) THEN
-!                 CALL store_nc_array(ncid, externalid(i), XYNT_SHAPE, n_zones, n_zones, array=cc_diag(1:n_zones, sd))
-!              ELSE
+               IF ( n_zones .GT. 0 ) THEN
+                  CALL store_nc_array(ncid, externalid(i), XYNT_SHAPE, n_zones, n_zones, array=cc_diag(1:n_zones, sd))
+               ELSE
                   CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc_diag_hz(sd))
-!              ENDIF
+               ENDIF
 #ifdef PLOTS
                IF ( do_plots .AND. plot_id_sd(sd).GE.0 ) CALL put_glm_val_s(plot_id_sd(sd),cc_diag_hz(sd))
+!IF ( do_plots .AND. plot_id_d(sd).GE.0 ) print*,"PLOT ",d,plot_id_d(sd),cc_diag_hz(sd)
 #endif
             ELSE
                d = d + 1
@@ -1331,6 +1333,7 @@ SUBROUTINE aed2_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE
                CALL store_nc_array(ncid, externalid(i), XYZT_SHAPE, wlev, nlev, array=cc_diag(:, d))
 #ifdef PLOTS
                IF ( do_plots .AND. plot_id_d(d).GE.0 ) CALL put_glm_val(plot_id_d(d), cc_diag(1:wlev, d))
+!IF ( do_plots .AND. plot_id_d(d).GE.0 ) print*,"PLOT ",d,plot_id_d(d),cc_diag(1:3, d)
 #endif
                DO j=1,point_nlevs
                   IF (lvl(j) .GE. 0) THEN ; val_out = cc_diag(lvl(j)+1, d)

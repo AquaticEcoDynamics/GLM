@@ -597,11 +597,11 @@ static int step_3(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_topLayer,
 //      fprintf(stderr, "redg = %.12e Epi_dz = %.12e q_sqr = %.12e delzkm1 = %.12e\n",
 //                                         redg, Epi_dz, q_sqr, delzkm1);
 
-        if (Energy_RequiredMix < 0) {
-            fprintf(stderr, "-ve energy required? (%.12e)\n",Energy_RequiredMix);
+//      if (Energy_RequiredMix < 0) {
+//          fprintf(stderr, "-ve energy required? (%.12e)\n",Energy_RequiredMix);
 //          fprintf(stderr, "redg = %.12e Epi_dz = %.12e q_sqr = %.12e delzkm1 = %.12e\n",
 //                                         redg, Epi_dz, q_sqr, delzkm1);
-        }
+//      }
 
         //# Entrain layer Meta_topLayer
         add_this_layer(&VMsum,&Tsum,&Ssum,&Mass_Epi,&MeanTemp,&MeanSalt,&Dens_Epil,Meta_topLayer);

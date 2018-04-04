@@ -97,7 +97,7 @@ SUBROUTINE wq_set_glm_zones(z_heights, numZones, numVars, numBenV) BIND(C, name=
    nvars = numVars
    nbenv = numBenV
    ALLOCATE(z_cc(n_zones, numVars+numBenV))
-   z_cc = 900.!   !MH if i intiialise this in iinit then nothing happens so doing it here.
+   z_cc = 900.!   !MH if i initialise this in init then nothing happens so doing it here.
    ALLOCATE(zrad(n_zones))
    ALLOCATE(zsalt(n_zones))
    ALLOCATE(ztemp(n_zones))
@@ -226,21 +226,25 @@ SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
 
       IF (splitZone) THEN
          scale = (zone_heights(zon-1) - zz(lev-1)) / (zz(lev) - zz(lev-1))
-         x_diag(lev,:) = z_diag(zon,:) * scale
+         WHERE(z_diag(zon,:) /= 0.) &
+            x_diag(lev,:) = z_diag(zon,:) * scale
          x_cc(lev,v_start:v_end) = z_cc(zon,v_start:v_end) * scale
 
          zon = zon - 1
 
-         x_diag(lev,:) = x_diag(lev,:) + (z_diag(zon,:) * (1.0 - scale))
+         WHERE(z_diag(zon,:) /= 0.) &
+            x_diag(lev,:) = x_diag(lev,:) + (z_diag(zon,:) * (1.0 - scale))
          x_cc(lev,v_start:v_end) = x_cc(lev,v_start:v_end) + &
                                    z_cc(zon,v_start:v_end) * (1.0 - scale)
       ELSE
-         x_diag(lev,:) = z_diag(zon,:)
+         WHERE(z_diag(zon,:) /= 0.) &
+            x_diag(lev,:) = z_diag(zon,:)
          x_cc(lev,v_start:v_end) = z_cc(zon,v_start:v_end)
       ENDIF
    ENDDO
    DO lev=1,n_zones
-      x_diag_hz(v_start:v_end) = x_diag_hz(v_start:v_end) + z_diag_hz(lev,1:nbenv)
+!     x_diag_hz(v_start:v_end) = x_diag_hz(v_start:v_end) + z_diag_hz(lev,1:nbenv)
+      x_diag_hz = x_diag_hz + z_diag_hz(lev,:)
    ENDDO
 END SUBROUTINE copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -273,7 +277,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
       ENDIF
 
       ! Pelagic variables need zonifying, in case benthic people want them
-      ! Note that this should not be done on benthic vars becasue it will
+      ! Note that this should not be done on benthic vars because it will
       ! introduce errors in z_cc (split layers)
       ! Ideally this average would be based on volume weighting
 

@@ -131,7 +131,7 @@
 
 #define sqr(x)  ((x)*(x))
 #if 1
-#define gprime(d1,d2) (((d2)-(d1))*g/(((d1)+(d2))/2.0))
+#define gprime(d1,d2) fabs(((d2)-(d1))*g/(((d1)+(d2))/2.0))
 #else
 # ifndef _FORTRAN_SOURCE_
   AED_REAL gprime(AED_REAL rho1, AED_REAL rho2);
