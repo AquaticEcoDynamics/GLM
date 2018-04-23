@@ -45,8 +45,8 @@
 #define d_50  80e-6
 #define Ks    ( 2.5*d_50 )
 
-statis AED_REAL Hs = 0., T = 0., L = 0.;
-statis AED_REAL BottomStress = 0.;
+AED_REAL Hs = 0., T = 0., L = 0.;
+static AED_REAL BottomStress = 0.;
 
 #define DEBUG_STRESS  0
 #define DEBUG_STRESS_CSV  0
