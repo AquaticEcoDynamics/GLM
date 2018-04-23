@@ -15,7 +15,7 @@ Building requires :
 
       Or you can use Homebrew - http://brew.sh/
 
-             brew install homebrew/science/netcdf
+             brew install netcdf
 
    4) To build the GUI you will need libgd - this is available through MacPorts
 
@@ -46,3 +46,9 @@ Note:
     GLM source includes a script - "macpkg.sh" to include non-standard libraries
     into the glm.app binary.  This script defaults to use for MacPorts at the moment. To change
     to homebrew edit the GLM_CONFIG file
+
+Note:
+   GLM does not currently build with gfortran. gfortran v8 after 20170604 will build correctly
+   so if you are desperate enough you can download the latest snapshot of gcc8 and build that
+   to use, or wait for either port or brew to include gcc8 in there selections
+   (port does have gcc8 but only an earlier version)

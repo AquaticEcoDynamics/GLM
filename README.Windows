@@ -14,11 +14,11 @@ For fetching the sources it may be useful to have the command line git tools ins
 You will also need netcdf and some other 3rd party libraries. They are also available on our web page at :
 
 netcdf :
-  http://aed.see.uwa.edu.au/research/models/Extras/WinLibs.zip
+  http://aquatic.science.uwa.edu.au/research/models/Extras/WinLibs.zip
 
 graphics libs :
-  http://aed.see.uwa.edu.au/research/models/Extras/additions-vs2010.zip
+  http://aquatic.science.uwa.edu.au/research/models/Extras/additions-vs2010.zip
 or
-  http://aed.see.uwa.edu.au/research/models/Extras/additions-vs2015.zip
+  http://aquatic.science.uwa.edu.au/research/models/Extras/additions-vs2015.zip
 
 depending on which vs you have

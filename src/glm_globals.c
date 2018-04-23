@@ -4,10 +4,10 @@
  *                                                                            *
  * Developed by :                                                             *
  *     AquaticEcoDynamics (AED) Group                                         *
- *     School of Earth & Environment                                          *
+ *     School of Agriculture and Environment                                  *
  *     The University of Western Australia                                    *
  *                                                                            *
- *     http://aed.see.uwa.edu.au/                                             *
+ *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
  * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
@@ -221,7 +221,8 @@ AED_REAL *zone_area = NULL;
 //------------------------------------------------------------------------------
 //  These for debugging
 //------------------------------------------------------------------------------
-CLOGICAL no_evap = FALSE;
+CLOGICAL dbg_mix = FALSE;   //# debug output from mixer
+CLOGICAL no_evap = FALSE;   //# turn off evaporation
 
 void set_c_wqvars_ptr(AED_REAL *iwqv) { WQ_Vars = iwqv; }
 

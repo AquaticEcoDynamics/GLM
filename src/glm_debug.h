@@ -4,10 +4,10 @@
  *                                                                            *
  * Developed by :                                                             *
  *     AquaticEcoDynamics (AED) Group                                         *
- *     School of Earth & Environment                                          *
+ *     School of Agriculture and Environment                                  *
  *     The University of Western Australia                                    *
  *                                                                            *
- *     http://aed.see.uwa.edu.au/                                             *
+ *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
  * Copyright 2018 -  The University of Western Australia                      *
  *                                                                            *
@@ -30,9 +30,16 @@
 #ifndef _GLM_DEBUG_H_
 #define _GLM_DEBUG_H_
 
+#define _DBG_BEFORE_  0
+#define _DBG_LOOP_    1
+#define _DBG_AFTER_   2
 
-#define _DBG_MIXER_(d1, d2, d3, nl, ebl, mtl, e1, e2, e3) { \
-  _dbg_mixer_s(d1, d2, d3, nl, ebl, mtl, e1, e2, e3);       \
+#define _DBG_MIXER_INIT_()  _dbg_mix_init_fields()
+#define _DBG_MIXER_(d1, d2) {          \
+  _dbg_mixer_s(d1, d2, Epi_botmLayer, Meta_topLayer);  \
+  _dbg_mixer_a(Energy_AvailableMix);   \
+  _dbg_mixer_a(Energy_RequiredMix);    \
+  _dbg_mixer_a(redg);                  \
   _dbg_mixer_a(Epi_dz);                \
   _dbg_mixer_a(MeanSalt);              \
   _dbg_mixer_a(MeanTemp);              \
@@ -101,9 +108,7 @@
 void _dbg_mix_init_fields(void);
 void _dbg_mix_add_field(const char *f);
 void _dbg_time(int jday, int iclock);
-void _dbg_mixer_s(int d1, int d2, int d3,
-       int nl, int ebl, int mtl,
-       AED_REAL e1, AED_REAL e2, AED_REAL e3);
+void _dbg_mixer_s(int d1, int d2, int ebl, int mtl);
 void _dbg_mixer_a(AED_REAL e1);
 void _dbg_mixer_e(void);
 void _mix_dbg_on(void);
@@ -113,7 +118,6 @@ void _glm_dbg_on(void);
 void _glm_dbg_off(void);
 
 #if DEBUG
-//#if 1
 
 void _glm_dbg(const char *fmt, ...);
 void _DumpLake(int where, int extra);
@@ -121,10 +125,16 @@ void _DumpLake(int where, int extra);
 #else
 
 //#define _dbg_time(jday, iclock)
-//#define _DBG_MIXER_(d1, d2, d3, nl, ebl, mtl, e1, e2, e3)
 #define _glm_dbg(...)
 #define _DumpLake(where, extra)
 
+#endif
+
+#if 0
+#undef _DBG_MIXER_
+#undef _DBG_MIXER_INIT_
+#define _DBG_MIXER_INIT_()
+#define _DBG_MIXER_(d1, d2)
 #endif
 
 #endif

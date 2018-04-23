@@ -4,10 +4,10 @@
  *                                                                            *
  * Developed by :                                                             *
  *     AquaticEcoDynamics (AED) Group                                         *
- *     School of Earth & Environment                                          *
+ *     School of Agriculture and Environment                                  *
  *     The University of Western Australia                                    *
  *                                                                            *
- *     http://aed.see.uwa.edu.au/                                             *
+ *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
  * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
@@ -29,6 +29,8 @@
  ******************************************************************************/
 #ifndef _GLM_UTIL_H_
 #define _GLM_UTIL_H_
+
+#include "glm.h"
 
 AED_REAL zenith_angle(AED_REAL lon, AED_REAL lat, int day, int iclock, AED_REAL TZ);
 

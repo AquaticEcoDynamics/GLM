@@ -4,10 +4,10 @@
  *                                                                            *
  * Developed by :                                                             *
  *     AquaticEcoDynamics (AED) Group                                         *
- *     School of Earth & Environment                                          *
+ *     School of Agriculture and Environment                                  *
  *     The University of Western Australia                                    *
  *                                                                            *
- *     http://aed.see.uwa.edu.au/                                             *
+ *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
  * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
@@ -65,7 +65,8 @@
 
 /*============================================================================*/
 
-AED_REAL DepMX   = 0.;
+//# DepMX is the layer height of the meta top on the previous timestep.
+static   AED_REAL DepMX   = 0.;
 
 static   AED_REAL Epi_dz;     //# Thickness of epilimnion [m]
 static   AED_REAL MeanSalt;   //# MeanSalt ... mean salinity
@@ -119,6 +120,27 @@ extern AED_REAL coef_mix_KH,     //# Kelvin-Helmholtz billowing effects
                 coef_mix_turb;   //# unsteady effects
 
 /*============================================================================*/
+/* These are defined here as constants, the local versions in any subroutine  *
+ * will be used if they exist, but where they dont we get "missing" - this is *
+ * for the mixer debugging.                                                   *
+ * Also some local versions of these may be initialised to MISVAL if they are *
+ * not set before debugger calls.                                             *
+ *----------------------------------------------------------------------------*/
+static const int Epi_botmLayer = -99, Meta_topLayer = -99;
+static const AED_REAL Energy_RequiredMix = MISVAL, redg = MISVAL,
+                      Vol_Epi = MISVAL, Epi_Thick = MISVAL, dMdz = MISVAL,
+                      q_cub = MISVAL, LengthAtThermo = MISVAL,
+                      Hypl_Thick = MISVAL, Dens_Hypl = MISVAL,
+                      Energy_Conv = MISVAL, Energy_WindStir = MISVAL,
+                      Energy_TotStir = MISVAL, Energy_Deepen = MISVAL,
+                      Energy_Shear = MISVAL, del_u = MISVAL, u_avgSQ = MISVAL,
+                      u_eff = MISVAL, u0_old = MISVAL, u_avg_old = MISVAL,
+                      deltaKH = MISVAL, del_deltaKH = MISVAL, GPEFFC = MISVAL,
+                      accn = MISVAL, zsml_tilda = MISVAL, Slope = MISVAL,
+                      Epilimnion_Mid_Ht = MISVAL, q_sqr = MISVAL,
+                      IntWaveSpeed = MISVAL, delzkm1 = MISVAL,
+                      Vol_Hypl = MISVAL, Hypl_Mass = MISVAL;
+/*============================================================================*/
 
 
 /******************************************************************************
@@ -132,8 +154,8 @@ extern AED_REAL coef_mix_KH,     //# Kelvin-Helmholtz billowing effects
  *                                                         [RETURNED]         *
  *                                                                            *
  ******************************************************************************/
-static int step_1(int *_Epi_botmLayer, int *_Meta_topLayer, AED_REAL *_Dens_Epil,
-                                                  AED_REAL *_Epilimnion_Mid_Ht)
+static int convective_overturn(int *_Epi_botmLayer, int *_Meta_topLayer,
+                             AED_REAL *_Dens_Epil, AED_REAL *_Epilimnion_Mid_Ht)
 {
     //# Epilimnion variables
     AED_REAL Dens_Epil = 0.;     //# Mean epilimnion density [kg/m3]
@@ -141,13 +163,12 @@ static int step_1(int *_Epi_botmLayer, int *_Meta_topLayer, AED_REAL *_Dens_Epil
     int Epi_botmLayer = surfLayer;   //# Index for bottom layer of epilimnion
     int i;
 
+    _DBG_MIXER_(1, _DBG_BEFORE_);
     /**************************************************************************
      *                                                                        *
-     * STEP 1 - CONVECTIVE OVERTURN                                           *
-     *                                                                        *
-     * Loop from bottom to surface layer and determine the density of all layer
-     * volume from layer Epi_botmLayer and above and check if greater than    *
-     * density of next layer down if it is then have reached bottom of        *
+     * Loop from bottom to surface layer and determine the density of all     *
+     * layers from Epi_botmLayer and above and check if greater than          *
+     * density of next layer down, if it is then have reached bottom of       *
      * epilimnion and break from loop.                                        *
      *                                                                        *
      * This is done following algorithm in Imberger & Patterson (1981) p326   *
@@ -173,6 +194,7 @@ static int step_1(int *_Epi_botmLayer, int *_Meta_topLayer, AED_REAL *_Dens_Epil
             ZeroMom  = ZeroMom  + tRho;
             FirstMom = FirstMom + tRho * Lake[Epi_botmLayer].MeanHeight;
         }
+        _DBG_MIXER_(1, _DBG_LOOP_);
     }
 
     /**************************************************************************
@@ -213,6 +235,7 @@ static int step_1(int *_Epi_botmLayer, int *_Meta_topLayer, AED_REAL *_Dens_Epil
         return DEEPENED_BOT;
     }
 
+    _DBG_MIXER_(1, _DBG_AFTER_);
     *_Epi_botmLayer = Epi_botmLayer;
     return 0;
 }
@@ -222,20 +245,16 @@ static int step_1(int *_Epi_botmLayer, int *_Meta_topLayer, AED_REAL *_Dens_Epil
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
+#if 1
+#define required_energy(redg, Epi_dz, delzkm1, q_sqr) \
+    (half * ((redg) * (Epi_dz) + coef_mix_turb * (q_sqr)) * (delzkm1))
+#else
 static AED_REAL required_energy(AED_REAL redg, AED_REAL Epi_dz, AED_REAL delzkm1, AED_REAL q_sqr)
 {
     AED_REAL energy = half * (redg * Epi_dz + coef_mix_turb * q_sqr) * delzkm1;
-/*
-    if ( energy < zero ) {
-        fprintf(stderr, "  ***  -ve energy required ***\n");
-        fprintf(stderr, "  ***  redg %.12e\n", redg);
-        fprintf(stderr, "  ***  Epi_dz %.12e\n", Epi_dz);
-        fprintf(stderr, "  ***  delzkm1 %.12e\n", delzkm1);
-        fprintf(stderr, "  ***  q_sqr %.12e\n", q_sqr);
-    }
-*/
     return energy;
 }
+#endif
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
@@ -252,10 +271,11 @@ static AED_REAL required_energy(AED_REAL redg, AED_REAL Epi_dz, AED_REAL delzkm1
  * _redg      //# Reduced gravity; g' or g prime           [RETURNED]         *
  *                                                                            *
  ******************************************************************************/
-static int step_2(int *_Epi_botmLayer, int *_Meta_topLayer, AED_REAL *_Dens_Epil,
+static int stirring(int *_Epi_botmLayer, int *_Meta_topLayer, AED_REAL *_Dens_Epil,
                  AED_REAL _Epilimnion_Mid_Ht, AED_REAL *_q_sqr, AED_REAL *_redg)
 {
-    AED_REAL Energy_RequiredMix; //# Energy required to entrain next layer into the epilimnion
+    AED_REAL Energy_RequiredMix = MISVAL;
+                                 //# Energy required to entrain next layer into the epilimnion
 
     //# Epilimnion variables
     AED_REAL Dens_Epil = *_Dens_Epil;  //# Mean epilimnion density [kg/m3]
@@ -264,7 +284,7 @@ static int step_2(int *_Epi_botmLayer, int *_Meta_topLayer, AED_REAL *_Dens_Epil
     AED_REAL q_cub;              //# q^3 ...  q*3 = w*3 + C_w u*3
 
     //* Metalimnion variables
-    AED_REAL delzkm1;            //# Delta height (layer thickness) of layer getting entrained
+    AED_REAL delzkm1 = MISVAL;   //# Delta height (layer thickness) of layer getting entrained
 
     //# Energy vars
     AED_REAL Energy_Conv;        //# Energy released by convective overturn (Kraus Turner)
@@ -272,19 +292,18 @@ static int step_2(int *_Epi_botmLayer, int *_Meta_topLayer, AED_REAL *_Dens_Epil
     AED_REAL Energy_TotStir;     //# Total energy available for stirring
 
     //# Velocity vars (for shear calculation)
-    AED_REAL redg;               //# Reduced gravity; g' or g prime
+    AED_REAL redg = MISVAL;      //# Reduced gravity; g' or g prime
 
     int Meta_topLayer = *_Meta_topLayer; //# Index for top layer of hypolimnion
     int Epi_botmLayer = *_Epi_botmLayer; //# Index for bottom layer of epilimnion
 
     /**************************************************************************
      *                                                                        *
-     * STEP 2 - STIRRING                                                      *
-     *                                                                        *
      * This algorithm computes the total energy available for stirring and    *
      * adds the amount to any previous amount that is stored up               *
      * This includes energy from w_star (above) plus wind stirring energy     *
      * Note coef_wind_stir is equivalent to eta                               *
+     *                                                                        *
      **************************************************************************/
     //# Update the delta mass vertical gradient (Eq 32 in Imberger and Patterson)
     dMdz = (FirstMom-Epilimnion_Mid_Ht*ZeroMom);
@@ -308,6 +327,7 @@ static int step_2(int *_Epi_botmLayer, int *_Meta_topLayer, AED_REAL *_Dens_Epil
     //# Add stirring energy to available mixing energy
     Energy_AvailableMix += Energy_TotStir;
 
+    _DBG_MIXER_(2, _DBG_BEFORE_);
     /**************************************************************************
      * Now loop through layers using the stirring energy to mix. Computes     *
      * the energy required to mix next layer and compares with available      *
@@ -324,7 +344,6 @@ static int step_2(int *_Epi_botmLayer, int *_Meta_topLayer, AED_REAL *_Dens_Epil
 
         redg = gprime(Dens_Epil, Lake[Meta_topLayer].Density);
         Energy_RequiredMix = required_energy(redg, Epi_dz, delzkm1, *_q_sqr);
-//if (Energy_RequiredMix < 0) { fprintf(stderr, "  -ve E @ 1\n"); break; }
 
         //# Not enough energy to entrain any more layers into the mixed layer
         if (Energy_AvailableMix < Energy_RequiredMix) break;
@@ -336,6 +355,7 @@ static int step_2(int *_Epi_botmLayer, int *_Meta_topLayer, AED_REAL *_Dens_Epil
         add_this_layer(&VMsum,&Tsum,&Ssum,&Mass_Epi,&MeanTemp,&MeanSalt,&Dens_Epil,Meta_topLayer);
         average_layer(&Meta_topLayer,&Epi_botmLayer,MeanTemp,MeanSalt,Dens_Epil);
 
+        _DBG_MIXER_(2, _DBG_LOOP_);
         //# Now remove energy used to entrain k-1 layer into the mixed layer
         Energy_AvailableMix -= Energy_RequiredMix;
         if (Meta_topLayer < botmLayer) {
@@ -347,6 +367,7 @@ static int step_2(int *_Epi_botmLayer, int *_Meta_topLayer, AED_REAL *_Dens_Epil
         }
     }
 
+    _DBG_MIXER_(2, _DBG_AFTER_);
     *_Dens_Epil = Dens_Epil; *_Meta_topLayer = Meta_topLayer;
     *_Epi_botmLayer = Epi_botmLayer;
     *_redg = redg;
@@ -390,12 +411,13 @@ static AED_REAL shear_energy(AED_REAL redg, AED_REAL u_eff, AED_REAL delzkm1,
  * _redg      //# Reduced gravity; g' or g prime           [INPUT]            *
  *                                                                            *
  ******************************************************************************/
-static int step_3(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_topLayer,
+static int shear_production(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_topLayer,
                AED_REAL *_Dens_Epil, const AED_REAL q_sqr, const AED_REAL _redg)
 {
     const AED_REAL tdfac = 8.33E-4;
 
-    AED_REAL Energy_RequiredMix; //# Energy required to entrain next layer into the epilimnion
+    AED_REAL Energy_RequiredMix = MISVAL;
+                                 //# Energy required to entrain next layer into the epilimnion
     AED_REAL Vol_Epi;            //# Volume of Epilimnion (surface layer after Kelvin-Helmholtz) m3
 
     //# Epilimnion variables
@@ -405,7 +427,7 @@ static int step_3(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_topLayer,
     //* Metalimnion variables
     AED_REAL LengthAtThermo;     //# Effective length of lake at thermocline
     AED_REAL IntWaveSpeed;       //# Wave speed along the thermocline for a two layer fluid
-    AED_REAL delzkm1;            //# Delta height (layer thickness) of layer getting entrained
+    AED_REAL delzkm1 = MISVAL;   //# Delta height (layer thickness) of layer getting entrained
 
     //# Hypolimnion variables
     AED_REAL Hypl_Thick;         //# Effective thickness of the hypolimnion (Volume/Area)
@@ -416,7 +438,7 @@ static int step_3(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_topLayer,
     //# Velocity vars (for shear calculation)
     AED_REAL redg = _redg;       //# Reduced gravity; g' or g prime (passed from stage2)
     AED_REAL u_avgSQ;            //# Average shear velocity (u_b)
-    AED_REAL u_eff;              //# Effective velocity
+    AED_REAL u_eff = MISVAL;     //# Effective velocity
     AED_REAL u0_old;             //# Previous base velocity
     AED_REAL u_avg_old;          //# Previous avg velocity computed
     AED_REAL deltaKH;            //# deltaKH : K-H Billow length scale
@@ -435,8 +457,6 @@ static int step_3(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_topLayer,
 
     /**************************************************************************
      *                                                                        *
-     * STEP 3 - SHEAR PRODUCTION                                              *
-     *                                                                        *
      * Calculate parameters needed for momentum/shear computation             *
      * IntWaveSpeed is wave speed along the thermocline for a two layer fluid *
      * Epi_Thick, Hypl_Thick are the thicknesses of the epilimnion and        *
@@ -444,6 +464,7 @@ static int step_3(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_topLayer,
      * PrevThick is the mixed layer thickness from previous time step         *
      * Dens_Hypl is the mean hypolimnion density                              *
      * Dens_Epi is the epilimnion density                                     *
+     *                                                                        *
      **************************************************************************/
 
     //# Calculate Kraus-Turner depth (change in SML depth over dt)
@@ -565,9 +586,7 @@ static int step_3(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_topLayer,
     //# Now undergo deepening loop for shear production
     del_u = zero;
 
-//  fprintf(stderr, "before deepening loop for shear production Energy = %.12f gPrimeTwoLayer %.12e\n",
-//                                                                Energy_AvailableMix, gPrimeTwoLayer);
-
+    _DBG_MIXER_(3, _DBG_BEFORE_);
     while (TRUE) {
 //  while (gPrimeTwoLayer > 1E-4) {
 //  while (FALSE) {
@@ -588,20 +607,10 @@ static int step_3(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_topLayer,
 
         //# Compute energy required to entrain next layer, Er
         Energy_RequiredMix = required_energy(redg, Epi_dz, delzkm1, q_sqr);
-//if (Energy_RequiredMix < 0) { fprintf(stderr, "  -ve E @ 2\n"); break; }
 
         //# Compare energy available with energy required
         //# If there is insufficient energy to deepen then break
         if (Energy_AvailableMix < Energy_RequiredMix) break;
-
-//      fprintf(stderr, "redg = %.12e Epi_dz = %.12e q_sqr = %.12e delzkm1 = %.12e\n",
-//                                         redg, Epi_dz, q_sqr, delzkm1);
-
-//      if (Energy_RequiredMix < 0) {
-//          fprintf(stderr, "-ve energy required? (%.12e)\n",Energy_RequiredMix);
-//          fprintf(stderr, "redg = %.12e Epi_dz = %.12e q_sqr = %.12e delzkm1 = %.12e\n",
-//                                         redg, Epi_dz, q_sqr, delzkm1);
-//      }
 
         //# Entrain layer Meta_topLayer
         add_this_layer(&VMsum,&Tsum,&Ssum,&Mass_Epi,&MeanTemp,&MeanSalt,&Dens_Epil,Meta_topLayer);
@@ -629,6 +638,7 @@ static int step_3(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_topLayer,
         del_deltaKH = 2.0*coef_mix_KH*u_avg*del_u/(redg);
 
         u0 = u_f;
+        _DBG_MIXER_(3, _DBG_LOOP_);
     }
 
     //# Here if insufficient energy to entrain next layer
@@ -637,6 +647,7 @@ static int step_3(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_topLayer,
     Thermocline_Height = Lake[Meta_topLayer].Height;
     gPrimeTwoLayer = GPEFFC / Epi_Thick;
 
+    _DBG_MIXER_(3, _DBG_AFTER_);
     *_Dens_Epil = Dens_Epil; *_Meta_topLayer = Meta_topLayer;
     *_Epi_botmLayer = Epi_botmLayer;
     return 0;
@@ -939,9 +950,7 @@ static int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count,
 
 /*----------------------------------------------------------------------------*/
 
-#if DEBUG
-    _dbg_mix_init_fields();
-#endif
+    _DBG_MIXER_INIT_();
 
     /**************************************************************************
      * Initialise                                                             *
@@ -962,24 +971,37 @@ static int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count,
      * Calculate shear velocity U*, U*^2 and U*^3                             *
      **************************************************************************/
     // CAB - need to debug this.
+#if 0
     U_star = coef_wind_drag * sqrt(WindSpeedX*WindSpeedX);
-    // U_star = sqrt( coef_wind_drag * WindSpeedX * WindSpeedX );
     U_star_sqr = U_star*U_star;        //# U*^2 handy in mixing calcs
+//fprintf(stderr, " *** %.8e %.8e\n", U_star, coef_wind_drag);
+#else
+    U_star_sqr = coef_wind_drag * WindSpeedX * WindSpeedX;   //# U*^2 handy in mixing calcs
+    U_star = sqrt( U_star_sqr );
+//fprintf(stderr, " *** %.8e %.8e\n", U_star, coef_wind_drag);
+#endif
 
-//  U_star_sqr = coef_wind_drag * WindSpeedX * WindSpeedX;   //# U*^2 handy in mixing calcs
-//  U_star = sqrt( U_star_sqr );
     U_star_cub = U_star*U_star*U_star; //# U*^3 handy in mixing calcs
 
-    ret = step_1(&Epi_botmLayer, _Meta_topLayer, _Dens_Epil, &Epilimnion_Mid_Ht);
+    /**************************************************************************
+     * STEP 1 - CONVECTIVE OVERTURN                                           *
+     **************************************************************************/
+    ret = convective_overturn(&Epi_botmLayer, _Meta_topLayer, _Dens_Epil, &Epilimnion_Mid_Ht);
     if ( ret != 0 ) return ret;
-    ret = step_2(&Epi_botmLayer, _Meta_topLayer, _Dens_Epil, Epilimnion_Mid_Ht, &q_sqr, &redg);
+    /**************************************************************************
+     * STEP 2 - STIRRING                                                      *
+     **************************************************************************/
+    ret = stirring(&Epi_botmLayer, _Meta_topLayer, _Dens_Epil, Epilimnion_Mid_Ht, &q_sqr, &redg);
     if ( ret != 0 ) return ret;
 
     //# Cutoff shear production if thermocline occurs below bottom
     if (Lake[*_Meta_topLayer].Height <= 0.)
         return MOMENTUM_CUT;
 
-    ret = step_3(Mixer_Count, &Epi_botmLayer, _Meta_topLayer, _Dens_Epil, q_sqr, redg);
+    /**************************************************************************
+     * STEP 3 - SHEAR PRODUCTION                                              *
+     **************************************************************************/
+    ret = shear_production(Mixer_Count, &Epi_botmLayer, _Meta_topLayer, _Dens_Epil, q_sqr, redg);
     if ( ret != 0 ) return ret;
 
     Meta_topLayer = *_Meta_topLayer;
@@ -1021,6 +1043,16 @@ static int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count,
 
     //# All available energy used, reset mixing model step count
     return MOMENTUM_CUT;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
+void init_mixer()
+{
+    DepMX = Lake[surfLayer-1].Height;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

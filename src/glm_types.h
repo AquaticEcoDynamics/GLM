@@ -6,10 +6,10 @@
  *                                                                            *
  * Developed by :                                                             *
  *     AquaticEcoDynamics (AED) Group                                         *
- *     School of Earth & Environment                                          *
+ *     School of Agriculture and Environment                                  *
  *     The University of Western Australia                                    *
  *                                                                            *
- *     http://aed.see.uwa.edu.au/                                             *
+ *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
  * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
@@ -159,12 +159,12 @@ typedef char filname[80];
        AED_REAL Light;           // solar radiation over water layer depths
        AED_REAL ExtcCoefSW;      // light extinction coefficient
 
-       AED_REAL Vol1;
-       AED_REAL Epsilon;
+       AED_REAL Vol1;            // Cumulative volume to this layer top
+       AED_REAL Epsilon;         // Diffusivity
 
        AED_REAL Umean;           // Mean velocity
        AED_REAL Uorb;            // Maximum orbital velocity
-       AED_REAL Ucur;            // Current velocity
+//     AED_REAL Ucur;            // Current velocity
        AED_REAL LayerStress;     // Layer Stress
    } LakeDataType;
 

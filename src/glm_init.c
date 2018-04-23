@@ -4,10 +4,10 @@
  *                                                                            *
  * Developed by :                                                             *
  *     AquaticEcoDynamics (AED) Group                                         *
- *     School of Earth & Environment                                          *
+ *     School of Agriculture and Environment                                  *
  *     University of Western Australia                                        *
  *                                                                            *
- *     http://aed.see.uwa.edu.au/                                             *
+ *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
  * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
@@ -490,6 +490,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     };
     NAMELIST debugging[] = {
           { "debugging",         TYPE_START,            NULL               },
+          { "debug_mixer",       TYPE_BOOL,             &dbg_mix           },
           { "disable_evap",      TYPE_BOOL,             &no_evap           },
           { NULL,                TYPE_END,              NULL               }
     };
@@ -707,6 +708,28 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         if (n_zones <= 1) sed_reflectivity[0] = 0.;
         else {
             for (i = 0; i < n_zones; i++) sed_reflectivity[i] = 0.;
+        }
+    }
+    /**************************************************************************
+     * If there are zones and these were not defined in the config they will  *
+     * be NULL and access will cause segfault.                                *
+     **************************************************************************/
+    if ( n_zones > 0 ) {
+        if (sed_roughness == NULL) {
+            sed_roughness = malloc(n_zones*sizeof(AED_REAL));
+            memset(sed_roughness, 0, n_zones*sizeof(AED_REAL));
+        }
+        if (sed_temp_mean == NULL) {
+            sed_temp_mean = malloc(n_zones*sizeof(AED_REAL));
+            memset(sed_temp_mean, 0, n_zones*sizeof(AED_REAL));
+        }
+        if (sed_temp_amplitude == NULL) {
+            sed_temp_amplitude = malloc(n_zones*sizeof(AED_REAL));
+            memset(sed_temp_amplitude, 0, n_zones*sizeof(AED_REAL));
+        }
+        if (sed_temp_peak_doy == NULL) {
+            sed_temp_peak_doy = malloc(n_zones*sizeof(AED_REAL));
+            memset(sed_temp_peak_doy, 0, n_zones*sizeof(AED_REAL));
         }
     }
 

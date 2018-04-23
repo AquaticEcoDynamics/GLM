@@ -4,10 +4,10 @@
  *                                                                            *
  * Developed by :                                                             *
  *     AquaticEcoDynamics (AED) Group                                         *
- *     School of Earth & Environment                                          *
+ *     School of Agriculture and Environment                                  *
  *     The University of Western Australia                                    *
  *                                                                            *
- *     http://aed.see.uwa.edu.au/                                             *
+ *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
  * Copyright 2018 -  The University of Western Australia                      *
  *                                                                            *
@@ -43,7 +43,7 @@
 
 
 static int debug_on = FALSE;
-static int dbg_mix  = FALSE;
+static int ldbg_mix  = FALSE;
 
 #if DEBUG
 
@@ -84,6 +84,7 @@ static int fields_inited = 0;
 
 void _dbg_mix_init_fields()
 {
+    if (! dbg_mix) return;
     if (fields_inited) return;
     _dbg_mix_add_field(",Epi_dz");
     _dbg_mix_add_field(",MeanSalt");
@@ -157,12 +158,12 @@ void _dbg_mix_str(const char *fmt, ...)
 {
     va_list nap;
 
-    if ( ! dbg_mix ) return;
+    if ( ! ldbg_mix ) return;
     if ( mixcsv == NULL ) {
         mixcsv = fopen("glm_mixer.csv", "w");
-        if ( mixcsv == NULL ) dbg_mix = 0;
+        if ( mixcsv == NULL ) ldbg_mix = 0;
         else fprintf(mixcsv,
-         "time,step,where,loop,bottom,surface,epi_bot,meta_top,SurfTemp,Energy_AvailableMix,Energy_RequiredMix,redg%s\n",
+         "time,step,where,loop,num_layers,epi_bot,meta_top,SurfTemp,Energy_AvailableMix,Energy_RequiredMix,redg%s\n",
             (More_Fields==NULL)?"":More_Fields);
     }
 
@@ -172,6 +173,7 @@ void _dbg_mix_str(const char *fmt, ...)
     vfprintf(mixcsv, fmt, nap);
     va_end(nap);
 }
+
 void _dbg_mix_add_field(const char *f)
 {   int olen = (More_Fields==NULL)?0:strlen(More_Fields);
     char *tstr = realloc(More_Fields, olen+strlen(f)+2);
@@ -184,25 +186,25 @@ void _dbg_mix_add_field(const char *f)
 static char _ts[20];
 void _dbg_time(int jday, int iclock)
 {
-    if ( ! dbg_mix ) return;
+    if ( ! ldbg_mix ) return;
     write_time_string(_ts, jday, iclock + noSecs);
 }
 
-void _dbg_mixer_s(int d1, int d2, int d3,
-       int nl, int ebl, int mtl,
-       AED_REAL e1, AED_REAL e2, AED_REAL e3)
+void _dbg_mixer_s(int d1, int d2, int ebl, int mtl)
 {
-    if ( ! dbg_mix ) return;
-    _dbg_mix_str("%s,%d,%d,%d,%d,%d,%d,%e,%e,%e,%e",
-       _ts,d1,d2,d3, nl,ebl,mtl,Lake[surfLayer].Temp,e1,e2,e3);
+    static int loop_count;
+    if (d2 != _DBG_LOOP_) loop_count = 0;
+    if ( ! ldbg_mix ) return;
+    _dbg_mix_str("%s,%d,%d,%d,%d,%d,%d,%e",
+       _ts, d1, d2, loop_count++, NumLayers, ebl, mtl, Lake[surfLayer].Temp);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 void _dbg_mixer_a(AED_REAL e1) { _dbg_mix_str(",%e", e1); }
 void _dbg_mixer_e() { _dbg_mix_str("\n"); }
 
-void _mix_dbg_on()  { dbg_mix = 1; }
-void _mix_dbg_off() { dbg_mix = 0; }
+void _mix_dbg_on()  { ldbg_mix = dbg_mix; } // turn on only if global flag is set
+void _mix_dbg_off() { ldbg_mix = 0; }
 
 
 #if DEBUG

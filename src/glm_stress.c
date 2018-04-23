@@ -8,10 +8,10 @@
  *                                                                            *
  * Developed by :                                                             *
  *     AquaticEcoDynamics (AED) Group                                         *
- *     School of Earth & Environment                                          *
+ *     School of Agriculture and Environment                                  *
  *     The University of Western Australia                                    *
  *                                                                            *
- *     http://aed.see.uwa.edu.au/                                             *
+ *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
  * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
@@ -45,8 +45,8 @@
 #define d_50  80e-6
 #define Ks    ( 2.5*d_50 )
 
-AED_REAL Hs = 0., T = 0., L = 0.;
-AED_REAL BottomStress = 0.;
+statis AED_REAL Hs = 0., T = 0., L = 0.;
+statis AED_REAL BottomStress = 0.;
 
 #define DEBUG_STRESS  0
 #define DEBUG_STRESS_CSV  0
@@ -62,15 +62,13 @@ static FILE *csv_dbg = NULL;
 static int new_run = TRUE;
 #endif
 
-static AED_REAL U_Sqr;
-
 // Variant 1 is as per CAEDYM, variant 0 as per Ji (2008) and Laenen and LeTourneau (1996)
 #define VARIANT 0
 
 /******************************************************************************/
 #define f_c(h) ( 0.24 / pow(log10(12*h / Ks), 2) )
 /******************************************************************************/
-#define f_Uorb(U, F, h) ((Pi * Hs) / (T * sinh((two_Pi * h) / L)))
+#define f_Uorb(F, h) ((Pi * Hs) / (T * sinh((two_Pi * h) / L)))
 
 /******************************************************************************/
 static AED_REAL f_L(AED_REAL T, AED_REAL h)
@@ -81,7 +79,7 @@ static AED_REAL f_L(AED_REAL T, AED_REAL h)
 }
 
 /******************************************************************************/
-static AED_REAL f_Hs(AED_REAL U, AED_REAL F, AED_REAL h)
+static AED_REAL f_Hs(AED_REAL U_Sqr, AED_REAL F, AED_REAL h)
 {
     AED_REAL Zeta = (0.53 * pow((g * h) / U_Sqr, 0.75));
 
@@ -93,7 +91,7 @@ static AED_REAL f_Hs(AED_REAL U, AED_REAL F, AED_REAL h)
 }
 
 /******************************************************************************/
-static AED_REAL f_T(AED_REAL U, AED_REAL F, AED_REAL h)
+static AED_REAL f_T(AED_REAL U, AED_REAL U_Sqr, AED_REAL F, AED_REAL h)
 {
     AED_REAL Xi = (0.833 * pow((g * h) / U_Sqr, 0.375));
 
@@ -134,6 +132,8 @@ void calc_layer_stress(AED_REAL U, AED_REAL F)
 {
     int i;
     AED_REAL Uorb, Ucur, h, dens;
+    AED_REAL U_Sqr;
+
 
     if (ice) U = 0.00001;
 
@@ -149,8 +149,8 @@ void calc_layer_stress(AED_REAL U, AED_REAL F)
         U_Sqr = U * U; // Module global used by various subroutines above
 
         h  = Lake[surfLayer].Height / 2.;
-        T  = f_T(U, F, h);
-        Hs = f_Hs(U, F, h);
+        T  = f_T(U, U_Sqr, F, h);
+        Hs = f_Hs(U_Sqr, F, h);
         L  = f_L(T, h);
 
         Lake[surfLayer].Umean = coef_wind_drag * sqrt(U * U);
@@ -169,7 +169,7 @@ void calc_layer_stress(AED_REAL U, AED_REAL F)
             if ( i != botmLayer ) h = Lake[surfLayer].Height - Lake[i-1].Height;
             else                  h = Lake[surfLayer].Height;
 
-            Uorb = MIN( f_Uorb(U, F, h) , 5.0);
+            Uorb = MIN( f_Uorb(F, h) , 5.0);
             Lake[i].Uorb = Uorb;
 
             dens = Lake[i].Density;
@@ -204,11 +204,11 @@ void calc_layer_stress(AED_REAL U, AED_REAL F)
 
 #if DEBUG_STRESS_CSV
     fprintf(csv_dbg, "%d, %e, %e, %e, %e, %e, %e\n",
-                stepno, U, F, Lake[surfLayer].Uorb, Lake[0].Uorb,
-                              Lake[surfLayer].LayerStress, Lake[0].LayerStress);
+                stepno, U, F, Lake[surfLayer].Uorb, Lake[botmLayer].Uorb,
+                              Lake[surfLayer].LayerStress, Lake[botmLayer].LayerStress);
 
 //  fprintf(stderr, "step %6d L(S-%3d) Taub at the bottom %e ; U = %e ; F = %e ; h %e ice %s\n",
-//                                      stepno, surfLayer, Lake[0].LayerStress, U, F, h, (ice)?"true":"false");
+//                                      stepno, surfLayer, Lake[botmLayer].LayerStress, U, F, h, (ice)?"true":"false");
 
     seenit = TRUE;
     stepno++;

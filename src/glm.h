@@ -4,10 +4,10 @@
  *                                                                            *
  * Developed by :                                                             *
  *     AquaticEcoDynamics (AED) Group                                         *
- *     School of Earth & Environment                                          *
+ *     School of Agriculture and Environment                                  *
  *     The University of Western Australia                                    *
  *                                                                            *
- *     http://aed.see.uwa.edu.au/                                             *
+ *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
  * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
@@ -35,7 +35,7 @@
 #endif
 #define USE_FILLVALUE 1
 
-#define GLM_VERSION  "2.8.0alpha5"
+#define GLM_VERSION  "2.8.0alpha6"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -130,13 +130,7 @@
 #endif
 
 #define sqr(x)  ((x)*(x))
-#if 1
 #define gprime(d1,d2) fabs(((d2)-(d1))*g/(((d1)+(d2))/2.0))
-#else
-# ifndef _FORTRAN_SOURCE_
-  AED_REAL gprime(AED_REAL rho1, AED_REAL rho2);
-# endif
-#endif
 #define combine_vol(c1,v1,c2,v2) (((c1)*(v1)+(c2)*(v2))/((v1)+(v2)))
 
 
