@@ -68,7 +68,7 @@ int csv_outfl_nvars = 0;
 static VARNAME csv_outfl_vars[MaxCSVOutVars];
 int ofl_wq_idx[MaxCSVOutVars];
 
-#define BUFCHUNK	10240
+#define BUFCHUNK    10240
 
 
 /*============================================================================*/

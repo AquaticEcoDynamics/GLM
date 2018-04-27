@@ -269,12 +269,12 @@ static void calculate_diffusion(AED_REAL RTimeStep,
     //  directions (ie. diffuse to upper and then lower layers)
     for (k = 1; k <= 2; k++) {
         if (k == 1) {
-        	// going from lower to upper layers
+            // going from lower to upper layers
             ia = iBot;
             ib = iTop;
             ic = 1;
         } else {
-        	// going from upper to lower layers
+            // going from upper to lower layers
             ia = iTop;
             ib = iBot;
             ic = -1;

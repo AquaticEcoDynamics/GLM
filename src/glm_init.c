@@ -710,6 +710,21 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
             for (i = 0; i < n_zones; i++) sed_reflectivity[i] = 0.;
         }
     }
+
+    if ( n_zones > 0 && zone_heights != NULL ) {
+        if ( zone_heights[n_zones-1] < (max_elev-base_elev) ) {
+            fprintf(stderr, "WARNING last zone height is less than maximum depth\n");
+            fprintf(stderr, "   adding an extra zone to compensate\n");
+            zone_heights = realloc(zone_heights, (n_zones+2)*sizeof(AED_REAL));
+            if ( zone_heights == NULL) {
+                fprintf(stderr, "Memory error ...\n"); exit(1);
+            }
+            zone_heights[n_zones++] = (max_elev-base_elev)+1;
+        }
+
+        zone_area = malloc(n_zones * sizeof(AED_REAL));
+    }
+
     /**************************************************************************
      * If there are zones and these were not defined in the config they will  *
      * be NULL and access will cause segfault.                                *
@@ -1092,20 +1107,6 @@ void create_lake(int namlst)
     if ( (MaxLayers * DMax) < (max_elev - base_elev) ) {
         fprintf(stderr, "Configuration Error. MaxLayers * max_layer_height < depth of the lake\n");
         exit(1);
-    }
-
-    if ( n_zones > 0 && zone_heights != NULL ) {
-        if ( zone_heights[n_zones-1] < (max_elev-base_elev) ) {
-            fprintf(stderr, "WARNING last zone height is less than maximum depth\n");
-            fprintf(stderr, "   adding an extra zone to compensate\n");
-            zone_heights = realloc(zone_heights, (n_zones+2)*sizeof(AED_REAL));
-            if ( zone_heights == NULL) {
-                fprintf(stderr, "Memory error ...\n"); exit(1);
-            }
-            zone_heights[n_zones++] = (max_elev-base_elev)+1;
-        }
-
-        zone_area = malloc(n_zones * sizeof(AED_REAL));
     }
 
     Lake = malloc(sizeof(LakeDataType)*MaxLayers);

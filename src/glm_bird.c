@@ -215,10 +215,10 @@ AED_REAL cloud_from_bird(AED_REAL GHI, AED_REAL Solar)
         f_C = 1;  //Night assume CC = 1}
 
     tmp = (b * b) - 4 * a * (c - f_C);
-    if 	(tmp > 0)   // Assume fully clouded if f_C <<<< 1
+    if  (tmp > 0)   // Assume fully clouded if f_C <<<< 1
         cloud = (-b - sqrt(tmp)) / 2 * a;
     else
-    	cloud = 1.;
+        cloud = 1.;
 
     if (cloud < 0.) cloud = 0.;
 

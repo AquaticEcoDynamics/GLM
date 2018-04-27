@@ -339,17 +339,17 @@ int internal_var(const char *name)
 /******************************************************************************/
 char *strndup(const char *s, size_t len)
 {
-	size_t l = strlen(s);
-	char *t = malloc(min(l, len) + 1);
-	if (t != NULL) { strncpy(t, s, min(l, len) + 1); t[min(l, len)] = 0; }
-	return t;
+    size_t l = strlen(s);
+    char *t = malloc(min(l, len) + 1);
+    if (t != NULL) { strncpy(t, s, min(l, len) + 1); t[min(l, len)] = 0; }
+    return t;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 char *ctime_r(const time_t *timep, char *buf)
 {
-	char *s = ctime(timep);
-	strcpy(buf, s);
-	return buf;
+    char *s = ctime(timep);
+    strcpy(buf, s);
+    return buf;
 }
 
 #endif
