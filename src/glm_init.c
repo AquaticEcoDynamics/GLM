@@ -100,12 +100,6 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-------------------------------------------*/
 
     /*---------------------------------------------
-     * glm restart
-     *-------------------------------------------*/
-    char           *restart_file = NULL;
-    /*-------------------------------------------*/
-
-    /*---------------------------------------------
      * wq setup
      *-------------------------------------------*/
     char           *twq_lib = NULL;
@@ -477,11 +471,6 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "sed_temp_depth",    TYPE_DOUBLE,           &sed_temp_depth    },
           { NULL,                TYPE_END,              NULL               }
     };
-    NAMELIST restart[] = {
-          { "restart",           TYPE_START,            NULL               },
-          { "restart_file",      TYPE_STR,              &restart_file      },
-          { NULL,                TYPE_END,              NULL               }
-    };
     NAMELIST diffuser[] = {
           { "diffuser",          TYPE_START,            NULL               },
           { "NumDif",            TYPE_INT,              &NumDif            },
@@ -528,13 +517,6 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     DMax = max_layer_thick;
     NumLayers = 0;
     n_zones = 0;
-
-    //-------------------------------------------------
-    if ( get_namelist(namlst, restart) ) {
-        do_restart = FALSE;
-    } else {
-        do_restart = (restart_file != NULL);
-    }
 
     //-------------------------------------------------
     wq_calc   = TRUE;

@@ -8,7 +8,15 @@ Building requires :
 
               xcode-select --install
 
-   2) Since compiling with gfortran doesn't work, you will need Intel Fortran
+   2) If you want to use gfortran, make sure you have version 8.1. At time of writing that
+      would mean using "homebrew" rather than "MacPorts" [see README.gfortran]
+
+             brew install gcc
+
+      For MacPorts when they update to a sufficiently new version it will be
+
+             port install gfortran-8
+
    3) You will need netcdf - this is available from MacPorts - https://www.macports.org
 
              port install netcdf

@@ -92,7 +92,6 @@ extern int       n_zones;      //# number of sediment zones
 extern AED_REAL *zone_heights; //# heights for sed_zones
 extern AED_REAL *zone_area;    //# areas for sed_zones
 
-extern CLOGICAL do_restart;
 /*----------------------------------------------------------------------------*/
 
 extern AED_REAL MaxHeight;   //# maxmimum height of reservoir

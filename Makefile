@@ -92,16 +92,6 @@ else
   so_ext=so
 endif
 
-ifeq ($(FORTRAN_COMPILER),IFORT11)
-  F90=ifort
-endif
-ifeq ($(FORTRAN_COMPILER),IFORT12)
-  F90=ifort
-endif
-ifeq ($(FORTRAN_COMPILER),)
-  FORTRAN_COMPILER=GFORTRAN
-endif
-
 ifeq ($(FABM),true)
   ifeq ($(DEBUG),true)
     COMPILATION_MODE=debug
@@ -113,25 +103,13 @@ ifeq ($(FABM),true)
   endif
   DEFINES+=-DFABM
 
-  ifeq ($(FABM_OLD_BUILD),true)
-    ifeq ($(DEBUG),true)
-      FABMLIB=fabm_debug
-      WITH_CHECKS=true
-    else
-      FABMLIB=fabm_prod
-    endif
-
-    FINCLUDES+=-I$(FABMDIR)/include -I$(FABMDIR)/src/drivers/glm -I$(FABMDIR)/modules/glm/$(FORTRAN_COMPILER)
-    FABMLIBS=-L$(FABMDIR)/lib/glm/$(FORTRAN_COMPILER) -l$(FABMLIB)
-  else
-    FABMLIB=fabm
-    ifeq ($(DEBUG),true)
-      WITH_CHECKS=true
-    endif
-
-    FINCLUDES+=-I$(FABMDIR)/include -I$(FABMDIR)/src/drivers/glm -I$(FABMDIR)/build/modules
-    FABMLIBS=-L$(FABMDIR)/build -l$(FABMLIB)
+  FABMLIB=fabm
+  ifeq ($(DEBUG),true)
+    WITH_CHECKS=true
   endif
+
+  FINCLUDES+=-I$(FABMDIR)/include -I$(FABMDIR)/src/drivers/glm -I$(FABMDIR)/build/modules
+  FABMLIBS=-L$(FABMDIR)/build -l$(FABMLIB)
 
   ifeq ($(USE_DL),true)
     FABMTARGETS=libglm_wq_fabm.${so_ext}
@@ -161,6 +139,7 @@ endif
 FLIBS=
 # Select specific compiler bits
 ifeq ($(F90),ifort)
+  LINK=$(CC)
   FINCLUDES+=-I/opt/intel/include
   DEBUG_FFLAGS=-g -traceback -DDEBUG=1
   OPT_FFLAGS=-O3
@@ -176,8 +155,7 @@ ifeq ($(F90),ifort)
     AED2PLBS+=-lifport
   endif
 else
-  F90=gfortran
-  FINCLUDES+=-I/usr/include
+  LINK=$(FC)
   DEBUG_FFLAGS=-g -fbacktrace -DDEBUG=1
   OPT_FFLAGS=-O3
   FFLAGS=-Wall -J ${moddir} -Wno-c-binding-type -ffree-line-length-none -std=f2008 $(DEFINES) $(FINCLUDES) -fall-intrinsics
@@ -185,10 +163,6 @@ else
     FFLAGS+=-fcheck=all
   endif
   FFLAGS+=-fdefault-real-8 -fdefault-double-8
-  ifeq ($(OSTYPE),Darwin)
-#   FLIBS+=-L/opt/local/gfortran/lib
-    FLIBS+=-L/opt/local/lib/gcc8
-  endif
   FLIBS+=-lgfortran
 endif
 
@@ -259,7 +233,6 @@ OBJS=${objdir}/glm_globals.o \
      ${objdir}/glm_stress.o \
      ${objdir}/glm_bird.o \
      ${objdir}/glm_model.o \
-     ${objdir}/glm_restart.o \
      ${objdir}/glm_types.o \
      ${objdir}/glm_const.o \
      ${objdir}/glm_debug.o \
@@ -292,10 +265,10 @@ ${moddir}:
 	@mkdir ${moddir}
 
 glm: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS)
-	$(CC) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQLIBS) $(FLIBS)
+	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQLIBS) $(FLIBS)
 
 glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS) ${AED2PLS}/lib/libaed2+.a
-	$(CC) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQPLIBS) $(FLIBS)
+	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQPLIBS) $(FLIBS)
 
 clean: ${objdir} ${moddir}
 	@touch ${objdir}/1.o ${moddir}/1.mod 1.t 1__genmod.f90 glm 1.${so_ext} glm_test_bird
@@ -306,7 +279,7 @@ distclean: clean
 	@/bin/rm -rf ${objdir} ${moddir} glm glm+
 
 #${objdir}/%.o: ${srcdir}%.F90 ${incdir}/glm.h ${moddir} ${objdir}
-#	$(F90) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
+#	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
 
 ${objdir}/%.o: ${srcdir}/%.c ${incdir}/glm.h
 	$(CC) -fPIC $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
@@ -331,19 +304,19 @@ libglm_wq_fabm.${so_ext}: ${objdir}/glm_zones.o ${objdir}/glm_fabm.o ${objdir}/o
 # special needs dependancies
 
 ${objdir}/glm_aed2.o: ${srcdir}/glm_aed2.F90 ${objdir}/glm_types.o
-	$(F90) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
+	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
 
 ${objdir}/glm_zones.o: ${srcdir}/glm_zones.F90 ${objdir}/glm_types.o
-	$(F90) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
+	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
 
 ${objdir}/glm_fabm.o: ${srcdir}/glm_fabm.F90 ${objdir}/glm_types.o ${objdir}/ode_solvers.o
-	$(F90) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
+	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
 
 ${objdir}/glm_types.o: ${srcdir}/glm_types.F90 ${incdir}/glm.h
-	$(F90) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
+	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
 
 ${objdir}/ode_solvers.o: ${srcdir}/ode_solvers.F90
-	$(F90) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
+	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
 
 ${objdir}/glm_globals.o: ${srcdir}/glm_globals.c ${incdir}/glm_globals.h ${incdir}/glm.h
 ${objdir}/glm_plugin.o: ${srcdir}/glm_plugin.c ${incdir}/glm_plugin.h ${incdir}/glm.h

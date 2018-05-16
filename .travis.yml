@@ -20,7 +20,7 @@
     "export USE_DL=false",
     "export WITH_PLOTS=true",
     "export WITH_XPLOTS=true",
-    "export FORTRAN_COMPILER=IFORT",
+    "export FC=ifort",
     "export CURDIR=`pwd`",
     "export PLOTDIR=${CURDIR}/../libplot",
     "export AED2DIR=${CURDIR}/../libaed2",

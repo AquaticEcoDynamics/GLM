@@ -20,26 +20,43 @@ done
 
 export OSTYPE=`uname -s`
 
-if [ "$FORTRAN_COMPILER" = "IFORT" ] ; then
+if [ "$FC" = "" ] ; then
+  FC="ifort"
+fi
+
+if [ "$FC" = "ifort" ] ; then
+   # for fabm   
+   FORTRAN_COMPILER="IFORT"
+
+   if [ `uname -m` = "i686" ] ; then
+      CPU="ia32"
+   else
+      CPU="intel64"
+   fi
+
   if [ -d /opt/intel/bin ] ; then
-    . /opt/intel/bin/compilervars.sh intel64
+    . /opt/intel/bin/compilervars.sh $CPU
   fi
   which ifort >& /dev/null
   if [ $? != 0 ] ; then
     echo ifort compiler requested, but not found
     exit 1
   fi
-fi
-
-if [ "$FORTRAN_COMPILER" = "IFORT" ] ; then
   export PATH="/opt/intel/bin:$PATH"
-  export FC=ifort
   export NETCDFHOME=/opt/intel
 else
-  export FC=gfortran
-  export NETCDFHOME=/usr
+   # for fabm
+   # if FC is not ifort assume that it is a variant of gfortran
+   FORTRAN_COMPILER="GFORTRAN"
+
   if [ "$OSTYPE" == "Darwin" ] ; then
-    export NETCDFHOME=/opt/local
+     if [ "${HOMEBREW}" = "true" ] ; then
+       export NETCDFHOME=/usr/local
+     else
+       export NETCDFHOME=/opt/local
+     fi
+  else
+     export NETCDFHOME=/usr
   fi
 fi
 

@@ -60,7 +60,6 @@
 #include "glm_lnum.h"
 #include "glm_wqual.h"
 #include "glm_stress.h"
-#include "glm_restart.h"
 #if PLOTS
 #include <libplot.h>
 #include "glm_plot.h"
@@ -111,8 +110,6 @@ void run_model()
     char buf[64];
 
     init_model(&jstart, &nsave);
-
-    if ( do_restart ) load_restart();
 
     begn = time(NULL);
     printf("Wall clock start time :  %s", ctime_r(&begn, buf));

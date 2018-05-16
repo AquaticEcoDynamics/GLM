@@ -8,12 +8,11 @@ export USE_DL=false
 export WITH_PLOTS=true
 export WITH_XPLOTS=true
 
-export FORTRAN_COMPILER=IFORT
-# NB: At the moment only ifort build actually works
-# export FORTRAN_COMPILER=GFORTRAN
+# export FC=ifort
+# export FC=gfortran
 
 # The default is MacPorts : uncomment the next line if you use "homebrew"
-#export HOMEBREW=true
+export HOMEBREW=true
 
 export CURDIR=`pwd`
 export FABMDIR=${CURDIR}/../fabm-git

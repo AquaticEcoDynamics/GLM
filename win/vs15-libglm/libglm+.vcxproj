@@ -207,7 +207,6 @@
     <ClCompile Include="..\..\src\glm_ncdf.c" />
     <ClCompile Include="..\..\src\glm_output.c" />
     <ClCompile Include="..\..\src\glm_plot.c" />
-    <ClCompile Include="..\..\src\glm_restart.c" />
     <ClCompile Include="..\..\src\glm_stress.c" />
     <ClCompile Include="..\..\src\glm_surface.c" />
     <ClCompile Include="..\..\src\glm_util.c" />
@@ -232,7 +231,6 @@
     <ClInclude Include="..\..\src\glm_ncdf.h" />
     <ClInclude Include="..\..\src\glm_output.h" />
     <ClInclude Include="..\..\src\glm_plot.h" />
-    <ClInclude Include="..\..\src\glm_restart.h" />
     <ClInclude Include="..\..\src\glm_stress.h" />
     <ClInclude Include="..\..\src\glm_surface.h" />
     <ClInclude Include="..\..\src\glm_types.h" />

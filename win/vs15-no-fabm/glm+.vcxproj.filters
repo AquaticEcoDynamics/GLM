@@ -71,9 +71,6 @@
     <ClCompile Include="..\..\src\glm_plot.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_restart.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\glm_stress.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -143,9 +140,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\glm_plot.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\glm_restart.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\glm_stress.h">
