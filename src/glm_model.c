@@ -479,7 +479,8 @@ void do_model_coupled(int step_start, int step_end,
     *CAB Note: these WQ arrays should be sized to Num_WQ_Vars not MaxVars,    *
     *           look into that later ....                                     *
     ***************************************************************************/
-    AED_REAL SaltNew[MaxInf], TempNew[MaxInf], WQNew[MaxInf * MaxVars];
+//  AED_REAL SaltNew[MaxInf], TempNew[MaxInf], WQNew[MaxInf * MaxVars];
+    AED_REAL WQNew[MaxInf * MaxVars];
 
     int jday, ntot, stepnum, cDays;
 
@@ -519,8 +520,8 @@ void do_model_coupled(int step_start, int step_end,
         //# To get daily inflow (i.e. m3/day) times by SecsPerDay
         for (i = 0; i < NumInf; i++) {
             Inflows[i].FlowRate = FlowNew[i] * SecsPerDay;
-            Inflows[i].TemInf   = TempNew[i];
-            Inflows[i].SalInf   = SaltNew[i];
+//          Inflows[i].TemInf   = TempNew[i];
+//          Inflows[i].SalInf   = SaltNew[i];
             for (j = 0; j < Num_WQ_Vars; j++)
                 Inflows[i].WQInf[j] = WQ_INF_(WQNew, i, j);
         }

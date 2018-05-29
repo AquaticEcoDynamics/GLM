@@ -50,9 +50,13 @@
 #include <aed_time.h>
 #include <namelist.h>
 
+#define DEFAULT_GLM_NML   "glm3.nml"
+#define DEFAULT_GLM_NML_2 "glm2.nml"
+#define DEFAULT_WQ_LIB    "aed2"
+#define DEFAULT_WQ_NML    "aed2.nml"
+
 //#define dbgprt(...) fprintf(stderr, __VA_ARGS__)
 #define dbgprt(...) /* __VA_ARGS__ */
-
 
 extern int *WQ_VarsIdx;
 
@@ -62,8 +66,8 @@ static AED_REAL   max_elev;
 extern LOGICAL    seepage;
 extern AED_REAL   seepage_rate;
 
-char glm_nml_file[256] = "glm2.nml";
-char wq_lib[256] = "aed2";
+char glm_nml_file[256] = DEFAULT_GLM_NML;
+char wq_lib[256] = DEFAULT_WQ_LIB;
 
 static void create_lake(int namlst);
 static void initialise_lake(int namlst);
@@ -94,7 +98,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 //  AED_REAL        coef_mix_cs;
 //  AED_REAL        coef_mix_kh;
 //  AED_REAL        coef_mix_hyp;
-    CLOGICAL        non_avg;
+//  CLOGICAL        non_avg;
 //  int             deep_mixing;
     extern int      density_model;
     /*-------------------------------------------*/
@@ -103,7 +107,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
      * wq setup
      *-------------------------------------------*/
     char           *twq_lib = NULL;
-    char           *wq_nml_file = "aed2.nml";
+    char           *wq_nml_file = DEFAULT_WQ_NML;
     int             lode_method;
     int             lsplit_factor;
 //  LOGICAL         bioshade_feedback;
@@ -278,16 +282,6 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "density_model",     TYPE_INT,              &density_model     },
           { "littoral_sw",       TYPE_BOOL,             &littoral_sw       },
           { "non_avg",           TYPE_BOOL,             &non_avg           },
-//        { "Kw",                TYPE_DOUBLE,           &Kw                },
-//        { "Benthic_Imin",      TYPE_DOUBLE,           &Benthic_Imin      },
-//        { "coef_mix_conv",     TYPE_DOUBLE,           &coef_mix_conv     },
-//        { "coef_wind_stir",    TYPE_DOUBLE,           &coef_wind_stir    },
-//        { "coef_mix_turb",     TYPE_DOUBLE,           &coef_mix_turb     },
-//        { "coef_mix_shear",    TYPE_DOUBLE,           &coef_mix_shear    },
-//        { "coef_mix_KH",       TYPE_DOUBLE,           &coef_mix_KH       },
-//        { "coef_mix_hyp",      TYPE_DOUBLE,           &coef_mix_hyp      },
-//        { "deep_mixing",       TYPE_INT,              &deep_mixing       },
-//        { "surface_mixing",    TYPE_INT,              &surface_mixing    },
           { NULL,                TYPE_END,              NULL               }
     };
     NAMELIST wq_setup[] = {
@@ -299,9 +293,6 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "bioshade_feedback", TYPE_BOOL,             &bioshade_feedback },
           { "repair_state",      TYPE_BOOL,             &repair_state      },
           { "mobility_off",      TYPE_BOOL,             &mobility_off      },
-//        { "benthic_mode",      TYPE_INT,              &benthic_mode      },
-//        { "n_zones",           TYPE_INT,              &n_zones           },
-//        { "zone_heights",      TYPE_DOUBLE|MASK_LIST, &zone_heights      },
           { NULL,                TYPE_END,              NULL               }
     };
     NAMELIST time[] = {
@@ -471,12 +462,6 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "sed_temp_depth",    TYPE_DOUBLE,           &sed_temp_depth    },
           { NULL,                TYPE_END,              NULL               }
     };
-    NAMELIST diffuser[] = {
-          { "diffuser",          TYPE_START,            NULL               },
-          { "NumDif",            TYPE_INT,              &NumDif            },
-          { "diff",              TYPE_DOUBLE|MASK_LIST, &mol_diffusivity   },
-          { NULL,                TYPE_END,              NULL               }
-    };
     NAMELIST debugging[] = {
           { "debugging",         TYPE_START,            NULL               },
           { "debug_mixer",       TYPE_BOOL,             &dbg_mix           },
@@ -485,14 +470,22 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     };
 /*----------------------------------------------------------------------------*/
 
-    fprintf(stderr, "\nReading config from %s\n",glm_nml_file);
-
     //-------------------------------------------------
     // Open the namelist file.
     if ( (namlst = open_namelist(glm_nml_file)) < 0 ) {
         fprintf(stderr,"\nError opening the glm namelist file %s\n", glm_nml_file);
-        exit(1);
+        if (strcmp(glm_nml_file, DEFAULT_GLM_NML) == 0) {
+            fprintf(stderr, "Trying %s\n", DEFAULT_GLM_NML_2);
+            strcpy(glm_nml_file, DEFAULT_GLM_NML_2);
+            if ( (namlst = open_namelist(glm_nml_file)) < 0 ) {
+                fprintf(stderr,"\nError opening the glm namelist file %s\n", glm_nml_file);
+                exit(1);
+            }
+        } else
+            exit(1);
     }
+
+    fprintf(stderr, "\nReading config from %s\n", glm_nml_file);
 
     //-------------------------------------------------
     // Set some default values
@@ -504,6 +497,11 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
        fprintf(stderr,"\nError reading the 'glm_setup' namelist from %s\n", glm_nml_file);
        exit(1);
     }
+
+    //-------------------------------------------------
+    for (i = 1; i < MaxDif; i++) mol_diffusivity[i] = 1.25E-09;
+    mol_diffusivity[0] = 0.00000014;
+    NumDif = 2;
 
     //-------------------------------------------------
     if ( get_namelist(namlst, mixing) ) {
@@ -522,7 +520,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     wq_calc   = TRUE;
     if ( get_namelist(namlst, wq_setup) ) {
         fprintf(stderr, "No WQ config\n");
-        twq_lib           = "aed2";
+        twq_lib           = DEFAULT_WQ_LIB;
         wq_calc           = FALSE;
         ode_method        = 1;
         split_factor      = 1;
@@ -885,14 +883,6 @@ for (i = 0; i < n_zones; i++) {
     MINlaketemp = min_lake_temp;
 
     if (withdrTemp_fl != NULL) open_withdrtemp_file(withdrTemp_fl, timefmt_o);
-
-    //-------------------------------------------------
-    for (i = 1; i < MaxDif; i++) mol_diffusivity[i] = 1.25E-09;
-    mol_diffusivity[0] = 0.00000014;
-    NumDif = 2;
-
-    if ( get_namelist(namlst, diffuser) )
-         fprintf(stderr,"No diffuser data, setting default values\n");
 
     //--------------------------------------------------------------------------
 

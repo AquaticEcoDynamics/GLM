@@ -35,7 +35,7 @@
 #endif
 #define USE_FILLVALUE 1
 
-#define GLM_VERSION  "3.0.0alpha1"
+#define GLM_VERSION  "3.0.0alpha2"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -130,7 +130,7 @@
 #endif
 
 #define sqr(x)  ((x)*(x))
-#define gprime(d1,d2) fabs(((d2)-(d1))*g/(((d1)+(d2))/2.0))
+#define gprime(d1,d2) (((d2)-(d1))*g/(((d1)+(d2))/2.0))
 #define combine_vol(c1,v1,c2,v2) (((c1)*(v1)+(c2)*(v2))/((v1)+(v2)))
 
 

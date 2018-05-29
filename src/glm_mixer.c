@@ -126,7 +126,8 @@ extern AED_REAL coef_mix_KH,     //# Kelvin-Helmholtz billowing effects
  * Also some local versions of these may be initialised to MISVAL if they are *
  * not set before debugger calls.                                             *
  *----------------------------------------------------------------------------*/
-static const int Epi_botmLayer = -99, Meta_topLayer = -99;
+//static const int Epi_botmLayer = -99;
+static const int Meta_topLayer = -99;
 static const AED_REAL Energy_RequiredMix = MISVAL, redg = MISVAL,
                       Vol_Epi = MISVAL, Epi_Thick = MISVAL, dMdz = MISVAL,
                       q_cub = MISVAL, LengthAtThermo = MISVAL,

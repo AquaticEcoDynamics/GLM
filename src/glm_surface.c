@@ -166,7 +166,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     const AED_REAL  eps_water = 0.985;     //# emissivity of the water surface
 /*----------------------------------------------------------------------------*/
 
-    int nband = 4;
+//  int nband = 4;
     int npoint = 10;
 
 #ifndef _VISUAL_C_
@@ -175,8 +175,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
              heat[MaxLayers];
     int layer_zone[MaxLayers];
 
-    AED_REAL energy[nband];
-    AED_REAL absorb[nband];
+//  AED_REAL energy[nband];
+//  AED_REAL absorb[nband];
     AED_REAL gx[MaxLayers];
 //    AED_REAL depths[MaxLayers];
 
@@ -196,7 +196,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     AED_REAL rho_air, rho_o; //# atm_density
     AED_REAL SatVap_surface; //# Saturated vapour pressure at surface layer or top ice layer
     AED_REAL altitude;
-    AED_REAL c_gas_m;
+//  AED_REAL c_gas_m;
     AED_REAL latent_heat_vap;
 
     AED_REAL WindSp;         //# Wind speed corrected by multiplicative factor
@@ -235,7 +235,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
     int i, z, j, wqidx;
     int kDays;
-    int non_nuetral_converged;
+//  int non_nuetral_converged;
 
     //int nband, npoint;
     AED_REAL depth, rb, anglei, hdir, hdif;
@@ -348,7 +348,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     // gte the saturation vapour pressure at the water surface
     SatVap_surface = saturated_vapour(Lake[surfLayer].Temp); //> hPa
     // calculate gas constant for moist air
-    c_gas_m = c_gas*(1 + 0.608*(mwrw2a*MetData.SatVapDef/p_atm)); //> J/kg/K
+// This is not used anywhere
+//  c_gas_m = c_gas*(1 + 0.608*(mwrw2a*MetData.SatVapDef/p_atm)); //> J/kg/K
     // update the latent heat of vaporisation, based on temperature
     latent_heat_vap = 2.501e6 - 2370*Lake[surfLayer].Temp; //> J/kg
     // update air density, right above the lake surface and at the ref height
@@ -676,7 +677,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         coef_wind_drag = CD;
 
         if (atm_stab>0) {
-             non_nuetral_converged =
+//           non_nuetral_converged =
                atmos_stability(&Q_latentheat,
                                &Q_sensibleheat,
                                 WindSp,
@@ -1772,7 +1773,8 @@ void solpond(int nband, int npoint,
 
     /* local variables */
     int i, j, k;
-    double rinver, critw, cangle, rmu, del, hkdif, hkdir;
+//  double rinver, critw, cangle, rmu, del, hkdif, hkdir;
+    double rinver, critw, cangle, rmu, hkdif, hkdir;
 
     double a, a2, vdif, vint1, vint2, em2, vdifx, vdirx, vdir1, vdir2;
     double alpha, gbk, x, xpa, xm, gxk;

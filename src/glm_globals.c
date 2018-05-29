@@ -172,13 +172,13 @@ CLOGICAL sed_heat_sw        = FALSE;
 //AED_REAL sed_temp_mean      = 9.7;
 //AED_REAL sed_temp_amplitude = 2.7;
 //AED_REAL sed_temp_peak_doy  = 151.;
-AED_REAL sed_heat_Ksoil     = 5.0;
-AED_REAL sed_temp_depth     = 0.1;
-AED_REAL   *sed_temp_mean = NULL;
-AED_REAL   *sed_temp_amplitude = NULL;
-AED_REAL   *sed_temp_peak_doy = NULL;
-AED_REAL   *sed_reflectivity = NULL;
-AED_REAL   *sed_roughness = NULL;
+AED_REAL  sed_heat_Ksoil     = 5.0;
+AED_REAL  sed_temp_depth     = 0.1;
+AED_REAL *sed_temp_mean = NULL;
+AED_REAL *sed_temp_amplitude = NULL;
+AED_REAL *sed_temp_peak_doy = NULL;
+AED_REAL *sed_reflectivity = NULL;
+AED_REAL *sed_roughness = NULL;
 
 //------------------------------------------------------------------------------
 // FETCH

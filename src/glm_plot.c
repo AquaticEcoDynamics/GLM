@@ -76,6 +76,7 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
     char      *title_font = NULL;
     char      *label_font = NULL;
     int        tsz, lsz;
+    int        default_t = FALSE;
 
     NAMELIST plots_window[] = {
           { "plots_window",   TYPE_START,            NULL               },
@@ -104,19 +105,57 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
 /*----------------------------------------------------------------------------*/
 
     if ( (namlst = open_namelist(plots_nml_name)) < 0 ) {
-        fprintf(stderr,"Error opening namelist file plots.nml\n");
-        return;
-    }
+        fprintf(stderr, "Error opening namelist file plots.nml\n");
+        fprintf(stderr, "Using defaults\n");
 
-    /*-----------------------------------------------*/
-    if ( get_namelist(namlst, plots_window) != 0 ) {
-       fprintf(stderr,"Error reading the 'plots_window' namelist from plots.nml\n");
-       return;
-    }
+        width = 1000; height=  300;
 
-    if ( get_namelist(namlst, plots) != 0 ) {
-       fprintf(stderr,"Error reading the 'plots' namelist from plots.nml\n");
-       return;
+        nplots = 2; plot_width = 400; plot_height = 200;
+
+        // title = { "Temperature", "Salinity" };
+        title = malloc(3*sizeof(char*));
+        title[0] = "Temperature"; title[1] = "Salinity"; title[2] = NULL;
+        // vars  = { "temp","salt" };
+        vars = malloc(3*sizeof(char*));
+        vars[0] = "temp"; vars[1] = "salt"; vars[2] = NULL;
+        // min_z = { -1.0, 0.0 };
+        min_z = malloc(3 * sizeof(double));
+        min_z[0] = -1.0; min_z[1] = 0.0; min_z[2] = 0.0;
+        // max_z = { 30.0, 0.6 };
+        max_z = malloc(3 * sizeof(double));
+        max_z[0] = 30.0; max_z[1] = 0.6; max_z[2] = 0.0;
+
+        default_t = TRUE;
+    } else {
+        /*-----------------------------------------------*/
+        if ( get_namelist(namlst, plots_window) != 0 ) {
+            fprintf(stderr, "Error reading the 'plots_window' namelist from plots.nml\n");
+            fprintf(stderr, "Using defaults\n");
+
+            width = 1000; height=  300;
+        }
+
+        if ( get_namelist(namlst, plots) != 0 ) {
+            fprintf(stderr,"Error reading the 'plots' namelist from plots.nml\n");
+            fprintf(stderr, "Using defaults\n");
+
+            nplots = 2; plot_width = 400; plot_height = 200;
+
+            // title = { "Temperature", "Salinity" };
+            title = malloc(3*sizeof(char*));
+            title[0] = "Temperature"; title[1] = "Salinity"; title[2] = NULL;
+            // vars  = { "temp","salt" };
+            vars = malloc(3*sizeof(char*));
+            vars[0] = "temp"; vars[1] = "salt"; vars[2] = NULL;
+            // min_z = { -1.0, 0.0 };
+            min_z = malloc(3 * sizeof(double));
+            min_z[0] = -1.0; min_z[1] = 0.0; min_z[2] = 0.0;
+            // max_z = { 30.0, 0.6 };
+            max_z = malloc(3 * sizeof(double));
+            max_z[0] = 30.0; max_z[1] = 0.6; max_z[2] = 0.0;
+
+            default_t = TRUE;
+        }
     }
 
     max_plots = nplots + 12;
@@ -152,15 +191,17 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
     w = 10;
     h = 10;
     for (i = 0; i < nplots; i++) {
-        int vn;
+        int vn = 0;
         if ( !(vn = intern_is_var(i, vars[i])) ) {
-            size_t l = strlen(vars[i]);
-            if ( ! (vn = wq_is_var(&i, vars[i], &l)) ) {
-                fprintf(stderr, "No plottable var \"%s\"\n", vars[i]);
-                continue;
+            if (WQ_Vars != NULL) {
+                size_t l = strlen(vars[i]);
+                if ( ! (vn = wq_is_var(&i, vars[i], &l)) ) {
+                    fprintf(stderr, "No plottable var \"%s\"\n", vars[i]);
+                    continue;
+                }
+//              else if ( vn < 0 ) fprintf(stderr, "WQ sheet var \"%s\"\n", vars[i]);
+//              else  fprintf(stderr, "WQ var \"%s\"\n", vars[i]);
             }
-//          else if ( vn < 0 ) fprintf(stderr, "WQ sheet var \"%s\"\n", vars[i]);
-//          else  fprintf(stderr, "WQ var \"%s\"\n", vars[i]);
         }
 //      else if ( vn < 0 ) fprintf(stderr, "Internal sheet var \"%s\"\n", vars[i]);
 //      else  fprintf(stderr, "Internal var \"%s\"\n", vars[i]);
@@ -191,7 +232,11 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
         }
     }
     free(glm_vers);
-    close_namelist(namlst);
+    if (default_t) {
+        free(title); free(vars); free(min_z); free(max_z);
+        title=NULL; vars = NULL; min_z = NULL; max_z = NULL;
+    }
+    if (namlst >= 0) close_namelist(namlst);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
