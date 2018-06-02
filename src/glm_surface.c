@@ -1093,10 +1093,12 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
           for (i = botmLayer+1; i <= surfLayer; i++) {
              Lake[i].Temp += ((KSED*(TYEAR-Lake[i].Temp)/ZSED)*
                              (Lake[i].LayerArea-Lake[i-1].LayerArea)*
-                             LayerThickness[i]*noSecs)/(SPHEAT*Lake[i].Density*Lake[i].LayerVol);
+                             noSecs)/(SPHEAT*Lake[i].Density*Lake[i].LayerVol);
+                             //LayerThickness[i]*noSecs)/(SPHEAT*Lake[i].Density*Lake[i].LayerVol);
           }
           Lake[botmLayer].Temp += ((KSED*(TYEAR-Lake[botmLayer].Temp)/ZSED)*
-                                   Lake[botmLayer].LayerArea*LayerThickness[botmLayer] *
+                                   Lake[botmLayer].LayerArea *
+                                   //Lake[botmLayer].LayerArea*LayerThickness[botmLayer] *
                                    noSecs)/(SPHEAT*Lake[botmLayer].Density*Lake[botmLayer].LayerVol);
         }
         else {
@@ -1114,11 +1116,13 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
              TYEAR = sed_temp_mean[layer_zone[i]] + sed_temp_amplitude[layer_zone[i]] * cos(((kDays-sed_temp_peak_doy[layer_zone[i]])*2.*Pi)/365.);
              Lake[i].Temp += ((KSED*(TYEAR-Lake[i].Temp)/ZSED)*
                       (Lake[i].LayerArea-Lake[i-1].LayerArea)*
-                       LayerThickness[i]*noSecs)/(SPHEAT*Lake[i].Density*Lake[i].LayerVol);
+                      //LayerThickness[i]*noSecs)/(SPHEAT*Lake[i].Density*Lake[i].LayerVol);
+                       noSecs)/(SPHEAT*Lake[i].Density*Lake[i].LayerVol);
           }
           TYEAR = sed_temp_mean[0] + sed_temp_amplitude[0] * cos(((kDays-sed_temp_peak_doy[0])*2.*Pi)/365.);
           Lake[botmLayer].Temp += ((KSED*(TYEAR-Lake[botmLayer].Temp)/ZSED)*
-                                   Lake[botmLayer].LayerArea*LayerThickness[botmLayer] *
+                                   //Lake[botmLayer].LayerArea*LayerThickness[botmLayer] *
+                                   Lake[botmLayer].LayerArea *
                                noSecs)/(SPHEAT*Lake[botmLayer].Density*Lake[botmLayer].LayerVol);
         }
         if (littoral_sw) {

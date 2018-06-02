@@ -192,19 +192,31 @@ static void fix_radiation(AED_REAL Light_Surface)
 static AED_REAL calc_benthic_light()
 {
     int i;
-    AED_REAL Benthic_Light_Area;
+    AED_REAL Benthic_Light_Area, photic_depth, depth;
+
+
+    // I/I0 = exp(-Kw*z);
+    photic_depth = log(Benthic_Imin)/(-Kw);
+
 
     //# Calculate the percent benthic area where the light level is greater
     //# than the minimum level required for production
-    Benthic_Light_Area = 0;
+    Benthic_Light_Area = 0.;
+    depth = 0.;
     for (i = surfLayer; i > botmLayer; i-- ) {
-        if (Lake[i].Light < Benthic_Imin) break;
-        Benthic_Light_Area += (Lake[i].LayerArea - Lake[i-1].LayerArea);
+        depth = depth + (Lake[i].Height-Lake[i-1].Height);
+        if (photic_depth>depth) {
+          Benthic_Light_Area += (Lake[i].LayerArea - Lake[i-1].LayerArea);
+      }
     }
-    if (Lake[botmLayer].Light * exp(-Lake[botmLayer].ExtcCoefSW*Lake[botmLayer].Height) >= Benthic_Imin)
-        Benthic_Light_Area = Benthic_Light_Area + Lake[botmLayer].LayerArea;
+  //  if (Lake[botmLayer].Light * exp(-Lake[botmLayer].ExtcCoefSW*Lake[botmLayer].Height) >= Benthic_Imin)
+  //      Benthic_Light_Area = Benthic_Light_Area + Lake[botmLayer].LayerArea;
 
+<<<<<<< Updated upstream
     return Benthic_Light_Area / Lake[surfLayer].LayerArea * 100./(SecsPerDay/noSecs);
+=======
+    return Benthic_Light_Area / Lake[surfLayer].LayerArea * 100.;
+>>>>>>> Stashed changes
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
