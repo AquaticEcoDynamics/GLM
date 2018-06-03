@@ -212,11 +212,8 @@ static AED_REAL calc_benthic_light()
   //  if (Lake[botmLayer].Light * exp(-Lake[botmLayer].ExtcCoefSW*Lake[botmLayer].Height) >= Benthic_Imin)
   //      Benthic_Light_Area = Benthic_Light_Area + Lake[botmLayer].LayerArea;
 
-<<<<<<< Updated upstream
     return Benthic_Light_Area / Lake[surfLayer].LayerArea * 100./(SecsPerDay/noSecs);
-=======
-    return Benthic_Light_Area / Lake[surfLayer].LayerArea * 100.;
->>>>>>> Stashed changes
+  //return Benthic_Light_Area / Lake[surfLayer].LayerArea * 100.;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

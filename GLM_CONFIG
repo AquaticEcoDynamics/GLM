@@ -2,7 +2,7 @@
 # These are settings used for building glm
 #
 
-export FABM=true
+#export FABM=true
 export AED2=true
 export USE_DL=false
 export WITH_PLOTS=true
@@ -12,7 +12,7 @@ export WITH_XPLOTS=true
 # export FC=gfortran
 
 # The default is MacPorts : uncomment the next line if you use "homebrew"
-export HOMEBREW=true
+#export HOMEBREW=true
 
 export CURDIR=`pwd`
 export FABMDIR=${CURDIR}/../fabm-git
