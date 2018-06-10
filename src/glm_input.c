@@ -232,6 +232,7 @@ void read_daily_met(int julian, MetDataType *met)
             case 4 :
             case 5 :
                 sol = calc_bird(Longitude, Latitude, julian, idx*3600, timezone_m);
+                sol = sol * sw_factor;
                 if ( rad_mode == 4 )
                     sol = clouded_bird(sol, submet[idx].LongWave);
                 if ( rad_mode == 3 )
@@ -280,10 +281,10 @@ void read_daily_met(int julian, MetDataType *met)
                 eff_area = surf_area* tanh(surf_area/fetch_aws);
                 submet[idx].WindSpeed = submet[idx].WindSpeed * eff_area/surf_area;
                 break;
-            case 2 : // Markfort model, based on wind direction
+            case 2 : // Markfort et al 2009 model, adapted for wind direction
                 ld = LenAtCrest+WidAtCrest/2;
                 x_ws = get_fetch(submet[idx].WindDir);
-                eff_area = ld*ld/2 *acos(x_ws/ld) - (x_ws/ld)*pow(ld*ld-x_ws*x_ws,0.5);
+                eff_area = fmax((ld*ld)/2 *acos(x_ws/ld) - (x_ws/2)*pow(ld*ld-x_ws*x_ws,0.5),0.0);
                 submet[idx].WindSpeed = submet[idx].WindSpeed * eff_area/surf_area;
                 break;
             case 3 : // just scale based on the wind direction directly
