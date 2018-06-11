@@ -977,7 +977,8 @@ static int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count,
     U_star_sqr = U_star*U_star;        //# U*^2 handy in mixing calcs
 //fprintf(stderr, " *** %.8e %.8e\n", U_star, coef_wind_drag);
 #else
-    U_star_sqr = coef_wind_drag * WindSpeedX * WindSpeedX;   //# U*^2 handy in mixing calcs
+    //U_star_sqr = coef_wind_drag * WindSpeedX * WindSpeedX;   //# U*^2 handy in mixing calcs
+    U_star_sqr = (1.2 / Lake[surfLayer].Density) * coef_wind_drag * WindSpeedX * WindSpeedX;   //# U*^2 handy in mixing calcs
     U_star = sqrt( U_star_sqr );
 //fprintf(stderr, " *** %.8e %.8e\n", U_star, coef_wind_drag);
 #endif
