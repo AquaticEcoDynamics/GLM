@@ -178,7 +178,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 //  AED_REAL energy[nband];
 //  AED_REAL absorb[nband];
     AED_REAL gx[MaxLayers];
-//    AED_REAL depths[MaxLayers];
+//  AED_REAL depths[MaxLayers];
 
 #else
     AED_REAL *LayerThickness;
@@ -186,10 +186,10 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     int *layer_zone;
 
     //AED_REAL **solar;
-    AED_REAL *energy;
-    AED_REAL *absorb;
+//  AED_REAL *energy;
+//  AED_REAL *absorb;
     AED_REAL *gx;
-//    AED_REAL *depths;
+//  AED_REAL *depths;
 #endif
 
     AED_REAL p_atm;          //# Atmospheric pressure in hectopascals, eg. 101300 Pa
@@ -294,8 +294,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     LayerThickness = malloc(sizeof(AED_REAL) * MaxLayers);
     heat = malloc(sizeof(AED_REAL) * MaxLayers);
     layer_zone = malloc(sizeof(int) * MaxLayers);
-    energy = malloc(sizeof(AED_REAL) * nband);
-    absorb = malloc(sizeof(AED_REAL) * nband);
+//  energy = malloc(sizeof(AED_REAL) * nband);
+//  absorb = malloc(sizeof(AED_REAL) * nband);
     gx = malloc(sizeof(AED_REAL) * MaxLayers);
 #endif
 
@@ -1206,7 +1206,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 #ifdef _VISUAL_C_
     free(LayerThickness);  free(heat);  free(layer_zone);
 
-    free(energy); free(absorb); free(gx);
+//  free(energy); free(absorb); free(gx);
+    free(gx);
 #endif
 
 }
