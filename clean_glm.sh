@@ -35,5 +35,6 @@ clean_outputs() {
 
 }
 
-clean_outputs "Examples"
-
+if [ -d "Examples" ] ; then
+   clean_outputs "Examples"
+fi

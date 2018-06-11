@@ -744,7 +744,8 @@ AED_REAL do_inflows()
     if ( NumInf <= 0 ) return zero; // nothing more to do
 
     // Array allocation for WQ in the inflow parcels
-    if ( WQ_VarsS == NULL )   WQ_VarsS = malloc(Num_WQ_Vars * sizeof(AED_REAL));
+    if ( WQ_VarsS == NULL && Num_WQ_Vars > 0)
+         WQ_VarsS = malloc(Num_WQ_Vars * sizeof(AED_REAL));
     if ( WQ_VarsTmp == NULL ) WQ_VarsTmp = malloc(NumInf * sizeof(wq_partic_t));
     memset(WQ_VarsS, 0, (Num_WQ_Vars * sizeof(AED_REAL)));
 

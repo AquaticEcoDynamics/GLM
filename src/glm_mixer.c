@@ -561,7 +561,7 @@ static int shear_production(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_top
     }
     FO = accn;
 
-//return 0;
+// return 0; //CAB DEBUG
     //# Momentum update
     if (u0 < 1E-7) u0 = zero;
     if (Slope < 1E-7) Slope = zero;
@@ -975,12 +975,11 @@ static int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count,
 #if 0
     U_star = coef_wind_drag * sqrt(WindSpeedX*WindSpeedX);
     U_star_sqr = U_star*U_star;        //# U*^2 handy in mixing calcs
-//fprintf(stderr, " *** %.8e %.8e\n", U_star, coef_wind_drag);
 #else
     U_star_sqr = coef_wind_drag * WindSpeedX * WindSpeedX;   //# U*^2 handy in mixing calcs
     U_star = sqrt( U_star_sqr );
-//fprintf(stderr, " *** %.8e %.8e\n", U_star, coef_wind_drag);
 #endif
+//fprintf(stderr, " *** %.8e %.8e\n", U_star, coef_wind_drag);
 
     U_star_cub = U_star*U_star*U_star; //# U*^3 handy in mixing calcs
 
