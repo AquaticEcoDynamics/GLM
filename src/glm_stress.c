@@ -153,7 +153,7 @@ void calc_layer_stress(AED_REAL U, AED_REAL F)
         Hs = f_Hs(U_Sqr, F, h);
         L  = f_L(T, h);
 
-        Lake[surfLayer].Umean = coef_wind_drag * sqrt(U * U);
+        Lake[surfLayer].Umean = sqrt( (1.2/Lake[surfLayer].Density) * coef_wind_drag * U * U);
 
 #if DEBUG_STRESS
         if ( !seenit ) {
