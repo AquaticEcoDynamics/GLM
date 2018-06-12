@@ -1,4 +1,4 @@
-glm (3.0.0alpha3-0) UNRELEASED; urgency=low
+glm (3.0.0alpha4-0) UNRELEASED; urgency=low
 
   [ Casper Boon ]
   * new version 2.7.0
@@ -12,8 +12,9 @@ glm (3.0.0alpha3-0) UNRELEASED; urgency=low
   * new version 3.0.0alpha1
   * new version 3.0.0alpha2
   * new version 3.0.0alpha3
+  * new version 3.0.0alpha4
 
- -- Casper Boon <casper@oldmail.ambinet.com.au>  Tue, 29 May 2018 15:23:56 +0800
+ -- Casper Boon <casper@oldmail.ambinet.com.au>  Tue, 12 Jun 2018 14:00:20 +0800
 
 glm (2.0.4-0) UNRELEASED; urgency=low
 

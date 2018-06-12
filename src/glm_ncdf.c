@@ -54,7 +54,7 @@ static int height_len;
 static size_t start[4],edges[4];
 
 //# variable ids
-static int lon_id,lat_id,z_id,V_id,TV_id,NS_id,time_id;
+static int lon_id,lat_id,z_id,V_id,TV_id,Taub_id,NS_id,time_id;
 static int HICE_id,HSNOW_id,HWICE_id;
 static int precip_id,evap_id,rho_id,rad_id,extc_id,i0_id,wnd_id;
 static int temp_id, salt_id, umean_id, uorb_id;
@@ -140,6 +140,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
 
     check_nc_error(nc_def_var(ncid, "u_mean",    NC_REALTYPE, 4, dims, &umean_id));
     check_nc_error(nc_def_var(ncid, "u_orb",     NC_REALTYPE, 4, dims, &uorb_id));
+    check_nc_error(nc_def_var(ncid, "Taub",      NC_REALTYPE, 4, dims, &Taub_id));
 
     /**************************************************************************
      * assign attributes                                                      *
@@ -177,6 +178,8 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     set_nc_attributes(ncid, umean_id,  "m/s",     "mean velocity"    PARAM_FILLVALUE);
     set_nc_attributes(ncid, uorb_id,   "m/s",     "orbital velocity" PARAM_FILLVALUE);
 
+    set_nc_attributes(ncid, Taub_id,   "N/m2",    "layer stress"    PARAM_FILLVALUE);
+
     //# global attributes
     nc_put_att(ncid,NC_GLOBAL,"Title", NC_CHAR, strlen(title), title);
 
@@ -208,8 +211,8 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
 {
     AED_REAL temp_time, LakeVolume;
     AED_REAL *heights, *vols, *salts, *temps, *dens, *qsw, *extc_coef;
-    AED_REAL *u_mean, *u_orb;
-    int i, littoralLayer =0;
+    AED_REAL *u_mean, *u_orb, *taub;
+    int i, littoralLayer = 0;
 
     set_no++;
 
@@ -251,6 +254,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     extc_coef = malloc(nlev*sizeof(AED_REAL));
     u_mean    = malloc(nlev*sizeof(AED_REAL));
     u_orb     = malloc(nlev*sizeof(AED_REAL));
+    taub      = malloc(nlev*sizeof(AED_REAL));
 
     for (i = 0; i < wlev; i++) {
         heights[i] = Lake[i].Height;
@@ -262,6 +266,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
         extc_coef[i] = Lake[i].ExtcCoefSW;
         u_mean[i] = Lake[i].Umean;
         u_orb[i] = Lake[i].Uorb;
+        taub[i] = Lake[i].LayerStress;
     }
     for (i = wlev; i < nlev; i++) {
         heights[i] = NC_FILLER;
@@ -273,6 +278,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
         extc_coef[i] = NC_FILLER;
         u_mean[i] = NC_FILLER;
         u_orb[i] = NC_FILLER;
+        taub[i] = NC_FILLER;
     }
     if ( littoral_sw ) {
         littoralLayer = wlev;
@@ -285,6 +291,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
         extc_coef[littoralLayer] = NC_FILLER;
         u_mean[littoralLayer] = NC_FILLER;
         u_orb[littoralLayer] = NC_FILLER;
+        taub[littoralLayer] = NC_FILLER;
     }
 
     check_nc_error(nc_put_vara(ncid,     z_id, start, edges, heights));
@@ -296,10 +303,12 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     check_nc_error(nc_put_vara(ncid,  extc_id, start, edges, extc_coef));
     check_nc_error(nc_put_vara(ncid, umean_id, start, edges, u_mean));
     check_nc_error(nc_put_vara(ncid,  uorb_id, start, edges, u_orb));
+    check_nc_error(nc_put_vara(ncid,  Taub_id, start, edges, taub));
 
     free(heights); free(vols); free(salts);
     free(temps);  free(dens); free(qsw);
     free(extc_coef); free(u_mean); free(u_orb);
+    free(taub);
 
     check_nc_error(nc_sync(ncid));
 }
