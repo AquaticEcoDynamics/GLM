@@ -96,6 +96,8 @@ static AED_REAL  Q_surflayer;  // Heat flux through the water surface
 static AED_REAL  Q_underflow;  // Heat flux through water due to flow under the ice
 //static AED_REAL  U_flow;     // the velocity of the underflow
 
+static AED_REAL  snow_rain_compact = 1. ; //update based on timestep and scaling
+
 void recalc_surface_salt(void);
 
 AED_REAL calculate_qsw(int kDays, int mDays, int iclock,
@@ -501,9 +503,9 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                 // Snowfall on snow
                 if (MetData.Rain == 0.0) MetData.Rain = MetData.Snow*0.10;  //Use 10:1 snow volume to water equivalent
                 if (MetData.AirTemp > 0.0)
-                    compact_snow = 0.166+0.834*(1.-exp(-1.*MetData.Rain));
+                    compact_snow = 0.166+0.834*(1.-exp(-1.*MetData.Rain/snow_rain_compact));
                 else
-                    compact_snow = 0.088+0.912*(1.-exp(-1.*MetData.Rain));
+                    compact_snow = 0.088+0.912*(1.-exp(-1.*MetData.Rain/snow_rain_compact));
 
                 // Compact snow first
                 rho_snow_old = rho_snow+(snow_rho_max-rho_snow)*compact_snow;
@@ -537,7 +539,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                 if (MetData.AirTemp > 0.0) {
                     //Check the air temperature and if AirTemp > 0 then
                     //  add the rain into the lake;
-                    compact_snow = 0.166+0.834*(1.-exp(-1.*MetData.Rain));
+                    compact_snow = 0.166+0.834*(1.-exp(-1.*MetData.Rain/snow_rain_compact));
                     rho_snow_old = rho_snow+(snow_rho_max-rho_snow)*compact_snow;
                     SurfData.HeightSnow = SurfData.HeightSnow*rho_snow/rho_snow_old;
                     rho_snow = rho_snow_old;
@@ -553,7 +555,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
                 } else {
                     // If AirTemp < 0 then add the rainfall to snow
-                    MetData.Snow = MetData.Rain/snow_rho_max;
+                    //MetData.Snow = MetData.Rain/snow_rho_max;
+                    MetData.Snow = MetData.Rain/(snow_rho_max/rho0);
                     rho_snow_old = snow_rho_max;
                     SurfData.HeightSnow = SurfData.HeightSnow*rho_snow/rho_snow_old;
                     rho_snow = snow_rho_max;

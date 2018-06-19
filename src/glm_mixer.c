@@ -556,18 +556,21 @@ static int shear_production(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_top
          OldSlope = accn - (FSUM / (Mixer_Count));
          if (OldSlope < zero) OldSlope = zero;
     } else {
+         //# Still shearing ...
          Time_end_shear = noSecs/SecsPerHr;
          OldSlope = Slope;
     }
     FO = accn;
 
-// return 0; //CAB DEBUG
+    // return 0; //CAB DEBUG
     //# Momentum update
     if (u0 < 1E-7) u0 = zero;
     if (Slope < 1E-7) Slope = zero;
     u_f = u0 + Slope * Time_end_shear * SecsPerHr;
+
     u_avgSQ = (u_f*u_f + u_f*u0 + u0*u0) / 3.0;
     if (u_avgSQ < 1E-7) u_avgSQ = 1E-7;
+
     u_avg = sqrt(u_avgSQ);
     u0 = u_f;
     del_u = u_avg - u_avg_old;

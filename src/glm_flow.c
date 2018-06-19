@@ -504,7 +504,7 @@ AED_REAL do_overflow(int jday)
  ******************************************************************************/
 static int insert_inflow(int k, //#Inflow parcel counter
     int iRiver,                 //# River inflow number
-    AED_REAL Depth_t0,          //# Depth of lake before inflows [m]
+    AED_REAL Height_t0,         //# Height of lake before inflows [m]
     AED_REAL Alpha,             //# Stream half angle [radians]
     AED_REAL Phi,               //# Stream slope [radians]
     AED_REAL EntrainmentCoeff,  //# Entrainment coefficient [-]
@@ -541,7 +541,7 @@ static int insert_inflow(int k, //#Inflow parcel counter
     //# If fresh inflow for that day set depth as lake height
     if (Inflows[iRiver].DDown[k] == MISVAL) {
         Inflows[iRiver].TotIn += Inflows[iRiver].QDown[k];
-        Inflows[iRiver].DDown[k] = Depth_t0;
+        Inflows[iRiver].DDown[k] = Height_t0;
     }
 
     //# Initialise inflow time
@@ -586,12 +586,13 @@ static int insert_inflow(int k, //#Inflow parcel counter
         return TRUE;
     }
 
-    //# Calculate the velocity of the inflow and hence the entrainment.
+    //# Otherwise keep moving the parcel down into the lake
+    //# Calculate the height and velocity of the inflow and then the entrainment
     while(1) {
         //# Reduced gravity of downflow (Eq. x in GLM manual)
         Inflow_gprime = g*(Inflow_Density-Lake[Layer].Density)/Lake[Layer].Density;
 
-        //# Initial height of inflow plunge (Eq. x in GLM manual) !#MH shouldnt this be Phi???
+        //# Initial height of the inflow as it plunges (Eq. x in GLM manual)
         Inflow_height_prev = pow((2.0*Ri*pow((Inflow_Flowrate/SecsPerDay*cos(Alpha)/sin(Alpha)), 2) / Inflow_gprime), 0.2);
 
         //# Distance travelled by inflow aliquot (Eq. x in GLM manual)
@@ -618,7 +619,8 @@ static int insert_inflow(int k, //#Inflow parcel counter
         Inflow_time += Delta_t;
 
         //# Estimate increase in flow rate due to entrainment for this day (Eq. x in GLM manual)
-        Delta_Q = 0.2 * Inflow_Flowrate * (pow((Inflow_height/Inflow_height_prev), (5.0/3.0)) - 1.0);
+        //Delta_Q = 0.2 * Inflow_Flowrate * (pow((Inflow_height/Inflow_height_prev), (5.0/3.0)) - 1.0);
+        Delta_Q = Inflow_Flowrate * (pow((Inflow_height/Inflow_height_prev), (5.0/3.0)) - 1.0);
 
         //# Check for negative inflow layer volume
         if (Lake[Layer].LayerVol < 0.0)
@@ -810,22 +812,24 @@ AED_REAL do_inflows()
         }
     }
 
-    /**************************************************************************
-     * Work through each element in the downflow stacks and calculate the     *
-     * travel distance and entrainment for the present day, and whether or    *
-     * not it reaches its level of neutral buoyancy and hence can be inserted.*
-     **************************************************************************/
     einff = zero; //# At the start of the day initialise the deltaPE to zero
     iRiver = 0;   //# Start with first inflow
     while(1) {
+       /**************************************************************************
+        * Work through each element in the downflow stacks and calculate the     *
+        * travel distance and entrainment for the present day, and whether or    *
+        * not it reaches its level of neutral buoyancy and hence can be inserted.*
+        **************************************************************************/
         while (iRiver < NumInf) {
             if  (!Inflows[iRiver].SubmFlag) {
-               Alpha = Inflows[iRiver].Alpha;
-               Phi = Inflows[iRiver].Phi;
-               DragCoeff = Inflows[iRiver].DragCoeff;
+               Alpha = Inflows[iRiver].Alpha;            // stream cross-section half-angle
+               Phi = Inflows[iRiver].Phi;                // river thalweg slope
+               DragCoeff = Inflows[iRiver].DragCoeff;    // bottom roughness of thalweg
 
                //# Bulk Richardson's number of the inflow (Eq. x in GLM manual)
                Ri = DragCoeff * ( 1.0 + 0.21 * sqrt(DragCoeff) * sin(Alpha) ) / (sin(Alpha) * sin(Phi) / cos(Phi));
+               //# ...or... Imberger and Patterson 1981 Eq 56
+               //Ri = (DragCoeff / (sin(Alpha) * sin(Phi) / cos(Phi))) * 1/( 1.0 - 0.85 * sqrt(DragCoeff) * sin(Alpha) ) ;
 
                //# Entrainment coefficient
                EntrainmentCoeff = 1.6 * pow(DragCoeff, 1.5) / Ri;
