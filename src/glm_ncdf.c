@@ -223,12 +223,13 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     for (i = 0; i < wlev; i++)
         LakeVolume += Lake[i].LayerVol;
 
+    //# Time varying data : t
+    /*------------------------------------------------------------------------*/
     store_nc_scalar(ncid,  time_id, T_SHAPE, temp_time);
-    store_nc_scalar(ncid,  HICE_id, T_SHAPE, SurfData.HeightBlackIce);
-    store_nc_scalar(ncid, HSNOW_id, T_SHAPE, SurfData.HeightSnow);
+    store_nc_scalar(ncid,  HICE_id, T_SHAPE, SurfData.HeightBlueIce);
     store_nc_scalar(ncid, HWICE_id, T_SHAPE, SurfData.HeightWhiteIce);
+    store_nc_scalar(ncid, HSNOW_id, T_SHAPE, SurfData.HeightSnow);
 
-    //# Time varying data : x,y,t
     store_nc_scalar(ncid, precip_id, XYT_SHAPE, MetData.Rain);
     store_nc_scalar(ncid,   evap_id, XYT_SHAPE, SurfData.Evap);
 
@@ -238,7 +239,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     store_nc_scalar(ncid,  TV_id, XYT_SHAPE, LakeVolume);
 
 
-    //# Time varying profile data : x,y,z,t
+    //# Time varying profile data : z,t
     /*------------------------------------------------------------------------*/
     start[3] = 0;      edges[3] = lon_len;
     start[2] = 0;      edges[2] = lat_len;
@@ -492,4 +493,3 @@ void store_nc_array_(int *ncid, int *id, int *var_shape, int *nvals,
                                                   int *maxvals, AED_REAL *array)
 { store_nc_array(*ncid, *id, *var_shape, *nvals, *maxvals, array); }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
