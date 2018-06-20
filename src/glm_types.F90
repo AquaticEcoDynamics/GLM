@@ -105,7 +105,7 @@ MODULE glm_types
    !# Structured type for Surface Data vars
    TYPE,BIND(C) :: SurfaceDataType
       AED_REAL :: Evap             !# Evaporation
-      AED_REAL :: HeightBlackIce   !# height of ice layer
+      AED_REAL :: HeightBlueIce   !# height of ice layer
       AED_REAL :: HeightWhiteIce   !# height of white ice layer
       AED_REAL :: HeightSnow       !# height of snow layer
       AED_REAL :: dHt              !# change in thickness of either the snow or ice layer
