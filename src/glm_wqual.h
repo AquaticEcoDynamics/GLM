@@ -36,7 +36,7 @@
 
 typedef void (*wq_init_glm_t)(char *fname, size_t *len, int *kk, int *NumWQVars, int *NumWQBen, AED_REAL *pKw);
 typedef void (*wq_set_glm_data_t)(void *Lake, int *MaxLayers,
-                MetDataType *MetData, SurfaceDataType *SurfData, AED_REAL *dt);
+                MetDataType *MetData, SurfaceDataType *SurfData, AED_REAL *dt, ...);
 typedef void (*wq_do_glm_t)(int *wlev, int *pIce);
 typedef void (*wq_clean_glm_t)(void);
 typedef void (*wq_init_glm_output_t)(int *ncid, int *x_dim, int *y_dim, int *z_dim,
@@ -44,7 +44,7 @@ typedef void (*wq_init_glm_output_t)(int *ncid, int *x_dim, int *y_dim, int *z_d
 typedef void (*wq_write_glm_t)(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
 typedef int  (*wq_var_index_c_t)(const char*name, size_t *len);
 typedef void (*wq_set_flags_t)(int *split_factor, CLOGICAL *mobility, CLOGICAL *bioshade,
-                 CLOGICAL *repair_state, int *ode_method, int *benthic_mode, CLOGICAL *do_plots);
+                 CLOGICAL *repair_state, int *ode_method, int *benthic_mode, CLOGICAL *do_plots, ...);
 typedef int (*wq_is_var_t)(int *id, const char *v, size_t *len);
 typedef void (*wq_set_glm_zones_t)(AED_REAL *z_heights, int *numZones, int *numVars, int *numBenV);
 
@@ -77,14 +77,14 @@ extern wq_set_glm_zones_t p_wq_set_glm_zones;
 
 void wq_init_glm(char *fname, size_t *len, int *kk, int *NumWQVars, int *NumWQBen, AED_REAL *pKw);
 void wq_set_glm_data(void *Lake, int *MaxLayers,
-                MetDataType *MetData, SurfaceDataType *SurfData, AED_REAL *dt);
+                MetDataType *MetData, SurfaceDataType *SurfData, AED_REAL *dt, ...);
 void wq_do_glm(int *wlev, int *pIce);
 void wq_clean_glm(void);
 void wq_init_glm_output(int *ncid, int *x_dim, int *y_dim, int *z_dim, int *zone_dim, int *time_dim);
 void wq_write_glm_(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
 int  wq_var_index_c(const char*name, size_t *len);
 void wq_set_flags(int *split_factor, CLOGICAL *mobility, CLOGICAL *bioshade, CLOGICAL *repair_state,
-                      int *ode_method, int *benthic_mode, CLOGICAL *do_plots);
+                      int *ode_method, int *benthic_mode, CLOGICAL *do_plots, ...);
 int wq_is_var(int *id, const char *v, size_t *len);
 #else
 void fabm_init_glm(char *fname, size_t *len, int *kk, int *NumWQVars, int *NumWQBen, AED_REAL *pKw);
@@ -101,14 +101,16 @@ int fabm_is_var(int *id, const char *v, size_t *len);
 
 void aed2_init_glm(char *fname, size_t *len, int *kk, int *NumWQVars, int *NumWQBen, AED_REAL *pKw);
 void aed2_set_glm_data(void *Lake, int *MaxLayers,
-                MetDataType *MetData, SurfaceDataType *SurfData, AED_REAL *dt);
+                MetDataType *MetData, SurfaceDataType *SurfData, AED_REAL *dt,
+                 AED_REAL *c_rain_factor, AED_REAL *c_sw_factor, AED_REAL *c_friction);
 void aed2_do_glm(int *wlev, int *pIce);
 void aed2_clean_glm(void);
 void aed2_init_glm_output(int *ncid, int *x_dim, int *y_dim, int *z_dim, int *zone_dim, int *time_dim);
 void aed2_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
 int  aed2_var_index_c(const char*name, size_t *len);
 void aed2_set_flags(int *split_factor, CLOGICAL *mobility, CLOGICAL *bioshade, CLOGICAL *repair_state,
-                      int *ode_method, int *benthic_mode, CLOGICAL *do_plots);
+                      int *ode_method, int *benthic_mode, CLOGICAL *do_plots,
+                      CLOGICAL *c_link_rain_loss, CLOGICAL *c_link_solar_shade, CLOGICAL *c_link_bottom_drag);
 int aed2_is_var(int *id, const char *v, size_t *len);
 #endif
 

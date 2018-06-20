@@ -146,6 +146,9 @@ MODULE glm_aed2
    INTEGER,ALLOCATABLE,DIMENSION(:) :: plot_id_v, plot_id_sv, plot_id_d, plot_id_sd
 #endif
 
+   LOGICAL :: link_rain_loss, link_solar_shade, link_bottom_drag
+   AED_REAL,POINTER :: rain_factor, sw_factor, friction
+
    INTEGER :: n_aed2_vars, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
    INTEGER :: zone_var = 0
 !===============================================================================
@@ -206,11 +209,13 @@ END FUNCTION f_get_lun
 
 !###############################################################################
 SUBROUTINE aed2_set_flags(c_split_factor, c_mobility, c_bioshade,              &
-                  c_repair_state, c_ode, c_benthic_mode, c_do_plots) BIND(C, name=_WQ_SET_FLAGS)
+                  c_repair_state, c_ode, c_benthic_mode, c_do_plots,           &
+                  c_link_rain_loss, c_link_solar_shade, c_link_bottom_drag) BIND(C, name=_WQ_SET_FLAGS)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    CLOGICAL,INTENT(in) :: c_mobility, c_bioshade, c_repair_state, c_do_plots
    CINTEGER,INTENT(in) :: c_split_factor, c_ode, c_benthic_mode
+   CLOGICAL,OPTIONAL,INTENT(in) :: c_link_rain_loss, c_link_solar_shade, c_link_bottom_drag
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -221,6 +226,9 @@ SUBROUTINE aed2_set_flags(c_split_factor, c_mobility, c_bioshade,              &
    repair_state = c_repair_state
    benthic_mode = c_benthic_mode
    do_plots = c_do_plots
+   IF (PRESENT(c_link_rain_loss))   link_rain_loss = c_link_rain_loss
+   IF (PRESENT(c_link_solar_shade)) link_solar_shade = c_link_solar_shade
+   IF (PRESENT(c_link_bottom_drag)) link_bottom_drag = c_link_bottom_drag
 END SUBROUTINE aed2_set_flags
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -514,7 +522,8 @@ END FUNCTION aed2_is_var
 
 
 !###############################################################################
-SUBROUTINE aed2_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_) &
+SUBROUTINE aed2_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_,          &
+                                c_rain_factor, c_sw_factor, c_friction)        &
                                                   BIND(C, name=_WQ_SET_GLM_DATA)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
@@ -523,6 +532,7 @@ SUBROUTINE aed2_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_) &
    TYPE(MetDataType),TARGET     :: MetData  !# Meteorological data
    TYPE(SurfaceDataType),TARGET :: SurfData !# Surface Data
    AED_REAL,INTENT(in)  :: dt_
+   AED_REAL,OPTIONAL,TARGET :: c_rain_factor, c_sw_factor, c_friction
 !LOCALS
    INTEGER :: i
 !
@@ -571,7 +581,11 @@ SUBROUTINE aed2_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_) &
    !# Calculate and save internal time step.
    dt_eff = dt/FLOAT(split_factor)
 
-   ! Trigger an error if WQ hasn't got all it needs from us.
+   IF (PRESENT(c_rain_factor)) rain_factor => c_rain_factor
+   IF (PRESENT(c_sw_factor))   sw_factor   => c_sw_factor
+   IF (PRESENT(c_friction))    friction    => c_friction
+
+   !# Trigger an error if WQ hasn't got all it needs from us.
    CALL check_data
 END SUBROUTINE aed2_set_glm_data
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -826,6 +840,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
    AED_REAL :: scale
    AED_REAL, DIMENSION(wlev, n_vars+n_vars_ben)    :: flux_pel_pre
    AED_REAL, DIMENSION(n_zones, n_vars+n_vars_ben) :: flux_pel_z
+   AED_REAL :: localrainl, localshade, localdrag
    LOGICAL :: splitZone
    TYPE(aed2_variable_t),POINTER :: tvar
 !-------------------------------------------------------------------------------
@@ -874,6 +889,18 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
             !# Zone is able to operated on by riparian and dry methods
             CALL aed2_calculate_riparian(column_sed, zon, z_pc_wet(zon))
             IF (z_pc_wet(zon) .EQ. 0. ) CALL aed2_calculate_dry(column_sed, zon)
+
+            !# update feedback arrays to host model, to reduce rain (or if -ve then add flow)
+            CALL aed2_rain_loss(column, 1, localrainl);
+            IF (link_rain_loss) rain_factor = localrainl
+
+            !# update feedback arrays to shade the water (ie reduce incoming light, Io)
+            CALL aed2_light_shading(column, 1, localshade)
+            IF (link_solar_shade) sw_factor = localshade
+
+            !# now the bgc updates are complete, update links to host model
+            CALL aed2_bio_drag(column, 1, localdrag)
+            IF (link_bottom_drag) friction = localdrag
          ENDIF
          !# Calculate temporal derivatives due to benthic processes.
          !# They are stored in flux_ben (benthic vars) and flux_pel (water vars)

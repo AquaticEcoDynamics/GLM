@@ -164,7 +164,6 @@ typedef char filname[80];
 
        AED_REAL Umean;           // Mean velocity
        AED_REAL Uorb;            // Maximum orbital velocity
-//     AED_REAL Ucur;            // Current velocity
        AED_REAL LayerStress;     // Layer Stress
    } LakeDataType;
 

@@ -180,6 +180,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern int      albedo_mode;
     extern int      cloud_mode;
     extern int      light_mode;
+//  extern LOGICAL  link_solar_shade;
+//  extern LOGICAL  link_rain_loss;
+//  extern LOGICAL  link_bottom_drag;
     char           *timefmt_m = NULL;
     extern AED_REAL timezone_m;
     /*-------------------------------------------*/
@@ -355,6 +358,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "runoff_coef",       TYPE_DOUBLE,           &runoff_coef       },
           { "time_fmt",          TYPE_STR,              &timefmt_m         },
           { "timezone",          TYPE_DOUBLE,           &timezone_m        },
+          { "link_solar_shade",  TYPE_BOOL,             &link_solar_shade  },
+          { "link_rain_loss",    TYPE_BOOL,             &link_rain_loss    },
+          { "link_bottom_drag",  TYPE_BOOL,             &link_bottom_drag  },
      //   { "snow_sw",           TYPE_BOOL,             &snow_sw           },
           { NULL,                TYPE_END,              NULL               }
     };
@@ -976,7 +982,8 @@ for (i = 0; i < n_zones; i++) {
             }
         }
 
-        wq_set_glm_data(Lake, &MaxLayers, &MetData, &SurfData, &dt);
+        wq_set_glm_data(Lake, &MaxLayers, &MetData, &SurfData, &dt,
+                                   rain_factor, sw_factor, biodrag);
     }
 
 

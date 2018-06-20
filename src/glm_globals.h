@@ -152,8 +152,13 @@ extern int      albedo_mode;
 extern int      cloud_mode;
 extern int      light_mode;
 extern int      n_bands;
-extern AED_REAL   *light_extc;
-extern AED_REAL   *energy_frac;
+extern AED_REAL *light_extc;
+extern AED_REAL *energy_frac;
+
+extern LOGICAL  link_solar_shade;
+extern LOGICAL  link_rain_loss;
+extern LOGICAL  link_bottom_drag;
+extern AED_REAL biodrag;
 
 extern AED_REAL salt_fall;
 /*----------------------------------------------------------------------------*/

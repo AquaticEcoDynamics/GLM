@@ -52,11 +52,11 @@ AED_REAL VMax;    //# maximum layer volume
 
 int wq_calc = FALSE;
 
-AED_REAL Kw;             //# background light attenuation (m**-1)
+AED_REAL Kw;      //# background light attenuation (m**-1)
 
-int Num_WQ_Vars;         //# number of water quality variables
-int Num_WQ_Ben;          //# number of benthic water quality variables
-int atm_stab = 0;   // Account for non-neutral atmospheric stability
+int Num_WQ_Vars;  //# number of water quality variables
+int Num_WQ_Ben;   //# number of benthic water quality variables
+int atm_stab = 0; //# Account for non-neutral atmospheric stability
 
 //------------------------------------------------------------------------------
 
@@ -148,14 +148,18 @@ CLOGICAL catchrain = FALSE;
 AED_REAL rain_threshold = 0.04;
 AED_REAL runoff_coef = 0.3;
 
-int      rad_mode = 0;
-int      albedo_mode = 1;
-int      cloud_mode = 1;
-int      light_mode = 1;
-int      n_bands = 2;
-AED_REAL   *light_extc = NULL;
-AED_REAL   *energy_frac = NULL;
+int       rad_mode = 0;
+int       albedo_mode = 1;
+int       cloud_mode = 1;
+int       light_mode = 1;
+int       n_bands = 2;
+AED_REAL  *light_extc = NULL;
+AED_REAL  *energy_frac = NULL;
 
+LOGICAL link_solar_shade = FALSE;
+LOGICAL link_rain_loss   = FALSE;
+LOGICAL link_bottom_drag = FALSE;
+AED_REAL biodrag = 0.0;
 
 AED_REAL salt_fall = 0.0;
 

@@ -182,7 +182,8 @@ int prime_wq(const char *which)
                     split_factor, mobility_off, bioshade_feedback,repair_state, ode_method, benthic_mode, do_plots);
 
     (*p_wq_set_flags)(&split_factor, &mobility_off, &bioshade_feedback,
-                                     &repair_state, &ode_method, &benthic_mode, &do_plots);
+                                     &repair_state, &ode_method, &benthic_mode, &do_plots,
+                                     &link_rain_loss, &link_solar_shade, &link_bottom_drag);
 
     return 0;
 }
