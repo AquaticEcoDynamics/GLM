@@ -1079,8 +1079,6 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
           //# Apply the same sediment heating parameters across all layers
           kDays = day_of_year(jday);
           TYEAR = sed_temp_mean[0] + sed_temp_amplitude[0] * cos(((kDays-sed_temp_peak_doy[0])*2.*Pi)/365.);
-          ZSED = 0.5;           //ZSED = 6.;
-          KSED = 10.2;
           for (i = botmLayer+1; i <= surfLayer; i++) {
              Lake[i].Temp += ((KSED*(TYEAR-Lake[i].Temp)/ZSED)*
                              (Lake[i].LayerArea-Lake[i-1].LayerArea)*
