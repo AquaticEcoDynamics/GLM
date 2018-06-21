@@ -1075,7 +1075,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         ZSED = sed_temp_depth;
         KSED = sed_heat_Ksoil;
 
-        if(benthic_mode <2){
+        if(benthic_mode == 1){
           //# Apply the same sediment heating parameters across all layers
           kDays = day_of_year(jday);
           TYEAR = sed_temp_mean[0] + sed_temp_amplitude[0] * cos(((kDays-sed_temp_peak_doy[0])*2.*Pi)/365.);
@@ -1092,7 +1092,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                                    //Lake[botmLayer].LayerArea*LayerThickness[botmLayer] *
                                    noSecs)/(SPHEAT*Lake[botmLayer].Density*Lake[botmLayer].LayerVol);
         }
-        else {
+        else  if(benthic_mode == 2){
           //# Apply the sediment zone specific heating parameters to overlying
           //  layers. First find which layers correspond to which zone
           for (i = botmLayer; i <= surfLayer; i++) {
