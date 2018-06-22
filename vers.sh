@@ -8,7 +8,7 @@ fi
 
 OSTYPE=`uname -s`
 if [ "${OSTYPE}" = "Darwin" ] ; then
-  EXTN=' ""'
+  EXTN='.x'
 else
   EXTN=''
 fi
@@ -24,6 +24,9 @@ for FILE in ./glm.rc ./glm+.rc ; do
     OFV=`grep FileVersion ${FILE} | sed 's/^[ \t]*//' | cut -f3 -d\ `
     echo sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
     sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
+    if [ "${OSTYPE}" = "Darwin" ] ; then
+      /bin/rm ${FILE}${EXTN}
+    fi
   else
     echo no change to version number in ${FILE}
   fi

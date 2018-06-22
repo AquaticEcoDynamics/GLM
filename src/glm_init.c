@@ -685,16 +685,16 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     } else {
         sed_heat_sw = TRUE;
         fprintf(stderr,"Sediment section present, simulating sediment heating\n");
-        printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[0]);
-        printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[1]);
+        if (sed_temp_mean != NULL) {
+            printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[0]);
+            printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[1]);
+        }
     }
     if ( sed_reflectivity == NULL ) {
-        if ((i = n_zones) <= 1) i = 2;
-        sed_reflectivity = malloc(i*sizeof(AED_REAL));
-        if (n_zones <= 1) sed_reflectivity[0] = 0.;
-        else {
-            for (i = 0; i < n_zones; i++) sed_reflectivity[i] = 0.;
-        }
+        int t_zones = 2;
+        if ( n_zones > 1 ) t_zones = n_zones;
+        sed_reflectivity = malloc(t_zones*sizeof(AED_REAL));
+        memset(sed_reflectivity, 0, t_zones*sizeof(AED_REAL));
     }
 
     if ( n_zones > 0 && zone_heights != NULL ) {
@@ -715,22 +715,25 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
      * If there are zones and these were not defined in the config they will  *
      * be NULL and access will cause segfault.                                *
      **************************************************************************/
-    if ( n_zones > 0 ) {
+    if ( sed_heat_sw ) {
+        int t_zones = 2;
+        if ( n_zones > 1 ) t_zones = n_zones;
+
         if (sed_roughness == NULL) {
-            sed_roughness = malloc(n_zones*sizeof(AED_REAL));
-            memset(sed_roughness, 0, n_zones*sizeof(AED_REAL));
+            sed_roughness = malloc(t_zones*sizeof(AED_REAL));
+            memset(sed_roughness, 0, t_zones*sizeof(AED_REAL));
         }
         if (sed_temp_mean == NULL) {
-            sed_temp_mean = malloc(n_zones*sizeof(AED_REAL));
-            memset(sed_temp_mean, 0, n_zones*sizeof(AED_REAL));
+            sed_temp_mean = malloc(t_zones*sizeof(AED_REAL));
+            memset(sed_temp_mean, 0, t_zones*sizeof(AED_REAL));
         }
         if (sed_temp_amplitude == NULL) {
-            sed_temp_amplitude = malloc(n_zones*sizeof(AED_REAL));
-            memset(sed_temp_amplitude, 0, n_zones*sizeof(AED_REAL));
+            sed_temp_amplitude = malloc(t_zones*sizeof(AED_REAL));
+            memset(sed_temp_amplitude, 0, t_zones*sizeof(AED_REAL));
         }
         if (sed_temp_peak_doy == NULL) {
-            sed_temp_peak_doy = malloc(n_zones*sizeof(AED_REAL));
-            memset(sed_temp_peak_doy, 0, n_zones*sizeof(AED_REAL));
+            sed_temp_peak_doy = malloc(t_zones*sizeof(AED_REAL));
+            memset(sed_temp_peak_doy, 0, t_zones*sizeof(AED_REAL));
         }
     }
 
