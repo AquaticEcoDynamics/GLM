@@ -1,21 +1,28 @@
-glm (3.0.0alpha5-0) UNRELEASED; urgency=low
+glm (3.0.0beta1-0) UNRELEASED; urgency=low
 
   [ Casper Boon ]
-  * new version 2.7.0
-  * new version 2.7.1alpha1
-  * new version 2.8.0alpha0
-  * new version 2.8.0alpha1
-  * new version 2.8.0alpha2
-  * new version 2.8.0alpha4
-  * new version 2.8.0alpha5
-  * new version 2.8.0alpha6
-  * new version 3.0.0alpha1
-  * new version 3.0.0alpha2
-  * new version 3.0.0alpha3
-  * new version 3.0.0alpha4
-  * new version 3.0.0alpha5
+  * new version 3.0.0beta1
 
- -- Casper Boon <casper@eridanus>  Tue, 19 Jun 2018 13:44:56 +0800
+ -- Casper Boon <casper@shark>  Sat, 23 Jun 2018 09:43:10 +0800
+
+glm (2.4.1-0) UNRELEASED; urgency=low
+
+  [ Casper Boon ]
+  * new version 2.4.0
+  * new version 2.4.1
+
+ -- Casper Boon <casper@shark>  Sun, 07 Jan 2018 18:42:13 +0800
+
+glm (2.2.1-0) UNRELEASED; urgency=low
+
+  [ Casper Boon ]
+  * new version 2.2.0
+  * new version 2.2.0
+
+  [ hydro i7 ]
+  * new version 2.2.1
+
+ -- hydro i7 <hydro@see-hydro04-i7>  Thu, 13 Apr 2017 10:55:42 +0800
 
 glm (2.0.4-0) UNRELEASED; urgency=low
 
