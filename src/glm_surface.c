@@ -770,8 +770,9 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         T01_OLD = -50.;
         Temp_ice = zero;
         while (1) {
-            // Saturated vapor pressure above snow and ice is different than above water
-            // From Jeong (2009), ultimately from Mellor (1964) "Properties of Snow"
+            //# Saturated vapor pressure above snow and ice is different than above
+            //  water. Algoirthm taken from Jeong (2009), ultimately from
+            //  Mellor (1964) "Properties of Snow"
             SatVap_surface = (1.+(0.00972*Temp_ice)+(0.000042*pow(Temp_ice, 2.)))
                              *saturated_vapour(Temp_ice);
 
