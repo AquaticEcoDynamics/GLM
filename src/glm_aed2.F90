@@ -6,12 +6,12 @@
 !#                                                                             #
 !# Developed by :                                                              #
 !#     AquaticEcoDynamics (AED) Group                                          #
-!#     School of Earth & Environment                                           #
+!#     School of Agriculture and Environment                                   #
 !#     The University of Western Australia                                     #
 !#                                                                             #
-!#     http://aed.see.uwa.edu.au/                                              #
+!#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2013 - 2016 -  The University of Western Australia                #
+!# Copyright 2013 - 2018 -  The University of Western Australia                #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -274,7 +274,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
    CALL aed2_print_version
 
    !# Create model tree
-   print *,"      Processing aed2_models config from ",TRIM(fname)
+   print *,"     Processing aed2_models config from ",TRIM(fname)
    OPEN(namlst,file=fname,action='read',status='old',iostat=status)
    IF ( status /= 0 ) CALL STOPIT("Cannot open file " // TRIM(fname))
 
@@ -925,7 +925,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
          !# They are stored in flux_ben (benthic vars) and flux_pel (water vars)
          flux_pel_pre = flux_pel
 
-!           print*,"Calling ben for zone ",zone_var,zon,z_sed_zones(zon)
+!        print*,"Calling ben for zone ",zone_var,zon,z_sed_zones(zon)
          CALL aed2_calculate_benthic(column_sed, zon)
 
          !# Record benthic fluxes in the zone array

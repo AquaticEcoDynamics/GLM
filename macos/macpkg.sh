@@ -45,28 +45,29 @@ cp InfoPlist.strings ${PKG}.app/Contents/Resources/English.lproj
 if [ "${PKG}" = "glm+" ] ; then
   sed -i '' -e "s/GLM2/XLM2/" ${PKG}.app/Contents/Info.plist
   echo -n "APPLXLM2" > ${PKG}.app/Contents/PkgInfo
-  sed -i '' -e "s/au.edu.uwa.see.aed.glm/au.edu.uwa.see.aed.glm+/" ${PKG}.app/Contents/Info.plist
+  sed -i '' -e "s/au.edu.uwa.science.aquatic.glm/au.edu.uwa.science.aquatic.glm+/" ${PKG}.app/Contents/Info.plist
 fi
 
 # find_libs path bin
-echo "BASEDIR is ${BASEDIR}" 1>&2
+#echo "BASEDIR is ${BASEDIR}" 1>&2
 find_libs () {
-   echo "*** find_libs \"$1\" \"$2\"" 1>&2
+   #echo "*** find_libs \"$1\" \"$2\"" 1>&2
    L2=`otool -L ${PKG}.app/Contents/MacOS/$2 | grep \/${BASEDIR}\/$1 | cut -d\  -f1 | grep -o '[^/]*$'`
    LIST=""
    while [ "$L2" != "$LIST" ] ; do
       LIST=$L2
       for i in $LIST ; do
-         xx=`find \/${BASEDIR} -name $i 2> /dev/null`
-         echo "Looking for \"$i\" ($xx)" 1>&2
+         xx=`find \/${BASEDIR} -name $i 2> /dev/null | tail -n 1`
+         #echo "Looking for \"$i\" ($xx)" 1>&2
          if [ ! -f ${PKG}.app/Contents/MacOS/$i ] ; then
             if [ "$xx" = "" ] ; then
-               cp /${BASEDIR}/local/lib/$i ${PKG}.app/Contents/MacOS
+               /bin/cp -f /${BASEDIR}/local/lib/$i ${PKG}.app/Contents/MacOS
             else
-               cp $xx ${PKG}.app/Contents/MacOS
+               /bin/cp -f $xx ${PKG}.app/Contents/MacOS
             fi
             if [ $? != 0 ] ; then
                echo " ####### Failed to copy $i" 1>&2
+               exit 1
             else
                chmod +w ${PKG}.app/Contents/MacOS/$i
             fi
@@ -92,7 +93,7 @@ find_libs () {
 LIBS1=`find_libs local ${PKG}`
 #LIBS2=`find_libs intel ${PKG}`
 
-if [ "$FORTRAN_COMPILER" = "IFORT" ] ; then
+if [ "$FC" = "ifort" ] ; then
   PATH2=/opt/intel
   PATH3=
   LIBS2="libifcore.dylib libsvml.dylib libimf.dylib libintlc.dylib"
@@ -100,24 +101,30 @@ if [ "$FORTRAN_COMPILER" = "IFORT" ] ; then
     LIBS2="${LIBS2} libifport.dylib"
   fi
 else
-  PATH2=/usr/local/lib
-  PATH3=/usr/local/lib/
-  LIBS2="libgfortran.3.dylib"
+  PATH2=/usr/local/
+  PATH3=/usr/local/
+  LIBS2="libgfortran.5.dylib"
 fi
 
-echo "LIBS1 = $LIBS1"
-echo "LIBS2 = $LIBS2"
+#echo "LIBS1 = $LIBS1"
+#echo "LIBS2 = $LIBS2"
 
 # These general libraries
 for i in $LIBS1 ; do
-   echo "*** Configuring : $i ***"
-   xx=`find /${BASEDIR} -name $i 2> /dev/null`
+   #echo "*** Configuring : $i ***"
+   xx=`find /${BASEDIR} -name $i 2> /dev/null | tail -n 1`
    #cp /${BASEDIR}/local/lib/$i ${PKG}.app/Contents/MacOS
-   cp $xx ${PKG}.app/Contents/MacOS
+   /bin/cp -f $xx ${PKG}.app/Contents/MacOS
+   if [ $? != 0 ] ; then
+      echo " ####### Failed to copy(2) $i" 1>&2
+      exit 1
+   else
+      chmod +w ${PKG}.app/Contents/MacOS/$i
+   fi
    install_name_tool -id $i ${PKG}.app/Contents/MacOS/$i
    #install_name_tool -change /${BASEDIR}/local/lib/$i '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
    install_name_tool -change $xx '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
-   echo '****' install_name_tool -change $xx '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
+   #echo '****' install_name_tool -change $xx '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
    if [ "${BASEDIR}" = "usr" ] ; then
       # This is probably a HOMEBREW setup, so there might be references into the Cellar
       NLST=`otool -L ${PKG}.app/Contents/MacOS/$i | grep \/${BASEDIR}\/local/Cellar | cut -d\  -f1`
@@ -131,8 +138,14 @@ done
 # These fortran libraries
 for i in $LIBS2 ; do
    #cp $PATH2/$i ${PKG}.app/Contents/MacOS
-   src=`find $PATH2 -name $i`
-   cp $src ${PKG}.app/Contents/MacOS
+   src=`find $PATH2 -name $i 2> /dev/null | tail -n 1`
+   /bin/cp -f $src ${PKG}.app/Contents/MacOS
+   if [ $? != 0 ] ; then
+      echo " ####### Failed to copy(3) $i" 1>&2
+      exit 1
+   else
+      chmod +w ${PKG}.app/Contents/MacOS/$i
+   fi
 # These are redundant since it seems intel fortran dylibs exclude the path from their names
    install_name_tool -id $i ${PKG}.app/Contents/MacOS/$i
    install_name_tool -change ${PATH3}$i '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
@@ -146,16 +159,16 @@ echo "Now checking libs for dependancies"
 echo "LIBS=$LIBS"
 
 for file in $LIBS ; do
-  echo "********** $file"
+  #echo "********** $file"
 
   L2=`otool -L ${PKG}.app/Contents/MacOS/$file | grep \/${BASEDIR}\/local | cut -d\  -f1`
 
   for j in $L2 ; do
     lib=`echo $j | grep -o '[^/]*$'`
     #echo "********** $file : $j ($lib)"
-    xx=`find /${BASEDIR} -name $lib 2> /dev/null`
+    xx=`find /${BASEDIR} -name $lib 2> /dev/null | tail -n 1`
     if [ "$xx" != "" ] ; then
-      echo ' YYYY' install_name_tool -change $xx '@executable_path/'$lib ${PKG}.app/Contents/MacOS/$file
+      #echo ' YYYY' install_name_tool -change $xx '@executable_path/'$lib ${PKG}.app/Contents/MacOS/$file
       install_name_tool -change $xx '@executable_path/'$lib ${PKG}.app/Contents/MacOS/$file
     fi
   done
@@ -163,7 +176,7 @@ for file in $LIBS ; do
   for j in $LIBS2 ; do
     xx=`otool -L ${PKG}.app/Contents/MacOS/$file | grep $j`
     if [ "$xx" != "" ] ; then
-      echo ' XXXX' install_name_tool -change $j '@executable_path/'$j ${PKG}.app/Contents/MacOS/$file
+      #echo ' XXXX' install_name_tool -change $j '@executable_path/'$j ${PKG}.app/Contents/MacOS/$file
       install_name_tool -change $j '@executable_path/'$j ${PKG}.app/Contents/MacOS/$file
     fi
   done

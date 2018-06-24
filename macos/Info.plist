@@ -30,7 +30,7 @@
 	<key>CFBundleIconFile</key>
 	<string>buildapp</string>
 	<key>CFBundleIdentifier</key>
-	<string>au.edu.uwa.see.aed.glm</string>
+	<string>au.edu.uwa.science.aquatic.glm</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -46,6 +46,6 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>SUFeedURL</key>
-	<string>http://aed.see.uwa.edu.au/</string>
+	<string>http://aquatic.science.uwa.edu.au/</string>
 </dict>
 </plist>

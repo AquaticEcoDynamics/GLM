@@ -10,6 +10,7 @@ bin
 glm
 glm.app
 glm+
+glm+.app
 ._*
 .DS*
 .*.swp

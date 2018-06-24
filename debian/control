@@ -3,7 +3,7 @@ Section: science
 Priority: extra
 Maintainer: Aquatic EcoDynamics Group
 Standards-Version: 3.9.3
-Homepage: http://aed.see.uwa.edu.au/research/models/GLM/
+Homepage: http://aquatic.science.uwa.edu.au/research/models/GLM/
 
 Package: glm
 Architecture: any

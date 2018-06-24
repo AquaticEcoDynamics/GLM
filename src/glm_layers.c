@@ -6,12 +6,12 @@
  *                                                                            *
  * Developed by :                                                             *
  *     AquaticEcoDynamics (AED) Group                                         *
- *     School of Earth & Environment                                          *
+ *     School of Agriculture and Environment                                  *
  *     The University of Western Australia                                    *
  *                                                                            *
- *     http://aed.see.uwa.edu.au/                                             *
+ *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2016 -  The University of Western Australia               *
+ * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -269,7 +269,7 @@ void check_layer_thickness(void)
  * This subroutine finds the level of Neutral Bouyancy for a given inflow     *
  * and returns the layer number (i), the half-thickness (B0), basin length    *
  * at the intrusion midpoint (AL), basin width at the intrusion               *
- * midpoint, and the mean intrusion velocity (IntrusionVelocity) in m/s.                   *
+ * midpoint, and the mean intrusion velocity (IntrusionVelocity) in m/s.      *
  ******************************************************************************/
 void insert(AED_REAL q, AED_REAL di, AED_REAL bsl, AED_REAL temp, AED_REAL salt,
                              AED_REAL *wqx, int ntims, AED_REAL *width, int *ll)

@@ -4,12 +4,12 @@
  *                                                                            *
  * Developed by :                                                             *
  *     AquaticEcoDynamics (AED) Group                                         *
- *     School of Earth & Environment                                          *
+ *     School of Agriculture and Environment                                  *
  *     The University of Western Australia                                    *
  *                                                                            *
- *     http://aed.see.uwa.edu.au/                                             *
+ *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2016 -  The University of Western Australia               *
+ * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -68,7 +68,7 @@ int csv_outfl_nvars = 0;
 static VARNAME csv_outfl_vars[MaxCSVOutVars];
 int ofl_wq_idx[MaxCSVOutVars];
 
-#define BUFCHUNK	10240
+#define BUFCHUNK    10240
 
 
 /*============================================================================*/
@@ -190,10 +190,10 @@ void init_csv_output(const char *out_dir)
         csv_header_var (csv_lake_file, "H_s"); //, "m");
         csv_header_var (csv_lake_file, "L");
         csv_header_var (csv_lake_file, "T");
-        csv_header_var(csv_lake_file, "LakeNumber");
-        csv_header_var(csv_lake_file, "Max dT/dz");
+        csv_header_var (csv_lake_file, "LakeNumber");
+        csv_header_var (csv_lake_file, "Max dT/dz");
         csv_header_var (csv_lake_file, "CD");
-        csv_header_end(csv_lake_file);
+        csv_header_end (csv_lake_file);
     } else
         csv_lake_file = -1;
 

@@ -4,12 +4,12 @@
  *                                                                            *
  * Developed by :                                                             *
  *     AquaticEcoDynamics (AED) Group                                         *
- *     School of Earth & Environment                                          *
+ *     School of Agriculture and Environment                                  *
  *     The University of Western Australia                                    *
  *                                                                            *
- *     http://aed.see.uwa.edu.au/                                             *
+ *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2016 -  The University of Western Australia               *
+ * Copyright 2013 - 2018 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -111,9 +111,10 @@
     double fmod(double x, double y);
   #endif
 
- #if DEBUG
-  #define CRASH(s) ( { int *x = (int*)1; fputs(s, stderr); *x = 1; } )
- #endif
+  #if DEBUG
+    #define CRASH(s) ( { int *x = (int*)1; fputs(s, stderr); *x = 1; } )
+  #endif
+
 //------------------------------------------------------------------------------
 #endif
 
