@@ -21,9 +21,10 @@ done
 export OSTYPE=`uname -s`
 
 if [ "$FC" = "" ] ; then
-  FC="ifort"
+  export FC="ifort"
 fi
 
+echo $FC
 if [ "$FC" = "ifort" ] ; then
    # for fabm   
    FORTRAN_COMPILER="IFORT"
