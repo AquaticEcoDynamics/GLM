@@ -1766,7 +1766,7 @@ void solpond(int nband, int npoint,
     const double pi = 3.14159265358979;
 
     /* local variables */
-    int i, j, k;
+    int i, j, l;
 //  double rinver, critw, cangle, rmu, del, hkdif, hkdir;
     double rinver, critw, cangle, rmu, hkdif, hkdir;
 
@@ -1789,10 +1789,10 @@ void solpond(int nband, int npoint,
 
 
 
-    for (k = 0; k < nband; k++) {
-        hkdir = energy[k] * hdir;
-        hkdif = energy[k] * hdif;
-        a = depth * absorb[k];
+    for (l = 0; l < nband; l++) {
+        hkdir = energy[l] * hdir;
+        hkdif = energy[l] * hdif;
+        a = depth * absorb[l];
 
         gaus10(rindex, critw, critw, 1.0, fdif, 1, a, &vdif);
         a2 = a * 2.0;
@@ -1820,7 +1820,7 @@ void solpond(int nband, int npoint,
             gaus10(rinver, critw, critw, 1.0, fct, 1, xpa, &vdir2);
             vdirx = vdir1 + vdir2;
 
-            gxk = absorb[k]*((1.0-ref(rindex, crita, cangle))*exp(-x/rmu)*
+            gxk = absorb[l]*((1.0-ref(rindex, crita, cangle))*exp(-x/rmu)*
                    hkdir/rmu+2.0 * pow(rindex, 2) * hkdif*vdifx+2.0*rb*gbk*(vdirx+em2));
 
             gx[j+1] += gxk;
