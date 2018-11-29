@@ -45,6 +45,9 @@
 #endif
 #endif
 
+#include "glm_debug.h"
+
+char *all_plots_name = NULL;
 
 extern char glm_nml_file[];
 extern void run_model(void);
@@ -68,6 +71,12 @@ int main(int argc, char *argv[])
             argv++; argc--;
             nmlfile = *argv;
         }
+        else if (strcmp(*argv, "--debug") == 0) {
+            _glm_dbg_on();
+        }
+        else if (strcmp(*argv, "--dbgmix") == 0) {
+            _mix_dbg_on();
+        }
 #ifdef PLOTS
 #ifdef XPLOTS
         else if (strcmp(*argv, "--xdisp") == 0) {
@@ -81,8 +90,13 @@ int main(int argc, char *argv[])
         else if (strcmp(*argv, "--saveall") == 0) {
             if ( saveall == 0) saveall = 1;
         }
-        else if (strcmp(*argv, "--save-all-in-one") == 0)
+        else if (strcmp(*argv, "--save-all-in-one") == 0) {
             saveall = 2;
+            if ( argc > 1 && strncmp(argv[1], "--", 2) != 0 ) {
+                argv++; argc--;
+                all_plots_name = *argv;
+            }
+        }
 #endif
         else {
             if (strcmp(*argv, "--help") != 0)
@@ -101,9 +115,9 @@ int main(int argc, char *argv[])
 # endif
 #endif
 
-    printf("       ------------------------------------------------\n");
-    printf("       |  General Lake Model (GLM)   Version %s    |\n", GLM_VERSION);
-    printf("       ------------------------------------------------\n");
+    printf("       ----------------------------------------------------\n");
+    printf("       |  General Lake Model (GLM)   Version %-12s |\n", GLM_VERSION);
+    printf("       ----------------------------------------------------\n");
 
 #ifdef __GNUC__
     printf("glm built using gcc version %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
@@ -121,6 +135,7 @@ int main(int argc, char *argv[])
 #endif
        printf("--saveall : save plots to png files\n");
        printf("--save-all-in-one : save all plots to png file\n");
+       printf("--save-all-in-one <destfile> : save all plots to png file <destfile>\n");
 #endif
     }
     else if ( all_ok ) {
@@ -134,11 +149,3 @@ int main(int argc, char *argv[])
     exit(0);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
-#if DEBUG
-void crash_()
-{
-    int *x = (int*)1;
-    *x = 0;
-}
-#endif

@@ -31,6 +31,11 @@
 !###############################################################################
 #include "glm.h"
 
+
+!************************* Important Note **************************************
+!* The order of entries in these structures MUST match those in glm_types.h    *
+!************************* Important Note **************************************
+
 !*******************************************************************************
 MODULE glm_types
 
@@ -59,24 +64,22 @@ MODULE glm_types
       AED_REAL :: Density          !# density kg/m3
       AED_REAL :: Temp             !# temperature
       AED_REAL :: Salinity         !# salinity
-      AED_REAL :: Height           !# 1-D depth array
-      AED_REAL :: MeanHeight       !# Mean depth of a layer
+      AED_REAL :: Height           !# layer heights above the bottom
+      AED_REAL :: MeanHeight       !# mean height of a layer
       AED_REAL :: LayerVol         !# volume of layer
       AED_REAL :: LayerArea        !# area of layer
 
-      AED_REAL :: Light            !# solar radiation over water layer depths
-      AED_REAL :: ExtcCoefSW       !# light extinction coefficient
+      AED_REAL :: Light            !# PAR, photosynthetically active radiation
+      AED_REAL :: ExtcCoefSW       !# Kd, light extinction coefficient
 
-      AED_REAL :: Vol1
-      AED_REAL :: Epsilon
+      AED_REAL :: Vol1             !# Cumulative volume to this layer top
+      AED_REAL :: Epsilon          !# Diffusivity
 
       AED_REAL :: Umean            !# Mean velocity
       AED_REAL :: Uorb             !# Orbital velocity
-      AED_REAL :: Ucur             !# Current velocity
       AED_REAL :: LayerStress      !# Layer Stress
    END TYPE LakeDataType
 
-#if 1
    !#===========================================================#!
    !# Structured type for Met vars
    TYPE,BIND(C) :: MetDataType
@@ -89,36 +92,38 @@ MODULE glm_types
       AED_REAL :: WindSpeed        !# windspeed
       AED_REAL :: Snow             !# snowfall
       AED_REAL :: RainConcPO4      !# Concentration of PO4 in rain
-      AED_REAL :: RainConcTp       !# Concentration of TP in rain
+      AED_REAL :: RainConcTP       !# Concentration of TP in rain
       AED_REAL :: RainConcNO3      !# Concentration of NO3 in rain
       AED_REAL :: RainConcNH4      !# Concentration of NH4 in rain
-      AED_REAL :: RainConcTn       !# Concentration of TN in rain
+      AED_REAL :: RainConcTN       !# Concentration of TN in rain
       AED_REAL :: RainConcSi       !# Concentration of SI in rain
-      AED_REAL :: WindDir          !# Wind Direction
+      AED_REAL :: WindDir          !# Wind direction
+      AED_REAL :: As               !# Area of sheltering
    END TYPE MetDataType
 
    !#===========================================================#!
    !# Structured type for Surface Data vars
    TYPE,BIND(C) :: SurfaceDataType
       AED_REAL :: Evap             !# Evaporation
-      AED_REAL :: HeightBlackIce   !# height of ice layer
-      AED_REAL :: HeightWhiteIce   !# height of white ice layer
-      AED_REAL :: HeightSnow       !# height of snow layer
-      AED_REAL :: dHt              !# change in thickness of either the snow or ice layer
-      AED_REAL :: RhoSnow          !# Density of snow layer in kg/m^3
-      AED_REAL :: dailyEvap        !# Daily Evaporation (ML/day)
-      AED_REAL :: dailyRain        !# Daily Rain (ML/day)
-      AED_REAL :: dailySnow        !# Daily Snow (ML/day)
+      AED_REAL :: delzBlueIce    !# Thickness of blue ice layer
+      AED_REAL :: delzWhiteIce   !# Thickness of white ice layer
+      AED_REAL :: delzSnow       !# Thickness of snow layer
+      AED_REAL :: dHt              !# Change in thickness of snow / ice layer
+      AED_REAL :: RhoSnow          !# Density of snow layer (kg/m^3)
+      AED_REAL :: dailyEvap        !# Daily Evaporation (m3/day)
+      AED_REAL :: dailyRain        !# Daily Rain (m3/day)
+      AED_REAL :: dailyRunoff      !# Daily Rain (m3/day)
+      AED_REAL :: dailySnow        !# Daily Snow (m3/day)
       AED_REAL :: dailyQsw         !# Daily Short Wave Radiation (J/day)
       AED_REAL :: dailyQe          !# Daily Latent Heat(J/day)
       AED_REAL :: dailyQh          !# Daily Sensible Heat (J/day)
       AED_REAL :: dailyQlw         !# Daily Long Wave Radiation (J/day)
-      AED_REAL :: dailyInflow      !# Total Daily Inflow (ML/day)
-      AED_REAL :: dailyOutflow     !# Total Daily Outflow (ML/day)
-      AED_REAL :: dailyOverflow    !# Total Daily Overflow (ML/day)
+      AED_REAL :: dailyInflow      !# Total Daily Inflow (m3/day)
+      AED_REAL :: dailyOutflow     !# Total Daily Outflow (m3/day)
+      AED_REAL :: dailyOverflow    !# Total Daily Overflow (m3/day)
       AED_REAL :: albedo           !# Daily surface albedo
+      AED_REAL :: dailyzonL        !# Average z/L value, atmos stability
    END TYPE SurfaceDataType
-#endif
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -136,7 +141,7 @@ SUBROUTINE make_string(s1,s2,len)
    CHARACTER,INTENT(in) :: s2(*)
    CSIZET,INTENT(in)    :: len
 !LOCALS
-   INTEGER :: i
+   CSIZET :: i
 !
 !-------------------------------------------------------------------------------
 !BEGIN

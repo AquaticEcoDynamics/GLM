@@ -52,22 +52,24 @@ AED_REAL VMax;    //# maximum layer volume
 
 int wq_calc = FALSE;
 
-AED_REAL Kw;             //# background light attenuation (m**-1)
+AED_REAL Kw;      //# background light attenuation (m**-1)
 
-int Num_WQ_Vars;         //# number of water quality variables
-int Num_WQ_Ben;          //# number of benthic water quality variables
-CLOGICAL atm_stab = FALSE;   // Account for non-neutral atmospheric stability
+int Num_WQ_Vars;  //# number of water quality variables
+int Num_WQ_Ben;   //# number of benthic water quality variables
+int atm_stab = 0; //# Account for non-neutral atmospheric stability
 
 //------------------------------------------------------------------------------
 
-AED_REAL CrestLevel; //# crest elevation of reservoir
-AED_REAL LenAtCrest; //# length of reservoir at crest
-AED_REAL WidAtCrest; //# width of reservoir at crest
-AED_REAL VolAtCrest; //# volume at crest level
-AED_REAL Base;       //# bottom elevation of reservoir
+AED_REAL Base;        //# bottom elevation of reservoir
+AED_REAL MaxHeight;   //# maxmimum height of reservoir
+AED_REAL CrestHeight; //# crest height of reservoir
+AED_REAL LenAtCrest;  //# length of reservoir at crest
+AED_REAL WidAtCrest;  //# width of reservoir at crest
+AED_REAL VolAtCrest;  //# volume at crest level
+AED_REAL MaxVol;      //# volume at maximum level
+AED_REAL MaxArea;
 AED_REAL Benthic_Light_pcArea;
 AED_REAL Benthic_Imin = 0.;
-AED_REAL MaxArea;
 
 //------------------------------------------------------------------------------
 
@@ -85,13 +87,20 @@ AED_REAL WithdrawalTemp;
 AED_REAL fac_range_upper = -1, fac_range_lower = -1;
 AED_REAL MINlaketemp;
 
+AED_REAL crest_width = 6.0;
+AED_REAL crest_factor = 0.61;
+
+CLOGICAL single_layer_draw = FALSE;
+AED_REAL outflow_thick_limit = 100.0;
+
 //------------------------------------------------------------------------------
 
 int NumDif;
 AED_REAL mol_diffusivity[MaxDif];
-// CD is the coef wind drag specified in the config, coef_wind_drag gets set to
-// CD every time around the daily loop, coef_wind_drag is used in the loop
+//# CD is the coef wind drag specified in the config, coef_wind_drag gets set to
+//# CD every time around the daily loop, coef_wind_drag is used in the loop
 AED_REAL coef_wind_drag = 0.0013;
+AED_REAL coef_wind_chwn = 0.0013;
 AED_REAL CD = 0.0013;
 AED_REAL CE = 0.0013;
 AED_REAL CH = 0.0013;
@@ -129,19 +138,38 @@ AED_REAL coef_mix_shear = 0.2;  //# shear efficiency
 AED_REAL coef_mix_turb = 0.51;  //# unsteady effects
 AED_REAL coef_wind_stir = 0.23; //# wind stirring
 AED_REAL coef_mix_hyp = 0.5;    //# efficiency of hypolimnetic mixing
+AED_REAL coef_mix_shreq = 1.0;  //# unsteady effects
 
 CLOGICAL non_avg = FALSE;
 int deep_mixing = 2;
+int surface_mixing = 1;
 
 //
 CLOGICAL catchrain = FALSE;
 AED_REAL rain_threshold = 0.04;
 AED_REAL runoff_coef = 0.3;
 
-int      rad_mode = 0;
-int      albedo_mode = 1;
-int      cloud_mode = 1;
+int       rad_mode = 0;
+int       albedo_mode = 1;
+int       cloud_mode = 1;
+int       light_mode = 1;
+int       n_bands = 2;
+AED_REAL  *light_extc = NULL;
+AED_REAL  *energy_frac = NULL;
 
+LOGICAL link_solar_shade = FALSE;
+LOGICAL link_rain_loss   = FALSE;
+LOGICAL link_bottom_drag = FALSE;
+AED_REAL biodrag = 0.0;
+
+AED_REAL salt_fall = 0.0;
+
+int      density_model = 0;
+
+AED_REAL albedo_mean = 0.08;         //# mean albedo
+AED_REAL albedo_amplitude = 0.02 ;   //#  albedo seasonal amplitude
+AED_REAL lw_factor   = 1.0;
+AED_REAL lw_offset   = 0.0;
 
 //------------------------------------------------------------------------------
 // SNOWICE
@@ -152,9 +180,16 @@ AED_REAL snow_rho_min       = 50.;
 //------------------------------------------------------------------------------
 // SED_HEAT
 CLOGICAL sed_heat_sw        = FALSE;
-AED_REAL sed_temp_mean      = 9.7;
-AED_REAL sed_temp_amplitude = 2.7;
-AED_REAL sed_temp_peak_doy  = 151.;
+//AED_REAL sed_temp_mean      = 9.7;
+//AED_REAL sed_temp_amplitude = 2.7;
+//AED_REAL sed_temp_peak_doy  = 151.;
+AED_REAL  sed_heat_Ksoil     = 5.0;
+AED_REAL  sed_temp_depth     = 0.1;
+AED_REAL *sed_temp_mean = NULL;
+AED_REAL *sed_temp_amplitude = NULL;
+AED_REAL *sed_temp_peak_doy = NULL;
+AED_REAL *sed_reflectivity = NULL;
+AED_REAL *sed_roughness = NULL;
 
 //------------------------------------------------------------------------------
 // FETCH
@@ -165,9 +200,14 @@ AED_REAL   *fetch_scale = NULL;
 AED_REAL    fetch_height = 0.;
 AED_REAL    fetch_porosity = 1.;
 
+int         fetch_mode = 0;
+AED_REAL    fetch_aws = 0.;
+AED_REAL    fetch_xws = 0.;
+char *      fetch_fws = NULL;
+
 //------------------------------------------------------------------------------
 // LITTORAL
-CLOGICAL littoral_sw        = TRUE;
+CLOGICAL littoral_sw        = FALSE;
 
 //------------------------------------------------------------------------------
 
@@ -191,7 +231,8 @@ AED_REAL *zone_area = NULL;
 //------------------------------------------------------------------------------
 //  These for debugging
 //------------------------------------------------------------------------------
-CLOGICAL no_evap = FALSE;
+CLOGICAL dbg_mix = FALSE;   //# debug output from mixer
+CLOGICAL no_evap = FALSE;   //# turn off evaporation
 
 void set_c_wqvars_ptr(AED_REAL *iwqv) { WQ_Vars = iwqv; }
 
@@ -201,19 +242,12 @@ void set_c_wqvars_ptr(AED_REAL *iwqv) { WQ_Vars = iwqv; }
 /******************************************************************************/
 void allocate_storage()
 {
-    MphLevelArea =    malloc(sizeof(AED_REAL) * Nmorph);
-    dMphLevelArea =   malloc(sizeof(AED_REAL) * Nmorph);
-    dMphLevelVol =    malloc(sizeof(AED_REAL) * Nmorph);
-    dMphLevelVolda =  malloc(sizeof(AED_REAL) * Nmorph);
-    MphLevelVol =     malloc(sizeof(AED_REAL) * Nmorph);
-    MphLevelVoldash = malloc(sizeof(AED_REAL) * Nmorph);
-
-    memset(MphLevelArea,    0, sizeof(AED_REAL) * Nmorph);
-    memset(dMphLevelArea,   0, sizeof(AED_REAL) * Nmorph);
-    memset(dMphLevelVol,    0, sizeof(AED_REAL) * Nmorph);
-    memset(dMphLevelVolda,  0, sizeof(AED_REAL) * Nmorph);
-    memset(MphLevelVol,     0, sizeof(AED_REAL) * Nmorph);
-    memset(MphLevelVoldash, 0, sizeof(AED_REAL) * Nmorph);
+    MphLevelArea =    calloc(Nmorph, sizeof(AED_REAL));
+    dMphLevelArea =   calloc(Nmorph, sizeof(AED_REAL));
+    dMphLevelVol =    calloc(Nmorph, sizeof(AED_REAL));
+    dMphLevelVolda =  calloc(Nmorph, sizeof(AED_REAL));
+    MphLevelVol =     calloc(Nmorph, sizeof(AED_REAL));
+    MphLevelVoldash = calloc(Nmorph, sizeof(AED_REAL));
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -247,7 +281,7 @@ void debug_initialisation(int which) {
 
     _debug_print_lake(of);
 
-    fprintf(of, "crest = %20.15f base = %20.15f VolAtCrest = %20.15f\n", CrestLevel, Base, VolAtCrest);
+    fprintf(of, "crest = %20.15f base = %20.15f VolAtCrest = %20.15f\n", CrestHeight, Base, VolAtCrest);
 
     fprintf(of, " Nmorph = %d\n", Nmorph);
     fprintf(of, "IDX----------StoLA----------------MphLevelVol--------------------dMphLevelVol------------------dMphLevelArea--------------\n");

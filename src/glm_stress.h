@@ -36,6 +36,5 @@
 #define _GLM_STRESS_H_
 
 void calc_layer_stress(AED_REAL U, AED_REAL F);
-AED_REAL get_fetch(AED_REAL windDir);
 
 #endif

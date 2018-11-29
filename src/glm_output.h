@@ -34,7 +34,8 @@ void init_output(int jstart, const char *out_dir, const char *out_fn,
                    int MaxLayers, AED_REAL Longitude, AED_REAL Latitude);
 void write_output(int jday, int iclock, int nsave, int stepnum);
 void write_diags(int jday, AED_REAL LakeNum);
-void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol);
+//void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol)
+void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol, AED_REAL vol_bc, AED_REAL hwBot, AED_REAL hwTop);
 void close_output(void);
 
 int intern_is_var(int id, const char *v);

@@ -46,7 +46,7 @@
 #define Ks    ( 2.5*d_50 )
 
 AED_REAL Hs = 0., T = 0., L = 0.;
-AED_REAL BottomStress = 0.;
+static AED_REAL BottomStress = 0.;
 
 #define DEBUG_STRESS  0
 #define DEBUG_STRESS_CSV  0
@@ -62,15 +62,13 @@ static FILE *csv_dbg = NULL;
 static int new_run = TRUE;
 #endif
 
-static AED_REAL U_Sqr;
-
 // Variant 1 is as per CAEDYM, variant 0 as per Ji (2008) and Laenen and LeTourneau (1996)
 #define VARIANT 0
 
 /******************************************************************************/
 #define f_c(h) ( 0.24 / pow(log10(12*h / Ks), 2) )
 /******************************************************************************/
-#define f_Uorb(U, F, h) ((Pi * Hs) / (T * sinh((two_Pi * h) / L)))
+#define f_Uorb(F, h) ((Pi * Hs) / (T * sinh((two_Pi * h) / L)))
 
 /******************************************************************************/
 static AED_REAL f_L(AED_REAL T, AED_REAL h)
@@ -81,7 +79,7 @@ static AED_REAL f_L(AED_REAL T, AED_REAL h)
 }
 
 /******************************************************************************/
-static AED_REAL f_Hs(AED_REAL U, AED_REAL F, AED_REAL h)
+static AED_REAL f_Hs(AED_REAL U_Sqr, AED_REAL F, AED_REAL h)
 {
     AED_REAL Zeta = (0.53 * pow((g * h) / U_Sqr, 0.75));
 
@@ -93,7 +91,7 @@ static AED_REAL f_Hs(AED_REAL U, AED_REAL F, AED_REAL h)
 }
 
 /******************************************************************************/
-static AED_REAL f_T(AED_REAL U, AED_REAL F, AED_REAL h)
+static AED_REAL f_T(AED_REAL U, AED_REAL U_Sqr, AED_REAL F, AED_REAL h)
 {
     AED_REAL Xi = (0.833 * pow((g * h) / U_Sqr, 0.375));
 
@@ -107,24 +105,26 @@ static AED_REAL f_T(AED_REAL U, AED_REAL F, AED_REAL h)
 
 /******************************************************************************
  *                                                                            *
- * Swart (1974)                                                               *
- *                                                                            *
- *  as cited in http://nora.nerc.ac.uk/8360/1/POL_ID_189.pdf eqn 2.3.8        *
  *                                                                            *
  ******************************************************************************/
-static AED_REAL wave_friction_factor(AED_REAL Uorb, AED_REAL F, AED_REAL h)
+static AED_REAL wave_friction_factor(AED_REAL Uorb, AED_REAL dens)
 {
-    //AED_REAL a = Hs / ( 2 * sinh(two_Pi * h / L) ) ;
-    //AED_REAL a = Uorb*T/two_Pi  ;
-    //return exp(5.213 * pow(a / Ks, -0.194) - 5.977);
+    // Swart (1974) and Kleinhans & Grasmeijer (2006) Eq.9
+    // also cited in http://nora.nerc.ac.uk/8360/1/POL_ID_189.pdf eqn 2.3.8
 
-    //Swart (1974)
-    return MIN(0.00251 * exp(5.21 * pow((MAX(Uorb, 0.0001) * MAX(T, 1) / (2 * two_Pi * Ks)), -0.19)), 0.1);
+    return MIN( exp(-5.977 + 5.213 * pow((MAX(Uorb, 0.0001) * MAX(T, 1) / (2 * two_Pi * Ks)), -0.194)), 0.1);
 
+    // and Le Roux (2001) Eq 15. as:
+    //return MIN(0.00251 * exp(5.213 * pow((MAX(Uorb, 0.0001) * MAX(T, 1) / (2 * two_Pi * Ks)), -0.19)), 0.1);
+
+    //# Le Roux (2001) ??
+    //AED_REAL beta = zero
+    //return MIN( (2.0*beta*9.81*2650.0*d_50)/( MAX(Uorb,0.0001)*MAX(Uorb,0.0001)*dens ), 0.1);
 }
 
 /******************************************************************************
  * calc_layer_stress                                                          *
+ *                                                                            *
  *   U : Wind velocity 10m above the surface                                  *
  *   F : Fetch                                                                *
  ******************************************************************************/
@@ -132,6 +132,8 @@ void calc_layer_stress(AED_REAL U, AED_REAL F)
 {
     int i;
     AED_REAL Uorb, Ucur, h, dens;
+    AED_REAL U_Sqr;
+
 
     if (ice) U = 0.00001;
 
@@ -147,11 +149,11 @@ void calc_layer_stress(AED_REAL U, AED_REAL F)
         U_Sqr = U * U; // Module global used by various subroutines above
 
         h  = Lake[surfLayer].Height / 2.;
-        T  = f_T(U, F, h);
-        Hs = f_Hs(U, F, h);
+        T  = f_T(U, U_Sqr, F, h);
+        Hs = f_Hs(U_Sqr, F, h);
         L  = f_L(T, h);
 
-        Lake[surfLayer].Umean = coef_wind_drag * sqrt(U * U);
+        Lake[surfLayer].Umean = sqrt( (1.2/Lake[surfLayer].Density) * coef_wind_drag * U * U);
 
 #if DEBUG_STRESS
         if ( !seenit ) {
@@ -167,12 +169,12 @@ void calc_layer_stress(AED_REAL U, AED_REAL F)
             if ( i != botmLayer ) h = Lake[surfLayer].Height - Lake[i-1].Height;
             else                  h = Lake[surfLayer].Height;
 
-            Uorb = MIN( f_Uorb(U, F, h) , 5.0);
+            Uorb = MIN( f_Uorb(F, h) , 5.0);
             Lake[i].Uorb = Uorb;
 
             dens = Lake[i].Density;
             Lake[i].LayerStress = dens *
-                     ((0.5 * wave_friction_factor(Uorb, F, h) * pow(Uorb, 2)) +
+                     ((0.5 * wave_friction_factor(Uorb, dens) * pow(Uorb, 2)) +
                                                    (f_c(h) * pow(Ucur, 2) / 8));
 
 #if DEBUG_STRESS
@@ -185,10 +187,10 @@ void calc_layer_stress(AED_REAL U, AED_REAL F)
                                     surfLayer-i, Lake[i].LayerStress, U, F, h, dens, (ice)?"true":"false");
 //              exit(0);
             } else {
-               if ( h < 1. && i < surfLayer-3) {
-                   fprintf(stderr, "step  %6d L(S-%3d) OK h %e\n", stepno, surfLayer-i, h);
-//                 exit(0);
-               }
+                if ( h < 1. && i < surfLayer-3) {
+                    fprintf(stderr, "step  %6d L(S-%3d) OK h %e\n", stepno, surfLayer-i, h);
+//                  exit(0);
+                }
             }
 #endif
         }
@@ -201,45 +203,14 @@ void calc_layer_stress(AED_REAL U, AED_REAL F)
     BottomStress = Lake[botmLayer].LayerStress;
 
 #if DEBUG_STRESS_CSV
-     fprintf(csv_dbg, "%d, %e, %e, %e, %e, %e, %e\n",
-                stepno, U, F, Lake[surfLayer].Uorb, Lake[0].Uorb,
-                              Lake[surfLayer].LayerStress, Lake[0].LayerStress);
+    fprintf(csv_dbg, "%d, %e, %e, %e, %e, %e, %e\n",
+                stepno, U, F, Lake[surfLayer].Uorb, Lake[botmLayer].Uorb,
+                              Lake[surfLayer].LayerStress, Lake[botmLayer].LayerStress);
 
-//   fprintf(stderr, "step %6d L(S-%3d) Taub at the bottom %e ; U = %e ; F = %e ; h %e ice %s\n",
-//                                      stepno, surfLayer, Lake[0].LayerStress, U, F, h, (ice)?"true":"false");
+//  fprintf(stderr, "step %6d L(S-%3d) Taub at the bottom %e ; U = %e ; F = %e ; h %e ice %s\n",
+//                                      stepno, surfLayer, Lake[botmLayer].LayerStress, U, F, h, (ice)?"true":"false");
 
     seenit = TRUE;
     stepno++;
 #endif
-}
-
-
-
-/******************************************************************************
- * get_fetch                                                                  *
- ******************************************************************************/
-AED_REAL get_fetch(AED_REAL windDir)
-{
-    AED_REAL fetch_s;
-    int i = 0;
-
-    while (windDir > 360.) windDir -= 360.;
-
-    while (i < fetch_ndirs && windDir < fetch_dirs[i])
-        i++;
-
-    if ( i > 0 && i < fetch_ndirs ) {
-        // the easy case.
-        fetch_s = fetch_scale[i-1] +
-                   (fetch_scale[i] - fetch_scale[i-1]) *
-                    (windDir - fetch_dirs[i-1]) / (fetch_dirs[i] - fetch_dirs[i-1]);
-    } else if ( i == 0 ) fetch_s = fetch_scale[0];
-    else {
-        fetch_s = fetch_scale[fetch_ndirs-1] +
-                   (fetch_scale[0] - fetch_scale[fetch_ndirs-1]) *
-                    (windDir - fetch_dirs[fetch_ndirs-1]) /
-                       (fetch_dirs[0] - fetch_dirs[fetch_ndirs-1]);
-    }
-
-    return fetch_s;
 }

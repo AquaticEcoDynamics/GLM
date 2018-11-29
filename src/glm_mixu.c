@@ -45,6 +45,15 @@
 
 /******************************************************************************
  *                                                                            *
+ * VMsum                              [UPDATED]                               *
+ * Tsum                               [UPDATED]                               *
+ * Ssum                               [UPDATED]                               *
+ * VMLOC  :- combined volumetric mass [RETURNED]                              *
+ * TMLOC  :- Combined temperature     [RETURNED]                              *
+ * SMLOC  :- Combined salinity        [RETURNED]                              *
+ * DFLOC  :- Density                  [RETURNED]                              *
+ * idx    :- layer index              [USED]                                  *
+ *                                                                            *
  ******************************************************************************/
 void add_this_layer(AED_REAL *VMsum, AED_REAL *Tsum,
                     AED_REAL *Ssum, AED_REAL *VMLOC, AED_REAL *TMLOC,
@@ -58,9 +67,9 @@ void add_this_layer(AED_REAL *VMsum, AED_REAL *Tsum,
     *Tsum  += (Lake[idx].Temp * Layer_Mass);
     *Ssum  += (Lake[idx].Salinity * Layer_Mass);
 
-    *VMLOC = *VMsum;            //Combined volumetic mass
-    *TMLOC = *Tsum / (*VMLOC);  //Combined temperature
-    *SMLOC = *Ssum / (*VMLOC);  //Combined salinity
+    *VMLOC = *VMsum;            //# Combined volumetic mass
+    *TMLOC = *Tsum / (*VMLOC);  //# Combined temperature
+    *SMLOC = *Ssum / (*VMLOC);  //# Combined salinity
 
     *DFLOC = calculate_density(*TMLOC,*SMLOC);
 }
@@ -117,9 +126,9 @@ static void one_layer(int i, AED_REAL *xx, AED_REAL *dxx)
 
 
 /******************************************************************************
- * From the given physical data evaluates arrays of depths and areas          *
- * corresponding to an array of volumes (icode=2) or arrays of volume         *
- * and areas from depths (icode=1) starting at layer LNU                      *
+ * From the given physical data, this function evaluates arrays of depths     *
+ * and areas corresponding to an array of volumes (icode=2) or arrays of      *
+ * volume and areas from depths (icode=1); starting at layer LNU              *
  ******************************************************************************/
 void resize_internals(int icode, int lnu)
 {
@@ -198,7 +207,7 @@ void resize_internals(int icode, int lnu)
             l = 0;
             j = 0;
 
-            /* find lowest layer (L) whose volume exceeds the first table entry */
+            /* find lowest layer (l) whose volume exceeds the first table entry */
             while (l <= surfLayer && Lake[l].Vol1 <= MphLevelVoldash[0]) {
                 Lake[l].Height = (Lake[l].Vol1 / MphLevelVoldash[0]) / MphInc;
                 l++;
@@ -220,8 +229,9 @@ void resize_internals(int icode, int lnu)
                 j++;
             }
             if (j >= Nmorph) j = Nmorph - 1;
+            if (j < 0) j = 0;
 
-            Lake[k].Height = ((j+1) + (Lake[k].Vol1 - MphLevelVoldash[j]) / dMphLevelVolda[j]) / MphInc;
+            Lake[k].Height = ((j+1) + ( Lake[k].Vol1 - MphLevelVoldash[j] ) / dMphLevelVolda[j]) / MphInc;
         }
 
         //# determine areas

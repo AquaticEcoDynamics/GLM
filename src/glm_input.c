@@ -42,6 +42,7 @@
 #include "glm_util.h"
 #include "aed_csv.h"
 #include "glm_bird.h"
+#include "glm_input.h"
 
 
 //#define dbgprt(...) fprintf(stderr, __VA_ARGS__)
@@ -70,16 +71,15 @@ static InflowDataT inf[MaxInf];
 static OutflowDataT outf[MaxOut];
 static WithdrawalTempDataT withdrTempf = { -1, -1 };
 
-static int metf;
-static int rain_idx, hum_idx, lwav_idx, sw_idx, atmp_idx, wind_idx, snow_idx,
-           rpo4_idx, rtp_idx, rno3_idx, rnh4_idx, rtn_idx, rsi_idx, wdir_idx;
-
-static int time_idx = -1;
+static int metf = -1, kwf = -1;
+static int rain_idx = -1, hum_idx  = -1, lwav_idx = -1, sw_idx   = -1,
+           atmp_idx = -1, wind_idx = -1, snow_idx = -1, rpo4_idx = -1,
+           rtp_idx  = -1, rno3_idx = -1, rnh4_idx = -1, rtn_idx  = -1,
+           rsi_idx  = -1, wdir_idx = -1, kw_idx   = -1, time_idx = -1;
 
 int lw_ind = 0;
 static int have_snow = FALSE, have_rain_conc = FALSE;
 static int have_fetch = FALSE;
-extern LOGICAL fetch_sw;
 
 static int n_steps;
 
@@ -88,8 +88,10 @@ static AED_REAL loaded_day;
 
 AED_REAL wind_factor = 1.0;   //# Windspeed scaling factor
 AED_REAL sw_factor   = 1.0;
-AED_REAL lw_factor   = 1.0;
+//AED_REAL lw_factor   = 1.0;
+//AED_REAL lw_offset   = 0.0;
 AED_REAL at_factor   = 1.0;
+AED_REAL at_offset   = 0.0;   //# add this to airtemp in met
 AED_REAL rh_factor   = 1.0;
 AED_REAL rain_factor = 1.0;
 
@@ -163,6 +165,9 @@ void read_daily_met(int julian, MetDataType *met)
 {
     int csv, i, idx, err = 0;
     AED_REAL now, tomorrow, t_val, sol;
+    AED_REAL eff_area, surf_area, ld, x_ws;
+
+    surf_area = Lake[surfLayer].LayerArea;
 
 //  fprintf(stderr, "READ DAILY MET for %d\n", julian);
     now = julian;
@@ -211,7 +216,7 @@ void read_daily_met(int julian, MetDataType *met)
         if ( submet[idx].RelHum > 100. ) submet[idx].RelHum = 100.;
 
         if ( lwav_idx != -1 )
-            submet[idx].LongWave  = get_csv_val_r(csv, lwav_idx) * lw_factor;
+            submet[idx].LongWave  = get_csv_val_r(csv, lwav_idx); // * lw_factor;
         else
             submet[idx].LongWave  = 0.;
         if ( sw_idx != -1 )
@@ -228,6 +233,7 @@ void read_daily_met(int julian, MetDataType *met)
             case 4 :
             case 5 :
                 sol = calc_bird(Longitude, Latitude, julian, idx*3600, timezone_m);
+                sol = sol * sw_factor;
                 if ( rad_mode == 4 )
                     sol = clouded_bird(sol, submet[idx].LongWave);
                 if ( rad_mode == 3 )
@@ -237,7 +243,8 @@ void read_daily_met(int julian, MetDataType *met)
                 break;
         }
 
-        submet[idx].AirTemp     = get_csv_val_r(csv, atmp_idx) * at_factor;
+    //  submet[idx].AirTemp     = get_csv_val_r(csv, atmp_idx) * at_factor;
+        submet[idx].AirTemp     = get_csv_val_r(csv, atmp_idx) * at_factor + at_offset;
         submet[idx].WindSpeed   = get_csv_val_r(csv, wind_idx) * wind_factor;
 
         // Read in rel humidity into svd (%), and convert to satvap
@@ -263,9 +270,29 @@ void read_daily_met(int julian, MetDataType *met)
             submet[idx].RainConcSi  = 0.;
         }
 
-        if ( have_fetch )
+
+        if ( fetch_mode == 2 || fetch_mode == 3 )
              submet[idx].WindDir = get_csv_val_r(csv, wdir_idx);
         else submet[idx].WindDir = 0. ;
+
+        // wind-sheltering
+        switch ( fetch_mode ) {
+            case 0 : // no change to the wind-speed
+            case 1 : // effective area based on general relationship
+                eff_area = surf_area* tanh(surf_area/fetch_aws);
+                submet[idx].WindSpeed = submet[idx].WindSpeed * eff_area/surf_area;
+                break;
+            case 2 : // Markfort et al 2009 model, adapted for wind direction
+                ld = LenAtCrest+WidAtCrest/2;
+                x_ws = get_fetch(submet[idx].WindDir);
+                eff_area = fmax((ld*ld)/2 *acos(x_ws/ld) - (x_ws/2)*pow(ld*ld-x_ws*x_ws,0.5),0.0);
+                submet[idx].WindSpeed = submet[idx].WindSpeed * eff_area/surf_area;
+                break;
+            case 3 : // just scale based on the wind direction directly
+                eff_area = get_fetch(submet[idx].WindDir);
+                submet[idx].WindSpeed = submet[idx].WindSpeed * eff_area;
+                break;
+        }
 
         i++;
 
@@ -276,6 +303,35 @@ void read_daily_met(int julian, MetDataType *met)
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
+
+/******************************************************************************
+ * get_fetch                                                                  *
+ ******************************************************************************/
+AED_REAL get_fetch(AED_REAL windDir)
+{
+    AED_REAL fetch_s;
+    int i = 0;
+
+    while (windDir > 360.) windDir -= 360.;
+
+    while (i < fetch_ndirs && windDir < fetch_dirs[i])
+        i++;
+
+    if ( i > 0 && i < fetch_ndirs ) {
+        // the easy case.
+        fetch_s = fetch_scale[i-1] +
+                   (fetch_scale[i] - fetch_scale[i-1]) *
+                    (windDir - fetch_dirs[i-1]) / (fetch_dirs[i] - fetch_dirs[i-1]);
+    } else if ( i == 0 ) fetch_s = fetch_scale[0];
+    else {
+        fetch_s = fetch_scale[fetch_ndirs-1] +
+                   (fetch_scale[0] - fetch_scale[fetch_ndirs-1]) *
+                    (windDir - fetch_dirs[fetch_ndirs-1]) /
+                       (fetch_dirs[0] - fetch_dirs[fetch_ndirs-1]);
+    }
+
+    return fetch_s;
+}
 
 /******************************************************************************
  *                                                                            *
@@ -390,7 +446,7 @@ void open_met_file(const char *fname, int snow_sw, int rain_sw,
 
     n_steps = 86400.0 / timestep;
     // Allocate sub daily met array with an element for each timestep
-    submet = malloc(n_steps * sizeof(MetDataType));
+    submet = calloc(n_steps, sizeof(MetDataType));
 
     if (subdaily) {
         if (rad_mode == 0) { //Then need to determine rad_mode from longwave type
@@ -417,8 +473,41 @@ void open_met_file(const char *fname, int snow_sw, int rain_sw,
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
+void open_kw_file(const char *fname, const char *timefmt)
+{
+    if ( (kwf = open_csv_input(fname, timefmt)) < 0 ) {
+        fprintf(stderr, "Failed to open '%s'\n", fname);
+        exit(1);
+    }
+    locate_time_column(kwf, "Kd", fname);
+    if ( (kw_idx = find_csv_var(kwf, "Kd")) < 0 ) {
+        fprintf(stderr,"Error in Kd file, Kd not found!\n");
+        exit(1);
+    }
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
+void read_daily_kw(int julian, AED_REAL *kwout)
+{
+    int csv;
+    if ( (csv = kwf) > -1 ) {
+        find_day(csv, time_idx, julian);
+        *kwout = get_csv_val_r(csv, kw_idx);
+    } else
+        *kwout = Kw; //just use the Kw supplied in the file
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
 void open_inflow_file(int idx, const char *fname,
-                                   int nvars, char *vars[], const char *timefmt)
+                             int nvars, const char *vars[], const char *timefmt)
 {
     int j,k,l;
 
@@ -485,8 +574,11 @@ void open_withdrtemp_file(const char *fname, const char *timefmt)
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
+void close_kw_files()
+{ if ( kwf >= 0 ) close_csv_input(kwf); }
+/*----------------------------------------------------------------------------*/
 void close_met_files()
-{ close_csv_input(metf); }
+{ if ( metf >= 0 ) close_csv_input(metf); }
 /*----------------------------------------------------------------------------*/
 void close_inflow_files()
 { int i; for (i = 0; i < NumInf; i++) close_csv_input(inf[i].inf); }

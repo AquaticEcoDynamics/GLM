@@ -107,7 +107,7 @@ void init_output(int jstart, const char *out_dir, const char *out_fn,
     if ( do_plots ) {
         int i;
         for (i = 0; i < 10; i++) plot_id[i] = -1;
-        init_plots(jstart,nDays,CrestLevel);
+        init_plots(jstart,nDays,MaxHeight);
     }
 #endif
 }
@@ -185,7 +185,7 @@ int _intern_is_var(const char *v)
     if ( do_plots ) {
         if (strcasecmp("temp", v) == 0) return 1;
         if (strcasecmp("salt", v) == 0) return 2;
-        if (strcasecmp("rad",  v) == 0) return 3;
+        if (strcasecmp("radn", v) == 0) return 3;
         if (strcasecmp("extc", v) == 0) return 4;
         if (strcasecmp("dens", v) == 0) return 5;
         if (strcasecmp("uorb", v) == 0) return 6;
@@ -238,7 +238,6 @@ void write_output(int jday, int iclock, int nsave, int stepnum)
                 }
             }
 
-
             write_csv_point(i, "temp", Lake[lvl[i]].Temp,     NULL, FALSE);
             write_csv_point(i, "salt", Lake[lvl[i]].Salinity, NULL, FALSE);
         }
@@ -272,45 +271,53 @@ void write_diags(int jday, AED_REAL LakeNum)
 
     if ( csv_lake_file < 0 ) return;
 
+    AED_REAL lake_level = Lake[surfLayer].Height;
+    if (lake_level<0.011) lake_level=zero;
+
     //# Output at end of day
     write_time_string(ts, jday, SecsPerDay);
 
-    write_csv_lake("time",            0.0,                       ts,   FALSE);
+    write_csv_lake("Time",            0.0,                       ts,   FALSE);
     write_csv_lake("Volume",          sum_lake_layervol(),       NULL, FALSE);
-    write_csv_lake("Vol Snow",        SurfData.HeightSnow * Lake[surfLayer].LayerArea * SurfData.RhoSnow/1000.0,     NULL, FALSE);
+    write_csv_lake("Vol Snow",        SurfData.delzSnow*Lake[surfLayer].LayerArea*SurfData.RhoSnow/1e3, NULL, FALSE);
     //Magic numbers for ice density are from glm_surface.c
-    write_csv_lake("Vol Black Ice",   SurfData.HeightBlackIce * Lake[surfLayer].LayerArea * 917.0/1000.0, NULL, FALSE);
-    write_csv_lake("Vol White Ice",   SurfData.HeightWhiteIce * Lake[surfLayer].LayerArea * 890.0/1000.0, NULL, FALSE);
+    write_csv_lake("Vol Blue Ice",    SurfData.delzBlueIce*Lake[surfLayer].LayerArea*917.0/1e3, NULL, FALSE);
+    write_csv_lake("Vol White Ice",   SurfData.delzWhiteIce*Lake[surfLayer].LayerArea*890.0/1e3, NULL, FALSE);
     write_csv_lake("Tot Inflow Vol",  SurfData.dailyInflow,      NULL, FALSE);
     write_csv_lake("Tot Outflow Vol", SurfData.dailyOutflow,     NULL, FALSE);
     write_csv_lake("Overflow Vol",    SurfData.dailyOverflow,    NULL, FALSE);
     write_csv_lake("Evaporation",     SurfData.dailyEvap,        NULL, FALSE);
     write_csv_lake("Rain",            SurfData.dailyRain,        NULL, FALSE);
+    write_csv_lake("Local Runoff",    SurfData.dailyRunoff,      NULL, FALSE);
     write_csv_lake("Snowfall",        SurfData.dailySnow,        NULL, FALSE);
-    write_csv_lake("Lake Level",      Lake[surfLayer].Height,    NULL, FALSE);
+    write_csv_lake("Lake Level",      lake_level,                NULL, FALSE);
     write_csv_lake("Surface Area",    Lake[surfLayer].LayerArea, NULL, FALSE);
-    write_csv_lake("Black Ice",       SurfData.HeightBlackIce,   NULL, FALSE);
-    write_csv_lake("Snow Height",     SurfData.HeightSnow,       NULL, FALSE);
+    write_csv_lake("Blue Ice Thickness", SurfData.delzBlueIce,   NULL, FALSE);
+    write_csv_lake("White Ice Thickness",SurfData.delzWhiteIce,  NULL, FALSE);
+    write_csv_lake("Snow Thickness",  SurfData.delzSnow,         NULL, FALSE);
     write_csv_lake("Snow Density",    SurfData.RhoSnow,          NULL, FALSE);
-    write_csv_lake("White Ice",       SurfData.HeightWhiteIce,   NULL, FALSE);
     write_csv_lake("Albedo",          SurfData.albedo,           NULL, FALSE);
     write_csv_lake("Max Temp",        max_temp(Lake, NumLayers), NULL, FALSE);
     write_csv_lake("Min Temp",        min_temp(Lake, NumLayers), NULL, FALSE);
     write_csv_lake("Surface Temp",    Lake[surfLayer].Temp,      NULL, FALSE);
-    write_csv_lake("Daily Qsw",       SurfData.dailyQsw,         NULL, FALSE);
-    write_csv_lake("Daily Qe",        SurfData.dailyQe,          NULL, FALSE);
-    write_csv_lake("Daily Qh",        SurfData.dailyQh,          NULL, FALSE);
-    write_csv_lake("Daily Qlw",       SurfData.dailyQlw,         NULL, FALSE);
+    write_csv_lake("Daily Qsw",       SurfData.dailyQsw / Lake[surfLayer].LayerArea/SecsPerDay, NULL, FALSE);
+    write_csv_lake("Daily Qe",        SurfData.dailyQe / Lake[surfLayer].LayerArea/SecsPerDay, NULL, FALSE);
+    write_csv_lake("Daily Qh",        SurfData.dailyQh / Lake[surfLayer].LayerArea/SecsPerDay, NULL, FALSE);
+    write_csv_lake("Daily Qlw",       SurfData.dailyQlw / Lake[surfLayer].LayerArea/SecsPerDay, NULL, FALSE);
     write_csv_lake("Light",           Lake[surfLayer].Light,     NULL, FALSE);
     write_csv_lake("Benthic Light",   Benthic_Light_pcArea,      NULL, FALSE);
 
-    write_csv_lake("H_s",             Hs,                        NULL, FALSE);
-    write_csv_lake("L",               L,                         NULL, FALSE);
-    write_csv_lake("T",               T,                         NULL, FALSE);
+    write_csv_lake("Surface Wave Height",Hs,                     NULL, FALSE);
+    write_csv_lake("Surface Wave Length",L,                      NULL, FALSE);
+    write_csv_lake("Surface Wave Period",T,                      NULL, FALSE);
 
     write_csv_lake("LakeNumber",      LakeNum,                   NULL, FALSE);
     write_csv_lake("Max dT/dz",    max_dtdz_at(Lake, NumLayers), NULL, FALSE);
-    write_csv_lake("coef_wind_drag", coef_wind_drag,             NULL, TRUE);
+    write_csv_lake("CD",              coef_wind_drag,            NULL, FALSE);
+    write_csv_lake("CHE",             coef_wind_chwn,            NULL, FALSE);
+    write_csv_lake("z/L",             SurfData.dailyzonL*(noSecs/SecsPerDay), NULL, TRUE);
+//    write_csv_lake("coef_wind_drag",  coef_wind_drag,            NULL, TRUE);
+
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -318,7 +325,7 @@ void write_diags(int jday, AED_REAL LakeNum)
 /******************************************************************************
  * Write the outflow data file with WQ variables.                             *
  ******************************************************************************/
-void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol)
+void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol, AED_REAL vol_bc, AED_REAL hwBot, AED_REAL hwTop)
 {
     char ts[64];
     int i, lvl;
@@ -367,6 +374,10 @@ void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol)
             for (i = 3; i < csv_outfl_nvars; i++)
                 write_csv_outfl_idx(of_idx, i,  state_of_v[i],     NULL, FALSE);
         }
+
+        write_csv_outfl(of_idx, "hbot",      hwBot,                NULL, FALSE);
+        write_csv_outfl(of_idx, "htop",      hwTop,                NULL, FALSE);
+        write_csv_outfl(of_idx, "flbc",      vol_bc,               NULL, FALSE);
     }
 
     //# force a newline
@@ -384,7 +395,14 @@ void close_output()
     glm_close_csv_output();
 
 #ifdef PLOTS
-    if ( do_plots ) do_cleanup(saveall);
+    if ( do_plots ) {
+        extern char *all_plots_name;
+        if ( saveall > 1 && all_plots_name ) {
+            save_all_plots_named(all_plots_name);
+            saveall = 0;
+        }
+        do_cleanup(saveall);
+    }
 #endif
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

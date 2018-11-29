@@ -114,41 +114,49 @@ for i in $LIBS1 ; do
    #echo "*** Configuring : $i ***"
    xx=`find /${BASEDIR} -name $i 2> /dev/null | tail -n 1`
    #cp /${BASEDIR}/local/lib/$i ${PKG}.app/Contents/MacOS
-   /bin/cp -f $xx ${PKG}.app/Contents/MacOS
-   if [ $? != 0 ] ; then
-      echo " ####### Failed to copy(2) $i" 1>&2
-      exit 1
-   else
-      chmod +w ${PKG}.app/Contents/MacOS/$i
-   fi
-   install_name_tool -id $i ${PKG}.app/Contents/MacOS/$i
-   #install_name_tool -change /${BASEDIR}/local/lib/$i '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
-   install_name_tool -change $xx '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
-   #echo '****' install_name_tool -change $xx '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
-   if [ "${BASEDIR}" = "usr" ] ; then
-      # This is probably a HOMEBREW setup, so there might be references into the Cellar
-      NLST=`otool -L ${PKG}.app/Contents/MacOS/$i | grep \/${BASEDIR}\/local/Cellar | cut -d\  -f1`
-      for j in $NLST ; do
-         k=`echo $j | grep -o '[^/]*$'`
-         install_name_tool -change $j '@executable_path/'$k ${PKG}.app/Contents/MacOS/$i
-      done
+   if [ ! -f ${PKG}.app/Contents/MacOS/$i ] ; then
+
+      /bin/cp -f $xx ${PKG}.app/Contents/MacOS
+      if [ $? != 0 ] ; then
+         echo " ####### Failed to copy(2) $i" 1>&2
+         exit 1
+      else
+         chmod +w ${PKG}.app/Contents/MacOS/$i
+      fi
+      install_name_tool -id $i ${PKG}.app/Contents/MacOS/$i
+      #install_name_tool -change /${BASEDIR}/local/lib/$i '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
+      install_name_tool -change $xx '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
+      #echo '****' install_name_tool -change $xx '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
+      if [ "${BASEDIR}" = "usr" ] ; then
+         # This is probably a HOMEBREW setup, so there might be references into the Cellar
+         NLST=`otool -L ${PKG}.app/Contents/MacOS/$i | grep \/${BASEDIR}\/local/Cellar | cut -d\  -f1`
+         for j in $NLST ; do
+            k=`echo $j | grep -o '[^/]*$'`
+            install_name_tool -change $j '@executable_path/'$k ${PKG}.app/Contents/MacOS/$i
+         done
+      fi
    fi
 done
 
 # These fortran libraries
 for i in $LIBS2 ; do
-   #cp $PATH2/$i ${PKG}.app/Contents/MacOS
-   src=`find $PATH2 -name $i 2> /dev/null | tail -n 1`
-   /bin/cp -f $src ${PKG}.app/Contents/MacOS
-   if [ $? != 0 ] ; then
-      echo " ####### Failed to copy(3) $i" 1>&2
-      exit 1
-   else
-      chmod +w ${PKG}.app/Contents/MacOS/$i
+   if [ ! -f ${PKG}.app/Contents/MacOS/$i ] ; then
+      echo cp $PATH2/$i ${PKG}.app/Contents/MacOS
+      src=`find $PATH2 -name $i 2> /dev/null | tail -n 1`
+      if [ "$src" != "" ] ; then
+         /bin/cp -f $src ${PKG}.app/Contents/MacOS
+         if [ $? != 0 ] ; then
+            echo " ####### Failed to copy(3) $i" 1>&2
+            echo " ####### /bin/cp -f $src ${PKG}.app/Contents/MacOS" 1>&2
+            exit 1
+         else
+            chmod +w ${PKG}.app/Contents/MacOS/$i
+         fi
+      fi
+      # These are redundant for intel fortran since it seems intel fortran dylibs exclude the path from their names
+      install_name_tool -id $i ${PKG}.app/Contents/MacOS/$i
+      install_name_tool -change ${PATH3}$i '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
    fi
-# These are redundant since it seems intel fortran dylibs exclude the path from their names
-   install_name_tool -id $i ${PKG}.app/Contents/MacOS/$i
-   install_name_tool -change ${PATH3}$i '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
 done
 
 

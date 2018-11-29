@@ -35,7 +35,7 @@
 #endif
 #define USE_FILLVALUE 1
 
-#define GLM_VERSION  "2.4.1"
+#define GLM_VERSION  "3.0.0rc1"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -87,6 +87,9 @@
   #define surfLayer (NumLayers-1)
   #define botmLayer 0
 
+  #define onshoreLayer (surfLayer+2)
+  #define offshoreLayer (surfLayer+1)
+
 // This is how we sort out the differences in multidimensional array indexing
   #define _IDX_2d(di,dj,i,j) (((di) * (j)) + (i))
   #define WQ_INF_(a,i,j) a[_IDX_2d(MaxInf,MaxVars,i,j)]
@@ -96,7 +99,9 @@
   #define NC_REALTYPE NC_DOUBLE
   #define NC_FILLER NC_FILL_DOUBLE
   typedef double DOUBLETYPE;
-  typedef unsigned char CLOGICAL;
+// Although this should be an unsigned char, that appears to cause addressing issues so back to int for now
+//  typedef unsigned char CLOGICAL;
+  typedef int CLOGICAL;
 
   #define TRUE  1
   #define FALSE 0
@@ -126,7 +131,6 @@
 
 #define sqr(x)  ((x)*(x))
 #define gprime(d1,d2) (((d2)-(d1))*g/(((d1)+(d2))/2.0))
-#endif
 #define combine_vol(c1,v1,c2,v2) (((c1)*(v1)+(c2)*(v2))/((v1)+(v2)))
 
 
@@ -139,6 +143,7 @@
 #endif
 #ifndef _ZERO_
 #define _ZERO_ 0.
+#endif
 
 #define LW_CC    1
 #define LW_IN    2

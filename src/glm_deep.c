@@ -56,8 +56,8 @@
 // GLOBAL VARIABLES
 
 static AED_REAL dissipation;
-static AED_REAL H_sml;              //# thickness of the upper mixed layer
-static AED_REAL H_sig;
+static AED_REAL z_sml;              //# thickness of the upper mixed layer
+static AED_REAL delz_n2sigma_sq;
 
 extern AED_REAL coef_mix_hyp;
 
@@ -85,14 +85,9 @@ void do_deep_mixing()
 //LOCALS
     AED_REAL exchk2;
 
-#ifndef _VISUAL_C_
-    // The visual c compiler doesn't like this so must malloc manually
-    AED_REAL Scalars[MaxLayers*(Num_WQ_Vars+2)];
-    AED_REAL tot_diffusivity[MaxLayers];
-#else
     AED_REAL *Scalars;
     AED_REAL *tot_diffusivity;
-#endif
+
     AED_REAL RTimeStep;
     AED_REAL dif_exp;
     AED_REAL NSquared;
@@ -109,29 +104,26 @@ void do_deep_mixing()
      * return if already mixed.                                               *
      * a semi-useless test given it is checked for before calling             *
      **************************************************************************/
-    if (iTop < 0) return ;
+    if (iTop < botmLayer) return ;
 
     exchk2 = -exchka;
 
     //# Set the local time step
     RTimeStep = noSecs;
 
-#ifdef _VISUAL_C_
-    Scalars = malloc(sizeof(AED_REAL) * MaxLayers*(Num_WQ_Vars+2));
-    tot_diffusivity = malloc(sizeof(AED_REAL) * MaxLayers);
-#endif
+    Scalars = calloc(MaxLayers*(Num_WQ_Vars+2), sizeof(AED_REAL));
+    tot_diffusivity = calloc(MaxLayers, sizeof(AED_REAL));
 
     //# Set up array of diffusable species
-    memset(Scalars, 0, sizeof(Scalars));
     join_scalar_colums(Scalars);
 
     //# Now calculate the turbulent diffusivities
 
-    if (deep_mixing == 1) { //constant diffusivity over whole water column
+    if (deep_mixing == 1) {      //constant diffusivity over whole water column
         for (i = 0; i < NumLayers; i++)
           Lake[i].Epsilon = coef_mix_hyp;
     }
-    else if (deep_mixing == 2) { //original routine to calculate diffusivity
+    else if (deep_mixing == 2) { //Weinstock/DYRESM routine to calculate diffusivity
         flag = TRUE;
         //# Look for any density variation
         if (iTop > botmLayer) {
@@ -149,6 +141,7 @@ void do_deep_mixing()
         for (i = (botmLayer+2); i <= iTop-1; i++) {
             //# Eq XX in GLM manual
             NSquared = gprime(Lake[i+2].Density, Lake[i-2].Density) / (Lake[i+2].MeanHeight - Lake[i-2].MeanHeight);
+
             if (NSquared <= 1.E-6)
                 NSquared = zero;
 
@@ -156,6 +149,7 @@ void do_deep_mixing()
                 Lake[i].Epsilon = zero;
                 continue;
             }
+
             if (NSquared < 1.E-6 && vel < 1.E-6 && WaveNumSquared < 1.E-6) {
                 Lake[i].Epsilon = zero;
                 continue;
@@ -164,15 +158,16 @@ void do_deep_mixing()
 
             if (flag && i == iTop) continue;
             if (Lake[i].Height > XMoment1) continue;
-            if (H_sig <= zero) {
+            if (delz_n2sigma_sq <= zero) {
                  Lake[i].Epsilon = zero;
                  continue;
             }
             //* Exponent for diffusivity equation
-            dif_exp=(-1.0 * sqr(Lake[surfLayer].Height-H_sml-Lake[i].Height))/H_sig;
+            dif_exp=(-1.0 * sqr(Lake[surfLayer].Height-z_sml-Lake[i].Height))/delz_n2sigma_sq;
+
             //* Dissipation (Eq. X GLM manual)
             if (dif_exp < exchk2) Lake[i].Epsilon = zero;
-            else                   Lake[i].Epsilon *= (exp(dif_exp)+1.E-7);
+            else                  Lake[i].Epsilon *= (exp(dif_exp)+1.E-7);
         }
 
         if (iTop == botmLayer) Lake[iTop].Epsilon = zero;
@@ -218,7 +213,7 @@ void do_deep_mixing()
     //# Check for instabilities - call check_layer_stability to mix
     i = botmLayer + 1;
     while (i <= surfLayer) {
-        if (Lake[i].Density >= Lake[i-1].Density) {
+        if (Lake[i].Density > Lake[i-1].Density+1E-10) {
             check_layer_stability();
             break;
         }
@@ -230,9 +225,7 @@ void do_deep_mixing()
     for (i = 0; i < NumLayers; i++)
         Lake[i].Epsilon += mol_diffusivity[0];
 
-#ifdef _VISUAL_C_
     free(Scalars); free(tot_diffusivity);
-#endif
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -268,12 +261,12 @@ static void calculate_diffusion(AED_REAL RTimeStep,
     //  directions (ie. diffuse to upper and then lower layers)
     for (k = 1; k <= 2; k++) {
         if (k == 1) {
-        	// going from lower to upper layers
+            // going from lower to upper layers
             ia = iBot;
             ib = iTop;
             ic = 1;
         } else {
-        	// going from upper to lower layers
+            // going from upper to lower layers
             ia = iTop;
             ib = iBot;
             ic = -1;
@@ -333,12 +326,8 @@ void do_dissipation()
 {
     AED_REAL cwnsq1 = 12.4;
 
-#ifndef _VISUAL_C_
-    // The visual c compiler doesn't like this so must malloc manually
-    AED_REAL Nsquared[MaxLayers];
-#else
     AED_REAL *Nsquared;
-#endif
+
     AED_REAL CentreMassSML;
     AED_REAL CentreMassMIX;
 
@@ -347,7 +336,7 @@ void do_dissipation()
     AED_REAL XMoment0;
     AED_REAL MeanDensity;
     AED_REAL DFLOC;
-    AED_REAL BuoySD;
+    AED_REAL delz_n2sigma;
     AED_REAL EINFW;
     AED_REAL EW;
     AED_REAL EWW;
@@ -369,15 +358,13 @@ void do_dissipation()
 
 /*----------------------------------------------------------------------------*/
 
-#ifdef _VISUAL_C_
-    Nsquared = malloc(sizeof(AED_REAL) * MaxLayers);
-#endif
+    Nsquared = calloc(MaxLayers, sizeof(AED_REAL));
 
     /**************************************************************************
      * Estimate rate of working by the wind (Patterson et al. 1977; p3)       *
      **************************************************************************/
     WindSpeedX = MetData.WindSpeed;
-    WindPower = 1.9344 * 0.24 * WindSpeedX * WindSpeedX * WindSpeedX * 1.E-6;
+    WindPower = 1.9344 * 0.24 * 1.E-6 * WindSpeedX * WindSpeedX * WindSpeedX ;
 
     uStar = 0.0;
     if (!ice) uStar = sqrt(1.612E-6*pow(WindSpeedX, 2));
@@ -387,7 +374,6 @@ void do_dissipation()
      * "XMoment1" is 1st moment, "XMoment0" is 0th moment                     *
      *  XMoment1 is the centre of buoyancy (in metres above bottom)           *
      **************************************************************************/
-    memset(Nsquared, 0, sizeof(Nsquared));
 
     XMoment1 = zero;
     XMoment0 = zero;
@@ -401,12 +387,12 @@ void do_dissipation()
     }
 
     /**************************************************************************
-     * Define length scales: H_sml is the thickness of the surface mixed layer*
+     * Define length scales: z_sml is the thickness of the surface mixed layer*
      *  and dz_top is the thickness of the upper most layer layer             *
      **************************************************************************/
     if (XMoment1 != 0.) XMoment1=XMoment1/XMoment0;
 
-    H_sml  = Lake[surfLayer].Height - XMoment1;
+    z_sml  = Lake[surfLayer].Height - XMoment1;
     dz_top = Lake[surfLayer].Height - Lake[surfLayer-1].Height;
 
     /**************************************************************************
@@ -435,14 +421,14 @@ void do_dissipation()
 
     /**************************************************************************
      * Calculate the variance of the buoyancy distribution about XMoment1     *
-     *               Sigma0M = 0th moment of buoyancy about XMoment1          *
-     *               Sigma2M = 2nd moment of buoyancy about XMoment1          *
-     *               Sigma2M/Sigma0M = variance of buoyancy distribution      *
-     *               BuoySD = standard deviation of buoyancy distribution     *
+     *  Sigma0M = 0th moment of buoyancy about XMoment1                       *
+     *  Sigma2M = 2nd moment of buoyancy about XMoment1                       *
+     *  Sigma2M/Sigma0M = delz_n2sigma_sq = variance of buoyancy distribution *
+     *  delz_n2sigma = std deviation of buoyancy distribution                 *
      **************************************************************************/
     Sigma0M = zero;
     Sigma2M = zero;
-    H_sig = pow(XMoment1, 2.0);
+    delz_n2sigma_sq = pow(XMoment1, 2.0);
     if (i != botmLayer ) {
          for (kl = i; kl > botmLayer; kl--) {
             if (Nsquared[kl] <= zero) Nsquared[kl] = zero;
@@ -452,12 +438,12 @@ void do_dissipation()
             Sigma2M = Sigma2M + 2.0 * (pow(XZI, 2.0)) * Nsquared[kl] * (Lake[kl].MeanHeight - Lake[kl-1].MeanHeight);
             Sigma0M = Sigma0M + Nsquared[kl] * (Lake[kl].MeanHeight - Lake[kl-1].MeanHeight);
         }
-        if (Sigma0M > zero) H_sig = Sigma2M / Sigma0M;
-        if (H_sig > pow(XMoment1, 2.0)) H_sig = pow(XMoment1, 2.0);
+        if (Sigma0M > zero) delz_n2sigma_sq = Sigma2M / Sigma0M;
+        if (delz_n2sigma_sq > pow(XMoment1, 2.0)) delz_n2sigma_sq = pow(XMoment1, 2.0);
     }
 
-    BuoySD = zero;
-    if (H_sig > zero) BuoySD = pow(H_sig, 0.5);
+    delz_n2sigma = zero;
+    if (delz_n2sigma_sq > zero) delz_n2sigma = pow(delz_n2sigma_sq, 0.5);
 
     /**************************************************************************
      * Find the 1st layer above which 85% of N^2 lies                         *
@@ -465,7 +451,7 @@ void do_dissipation()
      **************************************************************************/
     i = botmLayer;
     while(1) {
-        if (Lake[i].Height > (XMoment1 - BuoySD)) break;
+        if (Lake[i].Height > (XMoment1 - delz_n2sigma)) break;
         if ( i == surfLayer-1 ) break;
         i++;
     }
@@ -497,9 +483,8 @@ void do_dissipation()
             vel = uStar;
         }
     }
-#ifdef _VISUAL_C_
+
     free(Nsquared);
-#endif
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -553,9 +538,10 @@ void check_layer_stability()
         Lake[k-1].LayerVol = Lake[k-1].LayerVol + Lake[k].LayerVol;
         Lake[k-1].Vol1 = Lake[k].Vol1;
         Lake[k-1].LayerArea = Lake[k].LayerArea;
-        Lake[k-1].MeanHeight = Lake[0].Height/2.0;
         if ((k-1) != botmLayer)
             Lake[k-1].MeanHeight = (Lake[k-1].Height + Lake[k-2].Height) / 2.0;
+        else
+            Lake[k-1].MeanHeight = Lake[0].Height / 2.0;
         Lake[k-1].Density = calculate_density(Lake[k-1].Temp, Lake[k-1].Salinity);
         Lake[k-1].Epsilon = Lake[k].Epsilon;
 

@@ -1,33 +1,47 @@
-
-GLM macintosh version now has a GUI.
-
-Building requires :
+Building n on macOS-X requires :
 
    1) XCode - available through the App Store
        NB you will also need the commandline tools for XCode
 
               xcode-select --install
 
-   2) Since compiling with gfortran doesn't work, you will need Intel Fortran
-   3) You will need netcdf - this is available from MacPorts - https://www.macports.org
+   2) There are various 3rd party libraries required - fortunately someone else has done the
+      hard work of porting them.  There are several options, we have only looked at
+      MacPorts and Homebrew which seem to be amongst the most popular.  If you don't
+      already a a collection, look at :
 
-             port install netcdf
+          MacPorts : https://www.macports.org
+      or
+          Homebrew : http://brew.sh/
 
-      Or you can use Homebrew - http://brew.sh/
+   3) If you want to use gfortran, make sure you have at least version 8.2. For MacPorts use :
 
-             brew install homebrew/science/netcdf
+             sudo port install gcc-8
+             sudo port select gcc mp-gcc8
 
-   4) To build the GUI you will need libgd - this is available through MacPorts
+      For homebrew
 
-             port install gd2
+             brew install gcc
+
+   4) You will need netcdf - this is available from MacPorts :
+
+             sudo port install netcdf
+
+      Or you can use Homebrew :
+
+             brew install netcdf
+
+   5) To build the GUI you will need libgd - this is available through MacPorts
+
+             sudo port install gd2
 
       or through Homebrew
 
              brew install gd
 
-   5) To build a version including FABM you will need cmake :
+   6) To build a version including FABM you will need cmake :
 
-             port install cmake
+             sudo port install cmake
 
        or
 
@@ -46,3 +60,7 @@ Note:
     GLM source includes a script - "macpkg.sh" to include non-standard libraries
     into the glm.app binary.  This script defaults to use for MacPorts at the moment. To change
     to homebrew edit the GLM_CONFIG file
+
+Note:
+   GLM requires gfortran v8 in order to build correctly - previous versions of gfortran had a
+   bug in the C compatibility that prevented correct compilation.

@@ -100,7 +100,7 @@ int config_bird(int namlst)
  ******************************************************************************/
 AED_REAL calc_bird(AED_REAL lon, AED_REAL lat, int jday, int iclock, AED_REAL TZ)
 {
-    AED_REAL Phi_day;          // Day Angle :- Position of the earth in sun's orbit
+    AED_REAL phi_day;          // Day Angle :- Position of the earth in sun's orbit
     AED_REAL ETR;              // Extra Terrestrial Beam Intensity
                                // Correction of Earth Sun Distance based on elliptical path of the sun
     AED_REAL ZenithAngle;      // Zenith Angle
@@ -117,8 +117,8 @@ AED_REAL calc_bird(AED_REAL lon, AED_REAL lat, int jday, int iclock, AED_REAL TZ
     AED_REAL Taa = 0.;
     AED_REAL Tas = 0.;
     AED_REAL rs = 0.;          // Scattered Radiation
-    AED_REAL Phi_db = 0.;      // Direct Beam Horizontal Radiation
-    AED_REAL Phi_as = 0.;
+    AED_REAL phi_db = 0.;      // Direct Beam Horizontal Radiation
+    AED_REAL phi_as = 0.;
     AED_REAL GHI = 0.;         // Global Horizontal Irradiation
 
     /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -128,15 +128,15 @@ AED_REAL calc_bird(AED_REAL lon, AED_REAL lat, int jday, int iclock, AED_REAL TZ
     ZenithAngle = zenith_angle(lon, lat, day, iclock, TZ);
 
     // Day Angle :- Position of the earth in sun's orbit
-    Phi_day = (two_Pi*(day-1)/365);
+    phi_day = (two_Pi*(day-1)/365);
 
     // Extra Terrestrial Beam Intensity
     // Correction of Earth Sun Distance based on elliptical path of the sun
     // where did this come from ?
-    ETR = I_sc * (1.00011 + 0.034221*cos(   two_Pi*Phi_day) +
-                            0.00128 *sin(   two_Pi*Phi_day) +
-                            0.000719*cos(2*(two_Pi*Phi_day)) +
-                            0.000077*sin(2*(two_Pi*Phi_day)) );
+    ETR = I_sc * (1.00011 + 0.034221*cos(   two_Pi*phi_day) +
+                            0.00128 *sin(   two_Pi*phi_day) +
+                            0.000719*cos(2*(two_Pi*phi_day)) +
+                            0.000077*sin(2*(two_Pi*phi_day)) );
 
     // Air Mass
     if (ZenithAngle < 89)
@@ -173,13 +173,13 @@ AED_REAL calc_bird(AED_REAL lon, AED_REAL lat, int jday, int iclock, AED_REAL TZ
 
         // Direct Beam Radiation (Extra-Terrestrial)
         if (ZenithAngle < 90)
-            Phi_db = 0.9662 * ETR * Trayleigh * Toz * Tm * Twater * Ta * cos(ZenithAngle * deg2rad) ;
+            phi_db = 0.9662 * ETR * Trayleigh * Toz * Tm * Twater * Ta * cos(ZenithAngle * deg2rad) ;
 
-        Phi_as = 0.79 * ETR * Toz * Tm * Twater * Taa * cos(ZenithAngle * deg2rad) *
+        phi_as = 0.79 * ETR * Toz * Tm * Twater * Taa * cos(ZenithAngle * deg2rad) *
                    (0.5 * (1-Trayleigh) + 0.84*(1.-Tas)) / (1-AirMass + pow(AirMass, 1.02));
 
         // Global Horizontal Irradiation
-        GHI = (Phi_db + Phi_as)/(1 - Albedo * rs) ;
+        GHI = (phi_db + phi_as)/(1 - Albedo * rs) ;
     }
 
     return GHI;
@@ -215,10 +215,10 @@ AED_REAL cloud_from_bird(AED_REAL GHI, AED_REAL Solar)
         f_C = 1;  //Night assume CC = 1}
 
     tmp = (b * b) - 4 * a * (c - f_C);
-    if 	(tmp > 0)   // Assume fully clouded if f_C <<<< 1
+    if  (tmp > 0)   // Assume fully clouded if f_C <<<< 1
         cloud = (-b - sqrt(tmp)) / 2 * a;
     else
-    	cloud = 1.;
+        cloud = 1.;
 
     if (cloud < 0.) cloud = 0.;
 

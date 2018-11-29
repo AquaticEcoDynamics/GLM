@@ -34,6 +34,10 @@
 
 #include "glm.h"
 
+/************************* Important Note *************************************
+ * The order of entries in these structures MUST match those in glm_types.F90 *
+ ************************* Important Note *************************************/
+
 #define MaxPar        37
 #define MaxOut        20     /* Maximum number of outflows */
 #define MaxInf        20     /* Maximum number of inflows */
@@ -155,13 +159,12 @@ typedef char filname[80];
        AED_REAL Light;           // solar radiation over water layer depths
        AED_REAL ExtcCoefSW;      // light extinction coefficient
 
-       AED_REAL Vol1;
-       AED_REAL Epsilon;
+       AED_REAL Vol1;            // Cumulative volume to this layer top
+       AED_REAL Epsilon;         // Diffusivity
 
        AED_REAL Umean;           // Mean velocity
        AED_REAL Uorb;            // Maximum orbital velocity
-       AED_REAL Ucur;            // Current velocity
-       AED_REAL LayerStress;    // Layer Stress
+       AED_REAL LayerStress;     // Layer Stress
    } LakeDataType;
 
    /*===========================================================*/
@@ -182,28 +185,31 @@ typedef char filname[80];
        AED_REAL RainConcTn;      // Concentration of TN in rain
        AED_REAL RainConcSi;      // Concentration of SI in rain
        AED_REAL WindDir;         // Wind direction
+       AED_REAL As;              // Area of sheltering
    } MetDataType;
 
    /*===========================================================*/
    // Structured type for Surface Data vars
    typedef struct SurfaceDataType {
        AED_REAL Evap;            // Evaporation
-       AED_REAL HeightBlackIce;  // height of ice layer
-       AED_REAL HeightWhiteIce;  // height of white ice layer
-       AED_REAL HeightSnow;      // height of snow layer
-       AED_REAL dHt;             // change in thickness of either the snow or ice layer
-       AED_REAL RhoSnow;          // Density of snow layer in kg/m^3
-       AED_REAL dailyEvap;       // Daily Evaporation (ML/day)
-       AED_REAL dailyRain;       // Daily Rain (ML/day)
-       AED_REAL dailySnow;       // Daily Snow (ML/day)
+       AED_REAL delzBlueIce;   // Thickness of blue ice layer
+       AED_REAL delzWhiteIce;  // Thickness of white ice layer
+       AED_REAL delzSnow;      // Thickness of snow layer
+       AED_REAL dHt;             // Change in thickness of the snow / ice layer
+       AED_REAL RhoSnow;         // Density of snow layer (kg/m^3)
+       AED_REAL dailyEvap;       // Daily Evaporation (m3/day)
+       AED_REAL dailyRain;       // Daily Rain (m3/day)
+       AED_REAL dailyRunoff;     // Daily Runoff (m3/day)
+       AED_REAL dailySnow;       // Daily Snow (m3/day)
        AED_REAL dailyQsw;        // Daily Heat Flux (J/day)
        AED_REAL dailyQe;         // Daily Latent Heat(J/day)
        AED_REAL dailyQh;         // Daily Sensible Heat (J/day)
        AED_REAL dailyQlw;        // Daily Long Wave Radiation (J/day)
-       AED_REAL dailyInflow;     // Total Daily Inflow (ML/day)
-       AED_REAL dailyOutflow;    // Total Daily Outflow (ML/day)
-       AED_REAL dailyOverflow;   // Total Daily Overflow (ML/day)
+       AED_REAL dailyInflow;     // Total Daily Inflow (m3/day)
+       AED_REAL dailyOutflow;    // Total Daily Outflow (m3/day)
+       AED_REAL dailyOverflow;   // Total Daily Overflow (m3/day)
        AED_REAL albedo;          // Daily surface albedo
+       AED_REAL dailyzonL;       // Daily atmospheric stability
    } SurfaceDataType;
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

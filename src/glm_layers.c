@@ -182,7 +182,6 @@ void check_layer_thickness(void)
     while(1) {
         if (VSUMCHK) return;
 
-
         for (i = KLAST; i <= surfLayer; i++) {
             if (i == botmLayer)
                 DELDP=Lake[i].Height;
@@ -203,6 +202,7 @@ void check_layer_thickness(void)
             V = Lake[i].LayerVol/M;
             D = DELDP/M;
             if (V <= VMax && D <= DMax) break;
+            if (Lake[surfLayer].Height<0.3) break;
             M++;
 
             // if M+surfLayer is greater than the max no. of layers, a mistake will occur
@@ -259,6 +259,7 @@ void check_layer_thickness(void)
 
         // get new depths for layers i thru surfLayer
         resize_internals(2,i);
+
     }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -282,12 +283,9 @@ void insert(AED_REAL q, AED_REAL di, AED_REAL bsl, AED_REAL temp, AED_REAL salt,
     AED_REAL DBB,DELT,DELB;
     AED_REAL DHLE;
     AED_REAL DT;
-#ifndef _VISUAL_C_
-    // The visual c compiler doesn't like this so must malloc manually
-    AED_REAL DVR[MaxLayers];
-#else
+
     AED_REAL *DVR;
-#endif
+
     AED_REAL DZ;
     AED_REAL F;
     AED_REAL GD;
@@ -310,9 +308,7 @@ void insert(AED_REAL q, AED_REAL di, AED_REAL bsl, AED_REAL temp, AED_REAL salt,
 
 /*----------------------------------------------------------------------------*/
 
-#ifdef _VISUAL_C_
-    DVR = malloc(sizeof(AED_REAL) * MaxLayers);
-#endif
+    DVR = calloc(MaxLayers, sizeof(AED_REAL));
 
     DELT=0.;
     DELB=0.;
@@ -492,8 +488,6 @@ void insert(AED_REAL q, AED_REAL di, AED_REAL bsl, AED_REAL temp, AED_REAL salt,
             Lake[j].Vol1 = Lake[j-1].Vol1 + Lake[j].LayerVol;
     }
 
-#ifdef _VISUAL_C_
     free(DVR);
-#endif
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

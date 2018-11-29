@@ -30,6 +30,8 @@
 #ifndef _GLM_UTIL_H_
 #define _GLM_UTIL_H_
 
+#include "glm.h"
+
 AED_REAL zenith_angle(AED_REAL lon, AED_REAL lat, int day, int iclock, AED_REAL TZ);
 
 // #ifndef sqr
@@ -39,9 +41,6 @@ AED_REAL zenith_angle(AED_REAL lon, AED_REAL lat, int day, int iclock, AED_REAL 
 // #ifndef gprime
 //    AED_REAL gprime(AED_REAL d1, AED_REAL d2);
 // #endif
-
-AED_REAL delta_volume(AED_REAL z1, AED_REAL z2, AED_REAL da, AED_REAL avdel,
-                 AED_REAL hh, AED_REAL delt, AED_REAL delb);
 
 AED_REAL combine(AED_REAL c1, AED_REAL v1, AED_REAL d1,
                     AED_REAL c2, AED_REAL v2, AED_REAL d2);

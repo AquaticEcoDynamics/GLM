@@ -78,24 +78,18 @@ void Mobility(int *N_in,          // number of vertical layers
     AED_REAL min_C = *min_C_in;
 
     int      i;
-#ifndef _VISUAL_C_
-    AED_REAL vols[N];  // layer volume (m^3)
-    AED_REAL mins[N];  // minimum layer mass of variable (mmol)
-    AED_REAL Y[N];     // total mass of variable (mmol) in layer
-#else
+
     AED_REAL *vols;  // layer volume (m^3)
     AED_REAL *mins;  // minimum layer mass of variable (mmol)
     AED_REAL *Y;     // total mass of variable (mmol) in layer
-#endif
+
     AED_REAL dtMax = dt, tdt, tmp;
     int dirChng, sign;
 
 /*----------------------------------------------------------------------------*/
-#ifdef _VISUAL_C_
-    vols = malloc(sizeof(AED_REAL) * N);
-    mins = malloc(sizeof(AED_REAL) * N);
-    Y = malloc(sizeof(AED_REAL) * N);
-#endif
+    vols = calloc(N, sizeof(AED_REAL));
+    mins = calloc(N, sizeof(AED_REAL));
+    Y = calloc(N, sizeof(AED_REAL));
 
     /**************************************************************************
      * determine mobility timestep i.e. maximum time step that particles      *
@@ -171,9 +165,7 @@ void Mobility(int *N_in,          // number of vertical layers
     } while ( dt > 0. );
 
     /**************************************************************************/
-#ifdef _VISUAL_C_
     free(vols); free(mins); free(Y);
-#endif
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

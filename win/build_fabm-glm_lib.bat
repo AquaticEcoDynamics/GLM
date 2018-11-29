@@ -12,14 +12,34 @@ set Platform=%2%
 
 echo %Platform%-%Configuration%
 
-if "%Platform%"=="x64" (
- set Generator="Visual Studio 14 2015 Win64"
+@rem Check env var VisualStudioVersion
+@rem   vs2015 = "14.0"
+@rem   vs2017 = "15.0"
+@rem
+@rem Odd thing to note - batch files include the quotes in variables
+@rem so set GV without quotes otherwise they appear in the middle of
+@rem the Generator variable.
+@rem
+@rem However, we need those quotes around the Generator variable
+@rem where the cmake call is made
+@rem
+
+
+if "%VisualStudioVersion%"=="14.0" (
+  set GV=14 2015
+) else if "%VisualStudioVersion%"=="15.0" (
+  set GV=15 2017
 ) else (
- set Generator="Visual Studio 14 2015"
+  echo Unknown Visual Studio version
+)
+
+if "%Platform%"=="x64" (
+ set Generator="Visual Studio %GV% Win64"
+) else (
+ set Generator="Visual Studio %GV%"
 )
 
 set startdir=%cd%
-
 set prevdir=%cd%
 
 :loop1
