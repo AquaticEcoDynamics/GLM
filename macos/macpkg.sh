@@ -162,30 +162,22 @@ done
 
 # now update these paths in the libraries as well
 export LIBS=`\ls ${PKG}.app/Contents/MacOS/ | grep dylib`
+export FILES=`\ls ${PKG}.app/Contents/MacOS/`
 echo "======================================================================================"
 echo "Now checking libs for dependancies"
 echo "LIBS=$LIBS"
 
-for file in $LIBS ; do
-  #echo "********** $file"
+for file in $FILES ; do
+# echo "********** $file"
 
-  L2=`otool -L ${PKG}.app/Contents/MacOS/$file | grep \/${BASEDIR}\/local | cut -d\  -f1`
+  for lib in $LIBS ; do
+#   echo "  ******** $lib"
 
-  for j in $L2 ; do
-    lib=`echo $j | grep -o '[^/]*$'`
-    #echo "********** $file : $j ($lib)"
-    xx=`find /${BASEDIR} -name $lib 2> /dev/null | tail -n 1`
+    xx=`otool -L ${PKG}.app/Contents/MacOS/$file | grep $lib | grep -v ${PKG}.app | cut -d\  -f1`
     if [ "$xx" != "" ] ; then
-      #echo ' YYYY' install_name_tool -change $xx '@executable_path/'$lib ${PKG}.app/Contents/MacOS/$file
+#     echo "   xx = ($xx)"
+#     echo ' YYYY' install_name_tool -change $xx '@executable_path/'$lib ${PKG}.app/Contents/MacOS/$file
       install_name_tool -change $xx '@executable_path/'$lib ${PKG}.app/Contents/MacOS/$file
-    fi
-  done
-
-  for j in $LIBS2 ; do
-    xx=`otool -L ${PKG}.app/Contents/MacOS/$file | grep $j`
-    if [ "$xx" != "" ] ; then
-      #echo ' XXXX' install_name_tool -change $j '@executable_path/'$j ${PKG}.app/Contents/MacOS/$file
-      install_name_tool -change $j '@executable_path/'$j ${PKG}.app/Contents/MacOS/$file
     fi
   done
 done
