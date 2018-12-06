@@ -69,9 +69,11 @@ extern AED_REAL   seepage_rate;
 char glm_nml_file[256] = DEFAULT_GLM_NML;
 char wq_lib[256] = DEFAULT_WQ_LIB;
 
+extern int START_TOD;
+
 static void create_lake(int namlst);
 static void initialise_lake(int namlst);
-static int init_time(char *start, char *stop, int timefmt, int *nDays);
+static int init_time(const char *start, char *stop, int timefmt, int *startTOD, int *nDays);
 
 /*############################################################################*/
 
@@ -930,7 +932,7 @@ for (i = 0; i < n_zones; i++) {
 
     if ( timefmt != 2 ) *stop = 0;
 
-    julianday = init_time(start, stop, timefmt, &nDays);
+    julianday = init_time(start, stop, timefmt, &START_TOD, &nDays);
     free(stop);
     calendar_date(julianday, &jyear, &jmonth, &jday);
     //# Days since start of the year, jyear
@@ -1436,9 +1438,9 @@ void initialise_lake(int namlst)
 #define INIT_T_BEGIN_END  2
 #define INIT_T_BEGIN_STEP 3
 
-static int init_time(char *start, char *stop, int timefmt, int *nDays)
+static int init_time(const char *start, char *stop, int timefmt, int *startTOD, int *nDays)
 {
-    int jul1=0, secs1=0, jul2, secs2;
+    int jul1=0, secs1=0, jul2, secs2=0;
     int nsecs;
 
     switch (timefmt) {
@@ -1456,7 +1458,7 @@ static int init_time(char *start, char *stop, int timefmt, int *nDays)
 
             *nDays = jul2-jul1;
             if (nsecs < 86400 && jul1 != jul2) nDays = nDays-1;
-            nsecs = nsecs - 86400*(*nDays);
+            // CAB - usless code? nsecs = nsecs - 86400*(*nDays);
             break;
         case INIT_T_BEGIN_STEP:
             read_time_string(start, &jul1, &secs1);
@@ -1473,6 +1475,7 @@ static int init_time(char *start, char *stop, int timefmt, int *nDays)
             break;
     }
 
+    *startTOD = secs1;  /* also return time of day for first day */
     return jul1;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

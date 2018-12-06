@@ -16,7 +16,7 @@ Building n on macOS-X requires :
 
    3) If you want to use gfortran, make sure you have at least version 8.2. For MacPorts use :
 
-             sudo port install gcc-8
+             sudo port install gcc8
              sudo port select gcc mp-gcc8
 
       For homebrew

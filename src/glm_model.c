@@ -103,6 +103,8 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
 
 //int n_steps_done = 0;
 //#define END_STEPS 30
+static int START_ICLOCK = 0;
+int START_TOD = 0;
 
 
 /******************************************************************************
@@ -152,6 +154,7 @@ void init_model(int *jstart, int *nsave)
 #endif
 
     init_glm(jstart, out_dir, out_fn, nsave);
+    START_ICLOCK = (START_TOD + (timestep-1)) / timestep;
 
 #if PLOTS
     psubday = timestep * (*nsave) / SecsPerDay;
@@ -630,7 +633,7 @@ void calc_mass_temp(const char *msg)
  ******************************************************************************/
 int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL SWnew)
 {
-    int iclock = 0;  //# The seconds counter during a day
+    int iclock;  //# The seconds counter during a day
     AED_REAL Light_Surface; //# Light at the surface of the lake after do_surface
 
     noSecs = timestep;
@@ -639,7 +642,8 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
     /**************************************************************************
      *  Loop for each second in a day (86400 = #seconds in a day)             *
      **************************************************************************/
-    iclock = 0;
+    iclock = START_ICLOCK;
+    START_ICLOCK = 0; /* from now on start at the beginning of the day */
     Benthic_Light_pcArea = 0.;
     while (iclock < iSecsPerDay) { //# iclock = seconds counter
         if ( subdaily ) {

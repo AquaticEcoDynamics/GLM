@@ -46,7 +46,12 @@ if [ "$FC" = "" ] ; then
     if [ $? != 0 ] ; then
       export FC=ifort
     else
-      export FC=gfortran
+      VERS=`gfortran -dumpversion | cut -d\. -f1`
+      if [ $VERS -ge 8 ] ; then
+        export FC=gfortran
+      else
+        export FC=ifort
+      fi
     fi
   else
     export FC=gfortran-8
@@ -166,8 +171,6 @@ cd ${UTILDIR}
 make || exit 1
 
 cd ${CURDIR}
-
-/bin/rm src/glm src/glm+
 
 make || exit 1
 if [ -d ${AED2PLS} ] ; then
