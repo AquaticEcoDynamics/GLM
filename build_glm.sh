@@ -59,9 +59,6 @@ if [ "$FC" = "" ] ; then
 fi
 
 if [ "$FC" = "ifort" ] ; then
-   # for fabm
-   FORTRAN_COMPILER="IFORT"
-
    if [ `uname -m` = "i686" ] ; then
       CPU="ia32"
    else
@@ -80,10 +77,7 @@ if [ "$FC" = "ifort" ] ; then
    export PATH="/opt/intel/bin:$PATH"
    export NETCDFHOME=/opt/intel
 else
-   # for fabm
    # if FC is not ifort assume that it is a variant of gfortran
-   FORTRAN_COMPILER="GFORTRAN"
-
    if [ "$OSTYPE" == "Darwin" ] ; then
      if [ "${HOMEBREW}" = "true" ] ; then
        export NETCDFHOME=/usr/local

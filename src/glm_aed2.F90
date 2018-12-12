@@ -146,6 +146,7 @@ MODULE glm_aed2
 
    INTEGER :: n_aed2_vars, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
    INTEGER :: zone_var = 0
+   CHARACTER(len=64) :: NULCSTR = ""
 !===============================================================================
 CONTAINS
 
@@ -263,7 +264,11 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
 #ifdef __INTEL_COMPILER
    print *,'glm_aed2 built using intel fortran version ', __INTEL_COMPILER
 #else
+# ifdef __PGI
+   print *,'glm_aed2 built using pgfortran version ', __PGIC__, '.', __PGIC_MINOR__, '.', __PGIC_PATCHLEVEL__
+# else
    print *,'glm_aed2 built using gfortran version ', __GNUC__, '.', __GNUC_MINOR__, '.', __GNUC_PATCHLEVEL__
+# endif
 #endif
    print *,'init_glm_aed2 using: ', TRIM(fname)
    namlst = f_get_lun()
@@ -1385,7 +1390,7 @@ SUBROUTINE aed2_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE
                DO j=1,point_nlevs
                   IF (lvl(j) .GE. 0) THEN ; val_out = cc_diag(lvl(j)+1, d)
                   ELSE                    ; val_out = missing     ; ENDIF
-                  CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, "", 0, last=last)
+                  CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
                ENDDO
             ENDIF
          ELSE IF ( .NOT. tv%extern ) THEN
@@ -1416,7 +1421,7 @@ SUBROUTINE aed2_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE
                DO j=1,point_nlevs
                   IF (lvl(j) .GE. 0) THEN ; val_out = cc(lvl(j)+1, v)
                   ELSE                    ; val_out = missing     ; ENDIF
-                  CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, "", 0, last=last)
+                  CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
                ENDDO
             ENDIF
          ENDIF

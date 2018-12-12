@@ -149,6 +149,18 @@ ifeq ($(F90),ifort)
   ifneq ("$(AED2PLBS)", "")
     AED2PLBS+=-lifport
   endif
+else ifeq ($(F90),pgfortran)
+  LINK=$(CC)
+  DEBUG_FFLAGS=-g -DDEBUG=1
+  OPT_FFLAGS=-O3
+  FFLAGS=-module ${moddir} $(DEFINES) $(FINCLUDES)
+  ifeq ($(WITH_CHECKS),true)
+    FFLAGS+=-Mbounds
+  endif
+  FFLAGS+=-r8
+  FLIBS+=-L/opt/pgi/linux86-64/18.10/lib
+  FLIBS+=-lpgf90rtl -lpgf90 -lpgf90_rpm1 -lpgf902
+  FLIBS+=-lpgftnrtl -lpgmp -lnuma -lpgmath -lpgc
 else
   LINK=$(FC)
   DEBUG_FFLAGS=-g -fbacktrace -DDEBUG=1
