@@ -1159,7 +1159,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         //  Use 1:10 rule for snow water equivalent
         //---------------------------------------------------------------------+
         Lake[surfLayer].Height += MAX( MetData.Snow, zero)
-                 * Lake[surfLayer].LayerArea * (1./10.) * (noSecs / SecsPerDay);
+                 * (1./10.) * (noSecs / SecsPerDay);
 
         recalc_surface_salt();
     }
