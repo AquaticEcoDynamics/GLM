@@ -3,6 +3,9 @@
 # This script is used to bundle the glm binaries and uncommon library dependancies into an app.
 #  The bundle rpaths are modified to find the libraries in the bundle.
 
+MOSNAME=`grep 'SOFTWARE LICENSE AGREEMENT FOR ' '/System/Library/CoreServices/Setup Assistant.app/Contents/Resources/en.lproj/OSXSoftwareLicense.rtf' | tr ' ' '\n' | tail -1
+`
+
 if [ "$1" = "true" ] ; then
    BASEDIR=usr
 else
@@ -183,6 +186,7 @@ for file in $FILES ; do
 done
 
 # ln -s ${PKG}.app/Contents/MacOS/${PKG} ${PKG}
-zip -r ${PKG}_${VERSION}_macos.zip ${PKG}.app # ${PKG}
+#zip -r ${PKG}_${VERSION}_macos.zip ${PKG}.app # ${PKG}
+zip -r ${PKG}_${VERSION}_macos_${MOSNAME}.zip ${PKG}.app # ${PKG}
 
 exit 0

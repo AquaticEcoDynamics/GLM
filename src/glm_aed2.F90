@@ -1239,7 +1239,7 @@ SUBROUTINE update_light(column, nlev)
 !
 !LOCALS
    INTEGER :: i
-   AED_REAL :: zz, localext
+   AED_REAL :: localext
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -1249,14 +1249,11 @@ SUBROUTINE update_light(column, nlev)
       localext = zero_
       CALL aed2_light_extinction(column, i, localext)
 
-      zz = zz + 0.5*dz(i)
-
       IF (i .EQ. nlev) THEN
-         par(i) = 0.45 * rad(i) * EXP( -(lKw + localext) * zz )
+         par(i) = 0.45 * rad(i) * EXP( -(lKw + localext) * 0.5*dz(i) )
       ELSE
-         par(i) = par(i+1) * EXP( -(lKw + localext) * zz )
+         par(i) = par(i+1) * EXP( -(lKw + localext) * 0.5*(dz(i)+dz(i+1)) )
       ENDIF
-      zz = zz + 0.5*dz(i)
 
       IF (bioshade_feedback) extc_coef(i) = lKw + localext
    ENDDO
