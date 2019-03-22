@@ -305,7 +305,7 @@ void do_model(int jstart, int nsave)
         WithdrawalTemp = (WithdrTempOld + WithdrTempNew) / 2.0;
 
         read_daily_kw(jday, &DailyKw);
-        for (i = botmLayer; i <= surfLayer; i++) Lake[i].ExtcCoefSW = DailyKw;
+        for (i = 0; i <= MaxLayers; i++) Lake[i].ExtcCoefSW = DailyKw;
 
         read_daily_met(jday, &MetNew);
         if ( !subdaily ) {
@@ -440,7 +440,7 @@ void do_model_non_avg(int jstart, int nsave)
 
         //# Read & set today's Kw (if being read in)
         read_daily_kw(jday, &DailyKw);
-        for (i = botmLayer; i <= surfLayer; i++) Lake[i].ExtcCoefSW = DailyKw;
+        for (i = 0; i <= MaxLayers; i++) Lake[i].ExtcCoefSW = DailyKw;
 
         //# Read & set today's meterological data
         read_daily_met(jday, &MetData);
@@ -556,7 +556,7 @@ void do_model_coupled(int step_start, int step_end,
     //  WithdrawalTemp = WithdrTempNew;
 
         read_daily_kw(jday, &DailyKw);
-        for (i = botmLayer; i <= surfLayer; i++) Lake[i].ExtcCoefSW = DailyKw;
+        for (i = 0; i <= MaxLayers; i++) Lake[i].ExtcCoefSW = DailyKw;
 
         read_daily_met(jday, &MetData);
         SWnew = MetData.ShortWave;
