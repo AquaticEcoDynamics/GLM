@@ -105,6 +105,11 @@ MODULE glm_aed2
    LOGICAL :: mobility_off = .FALSE.  !# flag to turn mobility off
    LOGICAL :: do_plots = .TRUE.
 
+   AED_REAL :: par_fraction =  0.450
+   AED_REAL :: nir_fraction =  0.510
+   AED_REAL :: uva_fraction =  0.035
+   AED_REAL :: uvb_fraction =  0.005
+
    !# Arrays for state and diagnostic variables
    AED_REAL,ALLOCATABLE,DIMENSION(:,:) :: cc !# water quality array: nlayers, nvars
    AED_REAL,ALLOCATABLE,TARGET,DIMENSION(:,:) :: cc_diag
@@ -1132,8 +1137,8 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    cc_diag_hz = 0.
 
    IF ( .NOT. mobility_off ) THEN
-      !# (3) Calculate source/sink terms due to settling rising of state
-      !# variables in the water column (note that settling into benthos
+      !# (3) Calculate source/sink terms due to the settling or rising of
+      !# state variables in the water column (note that settling into benthos
       !# is done in aed2_do_benthos)
       v = 0
       DO i=1,n_aed2_vars
@@ -1160,26 +1165,26 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
       ENDIF
 
       !# Update local light field (self-shading may have changed through
-      !# changes in biological state variables) changed to update_light to
-      !# be inline with current aed2_phyoplankton that requires only
-      !# surface par then integrates over
+      !# changes in biological state variables). Update_light is set to
+      !# be inline with current aed2_phyoplankton, which requires only
+      !# surface par, then integrates over depth of a layer
       CALL update_light(column, wlev)
 
       !# Fudge
-      nir(:) = (par(:)/0.45) * 0.51
-      uva(:) = (par(:)/0.45) * 0.035
-      uvb(:) = (par(:)/0.45) * 0.005
+      nir(:) = (par(:)/par_fraction) * nir_fraction
+      uva(:) = (par(:)/par_fraction) * uva_fraction
+      uvb(:) = (par(:)/par_fraction) * uvb_fraction
 
       !# Time-integrate one biological time step
       CALL calculate_fluxes(column, wlev, column_sed, n_zones,  &
                                   flux(:,:), flux_atm, flux_ben, flux_zone(:,:))
-      ! Update the water column layers
+      !# Update the water column layers
       DO v = 1, n_vars
          DO lev = 1, wlev
             cc(lev, v) = cc(lev, v) + dt_eff*flux(lev, v)
          ENDDO
       ENDDO
-      ! Now update benthic variables, depending on whether zones are simulated
+      !# Now update benthic variables, depending on whether zones are simulated
       IF ( benthic_mode .GT. 1 ) THEN
          ! Loop through benthic state variables to update their mass
          DO v = n_vars+1, n_vars+n_vars_ben
@@ -1195,7 +1200,7 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
          ENDDO
       ENDIF
 
-      ! Distribute cc-sed benthic properties back into main cc array
+      !# Distribute cc-sed benthic properties back into main cc array
       IF ( benthic_mode .GT. 1 ) &
          CALL copy_from_zone(cc, cc_diag, cc_diag_hz, wlev)
 
@@ -1230,8 +1235,8 @@ END SUBROUTINE aed2_clean_glm
 !###############################################################################
 SUBROUTINE update_light(column, nlev)
 !-------------------------------------------------------------------------------
-! Calculate photosynthetically active radiation over entire column
-! based on surface radiation, and background and biotic extinction.
+! Calculate photosynthetically active radiation over entire column based
+! on surface radiation, attenuated based on background & biotic extinction
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    TYPE (aed2_column_t), INTENT(inout) :: column(:)
@@ -1239,24 +1244,31 @@ SUBROUTINE update_light(column, nlev)
 !
 !LOCALS
    INTEGER :: i
-   AED_REAL :: localext
+   AED_REAL :: localext, localext_up
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   zz = zero_
 
-   DO i=nlev,1,-1
-      localext = zero_
+   localext = zero_; localext_up = zero_
+
+   ! Surface Kd
+   CALL aed2_light_extinction(column, nlev, localext)
+
+   ! Surface PAR
+   par(nlev) = par_fraction * rad(nlev) * EXP( -(lKw+localext)*1e-6*dz(nlev) )
+
+   ! Now set the top of subsequent layers, down to the bottom
+   DO i = (nlev-1),1,-1
+
+      localext_up = localext
       CALL aed2_light_extinction(column, i, localext)
 
-      IF (i .EQ. nlev) THEN
-         par(i) = 0.45 * rad(i) * EXP( -(lKw + localext) * 0.5*dz(i) )
-      ELSE
-         par(i) = par(i+1) * EXP( -(lKw + localext) * 0.5*(dz(i)+dz(i+1)) )
-      ENDIF
+      par(i) = par(i+1) * EXP( -(lKw + localext_up) * dz(i+1) )
 
       IF (bioshade_feedback) extc_coef(i) = lKw + localext
+
    ENDDO
+
 END SUBROUTINE update_light
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
