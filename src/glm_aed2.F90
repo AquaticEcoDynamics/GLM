@@ -1132,8 +1132,8 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    cc_diag_hz = 0.
 
    IF ( .NOT. mobility_off ) THEN
-      !# (3) Calculate source/sink terms due to settling rising of state
-      !# variables in the water column (note that settling into benthos
+      !# (3) Calculate source/sink terms due to the settling or rising of
+      !# state variables in the water column (note that settling into benthos
       !# is done in aed2_do_benthos)
       v = 0
       DO i=1,n_aed2_vars
@@ -1230,8 +1230,8 @@ END SUBROUTINE aed2_clean_glm
 !###############################################################################
 SUBROUTINE update_light(column, nlev)
 !-------------------------------------------------------------------------------
-! Calculate photosynthetically active radiation over entire column
-! based on surface radiation, and background and biotic extinction.
+! Calculate photosynthetically active radiation over entire column based
+! on surface radiation, attenuated based on background & biotic extinction
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    TYPE (aed2_column_t), INTENT(inout) :: column(:)
@@ -1239,20 +1239,28 @@ SUBROUTINE update_light(column, nlev)
 !
 !LOCALS
    INTEGER :: i
-   AED_REAL :: localext
+   AED_REAL :: localext, localext_up
 !
 !-------------------------------------------------------------------------------
 !BEGIN
    zz = zero_
 
    DO i=nlev,1,-1
+
+      localext_up = localext
       localext = zero_
+
       CALL aed2_light_extinction(column, i, localext)
 
+!      IF (i .EQ. nlev) THEN
+!         par(i) = 0.45 * rad(i) * EXP( -(lKw + localext) * 0.5*dz(i) )
+!      ELSE
+!         par(i) = par(i+1) * EXP( -(lKw + localext) * 0.5*(dz(i)+dz(i+1)) )
+!      ENDIF
       IF (i .EQ. nlev) THEN
-         par(i) = 0.45 * rad(i) * EXP( -(lKw + localext) * 0.5*dz(i) )
+         par(i) = 0.45 * rad(i) * EXP( -(lKw + localext) * 1e-6*dz(i) )
       ELSE
-         par(i) = par(i+1) * EXP( -(lKw + localext) * 0.5*(dz(i)+dz(i+1)) )
+         par(i) = par(i+1) * EXP( -(lKw + localext_up) * dz(i+1) )
       ENDIF
 
       IF (bioshade_feedback) extc_coef(i) = lKw + localext
