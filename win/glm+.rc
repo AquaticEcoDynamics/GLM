@@ -27,8 +27,8 @@ END
 
 //==============================================================================
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 3,0,0beta12
- PRODUCTVERSION 3,0,0beta12
+ FILEVERSION 3,0,0
+ PRODUCTVERSION 3,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -45,12 +45,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "AED Group; University of Western Australia"
             VALUE "FileDescription", "General Lake Model (GLM) with AED+"
-            VALUE "FileVersion", 3.0.0beta12
+            VALUE "FileVersion", 3.0.0
             VALUE "InternalName", "version.rc"
             VALUE "LegalCopyright", "Copyright (C) 2018"
             VALUE "OriginalFilename", "version.rc"
             VALUE "ProductName", "GLM+"
-            VALUE "ProductVersion", 3.0.0beta12
+            VALUE "ProductVersion", 3.0.0
         END
     END
     BLOCK "VarFileInfo"
