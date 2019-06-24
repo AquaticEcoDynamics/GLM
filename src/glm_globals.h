@@ -240,6 +240,7 @@ extern AED_REAL timezone_r, timezone_m, timezone_i, timezone_o;
 extern int nDays;          //# number of days to simulate
 extern AED_REAL timestep;
 extern int noSecs;
+extern int startTOD;
 
 /*----------------------------------------------------------------------------*/
 // DEBUGGING

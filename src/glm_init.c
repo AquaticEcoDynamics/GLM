@@ -69,8 +69,6 @@ extern AED_REAL   seepage_rate;
 char glm_nml_file[256] = DEFAULT_GLM_NML;
 char wq_lib[256] = DEFAULT_WQ_LIB;
 
-extern int START_TOD;
-
 static void create_lake(int namlst);
 static void initialise_lake(int namlst);
 static int init_time(const char *start, char *stop, int timefmt, int *startTOD, int *nDays);
@@ -932,7 +930,7 @@ for (i = 0; i < n_zones; i++) {
 
     if ( timefmt != 2 ) *stop = 0;
 
-    julianday = init_time(start, stop, timefmt, &START_TOD, &nDays);
+    julianday = init_time(start, stop, timefmt, &startTOD, &nDays);
     free(stop);
     calendar_date(julianday, &jyear, &jmonth, &jday);
     //# Days since start of the year, jyear

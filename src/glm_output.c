@@ -94,7 +94,7 @@ void init_output(int jstart, const char *out_dir, const char *out_fn,
     }
 
     MaxLayers = oMaxLayers;
-    write_time_string(ts,jstart,0);
+    write_time_string(ts,jstart,startTOD);
     snprintf(path, 1024, "%s/%s.nc", out_dir, out_fn);
     ncid = init_glm_ncdf(path, "glm run", Latitude, Longitude, MaxLayers, ts);
 

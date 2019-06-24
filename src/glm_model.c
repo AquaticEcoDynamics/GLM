@@ -104,7 +104,7 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
 //int n_steps_done = 0;
 //#define END_STEPS 30
 static int START_ICLOCK = 0;
-int START_TOD = 0;
+int startTOD = 0;
 
 
 /******************************************************************************
@@ -154,7 +154,7 @@ void init_model(int *jstart, int *nsave)
 #endif
 
     init_glm(jstart, out_dir, out_fn, nsave);
-    START_ICLOCK = (START_TOD + (timestep-1)) / timestep;
+    START_ICLOCK = (startTOD + (timestep-1)) / timestep;
 
 #if PLOTS
     psubday = timestep * (*nsave) / SecsPerDay;
