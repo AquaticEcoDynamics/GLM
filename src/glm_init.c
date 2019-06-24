@@ -1464,7 +1464,7 @@ static int init_time(const char *start, char *stop, int timefmt, int *startTOD, 
 
             nsecs = (*nDays) * 86400;
             jul2  = jul1 + (*nDays);
-            secs2 = (nsecs%86400);
+            secs2 = secs1;
 
             write_time_string(stop, jul2, secs2);
             break;
