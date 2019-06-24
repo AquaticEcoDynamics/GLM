@@ -103,7 +103,6 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
 
 //int n_steps_done = 0;
 //#define END_STEPS 30
-static int START_ICLOCK = 0;
 int startTOD = 0;
 
 
@@ -154,7 +153,6 @@ void init_model(int *jstart, int *nsave)
 #endif
 
     init_glm(jstart, out_dir, out_fn, nsave);
-    START_ICLOCK = (startTOD + (timestep-1)) / timestep;
 
 #if PLOTS
     psubday = timestep * (*nsave) / SecsPerDay;
@@ -642,8 +640,8 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
     /**************************************************************************
      *  Loop for each second in a day (86400 = #seconds in a day)             *
      **************************************************************************/
-    iclock = START_ICLOCK;
-    START_ICLOCK = 0; /* from now on start at the beginning of the day */
+    iclock = startTOD;
+    startTOD = 0; /* from now on start at the beginning of the day */
     Benthic_Light_pcArea = 0.;
     while (iclock < iSecsPerDay) { //# iclock = seconds counter
         if ( subdaily ) {
