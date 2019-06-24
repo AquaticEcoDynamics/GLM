@@ -99,11 +99,13 @@ void end_model(void);
 #endif
 void do_model(int jstart, int nsave);
 void do_model_non_avg(int jstart, int nsave);
-int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL SWnew);
+int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SWold, AED_REAL SWnew);
 
 //int n_steps_done = 0;
 //#define END_STEPS 30
 int startTOD = 0;
+int stopTOD = 0;
+int nDates = 1;
 
 
 /******************************************************************************
@@ -242,7 +244,7 @@ void do_model(int jstart, int nsave)
     AED_REAL SaltNew[MaxInf], TempNew[MaxInf], WQNew[MaxInf * MaxVars];
     AED_REAL SaltOld[MaxInf], TempOld[MaxInf], WQOld[MaxInf * MaxVars];
 
-    int jday, ntot, stepnum;
+    int jday, ntot, stepnum, stoptime;
 
     int i, j;
 
@@ -259,6 +261,7 @@ void do_model(int jstart, int nsave)
 
     ntot = 0;
     stepnum = 0;
+    stoptime = iSecsPerDay;
 
     read_daily_inflow(jstart, NumInf, FlowOld, TempOld, SaltOld, WQOld);
     read_daily_outflow(jstart, NumOut, DrawOld);
@@ -270,9 +273,14 @@ void do_model(int jstart, int nsave)
     /*------------------------------------------------------------------------*
      * Loop over all days                                                     *
      *------------------------------------------------------------------------*/
-    while (ntot < nDays) {
+    while (ntot < nDates) {
         ntot++;
         jday++;
+
+        //# If it is the last day, adjust the stop time for the day if necessary
+        if(ntot == nDates) {
+          stoptime = stopTOD;
+        }
 
         //# Initialise daily values for volume and heat balance output
         SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
@@ -326,7 +334,7 @@ void do_model(int jstart, int nsave)
 //#if DEBUG
 //        fprintf(stderr, "------- next day - do_model -------\n");
 //#endif
-        stepnum = do_subdaily_loop(stepnum, jday, nsave, SWold, SWnew);
+        stepnum = do_subdaily_loop(stepnum, jday, stoptime, nsave, SWold, SWnew);
 //if ( n_steps_done > END_STEPS ) return;
 
         //# End of forcing-mixing-diffusion loop
@@ -361,11 +369,11 @@ void do_model(int jstart, int nsave)
             flush_all_plots();
         else
 #endif
-            printf("Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDays, EOLN);
+        printf("Running date %8d, %4.2f%% of dates complete%c", jday, ntot*100./nDates, EOLN);
         fflush(stdout);
 
         write_diags(jday, calculate_lake_number());
-    }   //# do while (ntot < ndays)
+    }   //# do while (ntot < nDates)
     printf("\n"); fflush(stdout);
     /*----------########### End of main daily loop ################-----------*/
 }
@@ -379,7 +387,7 @@ void do_model_non_avg(int jstart, int nsave)
 {
     AED_REAL FlowNew[MaxInf], DrawNew[MaxOut], WithdrTempNew;
     AED_REAL SWold, SWnew, DailyKw;
-    int jday, ntot, stepnum;
+    int jday, ntot, stepnum, stoptime;
     int i, j;
 
    /***************************************************************************
@@ -395,16 +403,21 @@ void do_model_non_avg(int jstart, int nsave)
     /**************************** Start Simulation ****************************/
     fputs("Simulation begins...\n", stdout);
 
-    ntot = 0; stepnum = 0; SWold = 0.;
+    ntot = 0; stepnum = 0; stoptime = iSecsPerDay; SWold = 0.;
 
     jday = jstart - 1;
 
     /**************************************************************************
      * Loop over all days                                                     *
      **************************************************************************/
-    while (ntot < nDays) {
+    while (ntot < nDates) {
         ntot++;
         jday++;
+
+        //# If it is the last day, adjust the stop time for the day if necessary
+        if(ntot == nDates) {
+          stoptime = stopTOD;
+        }
 
         //# Initialise daily values for volume & heat balance output (lake.csv)
         SurfData.dailyRain    = 0.; SurfData.dailyEvap     = 0.;
@@ -448,7 +461,7 @@ void do_model_non_avg(int jstart, int nsave)
 //#if DEBUG
 //        fprintf(stderr, "------- next day - do_model_non_avg -------\n");
 //#endif
-        stepnum = do_subdaily_loop(stepnum, jday, nsave, SWold, SWnew);
+        stepnum = do_subdaily_loop(stepnum, jday, stoptime, nsave, SWold, SWnew);
 //if ( n_steps_done > END_STEPS ) return;
 
         //# End of forcing-mixing-diffusion loop             ------>
@@ -476,11 +489,11 @@ void do_model_non_avg(int jstart, int nsave)
             flush_all_plots();
         else
 #endif
-            printf("Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDays, EOLN);
+            printf("Running date %8d, %4.2f%% of dates complete%c", jday, ntot*100./nDates, EOLN);
         fflush(stdout);
 
         write_diags(jday, calculate_lake_number());
-    }   //# do while (ntot < ndays)
+    }   //# do while (ntot < nDates)
     printf("\n"); fflush(stdout);
     /*----------########### End of main daily loop ################-----------*/
 }
@@ -501,7 +514,7 @@ void do_model_coupled(int step_start, int step_end,
     ***************************************************************************/
     AED_REAL WQNew[MaxInf * MaxVars];
 
-    int jday, ntot, stepnum, cDays;
+    int jday, ntot, stepnum, cDays, stoptime;
 
     int i, j;
 
@@ -514,6 +527,7 @@ void do_model_coupled(int step_start, int step_end,
     ntot = 0;
     stepnum = 0;
     SWold = 0.;
+    stoptime = iSecsPerDay;
 
     jday = step_start - 1;
     cDays = step_end - step_start + 1;
@@ -524,6 +538,11 @@ void do_model_coupled(int step_start, int step_end,
     while (ntot < cDays) {
         ntot++;
         jday++;
+
+        //# If it is the last day, adjust the stop time for the day if necessary
+        if(ntot == nDates) {
+          stoptime = stopTOD;
+        }
 
         //# Initialise daily values for volume and heat balance output
         SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
@@ -562,7 +581,7 @@ void do_model_coupled(int step_start, int step_end,
 //#if DEBUG
 //        fprintf(stderr, "------- next day - do_model_coupled -------\n");
 //#endif
-        stepnum = do_subdaily_loop(stepnum, jday, nsave, SWold, SWnew);
+        stepnum = do_subdaily_loop(stepnum, jday, stoptime, nsave, SWold, SWnew);
 //if ( n_steps_done > END_STEPS ) return;
 
         //# End of forcing-mixing-diffusion loop
@@ -589,12 +608,12 @@ void do_model_coupled(int step_start, int step_end,
             flush_all_plots();
         else
 #endif
-            printf("Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDays, EOLN);
+            printf("Running date %8d, %4.2f%% of dates complete%c", jday, ntot*100./nDates, EOLN);
         fflush(stdout);
 
         write_diags(jday, calculate_lake_number());
 
-    }   //# do while (ntot < ndays)
+    }   //# do while (ntot < nDates)
     printf("\n"); fflush(stdout);
     /*----------########### End of main daily loop ################-----------*/
 
@@ -629,7 +648,7 @@ void calc_mass_temp(const char *msg)
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL SWnew)
+int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SWold, AED_REAL SWnew)
 {
     int iclock;  //# The seconds counter during a day
     AED_REAL Light_Surface; //# Light at the surface of the lake after do_surface
@@ -643,7 +662,7 @@ int do_subdaily_loop(int stepnum, int jday, int nsave, AED_REAL SWold, AED_REAL 
     iclock = startTOD;
     startTOD = 0; /* from now on start at the beginning of the day */
     Benthic_Light_pcArea = 0.;
-    while (iclock < iSecsPerDay) { //# iclock = seconds counter
+    while (iclock < stoptime) { //# iclock = seconds counter
         if ( subdaily ) {
             read_sub_daily_met(jday, iclock, &MetData);
             SWnew = MetData.ShortWave;

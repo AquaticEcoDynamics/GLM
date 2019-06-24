@@ -238,9 +238,11 @@ extern CLOGICAL littoral_sw;
 // TIME
 extern AED_REAL timezone_r, timezone_m, timezone_i, timezone_o;
 extern int nDays;          //# number of days to simulate
+extern int nDates;   //# number of unique dates included in the timespan
 extern AED_REAL timestep;
 extern int noSecs;
 extern int startTOD;
+extern int stopTOD;
 
 /*----------------------------------------------------------------------------*/
 // DEBUGGING

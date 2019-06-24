@@ -71,7 +71,7 @@ char wq_lib[256] = DEFAULT_WQ_LIB;
 
 static void create_lake(int namlst);
 static void initialise_lake(int namlst);
-static int init_time(const char *start, char *stop, int timefmt, int *startTOD, int *nDays);
+static int init_time(const char *start, char *stop, int timefmt, int *startTOD, int *stopTOD, int *nDays);
 
 /*############################################################################*/
 
@@ -930,7 +930,7 @@ for (i = 0; i < n_zones; i++) {
 
     if ( timefmt != 2 ) *stop = 0;
 
-    julianday = init_time(start, stop, timefmt, &startTOD, &nDays);
+    julianday = init_time(start, stop, timefmt, &startTOD, &stopTOD, &nDays);
     free(stop);
     calendar_date(julianday, &jyear, &jmonth, &jday);
     //# Days since start of the year, jyear
@@ -1436,7 +1436,7 @@ void initialise_lake(int namlst)
 #define INIT_T_BEGIN_END  2
 #define INIT_T_BEGIN_STEP 3
 
-static int init_time(const char *start, char *stop, int timefmt, int *startTOD, int *nDays)
+static int init_time(const char *start, char *stop, int timefmt, int *startTOD, int *stopTOD, int *nDays)
 {
     int jul1=0, secs1=0, jul2, secs2=0;
     int nsecs;
@@ -1455,6 +1455,9 @@ static int init_time(const char *start, char *stop, int timefmt, int *startTOD, 
             nsecs = time_diff(jul2, secs2, jul1, secs1);
 
             *nDays = nsecs / 86400;
+
+            // number of unique dates included in the timespan
+            nDates = jul2 - jul1 + 1;
             // CAB - usless code? nsecs = nsecs - 86400*(*nDays);
             break;
         case INIT_T_BEGIN_STEP:
@@ -1463,6 +1466,8 @@ static int init_time(const char *start, char *stop, int timefmt, int *startTOD, 
             nsecs = (*nDays) * 86400;
             jul2  = jul1 + (*nDays);
             secs2 = secs1;
+
+            nDates = *nDays + 1;
 
             write_time_string(stop, jul2, secs2);
             break;
@@ -1473,6 +1478,7 @@ static int init_time(const char *start, char *stop, int timefmt, int *startTOD, 
     }
 
     *startTOD = secs1;  /* also return time of day for first day */
+    *stopTOD = secs2;  /* also return end time of day for last day */
     return jul1;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
