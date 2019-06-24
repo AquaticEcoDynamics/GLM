@@ -1456,8 +1456,7 @@ static int init_time(const char *start, char *stop, int timefmt, int *startTOD, 
 
             nsecs = time_diff(jul2, secs2, jul1, secs1);
 
-            *nDays = jul2-jul1;
-            if (nsecs < 86400 && jul1 != jul2) nDays = nDays-1;
+            *nDays = nsecs / 86400;
             // CAB - usless code? nsecs = nsecs - 86400*(*nDays);
             break;
         case INIT_T_BEGIN_STEP:
