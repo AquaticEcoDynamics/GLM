@@ -1,8 +1,6 @@
 bin
 *.tar.gz
 *.diff
-.*.swp
-.DS*
 *.o
 *.mod
 *.so

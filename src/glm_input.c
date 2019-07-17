@@ -527,9 +527,8 @@ void open_inflow_file(int idx, const char *fname,
             fprintf(stderr, "No match for '%s' in file '%s'\n", vars[j], fname);
         else {
             if ( k != inf[idx].flow_idx && k != inf[idx].temp_idx &&
-                                           k != inf[idx].salt_idx ) {
+                                           k != inf[idx].salt_idx )
                 inf[idx].in_vars[l++] = k;
-            }
         }
     }
     inf[idx].n_vars = l;

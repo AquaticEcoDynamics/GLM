@@ -663,7 +663,7 @@ static int insert_inflow(int k, //#Inflow parcel counter
         Inflows[iRiver].TDown[k] = Inflow_Temp;
         Inflows[iRiver].SDown[k] = Inflow_Salinity;
         for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
-             Inflows[iRiver].WQDown[k][wqidx] = WQ_VarsS[wqidx];
+            Inflows[iRiver].WQDown[k][wqidx] = WQ_VarsS[wqidx];
 
         Inflows[iRiver].TotIn = Inflows[iRiver].TotIn + Delta_Q;
         Inflows[iRiver].DDown[k] = Downflow_Depth - Inflow_dx * sin(Phi);
@@ -714,8 +714,8 @@ static int insert_inflow(int k, //#Inflow parcel counter
         }
         Layer--;
     }
-    return FALSE;
 
+    return FALSE;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
