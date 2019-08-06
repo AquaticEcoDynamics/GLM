@@ -425,8 +425,9 @@ void do_model_non_avg(int jstart, int nsave)
             Inflows[i].FlowRate = FlowNew[i] * SecsPerDay;
             Inflows[i].TemInf   = TempNew[i];
             Inflows[i].SalInf   = SaltNew[i];
-            for (j = 0; j < Num_WQ_Vars; j++)
+            for (j = 0; j < Num_WQ_Vars; j++) {
                 Inflows[i].WQInf[j] = WQ_INF_(WQNew, i, j);
+            }
         }
 
         //# Read & set today's outflow

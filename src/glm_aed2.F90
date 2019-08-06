@@ -342,7 +342,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
    CALL set_c_wqvars_ptr(cc)
 
    ALLOCATE(min_((n_vars + n_vars_ben))) ; ALLOCATE(max_((n_vars + n_vars_ben)))
-   print "(5X,'Confiured variables to simulate:')"
+   print "(5X,'Configured variables to simulate:')"
 
    j = 0
    DO i=1,n_aed2_vars
@@ -1474,7 +1474,7 @@ INTEGER FUNCTION WQVar_Index(name)
 !BEGIN
    v = 0
    DO i=1, n_aed2_vars
-      IF ( aed2_get_var(i, tv) .AND. .NOT. (tv%diag .OR. tv%extern) ) THEN
+      IF ( aed2_get_var(i, tv) .AND. .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern) ) THEN
          v = v + 1
          IF ( name .EQ. tv%name ) THEN
             WQVar_Index = v
