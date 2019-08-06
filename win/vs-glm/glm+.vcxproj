@@ -73,7 +73,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\..\win-3rd-party\$(Platform)-$(Configuration)\include;..\..\..\libplot\include;..\..\..\libutil\include;..\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AED2;FABM;PLOTS;XPLOTS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AED2;PLOTS;XPLOTS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -81,7 +81,7 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glm-aed2.lib;libaed2+.lib;glm-fabm.lib;fabm.lib;libutil.lib;libplot.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glm-aed2.lib;libaed2+.lib;libutil.lib;libplot.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;$(Platform)-$(Configuration)\lib\;..\..\..\win-3rd-party\$(Platform)-$(Configuration)\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
