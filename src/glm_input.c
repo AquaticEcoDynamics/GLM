@@ -163,7 +163,7 @@ void read_daily_withdraw_temp(int julian, AED_REAL *withdrTemp)
  ******************************************************************************/
 void read_daily_met(int julian, MetDataType *met)
 {
-    int csv, i, idx, err = 0;
+    int csv, i, idx;
     AED_REAL now, tomorrow, t_val, sol;
     AED_REAL eff_area, surf_area, ld, x_ws;
 
@@ -193,15 +193,6 @@ void read_daily_met(int julian, MetDataType *met)
 
         idx = floor((t_val-floor(t_val))*24+1.e-8); // add 1.e-8 to compensate for rounding error
         // fprintf(stderr, "Read met for %16.8f ; %15.12f (%2d)\n", t_val, (t_val-floor(t_val))*24., idx);
-        if ( idx != i ) {
-            if ( !err ) {
-               int dd,mm,yy;
-               calendar_date(now,&yy,&mm,&dd);
-               fprintf(stderr, "Possible sequence issue in met for day %4d-%02d-%02d\n", yy,mm,dd);
-            }
-            idx = i;
-            err = 1;
-        }
         if (idx >= n_steps) {
             int dd,mm,yy;
             calendar_date(now,&yy,&mm,&dd);
