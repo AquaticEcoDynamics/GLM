@@ -40,7 +40,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>VERSION</string>
 	<key>CFBundleSignature</key>
-	<string>GLM2</string>
+	<string>GLM3</string>
 	<key>CFBundleVersion</key>
 	<string>BUILDDATE</string>
 	<key>NSPrincipalClass</key>

@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2018 -  The University of Western Australia               *
+ * Copyright 2013 - 2019 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -280,7 +280,7 @@ void write_diags(int jday, AED_REAL LakeNum)
     write_csv_lake("Time",            0.0,                       ts,   FALSE);
     write_csv_lake("Volume",          sum_lake_layervol(),       NULL, FALSE);
     write_csv_lake("Vol Snow",        SurfData.delzSnow*Lake[surfLayer].LayerArea*SurfData.RhoSnow/1e3, NULL, FALSE);
-    //Magic numbers for ice density are from glm_surface.c
+    //# Magic numbers for ice density are from glm_surface.c
     write_csv_lake("Vol Blue Ice",    SurfData.delzBlueIce*Lake[surfLayer].LayerArea*917.0/1e3, NULL, FALSE);
     write_csv_lake("Vol White Ice",   SurfData.delzWhiteIce*Lake[surfLayer].LayerArea*890.0/1e3, NULL, FALSE);
     write_csv_lake("Tot Inflow Vol",  SurfData.dailyInflow,      NULL, FALSE);
@@ -325,7 +325,8 @@ void write_diags(int jday, AED_REAL LakeNum)
 /******************************************************************************
  * Write the outflow data file with WQ variables.                             *
  ******************************************************************************/
-void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol, AED_REAL vol_bc, AED_REAL hwBot, AED_REAL hwTop)
+void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol,
+                                AED_REAL vol_bc, AED_REAL hwBot, AED_REAL hwTop)
 {
     char ts[64];
     int i, lvl;

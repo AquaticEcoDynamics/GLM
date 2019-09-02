@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2018 -  The University of Western Australia               *
+ * Copyright 2013 - 2019 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -35,7 +35,8 @@ void init_output(int jstart, const char *out_dir, const char *out_fn,
 void write_output(int jday, int iclock, int nsave, int stepnum);
 void write_diags(int jday, AED_REAL LakeNum);
 //void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol)
-void write_outflow(int of_idx, int jday, AED_REAL DrawHeight, AED_REAL vol, AED_REAL vol_bc, AED_REAL hwBot, AED_REAL hwTop);
+void write_outflow(int of_idx, int jday, AED_REAL DrawHeight,
+                 AED_REAL vol, AED_REAL vol_bc, AED_REAL hwBot, AED_REAL hwTop);
 void close_output(void);
 
 int intern_is_var(int id, const char *v);

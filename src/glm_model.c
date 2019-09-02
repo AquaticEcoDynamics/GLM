@@ -566,18 +566,17 @@ void do_model_coupled(int step_start, int step_end,
 //        fprintf(stderr, "------- next day - do_model_coupled -------\n");
 //#endif
         stepnum = do_subdaily_loop(stepnum, jday, nsave, SWold, SWnew);
-//if ( n_steps_done > END_STEPS ) return;
 
         //# End of forcing-mixing-diffusion loop
 
         SurfData.dailyInflow = do_inflows(); //# Do inflow for all streams
 
-        if(Lake[surfLayer].Vol1>zero) {
-          //# Do withdrawal for all offtakes
-          SurfData.dailyOutflow = do_outflows(jday);
+        if (Lake[surfLayer].Vol1 > zero) {
+            //# Do withdrawal for all offtakes
+            SurfData.dailyOutflow = do_outflows(jday);
 
-          //# Take care of any overflow
-          SurfData.dailyOverflow = do_overflow(jday);
+            //# Take care of any overflow
+            SurfData.dailyOverflow = do_overflow(jday);
         }
 
         check_layer_thickness();

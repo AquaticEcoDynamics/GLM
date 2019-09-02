@@ -456,12 +456,14 @@ AED_REAL do_outflows(int jday)
         write_outflow(i, jday, DrawHeight, tVolSum-Lake[surfLayer].Vol1, Outflows[i].Draw, hBot, hTop);
     }
     if (seepage) {
-      if (seepage_rate>zero) {
-        // Darcy's Law used, so input rate is hydraulic conductivity (m/day) x hydraulic head
-        SeepDraw = seepage_rate * Lake[surfLayer].Height * Lake[surfLayer].LayerArea * 0.95;
-      } else {
-        // Constant seepage assumed, so input rate is dh (m/day)
-        SeepDraw = -seepage_rate * Lake[surfLayer].LayerArea * 0.95; // 0.95 added since the effective area of seeping is probably a bit less than max area of water innundation???
+        if (seepage_rate>zero) {
+            // Darcy's Law used, so input rate is hydraulic conductivity (m/day) x hydraulic head
+            SeepDraw = seepage_rate * Lake[surfLayer].Height * Lake[surfLayer].LayerArea * 0.95;
+        } else {
+            // Constant seepage assumed, so input rate is dh (m/day)
+            // 0.95 added since the effective area of seeping is probably
+            // a bit less than max area of water innundation???
+            SeepDraw = -seepage_rate * Lake[surfLayer].LayerArea * 0.95;
       }
         do_single_outflow(0., SeepDraw, NULL);
     }

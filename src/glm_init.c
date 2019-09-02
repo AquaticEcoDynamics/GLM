@@ -901,8 +901,6 @@ for (i = 0; i < n_zones; i++) {
 
     if (withdrTemp_fl != NULL) open_withdrtemp_file(withdrTemp_fl, timefmt_o);
 
-    //--------------------------------------------------------------------------
-
     if ( timefmt != 2 && timefmt != 3 ) {
         fprintf(stderr, "invalid time format \"%d\"\n", timefmt);
         exit(1);
@@ -1433,6 +1431,26 @@ void initialise_lake(int namlst)
 /******************************************************************************
  * The subroutine init_time() initialises the time module by reading          *
  * a namelist and take actions according to the specifications.               *
+ *                                                                            *
+ * timefmt [integer]                                                          *
+ *      method to specify start and duration of model run                     *
+ *      1: duration computed from number of time steps, MaxN (bogus start     *
+ *         date used) [no longer implemented!!]                               *
+ *      2: duration computed from given start and stop dates (number of time  *
+ *         steps MaxN computed)                                               *
+ *      3: duration computed from number of time steps, (start date as        *
+ *         specified, stop date computed)                                     *
+ * start   [string, format = "yyyy-mm-dd hh:mm:ss"]                           *
+ *      nominal start date                                                    *
+ *      This variable is used only if timefmt != 1                            *
+ * stop    [string, format = "yyyy-mm-dd hh:mm:ss"]                           *
+ *      nominal stop date                                                     *
+ *      This variable is used only if timefmt = 2                             *
+ * dt      [float, minimum = 0.001, maximum = 86400, unit = s]                *
+ *      Time step for integration                                             *
+ * numb_days [number of days to run the simulation ]                          *
+ *      This variable is used only if timefmt != 2                            *
+ *                                                                            *
  ******************************************************************************/
 #define INIT_T_STEP       1
 #define INIT_T_BEGIN_END  2
@@ -1440,13 +1458,11 @@ void initialise_lake(int namlst)
 
 static int init_time(const char *start, char *stop, int timefmt, int *startTOD, int *nDays)
 {
-    int jul1=0, secs1=0, jul2, secs2=0;
+    int jul1 = 0, secs1 = 0, jul2, secs2 = 0;
     int nsecs;
 
     switch (timefmt) {
         case INIT_T_STEP:
-//          strcpy(start,"2000-01-01 00:00:00");
-//          read_time_string(start, &jul1, &secs1);
             fprintf(stderr, "timefmt = 1 not supported\n");
             exit(1);
             break;
@@ -1457,15 +1473,14 @@ static int init_time(const char *start, char *stop, int timefmt, int *startTOD, 
             nsecs = time_diff(jul2, secs2, jul1, secs1);
 
             *nDays = jul2-jul1;
-            if (nsecs < 86400 && jul1 != jul2) nDays = nDays-1;
-            // CAB - usless code? nsecs = nsecs - 86400*(*nDays);
+            if (nsecs < 86400 && jul1 != jul2) (*nDays) -= 1;
             break;
         case INIT_T_BEGIN_STEP:
             read_time_string(start, &jul1, &secs1);
 
             nsecs = (*nDays) * 86400;
             jul2  = jul1 + (*nDays);
-            secs2 = (nsecs%86400);
+            secs2 = (nsecs % 86400);
 
             write_time_string(stop, jul2, secs2);
             break;
