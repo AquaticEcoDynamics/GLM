@@ -1137,6 +1137,11 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    cc_diag_hz = 0.
 
    IF ( .NOT. mobility_off ) THEN
+      DO i = 1, wlev
+         ! update ws for modules that use the mobility method
+         CALL aed2_mobility(column, i, ws(i,:))
+      ENDDO
+
       !# (3) Calculate source/sink terms due to the settling or rising of
       !# state variables in the water column (note that settling into benthos
       !# is done in aed2_do_benthos)

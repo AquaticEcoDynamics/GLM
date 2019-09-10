@@ -35,7 +35,7 @@
 #endif
 #define USE_FILLVALUE 1
 
-#define GLM_VERSION  "3.0.3"
+#define GLM_VERSION  "3.0.4"
 
 #define POINT         0
 #define Z_SHAPE       1
