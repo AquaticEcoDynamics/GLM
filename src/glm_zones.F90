@@ -217,7 +217,7 @@ SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
    v_start = nvars+1 ; v_end = nvars+nbenv
 
    zon = n_zones
-   DO lev=wlev,1,-1
+   DO lev=wlev,2,-1
       IF ( zon .NE. 1 ) THEN
          splitZone = zz(lev-1) < zone_heights(zon-1)
       ELSE
