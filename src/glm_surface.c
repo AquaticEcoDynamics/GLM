@@ -1093,8 +1093,13 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
             for (i = botmLayer; i <= surfLayer; i++) {
                 layer_zone[i] = 0;
                 for (z = 0; z < n_zones; z++) {
-                    if (Lake[i].Height<zone_heights[z] && Lake[i].Height>zone_heights[z-1])
-                        layer_zone[i] = z;
+                	if(z == 0){
+                		if (Lake[i].Height<zone_heights[z] && Lake[i].Height>0.0)
+                        	layer_zone[i] = z;
+                    }else{
+                		if (Lake[i].Height<zone_heights[z] && Lake[i].Height>zone_heights[z-1])
+                        	layer_zone[i] = z;
+                	}
                 }
             }
             //# Now compute layer-specifc sed heating and increment temperature

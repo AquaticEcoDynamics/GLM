@@ -937,15 +937,23 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
       !# Disaggregation of zone induced fluxes to overlying layers
       v_start = 1 ; v_end = n_vars
       zon = n_zones
-      DO lev=wlev,2,-1
+      DO lev=wlev,1,-1
         IF ( zon .NE. 1 ) THEN
-          splitZone = zz(lev-1) < zone_heights(zon-1)
+        	IF(lev .GT. 1) THEN
+          		splitZone = zz(lev-1) < zone_heights(zon-1)
+          	ELSE
+          		splitZone = 0.0 < zone_heights(zon-1)
+          	ENDIF
         ELSE
           splitZone = .FALSE.
         ENDIF
 
         IF (splitZone) THEN
-          scale = (zone_heights(zon-1) - zz(lev-1)) / (zz(lev) - zz(lev-1))
+        	IF(lev .GT. 1) THEN
+        		scale = (zone_heights(zon-1) - zz(lev-1)) / (zz(lev) - zz(lev-1))
+        	ELSE
+        		scale = (zone_heights(zon-1) - 0.0) / (zz(lev) - 0.0)
+        	ENDIF
           flux_pel(lev,v_start:v_end) = flux_pel_z(zon,v_start:v_end) * scale
 
           zon = zon - 1
