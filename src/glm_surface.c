@@ -1092,7 +1092,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
             //  layers. First find which layers correspond to which zone
             for (i = botmLayer; i <= surfLayer; i++) {
                 layer_zone[i] = 0;
-                for (z = 0; z < n_zones; z++) {
+                for (z = 1; z < n_zones; z++) {
                     if (Lake[i].Height<zone_heights[z] && Lake[i].Height>zone_heights[z-1])
                         layer_zone[i] = z;
                 }

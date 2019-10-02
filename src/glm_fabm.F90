@@ -130,7 +130,7 @@ MODULE glm_fabm
    AED_REAL,ALLOCATABLE,DIMENSION(:,:) :: cc !# water quality array: nlayers, nvars
    AED_REAL,ALLOCATABLE,DIMENSION(:,:) :: cc_diag
    AED_REAL,ALLOCATABLE,DIMENSION(:)   :: cc_diag_hz
-   AED_REAL,ALLOCATABLE,TARGET,DIMENSION(:) :: sed_zones
+!  AED_REAL,ALLOCATABLE,TARGET,DIMENSION(:) :: sed_zones
 
    !# Arrays for work, vertical movement, and cross-boundary fluxes
    AED_REAL,ALLOCATABLE,DIMENSION(:,:) :: rhs_flux
@@ -143,7 +143,7 @@ MODULE glm_fabm
 
    !# External variables
    AED_REAL :: dt, dt_eff   ! External and internal time steps
-   INTEGER  :: w_adv_ctr    ! Scheme for vertical advection (0 IF not used)
+!  INTEGER  :: w_adv_ctr    ! Scheme for vertical advection (0 IF not used)
    INTEGER  :: n_vars, n_vars_ben
    AED_REAL,POINTER,DIMENSION(:) :: rad, z, salt, temp, rho, area
    AED_REAL,POINTER,DIMENSION(:) :: extc_coef, layer_stress
@@ -1164,7 +1164,7 @@ CINTEGER FUNCTION fabm_var_index_c(name, len) BIND(C, name=_WQ_VAR_INDEX_C)
    CSIZET,INTENT(in)     :: len
 !LOCALS
    CHARACTER(len=len+1) :: tn
-   INTEGER              :: i
+   CSIZET               :: i
 !BEGIN
    tn = ''
    DO i=1,len

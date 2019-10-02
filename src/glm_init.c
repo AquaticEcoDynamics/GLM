@@ -69,11 +69,10 @@ extern AED_REAL   seepage_rate;
 char glm_nml_file[256] = DEFAULT_GLM_NML;
 char wq_lib[256] = DEFAULT_WQ_LIB;
 
-extern int START_TOD;
 
 static void create_lake(int namlst);
 static void initialise_lake(int namlst);
-static int init_time(const char *start, char *stop, int timefmt, int *startTOD, int *nDays);
+static int init_time(const char *start, char *stop, int timefmt, int *startTOD, int *stopTOD, int *nDays);
 
 /*############################################################################*/
 
@@ -83,6 +82,7 @@ static int init_time(const char *start, char *stop, int timefmt, int *startTOD, 
 void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 {
     int jyear, jmonth, jday, julianday;
+    extern int startTOD, stopTOD;
 
     /*---------------------------------------------
      * glm setup
@@ -930,7 +930,7 @@ for (i = 0; i < n_zones; i++) {
 
     if ( timefmt != 2 ) *stop = 0;
 
-    julianday = init_time(start, stop, timefmt, &START_TOD, &nDays);
+    julianday = init_time(start, stop, timefmt, &startTOD, &stopTOD, &nDays);
     free(stop);
     calendar_date(julianday, &jyear, &jmonth, &jday);
     //# Days since start of the year, jyear
@@ -1456,10 +1456,11 @@ void initialise_lake(int namlst)
 #define INIT_T_BEGIN_END  2
 #define INIT_T_BEGIN_STEP 3
 
-static int init_time(const char *start, char *stop, int timefmt, int *startTOD, int *nDays)
+static int init_time(const char *start, char *stop, int timefmt, int *startTOD, int *stopTOD, int *nDays)
 {
-    int jul1 = 0, secs1 = 0, jul2, secs2 = 0;
+    int jul1 = 0, jul2;
     int nsecs;
+    extern int nDates;
 
     switch (timefmt) {
         case INIT_T_STEP:
@@ -1467,22 +1468,23 @@ static int init_time(const char *start, char *stop, int timefmt, int *startTOD, 
             exit(1);
             break;
         case INIT_T_BEGIN_END:
-            read_time_string(start, &jul1, &secs1);
-            read_time_string(stop, &jul2, &secs2);
+            read_time_string(start, &jul1, startTOD);
+            read_time_string(stop, &jul2, stopTOD);
 
-            nsecs = time_diff(jul2, secs2, jul1, secs1);
+            nsecs = time_diff(jul2, *stopTOD, jul1, *startTOD);
 
-            *nDays = jul2-jul1;
-            if (nsecs < 86400 && jul1 != jul2) (*nDays) -= 1;
+            *nDays = nsecs / iSecsPerDay;
+            nDates = jul2 - jul1 + 1;
             break;
         case INIT_T_BEGIN_STEP:
-            read_time_string(start, &jul1, &secs1);
+            read_time_string(start, &jul1, startTOD);
 
-            nsecs = (*nDays) * 86400;
+            nsecs = (*nDays) * iSecsPerDay;
             jul2  = jul1 + (*nDays);
-            secs2 = (nsecs % 86400);
+            nDates = *nDays + 1;
 
-            write_time_string(stop, jul2, secs2);
+            write_time_string(stop, jul2, *startTOD);
+            *stopTOD = *startTOD;
             break;
         default:
             fprintf(stderr, "Invalid time format specified\n");
@@ -1490,7 +1492,6 @@ static int init_time(const char *start, char *stop, int timefmt, int *startTOD, 
             break;
     }
 
-    *startTOD = secs1;  /* also return time of day for first day */
     return jul1;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

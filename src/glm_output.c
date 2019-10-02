@@ -79,6 +79,7 @@ void init_output(int jstart, const char *out_dir, const char *out_fn,
     char ts[20];
     char path[1024];
     struct stat sb;
+    extern int startTOD;
 
     if ( out_dir != NULL && stat(out_dir, &sb) ) {
         fprintf(stderr, "Directory \"%s\" does not exist - attempting to create it\n", out_dir);
@@ -94,7 +95,7 @@ void init_output(int jstart, const char *out_dir, const char *out_fn,
     }
 
     MaxLayers = oMaxLayers;
-    write_time_string(ts,jstart,0);
+    write_time_string(ts,jstart,startTOD);
     snprintf(path, 1024, "%s/%s.nc", out_dir, out_fn);
     ncid = init_glm_ncdf(path, "glm run", Latitude, Longitude, MaxLayers, ts);
 
