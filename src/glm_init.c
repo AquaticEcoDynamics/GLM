@@ -1284,6 +1284,9 @@ void initialise_lake(int namlst)
     int             num_wq_vars;
     char          **wq_names;
     AED_REAL       *wq_init_vals;
+    AED_REAL        snow_height;
+    AED_REAL        white_ice_height;
+    AED_REAL        blue_ice_height;
     /*-------------------------------------------*/
 
     NAMELIST init_profiles[] = {
@@ -1298,6 +1301,9 @@ void initialise_lake(int namlst)
           { "num_wq_vars",       TYPE_INT,              &num_wq_vars       },
           { "wq_names",          TYPE_STR|MASK_LIST,    &wq_names          },
           { "wq_init_vals",      TYPE_DOUBLE|MASK_LIST, &wq_init_vals      },
+          { "snow_height", 		 TYPE_DOUBLE,			&snow_height	   },
+          { "white_ice_height",  TYPE_DOUBLE,		    &white_ice_height  },
+          { "blue_ice_height", 	 TYPE_DOUBLE,		    &blue_ice_height   },
           { NULL,                TYPE_END,              NULL               }
     };
 
@@ -1420,9 +1426,15 @@ void initialise_lake(int namlst)
         Lake[offshoreLayer].Temp = Lake[surfLayer].Temp;
     }
 
+    SurfData.delzWhiteIce = white_ice_height;
+    SurfData.delzBlueIce = blue_ice_height;
+    
+    //Initializing with non-zero snow height causes segmentation faults
     SurfData.delzSnow = zero;
-    SurfData.delzWhiteIce = zero;
-    SurfData.delzBlueIce = zero;
+    
+    if(SurfData.delzBlueIce > 0.0 || SurfData.delzWhiteIce > 0.0){
+      ice = TRUE;
+    }
 
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
