@@ -3,8 +3,10 @@
 # This script is used to bundle the glm binaries and uncommon library dependancies into an app.
 #  The bundle rpaths are modified to find the libraries in the bundle.
 
-MOSNAME=`grep 'SOFTWARE LICENSE AGREEMENT FOR ' '/System/Library/CoreServices/Setup Assistant.app/Contents/Resources/en.lproj/OSXSoftwareLicense.rtf' | tr ' ' '\n' | tail -1
-`
+MOSLINE=`grep 'SOFTWARE LICENSE AGREEMENT FOR ' '/System/Library/CoreServices/Setup Assistant.app/Contents/Resources/en.lproj/OSXSoftwareLicense.rtf'`
+# pre Lion :   MOSNAME=`echo ${MOSLINE} | awk -F 'Mac OS X ' '{print $NF}'  | tr -d '\\' | tr ' ' '_'`
+# pre Sierra : MOSNAME=`echo ${MOSLINE} | awk -F 'OS X ' '{print $NF}'  | tr -d '\\' | tr ' ' '_'`
+MOSNAME=`echo ${MOSLINE} | awk -F 'macOS ' '{print $NF}'  | tr -d '\\' | tr ' ' '_'`
 
 if [ "$1" = "true" ] ; then
    BASEDIR=usr
@@ -174,19 +176,13 @@ for file in $FILES ; do
 # echo "********** $file"
 
   for lib in $LIBS ; do
-#   echo "  ******** $lib"
-
     xx=`otool -L ${PKG}.app/Contents/MacOS/$file | grep $lib | grep -v ${PKG}.app | cut -d\  -f1`
     if [ "$xx" != "" ] ; then
-#     echo "   xx = ($xx)"
-#     echo ' YYYY' install_name_tool -change $xx '@executable_path/'$lib ${PKG}.app/Contents/MacOS/$file
       install_name_tool -change $xx '@executable_path/'$lib ${PKG}.app/Contents/MacOS/$file
     fi
   done
 done
 
-# ln -s ${PKG}.app/Contents/MacOS/${PKG} ${PKG}
-#zip -r ${PKG}_${VERSION}_macos.zip ${PKG}.app # ${PKG}
 zip -r ${PKG}_${VERSION}_macos_${MOSNAME}.zip ${PKG}.app # ${PKG}
 
 exit 0

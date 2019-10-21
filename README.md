@@ -1,7 +1,5 @@
 # GLM
 
-[![DOI](https://zenodo.org/badge/93706442.svg)](https://zenodo.org/badge/latestdoi/93706442)
-
 The General Lake Model (GLM) is a water balance and one-dimensional vertical stratification
 hydrodynamic model. It accounts for the effect of inflows/outflows, mixing and surface heating
 and cooling, including the effect of ice cover. It is suited to longer-term investigations

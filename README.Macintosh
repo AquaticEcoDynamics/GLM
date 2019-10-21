@@ -8,16 +8,22 @@ Building n on macOS-X requires :
    2) There are various 3rd party libraries required - fortunately someone else has done the
       hard work of porting them.  There are several options, we have only looked at
       MacPorts and Homebrew which seem to be amongst the most popular.  If you don't
-      already a a collection, look at :
+      already have a collection, look at :
 
           MacPorts : https://www.macports.org
       or
           Homebrew : http://brew.sh/
 
+      Although I like MacPorts and it is the default we use, it does have some annoying problems. 
+      One that has caught me again is when XCode is upgraded to a new major release it breaks
+      builds :
+           ld: framework not found Cocoa
+      Whatever Homebrew do seems to avoid this problem ....
+
    3) If you want to use gfortran, make sure you have at least version 8.2. For MacPorts use :
 
-             sudo port install gcc8
-             sudo port select gcc mp-gcc8
+             sudo port install gcc9 +gfortran
+             sudo port select gcc mp-gcc9
 
       For homebrew
 
@@ -39,7 +45,8 @@ Building n on macOS-X requires :
 
              brew install gd
 
-   6) To build a version including FABM you will need cmake :
+   6) To build a version including FABM you will need cmake, both brew and port seem to include it 
+      in their compiler bundles, but in case they don't :
 
              sudo port install cmake
 
@@ -62,5 +69,5 @@ Note:
     to homebrew edit the GLM_CONFIG file
 
 Note:
-   GLM requires gfortran v8 in order to build correctly - previous versions of gfortran had a
-   bug in the C compatibility that prevented correct compilation.
+   GLM requires gfortran v8 or later in order to build correctly - previous versions of gfortran
+   had a bug in the C compatibility that prevented correct compilation.
