@@ -60,6 +60,7 @@
 #include "glm_lnum.h"
 #include "glm_wqual.h"
 #include "glm_stress.h"
+#include "glm_balance.h"
 #if PLOTS
 #include <libplot.h>
 #include "glm_plot.h"
@@ -330,7 +331,7 @@ void do_model(int jstart, int nsave)
         SWnew = MetNew.ShortWave;
 
 //#if DEBUG
-//        fprintf(stderr, "------- next day - do_model -------\n");
+//      fprintf(stderr, "------- next day - do_model -------\n");
 //#endif
         stepnum = do_subdaily_loop(stepnum, jday, stoptime, nsave, SWold, SWnew);
 //if ( n_steps_done > END_STEPS ) return;
@@ -371,6 +372,7 @@ void do_model(int jstart, int nsave)
         fflush(stdout);
 
         write_diags(jday, calculate_lake_number());
+        write_balance(jday);
     }   //# do while (ntot < nDates)
     printf("\n"); fflush(stdout);
     /*----------########### End of main daily loop ################-----------*/
@@ -490,6 +492,7 @@ void do_model_non_avg(int jstart, int nsave)
         fflush(stdout);
 
         write_diags(jday, calculate_lake_number());
+        write_balance(jday);
     }   //# do while (ntot < nDates)
     printf("\n"); fflush(stdout);
     /*----------########### End of main daily loop ################-----------*/
@@ -606,7 +609,7 @@ void do_model_coupled(int step_start, int step_end,
         fflush(stdout);
 
         write_diags(jday, calculate_lake_number());
-
+        write_balance(jday);
     }   //# do while (ntot < nDates)
     printf("\n"); fflush(stdout);
     /*----------########### End of main daily loop ################-----------*/

@@ -105,9 +105,9 @@ MODULE glm_types
    !# Structured type for Surface Data vars
    TYPE,BIND(C) :: SurfaceDataType
       AED_REAL :: Evap             !# Evaporation
-      AED_REAL :: delzBlueIce    !# Thickness of blue ice layer
-      AED_REAL :: delzWhiteIce   !# Thickness of white ice layer
-      AED_REAL :: delzSnow       !# Thickness of snow layer
+      AED_REAL :: delzBlueIce      !# Thickness of blue ice layer
+      AED_REAL :: delzWhiteIce     !# Thickness of white ice layer
+      AED_REAL :: delzSnow         !# Thickness of snow layer
       AED_REAL :: dHt              !# Change in thickness of snow / ice layer
       AED_REAL :: RhoSnow          !# Density of snow layer (kg/m^3)
       AED_REAL :: dailyEvap        !# Daily Evaporation (m3/day)
@@ -127,6 +127,40 @@ MODULE glm_types
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+   !#===========================================================#!
+   !# Structured type for Sediment Layer
+   TYPE,BIND(C) :: SedLayerType
+      AED_REAL :: temp             !# Layer temperature
+      AED_REAL :: vwc
+      AED_REAL :: wq
+   END TYPE SedLayerType
+
+   !#===========================================================#!
+   !# Structured type for iSediment Zones
+!  TYPE,BIND(C) :: ZoneType
+   TYPE :: ZoneType
+      AED_REAL :: zrad
+      AED_REAL :: zsalt
+      AED_REAL :: ztemp
+      AED_REAL :: zrho
+      AED_REAL :: zarea
+      AED_REAL :: zextc_coef
+      AED_REAL :: zlayer_stress
+      AED_REAL :: ztss
+      AED_REAL :: zdz
+      AED_REAL :: zpar
+      AED_REAL :: znir
+      AED_REAL :: zuva
+      AED_REAL :: zuvb
+      AED_REAL :: zpres
+      AED_REAL :: zdepth
+      AED_REAL :: z_sed_zones
+      AED_REAL :: z_pc_wet
+      CINTEGER :: n_sedLayers;     !# number of sediment layers
+      TYPE(SedLayerType),ALLOCATABLE,DIMENSION(:) :: layers
+   END TYPE ZoneType
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 CONTAINS
 

@@ -49,33 +49,36 @@ MODULE glm_zones
 
    PRIVATE ! By default, make everything private
 
-   AED_REAL,ALLOCATABLE,DIMENSION(:,:),TARGET :: z_cc  ! (nsed_zones, nsed_vars)
-   AED_REAL,ALLOCATABLE,DIMENSION(:,:),TARGET :: z_diag    ! (nsed_zones, n_vars)
-   AED_REAL,ALLOCATABLE,DIMENSION(:,:),TARGET :: z_diag_hz ! (nsed_zones, n_vars)
+   AED_REAL,ALLOCATABLE,DIMENSION(:,:),TARGET :: z_cc   !(nsed_zones, nsed_vars)
+   AED_REAL,ALLOCATABLE,DIMENSION(:,:),TARGET :: z_diag    !(nsed_zones, n_vars)
+   AED_REAL,ALLOCATABLE,DIMENSION(:,:),TARGET :: z_diag_hz !(nsed_zones, n_vars)
 
    AED_REAL,DIMENSION(:),POINTER :: zz
-   AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: z_sed_zones
+!  AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: z_sed_zones
 
-   AED_REAL,ALLOCATABLE,DIMENSION(:) :: z_pc_wet
-   AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: zrad, zsalt, ztemp, zrho, zarea
-   AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: zextc_coef, zlayer_stress, ztss
+!  AED_REAL,ALLOCATABLE,DIMENSION(:) :: z_pc_wet
+!  AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: zrad, zsalt, ztemp, zrho, zarea
+!  AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: zextc_coef, zlayer_stress, ztss
 
-   AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: zdz, zpar, zdepth, zpres
-   AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: znir, zuva, zuvb
+!  AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: zdz, zpar, zdepth, zpres
+!  AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: znir, zuva, zuvb
 
    INTEGER :: n_zones, w_zones
+
+   TYPE(ZoneType),ALLOCATABLE,DIMENSION(:),TARGET :: theZones
+
    AED_REAL,DIMENSION(:),POINTER :: zone_heights
    INTEGER :: nvars, nbenv
-
 
    TYPE(LakeDataType),DIMENSION(:),POINTER :: theLake
 
    PUBLIC n_zones, zone_heights, zz, z_cc, theLake
    PUBLIC wq_set_glm_zones, copy_from_zone, copy_to_zone, calc_zone_areas
 
-   PUBLIC zrad, zsalt, ztemp, zrho, zarea, zextc_coef, zlayer_stress, ztss, zdz, zpar
-   PUBLIC zdepth, zpres, z_pc_wet, z_sed_zones, z_diag, z_diag_hz
-   PUBLIC znir, zuva, zuvb
+!  PUBLIC zrad, zsalt, ztemp, zrho, zarea, zextc_coef, zlayer_stress, ztss, zdz, zpar
+!  PUBLIC zdepth, zpres, z_pc_wet, z_sed_zones, z_diag, z_diag_hz
+!  PUBLIC znir, zuva, zuvb
+   PUBLIC z_diag, z_diag_hz, theZones
 
 CONTAINS
 
@@ -87,7 +90,8 @@ SUBROUTINE wq_set_glm_zones(z_heights, numZones, numVars, numBenV) BIND(C, name=
    AED_REAL,TARGET,INTENT(in) :: z_heights(1:numZones)
 !
 !LOCALS
-!  INTEGER :: i
+   INTEGER :: i
+   INTEGER :: n_sed_layers = 20
 !  AED_REAL :: surf
 !
 !-------------------------------------------------------------------------------
@@ -98,29 +102,34 @@ SUBROUTINE wq_set_glm_zones(z_heights, numZones, numVars, numBenV) BIND(C, name=
    nbenv = numBenV
    ALLOCATE(z_cc(n_zones, numVars+numBenV))
    z_cc = 900.!   !MH if i initialise this in init then nothing happens so doing it here.
-   ALLOCATE(zrad(n_zones))
-   ALLOCATE(zsalt(n_zones))
-   ALLOCATE(ztemp(n_zones))
-   ALLOCATE(zrho(n_zones))
-   ALLOCATE(zarea(n_zones))
-   ALLOCATE(zextc_coef(n_zones))
-   ALLOCATE(zlayer_stress(n_zones))
-   ALLOCATE(ztss(n_zones))
-   ALLOCATE(zdz(n_zones))
-   ALLOCATE(zpar(n_zones))
-   ALLOCATE(znir(n_zones))
-   ALLOCATE(zuva(n_zones))
-   ALLOCATE(zuvb(n_zones))
-   ALLOCATE(zpres(n_zones))
-   ALLOCATE(zdepth(n_zones))
-   ALLOCATE(z_sed_zones(n_zones))
-   ALLOCATE(z_pc_wet(n_zones))
+!  ALLOCATE(zrad(n_zones))
+!  ALLOCATE(zsalt(n_zones))
+!  ALLOCATE(ztemp(n_zones))
+!  ALLOCATE(zrho(n_zones))
+!  ALLOCATE(zarea(n_zones))
+!  ALLOCATE(zextc_coef(n_zones))
+!  ALLOCATE(zlayer_stress(n_zones))
+!  ALLOCATE(ztss(n_zones))
+!  ALLOCATE(zdz(n_zones))
+!  ALLOCATE(zpar(n_zones))
+!  ALLOCATE(znir(n_zones))
+!  ALLOCATE(zuva(n_zones))
+!  ALLOCATE(zuvb(n_zones))
+!  ALLOCATE(zpres(n_zones))
+!  ALLOCATE(zdepth(n_zones))
+!  ALLOCATE(z_sed_zones(n_zones))
+!  ALLOCATE(z_pc_wet(n_zones))
+   ALLOCATE(theZones(n_zones))
+   DO i=1,n_zones
+      ALLOCATE(theZones(i)%layers(n_sed_layers))
+   ENDDO
+
 !  zdz(1) = z_dep(1)
 !  DO i=2,n_zones
 !     zdz(i) = z_dep(i) - z_dep(i-1)
 !  ENDDO
 !  DO i=1,n_zones ; z_sed_zones(i) = i; ENDDO
-   zarea = 0.
+   theZones%zarea = 0.
 END SUBROUTINE wq_set_glm_zones
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -136,12 +145,13 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
 !LOCALS
    INTEGER  :: lev, zon
 #if _VOLUME_SCALING_
+   INTEGER :: ij
    AED_REAL :: x, y
 #endif
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   zarea = 0.  ; z_pc_wet = 0. ; w_zones = 0
+   theZones%zarea = 0.  ; theZones%z_pc_wet = 0. ; w_zones = 0
 
 #if _VOLUME_SCALING_
 
@@ -155,7 +165,7 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
       ENDIF
 
       zvol(zon) = MphLevelVol(ij) + y * dMphLevelVol(ij)
-      zarea(zon) = MphLevelArea(ij) + y * dMphLevelArea(ij)
+      theZones(zon)%zarea = MphLevelArea(ij) + y * dMphLevelArea(ij)
    ENDDO
 
    zon = 1
@@ -165,35 +175,35 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
       IF ( zone_heights(zon) > surf ) THEN
          IF (w_zones == 0) THEN
             w_zones = lev
-            z_pc_wet(zon) = surf / (zone_heights(zon) - zone_heights(zon-1))
+            theZones(zon)%z_pc_wet = surf / (zone_heights(zon) - zone_heights(zon-1))
          ENDIF
       ELSE
-         z_pc_wet(zon) = 1.0
+         theZones(zon)%z_pc_wet = 1.0
       ENDIF
    ENDDO
 
 #else
 
    zon = 1
-   zarea(1) = areas(1)
+   theZones(1)%zarea = areas(1)
    DO lev=2, wlev
       IF ( zz(lev) > zone_heights(zon) ) zon = zon + 1
 
-      zarea(zon) = zarea(zon) + areas(lev) - areas(lev-1)
+      theZones(zon)%zarea = theZones(zon)%zarea + areas(lev) - areas(lev-1)
 
       IF ( zone_heights(zon) > surf ) THEN
          IF (w_zones == 0) THEN
             w_zones = lev
-            z_pc_wet(zon) = surf / (zone_heights(zon) - zone_heights(zon-1))
+            theZones(zon)%z_pc_wet = surf / (zone_heights(zon) - zone_heights(zon-1))
          ENDIF
       ELSE
-         z_pc_wet(zon) = 1.0
+         TheZones(zon)%z_pc_wet = 1.0
       ENDIF
    ENDDO
 
 #endif
 
-   zpres(1:n_zones) = -zone_heights(1:n_zones)
+   theZones(1:n_zones)%zpres = -zone_heights(1:n_zones)
 END SUBROUTINE calc_zone_areas
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -274,15 +284,15 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
 !-------------------------------------------------------------------------------
 !BEGIN
    zon = 1 ; z_cc(:,1:nvars) = 0.
-   zrad = 0. ; zsalt = 0. ; ztemp = 0. ; zrho = 0.
-   zextc_coef = 0. ; zlayer_stress = 0. ; ztss = 0. ; zpar = 0.
-   znir = 0. ; zuva = 0. ; zuvb = 0. ; z_sed_zones = 1.
+   theZones%zrad = 0. ; theZones%zsalt = 0. ; theZones%ztemp = 0. ; theZones%zrho = 0.
+   theZones%zextc_coef = 0. ; theZones%zlayer_stress = 0. ; theZones%ztss = 0. ; theZones%zpar = 0.
+   theZones%znir = 0. ; theZones%zuva = 0. ; theZones%zuvb = 0. ; theZones%z_sed_zones = 1.
 
    zcount = 0
    DO lev=1,wlev
       IF ( zz(lev) > zone_heights(zon) ) THEN
          zon = zon + 1
-         z_sed_zones(zon) = zon
+         theZones(zon)%z_sed_zones = zon
       ENDIF
 
       ! Pelagic variables need zonifying, in case benthic people want them
@@ -292,12 +302,12 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
 
       z_cc(zon,1:nvars) = z_cc(zon,1:nvars) + x_cc(lev,1:nvars)
 
-      ztemp(zon)         = ztemp(zon) + theLake(lev)%Temp
-      zsalt(zon)         = zsalt(zon) + theLake(lev)%Salinity
-      zrho(zon)          = zrho(zon)  + theLake(lev)%Density
-      zrad(zon)          = zrad(zon)  + theLake(lev)%Light
-      zextc_coef(zon)    = zextc_coef(zon) + theLake(lev)%ExtcCoefSW
-      zlayer_stress(zon) = zlayer_stress(zon) + theLake(lev)%LayerStress
+      theZones(zon)%ztemp         = theZones(zon)%ztemp + theLake(lev)%Temp
+      theZones(zon)%zsalt         = theZones(zon)%zsalt + theLake(lev)%Salinity
+      theZones(zon)%zrho          = theZones(zon)%zrho  + theLake(lev)%Density
+      theZones(zon)%zrad          = theZones(zon)%zrad  + theLake(lev)%Light
+      theZones(zon)%zextc_coef    = theZones(zon)%zextc_coef + theLake(lev)%ExtcCoefSW
+      theZones(zon)%zlayer_stress = theZones(zon)%zlayer_stress + theLake(lev)%LayerStress
 
       zcount(zon) = zcount(zon) + 1
    ENDDO
@@ -306,32 +316,32 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
       z_cc(zon,1:nvars) = z_cc(zon,1:nvars)/zcount(zon)
    ENDDO
 
-   ztemp         = ztemp / zcount
-   zsalt         = zsalt / zcount
-   zrho          = zrho  / zcount
-   zrad          = zrad  / zcount
-   zextc_coef    = zextc_coef / zcount
-   zlayer_stress = zlayer_stress / zcount
+   theZones%ztemp         = theZones%ztemp / zcount
+   theZones%zsalt         = theZones%zsalt / zcount
+   theZones%zrho          = theZones%zrho  / zcount
+   theZones%zrad          = theZones%zrad  / zcount
+   theZones%zextc_coef    = theZones%zextc_coef / zcount
+   theZones%zlayer_stress = theZones%zlayer_stress / zcount
 
    surf = zz(wlev)
    IF ( surf > zone_heights(1) ) THEN
-      zdepth(1) = zone_heights(1)
+      theZones(1)%zdepth = zone_heights(1)
    ELSE
-      zdepth = surf
+      theZones%zdepth = surf
       w_zones = 1
    ENDIF
 
    DO zon=2,n_zones
-      z_sed_zones(zon) = zon
+      theZones(zon)%z_sed_zones = zon
       IF ( w_zones == 0 ) THEN
           IF ( surf > zone_heights(zon) ) THEN
-             zdepth(zon) = zone_heights(zon)
+             theZones(zon)%zdepth = zone_heights(zon)
           ELSE
-             zdepth(zon) = surf
+             theZones(zon)%zdepth = surf
              w_zones = zon
           ENDIF
       ELSE
-         zdepth(zon) = surf
+         theZones(zon)%zdepth = surf
       ENDIF
    ENDDO
 END SUBROUTINE copy_to_zone

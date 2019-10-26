@@ -46,6 +46,7 @@
 #include "glm_lnum.h"
 #include "glm_bird.h"
 #include "glm_ncdf.h"
+#include "glm_balance.h"
 
 #include <aed_time.h>
 #include <namelist.h>
@@ -84,30 +85,59 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     int jyear, jmonth, jday, julianday;
     extern int startTOD, stopTOD;
 
-    /*---------------------------------------------
-     * glm setup
-     *-------------------------------------------*/
+    /*-- %%NAMELIST glm_setup -------------------------------------------*/
     char           *sim_name = NULL;
     int             max_layers;
     AED_REAL        min_layer_vol;
     AED_REAL        min_layer_thick;
     AED_REAL        max_layer_thick;
-//  AED_REAL        Kw;
-    char           *Kw_file = NULL;
-    extern AED_REAL Benthic_Imin;
-//  AED_REAL        coef_mix_conv;
-//  AED_REAL        coef_mix_eta;
-//  AED_REAL        coef_mix_ct;
-//  AED_REAL        coef_mix_cs;
-//  AED_REAL        coef_mix_kh;
-//  AED_REAL        coef_mix_hyp;
-//  CLOGICAL        non_avg;
-//  int             deep_mixing;
     extern int      density_model;
-    /*-------------------------------------------*/
+//  extern CLOGICAL littoral_sw;
+//  extern CLOGICAL non_avg;
+    //==========================================================================
+    NAMELIST glm_setup[] = {
+          { "glm_setup",         TYPE_START,            NULL                  },
+          { "sim_name",          TYPE_STR,              &sim_name             },
+          { "max_layers",        TYPE_INT,              &max_layers           },
+          { "min_layer_vol",     TYPE_DOUBLE,           &min_layer_vol        },
+          { "min_layer_thick",   TYPE_DOUBLE,           &min_layer_thick      },
+          { "max_layer_thick",   TYPE_DOUBLE,           &max_layer_thick      },
+          { "density_model",     TYPE_INT,              &density_model        },
+          { "littoral_sw",       TYPE_BOOL,             &littoral_sw          },
+          { "non_avg",           TYPE_BOOL,             &non_avg              },
+          { NULL,                TYPE_END,              NULL                  }
+    };
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*---------------------------------------------
-     * wq setup
+     * @NAMELIST mixing
+     *-------------------------------------------*/
+//  extern int      surface_mixing;
+//  extern AED_REAL coef_mix_conv;
+//  extern AED_REAL coef_mix_eta;
+//  extern AED_REAL coef_mix_ct;
+//  extern AED_REAL coef_mix_cs;
+//  extern AED_REAL coef_mix_KH;
+//  extern AED_REAL coef_mix_hyp;
+//  extern int      deep_mixing;
+    //==========================================================================
+    NAMELIST mixing[] = {
+          { "mixing",            TYPE_START,            NULL                  },
+          { "surface_mixing",    TYPE_INT,              &surface_mixing       },
+          { "coef_mix_conv",     TYPE_DOUBLE,           &coef_mix_conv        },
+          { "coef_wind_stir",    TYPE_DOUBLE,           &coef_wind_stir       },
+          { "coef_mix_turb",     TYPE_DOUBLE,           &coef_mix_turb        },
+          { "coef_mix_shear",    TYPE_DOUBLE,           &coef_mix_shear       },
+          { "coef_mix_shreq",    TYPE_DOUBLE,           &coef_mix_shreq       },
+          { "coef_mix_KH",       TYPE_DOUBLE,           &coef_mix_KH          },
+          { "coef_mix_hyp",      TYPE_DOUBLE,           &coef_mix_hyp         },
+          { "deep_mixing",       TYPE_INT,              &deep_mixing          },
+          { "diff",              TYPE_DOUBLE|MASK_LIST, &mol_diffusivity      },
+          { NULL,                TYPE_END,              NULL                  }
+    };
+
+    /*---------------------------------------------
+     * @NAMELIST wq_setup
      *-------------------------------------------*/
     char           *twq_lib = NULL;
     char           *wq_nml_file = DEFAULT_WQ_NML;
@@ -119,10 +149,22 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 //  int             benthic_mode;
 //  int             n_zones;
 //  AED_REAL       *zone_heights = NULL;
+    //==========================================================================
+    NAMELIST wq_setup[] = {
+          { "wq_setup",          TYPE_START,            NULL                  },
+          { "wq_lib",            TYPE_STR,              &twq_lib              },
+          { "wq_nml_file",       TYPE_STR,              &wq_nml_file          },
+          { "ode_method",        TYPE_INT,              &lode_method          },
+          { "split_factor",      TYPE_INT,              &lsplit_factor        },
+          { "bioshade_feedback", TYPE_BOOL,             &bioshade_feedback    },
+          { "repair_state",      TYPE_BOOL,             &repair_state         },
+          { "mobility_off",      TYPE_BOOL,             &mobility_off         },
+          { NULL,                TYPE_END,              NULL                  }
+    };
     /*-------------------------------------------*/
 
     /*---------------------------------------------
-     * time format
+     * @NAMELIST time
      *-------------------------------------------*/
     int             timefmt;
     char           *start = NULL;
@@ -130,10 +172,21 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     AED_REAL        dt;        // timestep
     int             num_days;  // number of days to run the sim
 //  AED_REAL        timezone_r;
+    //==========================================================================
+    NAMELIST time[] = {
+          { "time",              TYPE_START,            NULL                  },
+          { "timefmt",           TYPE_INT,              &timefmt              },
+          { "start",             TYPE_STR,              &start                },
+          { "stop",              TYPE_STR,              &stop                 },
+          { "dt",                TYPE_DOUBLE,           &dt                   },
+          { "num_days",          TYPE_INT,              &num_days             },
+          { "timezone",          TYPE_DOUBLE,           &timezone_r           },
+          { NULL,                TYPE_END,              NULL                  }
+    };
     /*-------------------------------------------*/
 
     /*---------------------------------------------
-     * output
+     * @NAMELIST output
      *-------------------------------------------*/
     char           *out_dir = NULL;
     char           *out_fn  = NULL;
@@ -151,10 +204,30 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     int             csv_outlet_nvars = 0;
     char          **csv_outlet_vars  = NULL;
     char           *csv_ovrflw_fname = NULL;
+    //==========================================================================
+    NAMELIST output[] = {
+          { "output",            TYPE_START,            NULL                  },
+          { "out_dir",           TYPE_STR,              &out_dir              },
+          { "out_fn",            TYPE_STR,              &out_fn               },
+          { "nsave",             TYPE_INT,               nsave                },
+          { "csv_point_nlevs",   TYPE_INT,              &csv_point_nlevs      },
+          { "csv_point_fname",   TYPE_STR,              &csv_point_fname      },
+          { "csv_point_frombot", TYPE_BOOL|MASK_LIST,   &csv_point_frombot    },
+          { "csv_point_at",      TYPE_DOUBLE|MASK_LIST, &csv_point_at         },
+          { "csv_point_nvars",   TYPE_INT,              &csv_point_nvars      },
+          { "csv_point_vars",    TYPE_STR|MASK_LIST,    &csv_point_vars       },
+          { "csv_lake_fname",    TYPE_STR,              &csv_lake_fname       },
+          { "csv_outlet_allinone", TYPE_BOOL,           &csv_outlet_allinone   },
+          { "csv_outlet_fname",  TYPE_STR,              &csv_outlet_fname     },
+          { "csv_outlet_nvars",  TYPE_INT,              &csv_outlet_nvars     },
+          { "csv_outlet_vars",   TYPE_STR|MASK_LIST,    &csv_outlet_vars      },
+          { "csv_ovrflw_fname",  TYPE_STR,              &csv_ovrflw_fname     },
+          { NULL,                TYPE_END,              NULL                  }
+    };
     /*-------------------------------------------*/
 
     /*---------------------------------------------
-     * meteorology
+     * @NAMELIST meteorology
      *-------------------------------------------*/
     LOGICAL         met_sw;          // Include surface meteorological forcing
     char           *lw_type = NULL;  // Type LW measurement (LW_IN/LW_CC/LW_NET)
@@ -164,9 +237,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 //  int             lw_ind;          // type of longwave radiation - now in glm_input
 //  LOGICAL         atm_stab;        // Account for non-neutral atmospheric stability
 //  LOGICAL         subdaily;        //
-//  AED_REAL        CD;
-//  AED_REAL        CE;
-//  AED_REAL        CH;
+//  extern AED_REAL CD;
+//  extern AED_REAL CE;
+//  extern AED_REAL CH;
     extern AED_REAL salt_fall;
     extern AED_REAL wind_factor;
     extern int      fetch_mode;
@@ -181,7 +254,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL rh_factor;
     extern AED_REAL rain_factor;
     extern int      rad_mode;
-    extern int      albedo_mode;
+//  extern int      albedo_mode;
     extern int      cloud_mode;
     extern int      light_mode;
 //  extern LOGICAL  link_solar_shade;
@@ -189,10 +262,74 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 //  extern LOGICAL  link_bottom_drag;
     char           *timefmt_m = NULL;
     extern AED_REAL timezone_m;
+    //==========================================================================
+    NAMELIST meteorology[] = {
+          { "meteorology",       TYPE_START,            NULL                  },
+          { "met_sw",            TYPE_BOOL,             &met_sw               },
+          { "lw_type",           TYPE_STR,              &lw_type              },
+          { "rain_sw",           TYPE_BOOL,             &rain_sw              },
+          { "salt_fall",         TYPE_DOUBLE,           &salt_fall            },
+          { "meteo_fl",          TYPE_STR,              &meteo_fl             },
+          { "subdaily",          TYPE_BOOL,             &subdaily             },
+          { "atm_stab",          TYPE_BOOL,             &atm_stab             },
+          { "rad_mode",          TYPE_INT,              &rad_mode             },
+          { "albedo_mode",       TYPE_INT,              &albedo_mode          },
+          { "cloud_mode",        TYPE_INT,              &cloud_mode           },
+          { "fetch_mode",        TYPE_INT,              &fetch_mode           },
+          { "wind_factor",       TYPE_DOUBLE,           &wind_factor          },
+          { "sw_factor",         TYPE_DOUBLE,           &sw_factor            },
+          { "lw_factor",         TYPE_DOUBLE,           &lw_factor            },
+          { "lw_offset",         TYPE_DOUBLE,           &lw_offset            },
+          { "at_factor",         TYPE_DOUBLE,           &at_factor            },
+          { "at_offset",         TYPE_DOUBLE,           &at_offset            },
+          { "rh_factor",         TYPE_DOUBLE,           &rh_factor            },
+          { "rain_factor",       TYPE_DOUBLE,           &rain_factor          },
+          { "CD",                TYPE_DOUBLE,           &CD                   },
+          { "CE",                TYPE_DOUBLE,           &CE                   },
+          { "CH",                TYPE_DOUBLE,           &CH                   },
+          { "Aws",               TYPE_DOUBLE,           &fetch_aws            }, // (for mode 1 ) scalar
+          { "Xws",               TYPE_DOUBLE,           &fetch_xws            }, // (for mode 2 ) scalar?
+          { "Fws",               TYPE_STR,              &fetch_fws            }, // (for mode 3 ) not sure how to do this ...
+          { "catchrain",         TYPE_BOOL,             &catchrain            },
+          { "rain_threshold",    TYPE_DOUBLE,           &rain_threshold       },
+          { "runoff_coef",       TYPE_DOUBLE,           &runoff_coef          },
+          { "time_fmt",          TYPE_STR,              &timefmt_m            },
+          { "timezone",          TYPE_DOUBLE,           &timezone_m           },
+          { "link_solar_shade",  TYPE_BOOL,             &link_solar_shade     },
+          { "link_rain_loss",    TYPE_BOOL,             &link_rain_loss       },
+          { "link_bottom_drag",  TYPE_BOOL,             &link_bottom_drag     },
+     //   { "snow_sw",           TYPE_BOOL,             &snow_sw              },
+          { NULL,                TYPE_END,              NULL                  }
+    };
     /*-------------------------------------------*/
 
     /*---------------------------------------------
-     * inflow
+     * @NAMELIST light
+     *-------------------------------------------*/
+    extern AED_REAL   *light_extc;
+    extern AED_REAL   *energy_frac;
+    extern AED_REAL    Benthic_Imin;
+//  AED_REAL           Kw;
+    char              *Kw_file = NULL;
+    //==========================================================================
+    NAMELIST light[] = {
+          { "light",             TYPE_START,            NULL                  },
+          { "albedo_mode",       TYPE_INT,              &albedo_mode          },
+          { "albedo_mean",       TYPE_DOUBLE,           &albedo_mean          },
+          { "albedo_amplitude",  TYPE_DOUBLE,           &albedo_amplitude     },
+          { "light_mode",        TYPE_INT,              &light_mode           },
+          { "n_bands",           TYPE_INT,              &n_bands              },
+          { "light_extc",        TYPE_DOUBLE|MASK_LIST, &light_extc           },
+          { "energy_frac",       TYPE_DOUBLE|MASK_LIST, &energy_frac          },
+          { "Benthic_Imin",      TYPE_DOUBLE,           &Benthic_Imin         },
+          { "Kw",                TYPE_DOUBLE,           &Kw                   },
+          { "Kw_file",           TYPE_STR,              &Kw_file              },
+          { NULL,                TYPE_END,              NULL                  }
+    };
+    /*-------------------------------------------*/
+
+    /*---------------------------------------------
+     * @NAMELIST inflow
      *-------------------------------------------*/
     int             num_inflows;
     LOGICAL        *subm_flag      = NULL;
@@ -207,10 +344,28 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     AED_REAL        coef_inf_entrain;
     char           *timefmt_i      = NULL;
     extern AED_REAL timezone_i;
+    //==========================================================================
+    NAMELIST inflow[] = {
+          { "inflow",            TYPE_START,            NULL                  },
+          { "num_inflows",       TYPE_INT,              &num_inflows          },
+          { "subm_flag",         TYPE_BOOL|MASK_LIST,   &subm_flag            },
+          { "names_of_strms",    TYPE_STR|MASK_LIST,    &names_of_strms       },
+          { "strm_hf_angle",     TYPE_DOUBLE|MASK_LIST, &strm_hf_angle        },
+          { "strmbd_slope",      TYPE_DOUBLE|MASK_LIST, &strmbd_slope         },
+          { "strmbd_drag",       TYPE_DOUBLE|MASK_LIST, &strmbd_drag          },
+          { "inflow_factor",     TYPE_DOUBLE|MASK_LIST, &inflow_factor        },
+          { "inflow_fl",         TYPE_STR|MASK_LIST,    &inflow_fl            },
+          { "inflow_varnum",     TYPE_INT,              &inflow_varnum        },
+          { "inflow_vars",       TYPE_STR|MASK_LIST,    &inflow_vars          },
+          { "coef_inf_entrain",  TYPE_DOUBLE,           &coef_inf_entrain     },
+          { "time_fmt",          TYPE_STR,              &timefmt_i            },
+          { "timezone",          TYPE_DOUBLE,           &timezone_i           },
+          { NULL,                TYPE_END,              NULL                  }
+    };
     /*-------------------------------------------*/
 
     /*---------------------------------------------
-     * outflow
+     * @NAMELIST outflow
      *-------------------------------------------*/
     int             num_outlet;
     LOGICAL        *flt_off_sw     = NULL;
@@ -237,18 +392,80 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     AED_REAL       *outflow_factor = NULL;
     char           *timefmt_o    = NULL;
     extern AED_REAL timezone_o;
-    /*-------------------------------------------*/
+    //==========================================================================
+    NAMELIST outflow[] = {
+          { "outflow",           TYPE_START,            NULL                  },
+          { "num_outlet",        TYPE_INT,              &num_outlet           },
+          { "outlet_type",       TYPE_INT|MASK_LIST,    &outlet_type          },
+          { "crit_O2",           TYPE_INT,              &crit_O2              },
+          { "crit_O2_dep",       TYPE_INT,              &crit_O2_dep          },
+          { "crit_O2_days",      TYPE_INT,              &crit_O2_days         },
+          { "outlet_crit",       TYPE_DOUBLE|MASK_LIST, &outlet_crit          },
+          { "O2name",            TYPE_STR|MASK_LIST,    &O2name               },
+          { "O2idx",             TYPE_INT,              &O2idx                },
+          { "target_temp",       TYPE_DOUBLE|MASK_LIST, &target_temp          },
+          { "min_lake_temp",     TYPE_DOUBLE,           &min_lake_temp        },
+          { "fac_range_upper",   TYPE_DOUBLE,           &fac_range_upper      },
+          { "fac_range_lower",   TYPE_DOUBLE,           &fac_range_lower      },
+          { "mix_withdraw",      TYPE_BOOL,             &mix_withdraw         },
+          { "coupl_oxy_sw",      TYPE_BOOL,             &coupl_oxy_sw         },
+          { "flt_off_sw",        TYPE_BOOL|MASK_LIST,   &flt_off_sw           },
+          { "outl_elvs",         TYPE_DOUBLE|MASK_LIST, &outl_elvs            },
+          { "bsn_len_outl",      TYPE_DOUBLE|MASK_LIST, &bsn_len_outl         },
+          { "bsn_wid_outl",      TYPE_DOUBLE|MASK_LIST, &bsn_wid_outl         },
+          { "outflow_fl",        TYPE_STR|MASK_LIST,    &outflow_fl           },
+          { "withdrTemp_fl",     TYPE_STR,              &withdrTemp_fl        },
+          { "outflow_factor",    TYPE_DOUBLE|MASK_LIST, &outflow_factor       },
+          { "seepage",           TYPE_BOOL,             &seepage              },
+          { "seepage_rate",      TYPE_DOUBLE,           &seepage_rate         },
+          { "crest_width",       TYPE_DOUBLE,           &crest_width          },
+          { "crest_factor",      TYPE_DOUBLE,           &crest_factor         },
+          { "outflow_thick_limit", TYPE_DOUBLE,         &outflow_thick_limit  },
+          { "single_layer_draw", TYPE_BOOL,             &single_layer_draw    },
+          { "time_fmt",          TYPE_STR,              &timefmt_o            },
+          { "timezone",          TYPE_DOUBLE,           &timezone_o           },
+          { NULL,                TYPE_END,              NULL                  }
+    };
+    /*------------------------------------------------------------------------*/
 
-    /*---------------------------------------------
-     * snowice
-     *-------------------------------------------*/
+    /*--------------------------------------------------------------------------
+     * @NAMELIST mass_balance
+     *------------------------------------------------------------------------*/
+    char           *balance_fname   = NULL;
+    int             balance_varnum;
+    char          **balance_vars = NULL;
+    char           *timefmt_b = NULL;
+    AED_REAL        timezone_b;
+    //==========================================================================
+    NAMELIST mass_balance[] = {
+          { "mass_balance",      TYPE_START,            NULL                  },
+          { "balance_file",      TYPE_STR,              &balance_fname        },
+          { "balance_varnum",    TYPE_INT,              &balance_varnum       },
+          { "balance_vars",      TYPE_STR|MASK_LIST,    &balance_vars         },
+          { "time_fmt",          TYPE_STR,              &timefmt_b            },
+          { "timezone",          TYPE_DOUBLE,           &timezone_b           },
+          { NULL,                TYPE_END,              NULL                  }
+    };
+    /*------------------------------------------------------------------------*/
+
+    /*--------------------------------------------------------------------------
+     * @NAMELIST snowice
+     *------------------------------------------------------------------------*/
     extern AED_REAL         snow_albedo_factor;
     extern AED_REAL         snow_rho_max;
     extern AED_REAL         snow_rho_min;
+    //==========================================================================
+    NAMELIST snowice[] = {
+          { "snowice",           TYPE_START,            NULL                  },
+          { "snow_albedo_factor",TYPE_DOUBLE,           &snow_albedo_factor   },
+          { "snow_rho_max",      TYPE_DOUBLE,           &snow_rho_max         },
+          { "snow_rho_min",      TYPE_DOUBLE,           &snow_rho_min         },
+          { NULL,                TYPE_END,              NULL                  }
+    };
     /*-------------------------------------------*/
 
     /*---------------------------------------------
-     * fetch
+     * @NAMELIST fetch
      *-------------------------------------------*/
     extern LOGICAL     fetch_sw;
     extern int         fetch_ndirs;
@@ -256,14 +473,22 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL   *fetch_scale;
     extern AED_REAL    fetch_height;
     extern AED_REAL    fetch_porosity;
+    //==========================================================================
+    NAMELIST fetch[] = {
+          { "fetch",             TYPE_START,            NULL                  },
+          { "fetch_sw",          TYPE_BOOL,             &fetch_sw             },
+          { "num_dir",           TYPE_INT,              &fetch_ndirs          },
+          { "wind_dir",          TYPE_DOUBLE|MASK_LIST, &fetch_dirs           },
+          { "fetch_scale",       TYPE_DOUBLE|MASK_LIST, &fetch_scale          },
+          { "edge_height",       TYPE_DOUBLE,           &fetch_height         },
+          { "edge_porosity",     TYPE_DOUBLE,           &fetch_porosity       },
+          { NULL,                TYPE_END,              NULL                  }
+    };
     /*-------------------------------------------*/
-    extern AED_REAL   *light_extc;
-    extern AED_REAL   *energy_frac;
 
     /*---------------------------------------------
-     * sed_heat
+     * @NAMELIST sediment
      *-------------------------------------------*/
-    extern CLOGICAL         sed_heat_sw;
     extern AED_REAL         sed_heat_Ksoil;
     extern AED_REAL         sed_temp_depth;
     extern AED_REAL         *sed_temp_mean       ;
@@ -271,219 +496,42 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL         *sed_temp_peak_doy   ;
     extern AED_REAL         *sed_reflectivity    ;
     extern AED_REAL         *sed_roughness       ;
-  //extern AED_REAL          sed_temp_amplitude;
-  //extern AED_REAL          sed_temp_peak_doy;
+//  extern AED_REAL          sed_temp_amplitude;
+//  extern AED_REAL          sed_temp_peak_doy;
+    //==========================================================================
+    NAMELIST sediment[] = {
+          { "sediment",          TYPE_START,            NULL                  },
+          { "benthic_mode",      TYPE_INT,              &benthic_mode         },
+          { "n_zones",           TYPE_INT,              &n_zones              },
+          { "zone_heights",      TYPE_DOUBLE|MASK_LIST, &zone_heights         },
+          { "sed_reflectivity",  TYPE_DOUBLE|MASK_LIST, &sed_reflectivity     },
+          { "sed_roughness",     TYPE_DOUBLE|MASK_LIST, &sed_roughness        },
+          { "sed_temp_mean",     TYPE_DOUBLE|MASK_LIST, &sed_temp_mean        },
+          { "sed_temp_amplitude",TYPE_DOUBLE|MASK_LIST, &sed_temp_amplitude   },
+          { "sed_temp_peak_doy", TYPE_DOUBLE|MASK_LIST, &sed_temp_peak_doy    },
+          { "sed_heat_Ksoil",    TYPE_DOUBLE,           &sed_heat_Ksoil       },
+          { "sed_temp_depth",    TYPE_DOUBLE,           &sed_temp_depth       },
+          { NULL,                TYPE_END,              NULL                  }
+    };
     /*-------------------------------------------*/
 
+    /*---------------------------------------------
+     * @NAMELIST debugging
+     *-------------------------------------------*/
+ // extern CLOGICAL dbg_mix;   //# debug output from mixer
+ // extern CLOGICAL no_evap;   //# turn off evaporation
+    //==========================================================================
+    NAMELIST debugging[] = {
+          { "debugging",         TYPE_START,            NULL                  },
+          { "debug_mixer",       TYPE_BOOL,             &dbg_mix              },
+          { "disable_evap",      TYPE_BOOL,             &no_evap              },
+          { NULL,                TYPE_END,              NULL                  }
+    };
+    /*-------------------------------------------*/
+
+    //--------------------------------------------------------------------------
     int i, j, k;
     int namlst;
-
-    //==========================================================================
-    NAMELIST glm_setup[] = {
-          { "glm_setup",         TYPE_START,            NULL               },
-          { "sim_name",          TYPE_STR,              &sim_name          },
-          { "max_layers",        TYPE_INT,              &max_layers        },
-          { "min_layer_vol",     TYPE_DOUBLE,           &min_layer_vol     },
-          { "min_layer_thick",   TYPE_DOUBLE,           &min_layer_thick   },
-          { "max_layer_thick",   TYPE_DOUBLE,           &max_layer_thick   },
-          { "density_model",     TYPE_INT,              &density_model     },
-          { "littoral_sw",       TYPE_BOOL,             &littoral_sw       },
-          { "non_avg",           TYPE_BOOL,             &non_avg           },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST wq_setup[] = {
-          { "wq_setup",          TYPE_START,            NULL               },
-          { "wq_lib",            TYPE_STR,              &twq_lib           },
-          { "wq_nml_file",       TYPE_STR,              &wq_nml_file       },
-          { "ode_method",        TYPE_INT,              &lode_method       },
-          { "split_factor",      TYPE_INT,              &lsplit_factor     },
-          { "bioshade_feedback", TYPE_BOOL,             &bioshade_feedback },
-          { "repair_state",      TYPE_BOOL,             &repair_state      },
-          { "mobility_off",      TYPE_BOOL,             &mobility_off      },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST time[] = {
-          { "time",              TYPE_START,            NULL               },
-          { "timefmt",           TYPE_INT,              &timefmt           },
-          { "start",             TYPE_STR,              &start             },
-          { "stop",              TYPE_STR,              &stop              },
-          { "dt",                TYPE_DOUBLE,           &dt                },
-          { "num_days",          TYPE_INT,              &num_days          },
-          { "timezone",          TYPE_DOUBLE,           &timezone_r        },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST output[] = {
-          { "output",            TYPE_START,            NULL               },
-          { "out_dir",           TYPE_STR,              &out_dir           },
-          { "out_fn",            TYPE_STR,              &out_fn            },
-          { "nsave",             TYPE_INT,               nsave             },
-          { "csv_point_nlevs",   TYPE_INT,              &csv_point_nlevs   },
-          { "csv_point_fname",   TYPE_STR,              &csv_point_fname   },
-          { "csv_point_frombot", TYPE_BOOL|MASK_LIST,   &csv_point_frombot },
-          { "csv_point_at",      TYPE_DOUBLE|MASK_LIST, &csv_point_at      },
-          { "csv_point_nvars",   TYPE_INT,              &csv_point_nvars   },
-          { "csv_point_vars",    TYPE_STR|MASK_LIST,    &csv_point_vars    },
-          { "csv_lake_fname",    TYPE_STR,              &csv_lake_fname    },
-          { "csv_outlet_allinone", TYPE_BOOL,           &csv_outlet_allinone},
-          { "csv_outlet_fname",  TYPE_STR,              &csv_outlet_fname  },
-          { "csv_outlet_nvars",  TYPE_INT,              &csv_outlet_nvars  },
-          { "csv_outlet_vars",   TYPE_STR|MASK_LIST,    &csv_outlet_vars   },
-          { "csv_ovrflw_fname",  TYPE_STR,              &csv_ovrflw_fname  },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST meteorology[] = {
-          { "meteorology",       TYPE_START,            NULL               },
-          { "met_sw",            TYPE_BOOL,             &met_sw            },
-          { "lw_type",           TYPE_STR,              &lw_type           },
-          { "rain_sw",           TYPE_BOOL,             &rain_sw           },
-          { "salt_fall",         TYPE_DOUBLE,           &salt_fall         },
-          { "meteo_fl",          TYPE_STR,              &meteo_fl          },
-          { "subdaily",          TYPE_BOOL,             &subdaily          },
-          { "atm_stab",          TYPE_BOOL,             &atm_stab          },
-          { "rad_mode",          TYPE_INT,              &rad_mode          },
-          { "albedo_mode",       TYPE_INT,              &albedo_mode       },
-          { "cloud_mode",        TYPE_INT,              &cloud_mode        },
-          { "fetch_mode",        TYPE_INT,              &fetch_mode        },
-          { "wind_factor",       TYPE_DOUBLE,           &wind_factor       },
-          { "sw_factor",         TYPE_DOUBLE,           &sw_factor         },
-          { "lw_factor",         TYPE_DOUBLE,           &lw_factor         },
-          { "lw_offset",         TYPE_DOUBLE,           &lw_offset         },
-          { "at_factor",         TYPE_DOUBLE,           &at_factor         },
-          { "at_offset",         TYPE_DOUBLE,           &at_offset         },
-          { "rh_factor",         TYPE_DOUBLE,           &rh_factor         },
-          { "rain_factor",       TYPE_DOUBLE,           &rain_factor       },
-          { "CD",                TYPE_DOUBLE,           &CD                },
-          { "CE",                TYPE_DOUBLE,           &CE                },
-          { "CH",                TYPE_DOUBLE,           &CH                },
-          { "Aws",               TYPE_DOUBLE,           &fetch_aws         }, // (for mode 1 ) scalar
-          { "Xws",               TYPE_DOUBLE,           &fetch_xws         }, // (for mode 2 ) scalar?
-          { "Fws",               TYPE_STR,              &fetch_fws         }, // (for mode 3 ) not sure how to do this ...
-          { "catchrain",         TYPE_BOOL,             &catchrain         },
-          { "rain_threshold",    TYPE_DOUBLE,           &rain_threshold    },
-          { "runoff_coef",       TYPE_DOUBLE,           &runoff_coef       },
-          { "time_fmt",          TYPE_STR,              &timefmt_m         },
-          { "timezone",          TYPE_DOUBLE,           &timezone_m        },
-          { "link_solar_shade",  TYPE_BOOL,             &link_solar_shade  },
-          { "link_rain_loss",    TYPE_BOOL,             &link_rain_loss    },
-          { "link_bottom_drag",  TYPE_BOOL,             &link_bottom_drag  },
-     //   { "snow_sw",           TYPE_BOOL,             &snow_sw           },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST inflow[] = {
-          { "inflow",            TYPE_START,            NULL               },
-          { "num_inflows",       TYPE_INT,              &num_inflows       },
-          { "subm_flag",         TYPE_BOOL|MASK_LIST,   &subm_flag         },
-          { "names_of_strms",    TYPE_STR|MASK_LIST,    &names_of_strms    },
-          { "strm_hf_angle",     TYPE_DOUBLE|MASK_LIST, &strm_hf_angle     },
-          { "strmbd_slope",      TYPE_DOUBLE|MASK_LIST, &strmbd_slope      },
-          { "strmbd_drag",       TYPE_DOUBLE|MASK_LIST, &strmbd_drag       },
-          { "inflow_factor",     TYPE_DOUBLE|MASK_LIST, &inflow_factor     },
-          { "inflow_fl",         TYPE_STR|MASK_LIST,    &inflow_fl         },
-          { "inflow_varnum",     TYPE_INT,              &inflow_varnum     },
-          { "inflow_vars",       TYPE_STR|MASK_LIST,    &inflow_vars       },
-          { "coef_inf_entrain",  TYPE_DOUBLE,           &coef_inf_entrain  },
-          { "time_fmt",          TYPE_STR,              &timefmt_i         },
-          { "timezone",          TYPE_DOUBLE,           &timezone_i        },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST outflow[] = {
-          { "outflow",           TYPE_START,            NULL               },
-          { "num_outlet",        TYPE_INT,              &num_outlet        },
-          { "outlet_type",       TYPE_INT|MASK_LIST,    &outlet_type       },
-          { "crit_O2",           TYPE_INT,              &crit_O2           },
-          { "crit_O2_dep",       TYPE_INT,              &crit_O2_dep       },
-          { "crit_O2_days",      TYPE_INT,              &crit_O2_days      },
-          { "outlet_crit",       TYPE_DOUBLE|MASK_LIST, &outlet_crit       },
-          { "O2name",            TYPE_STR|MASK_LIST,    &O2name            },
-          { "O2idx",             TYPE_INT,              &O2idx             },
-          { "target_temp",       TYPE_DOUBLE|MASK_LIST, &target_temp       },
-          { "min_lake_temp",     TYPE_DOUBLE,           &min_lake_temp     },
-          { "fac_range_upper",   TYPE_DOUBLE,           &fac_range_upper   },
-          { "fac_range_lower",   TYPE_DOUBLE,           &fac_range_lower   },
-          { "mix_withdraw",      TYPE_BOOL,             &mix_withdraw      },
-          { "coupl_oxy_sw",      TYPE_BOOL,             &coupl_oxy_sw      },
-          { "flt_off_sw",        TYPE_BOOL|MASK_LIST,   &flt_off_sw        },
-          { "outl_elvs",         TYPE_DOUBLE|MASK_LIST, &outl_elvs         },
-          { "bsn_len_outl",      TYPE_DOUBLE|MASK_LIST, &bsn_len_outl      },
-          { "bsn_wid_outl",      TYPE_DOUBLE|MASK_LIST, &bsn_wid_outl      },
-          { "outflow_fl",        TYPE_STR|MASK_LIST,    &outflow_fl        },
-          { "withdrTemp_fl",     TYPE_STR,              &withdrTemp_fl     },
-          { "outflow_factor",    TYPE_DOUBLE|MASK_LIST, &outflow_factor    },
-          { "seepage",           TYPE_BOOL,             &seepage           },
-          { "seepage_rate",      TYPE_DOUBLE,           &seepage_rate      },
-          { "crest_width",       TYPE_DOUBLE,           &crest_width       },
-          { "crest_factor",      TYPE_DOUBLE,           &crest_factor      },
-          { "outflow_thick_limit", TYPE_DOUBLE,         &outflow_thick_limit },
-          { "single_layer_draw", TYPE_BOOL,             &single_layer_draw },
-          { "time_fmt",          TYPE_STR,              &timefmt_o         },
-          { "timezone",          TYPE_DOUBLE,           &timezone_o        },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST snowice[] = {
-          { "snowice",           TYPE_START,            NULL               },
-          { "snow_albedo_factor",TYPE_DOUBLE,           &snow_albedo_factor},
-          { "snow_rho_max",      TYPE_DOUBLE,           &snow_rho_max      },
-          { "snow_rho_min",      TYPE_DOUBLE,           &snow_rho_min      },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST mixing[] = {
-          { "mixing",            TYPE_START,            NULL               },
-          { "surface_mixing",    TYPE_INT,              &surface_mixing    },
-          { "coef_mix_conv",     TYPE_DOUBLE,           &coef_mix_conv     },
-          { "coef_wind_stir",    TYPE_DOUBLE,           &coef_wind_stir    },
-          { "coef_mix_turb",     TYPE_DOUBLE,           &coef_mix_turb     },
-          { "coef_mix_shear",    TYPE_DOUBLE,           &coef_mix_shear    },
-          { "coef_mix_shreq",    TYPE_DOUBLE,           &coef_mix_shreq    },
-          { "coef_mix_KH",       TYPE_DOUBLE,           &coef_mix_KH       },
-          { "coef_mix_hyp",      TYPE_DOUBLE,           &coef_mix_hyp      },
-          { "deep_mixing",       TYPE_INT,              &deep_mixing       },
-          { "diff",              TYPE_DOUBLE|MASK_LIST, &mol_diffusivity   },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST light[] = {
-          { "light",             TYPE_START,            NULL               },
-          { "albedo_mode",       TYPE_INT,              &albedo_mode       },
-          { "albedo_mean",       TYPE_DOUBLE,           &albedo_mean       },
-          { "albedo_amplitude",  TYPE_DOUBLE,           &albedo_amplitude  },
-          { "light_mode",        TYPE_INT,              &light_mode        },
-          { "n_bands",           TYPE_INT,              &n_bands           },
-          { "light_extc",        TYPE_DOUBLE|MASK_LIST, &light_extc        },
-          { "energy_frac",       TYPE_DOUBLE|MASK_LIST, &energy_frac       },
-          { "Benthic_Imin",      TYPE_DOUBLE,           &Benthic_Imin      },
-          { "Kw",                TYPE_DOUBLE,           &Kw                },
-          { "Kw_file",           TYPE_STR,              &Kw_file           },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST fetch[] = {
-          { "fetch",             TYPE_START,            NULL               },
-          { "fetch_sw",          TYPE_BOOL,             &fetch_sw          },
-          { "num_dir",           TYPE_INT,              &fetch_ndirs       },
-          { "wind_dir",          TYPE_DOUBLE|MASK_LIST, &fetch_dirs        },
-          { "fetch_scale",       TYPE_DOUBLE|MASK_LIST, &fetch_scale       },
-          { "edge_height",       TYPE_DOUBLE,           &fetch_height      },
-          { "edge_porosity",     TYPE_DOUBLE,           &fetch_porosity    },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST sediment[] = {
-          { "sediment",          TYPE_START,            NULL               },
-          { "benthic_mode",      TYPE_INT,              &benthic_mode      },
-          { "n_zones",           TYPE_INT,              &n_zones           },
-          { "zone_heights",      TYPE_DOUBLE|MASK_LIST, &zone_heights      },
-          { "sed_reflectivity",  TYPE_DOUBLE|MASK_LIST, &sed_reflectivity  },
-          { "sed_roughness",     TYPE_DOUBLE|MASK_LIST, &sed_roughness     },
-          { "sed_temp_mean",     TYPE_DOUBLE|MASK_LIST, &sed_temp_mean     },
-          { "sed_temp_amplitude",TYPE_DOUBLE|MASK_LIST, &sed_temp_amplitude},
-          { "sed_temp_peak_doy", TYPE_DOUBLE|MASK_LIST, &sed_temp_peak_doy },
-          { "sed_heat_Ksoil",    TYPE_DOUBLE,           &sed_heat_Ksoil    },
-          { "sed_temp_depth",    TYPE_DOUBLE,           &sed_temp_depth    },
-          { NULL,                TYPE_END,              NULL               }
-    };
-    NAMELIST debugging[] = {
-          { "debugging",         TYPE_START,            NULL               },
-          { "debug_mixer",       TYPE_BOOL,             &dbg_mix           },
-          { "disable_evap",      TYPE_BOOL,             &no_evap           },
-          { NULL,                TYPE_END,              NULL               }
-    };
 /*----------------------------------------------------------------------------*/
 
     //-------------------------------------------------
@@ -956,6 +1004,14 @@ for (i = 0; i < n_zones; i++) {
     NumDif += Num_WQ_Vars;
 
     initialise_lake(namlst);
+
+    //--------------------------------------------------------------------------
+    if ( !get_namelist(namlst, mass_balance) ) {
+        //# this needs to happen after wq stuff has been initialised
+        open_balance(out_dir, balance_fname, balance_varnum, (const char**)balance_vars, timefmt_b);
+    }
+    //--------------------------------------------------------------------------
+
 
     // This is where we could map inflow, met and csv_output vars to wq vars
 

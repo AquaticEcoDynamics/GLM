@@ -114,6 +114,13 @@ void aed2_set_flags(int *split_factor, CLOGICAL *mobility, CLOGICAL *bioshade, C
                       int *ode_method, int *benthic_mode, CLOGICAL *do_plots,
                       CLOGICAL *c_link_rain_loss, CLOGICAL *c_link_solar_shade, CLOGICAL *c_link_bottom_drag);
 int aed2_is_var(int *id, const char *v, size_t *len);
+
+void InitialTemp(int *m, const AED_REAL *depth, const AED_REAL *wv,
+                         const AED_REAL *topTemp, const AED_REAL *botTemp,
+                         const AED_REAL *nSPinUpDays, AED_REAL *tNew);
+void SoilTemp(int *m, const AED_REAL *depth, const AED_REAL *wv,
+                      const AED_REAL *topTemp, AED_REAL *temp);
+
 #endif
 
 void wq_set_glm_zones(AED_REAL *z_heights, int *numZones, int *numVars, int *numBenV);

@@ -1067,54 +1067,51 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
      * Sediment "heating" factor now applied to any layer based on which zone
      * it sits above.
      **************************************************************************/
-    if(sed_heat_sw){
+    if (sed_heat_sw) {
         //# Input of heat from the sediments.
         kDays = day_of_year(jday);
         ZSED = sed_temp_depth;
         KSED = sed_heat_Ksoil;
 
-        if (benthic_mode == 1){
+        if (benthic_mode == 1) {
             //# Apply the same sediment heating parameters across all layers
             kDays = day_of_year(jday);
             TYEAR = sed_temp_mean[0] + sed_temp_amplitude[0] * cos(((kDays-sed_temp_peak_doy[0])*2.*Pi)/365.);
             for (i = botmLayer+1; i <= surfLayer; i++) {
-                Lake[i].Temp += ((KSED*(TYEAR-Lake[i].Temp)/ZSED)*
-                             (Lake[i].LayerArea-Lake[i-1].LayerArea)*
-                             noSecs)/(SPHEAT*Lake[i].Density*Lake[i].LayerVol);
-                             //LayerThickness[i]*noSecs)/(SPHEAT*Lake[i].Density*Lake[i].LayerVol);
+                Lake[i].Temp += ((KSED * (TYEAR - Lake[i].Temp) / ZSED) *
+                             (Lake[i].LayerArea - Lake[i-1].LayerArea) * noSecs) /
+                                              (SPHEAT*Lake[i].Density * Lake[i].LayerVol);
             }
-            Lake[botmLayer].Temp += ((KSED*(TYEAR-Lake[botmLayer].Temp)/ZSED)*
-                                   Lake[botmLayer].LayerArea *
-                                   //Lake[botmLayer].LayerArea*LayerThickness[botmLayer] *
-                                   noSecs)/(SPHEAT*Lake[botmLayer].Density*Lake[botmLayer].LayerVol);
-        } else  if(benthic_mode == 2){
+            Lake[botmLayer].Temp += ((KSED * (TYEAR - Lake[botmLayer].Temp) / ZSED) *
+                                   Lake[botmLayer].LayerArea * noSecs) /
+                                          (SPHEAT*Lake[botmLayer].Density * Lake[botmLayer].LayerVol);
+        } else  if (benthic_mode == 2) {
             //# Apply the sediment zone specific heating parameters to overlying
             //  layers. First find which layers correspond to which zone
             for (i = botmLayer; i <= surfLayer; i++) {
                 layer_zone[i] = 0;
                 for (z = 1; z < n_zones; z++) {
-                    if (Lake[i].Height<zone_heights[z] && Lake[i].Height>zone_heights[z-1])
+                    if ((Lake[i].Height < zone_heights[z]) && (Lake[i].Height > zone_heights[z-1]))
                         layer_zone[i] = z;
                 }
             }
             //# Now compute layer-specifc sed heating and increment temperature
             for (i = botmLayer+1; i <= surfLayer; i++) {
-                TYEAR = sed_temp_mean[layer_zone[i]] + sed_temp_amplitude[layer_zone[i]] * cos(((kDays-sed_temp_peak_doy[layer_zone[i]])*2.*Pi)/365.);
-                Lake[i].Temp += ((KSED*(TYEAR-Lake[i].Temp)/ZSED)*
-                      (Lake[i].LayerArea-Lake[i-1].LayerArea)*
-                      //LayerThickness[i]*noSecs)/(SPHEAT*Lake[i].Density*Lake[i].LayerVol);
-                       noSecs)/(SPHEAT*Lake[i].Density*Lake[i].LayerVol);
+                TYEAR = sed_temp_mean[layer_zone[i]] +
+                        sed_temp_amplitude[layer_zone[i]] * cos(((kDays-sed_temp_peak_doy[layer_zone[i]])*2.*Pi)/365.);
+                Lake[i].Temp += ((KSED * (TYEAR - Lake[i].Temp) / ZSED) *
+                      (Lake[i].LayerArea - Lake[i-1].LayerArea) * noSecs) /
+                                    (SPHEAT * Lake[i].Density * Lake[i].LayerVol);
             }
             TYEAR = sed_temp_mean[0] + sed_temp_amplitude[0] * cos(((kDays-sed_temp_peak_doy[0])*2.*Pi)/365.);
-            Lake[botmLayer].Temp += ((KSED*(TYEAR-Lake[botmLayer].Temp)/ZSED)*
-                                   //Lake[botmLayer].LayerArea*LayerThickness[botmLayer] *
-                                   Lake[botmLayer].LayerArea *
-                               noSecs)/(SPHEAT*Lake[botmLayer].Density*Lake[botmLayer].LayerVol);
+            Lake[botmLayer].Temp += ((KSED * (TYEAR - Lake[botmLayer].Temp) / ZSED) *
+                                        Lake[botmLayer].LayerArea * noSecs) /
+                                      (SPHEAT * Lake[botmLayer].Density*Lake[botmLayer].LayerVol);
         }
         if (littoral_sw) {
             TYEAR = sed_temp_mean[2] + sed_temp_amplitude[2] * cos(((kDays-sed_temp_peak_doy[2])*2.*Pi)/365.);
-            Lake[onshoreLayer].Temp += ((KSED*(TYEAR-Lake[onshoreLayer].Temp)/ZSED)*onshoreVol * noSecs)
-                                     /(SPHEAT*onshoreDensity*onshoreVol);
+            Lake[onshoreLayer].Temp += ((KSED * (TYEAR - Lake[onshoreLayer].Temp) / ZSED) * onshoreVol * noSecs) /
+                                            (SPHEAT * onshoreDensity * onshoreVol);
        }
     }
 

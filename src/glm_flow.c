@@ -53,6 +53,8 @@
 #include "glm_layers.h"
 #include "glm_output.h"
 
+#include "glm_balance.h"
+
 #include "glm_debug.h"
 
 #define _WQ_VarsTmp(i,j,k)  WQ_VarsTmp[_IDX_3d(Num_WQ_Vars,NumInf,MaxPar,i,j,k)]
@@ -380,6 +382,7 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
     for (i = botmLayer; i <= surfLayer; i++){
 //      if (Delta_V[i] > zero) printf("%d DeltaV %8.4f; flow %10.4f;%10.4f %d %d %d %10.1f %10.1f \n",i,Delta_V[i],flow,Q_outf_star,Outflow_LayerNum,iBot,iTop,hBot,hTop);
         if (Delta_V[i] > zero) Lake[i].LayerVol -= Delta_V[i];
+        mb_sub_outflows(i, Delta_V[i]);
     }
 
     /**********************************************************************
@@ -577,6 +580,8 @@ static int insert_inflow(int k, //#Inflow parcel counter
     Inflow_Salinity = Inflows[iRiver].SDown[k];
     for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
         WQ_VarsS[wqidx] = Inflows[iRiver].WQDown[k][wqidx];
+
+    mb_add_inflows(Inflows[iRiver].QDown[k], WQ_VarsS);
 
     Downflow_Depth = Inflows[iRiver].DDown[k];
 

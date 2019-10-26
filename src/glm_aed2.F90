@@ -702,24 +702,24 @@ SUBROUTINE define_sed_column(column, top, flux_pel, flux_atm, flux_ben)
       IF ( tvar%extern ) THEN !# global variable
          ev = ev + 1
          SELECT CASE (tvar%name)
-            CASE ( 'temperature' ) ; column(av)%cell => ztemp(:)
-            CASE ( 'salinity' )    ; column(av)%cell => zsalt(:)
-            CASE ( 'density' )     ; column(av)%cell => zrho(:)
-            CASE ( 'layer_ht' )    ; column(av)%cell => zdz(:)
-            CASE ( 'extc_coef' )   ; column(av)%cell => zextc_coef(:)
-            CASE ( 'tss' )         ; column(av)%cell => ztss(:)
-            CASE ( 'par' )         ; column(av)%cell => zpar(:)
-            CASE ( 'nir' )         ; column(av)%cell => znir(:)
-            CASE ( 'uva' )         ; column(av)%cell => zuva(:)
-            CASE ( 'uvb' )         ; column(av)%cell => zuvb(:)
-            CASE ( 'pressure' )    ; column(av)%cell => zpres(:)
-            CASE ( 'depth' )       ; column(av)%cell => zdepth(:)
-            CASE ( 'sed_zone' )    ; column(av)%cell_sheet => z_sed_zones(1); zone_var = av
+            CASE ( 'temperature' ) ; column(av)%cell => theZones%ztemp
+            CASE ( 'salinity' )    ; column(av)%cell => theZones%zsalt
+            CASE ( 'density' )     ; column(av)%cell => theZones%zrho
+            CASE ( 'layer_ht' )    ; column(av)%cell => theZones%zdz
+            CASE ( 'extc_coef' )   ; column(av)%cell => theZones%zextc_coef
+            CASE ( 'tss' )         ; column(av)%cell => theZones%ztss
+            CASE ( 'par' )         ; column(av)%cell => theZones%zpar
+            CASE ( 'nir' )         ; column(av)%cell => theZones%znir
+            CASE ( 'uva' )         ; column(av)%cell => theZones%zuva
+            CASE ( 'uvb' )         ; column(av)%cell => theZones%zuvb
+            CASE ( 'pressure' )    ; column(av)%cell => theZones%zpres
+            CASE ( 'depth' )       ; column(av)%cell => theZones%zdepth
+            CASE ( 'sed_zone' )    ; column(av)%cell_sheet => theZones(1)%z_sed_zones; zone_var = av
             CASE ( 'wind_speed' )  ; column(av)%cell_sheet => wnd
             CASE ( 'par_sf' )      ; column(av)%cell_sheet => I_0
             CASE ( 'taub' )        ; column(av)%cell_sheet => bottom_stress
             CASE ( 'lake_depth' )  ; column(av)%cell_sheet => depth(1)
-            CASE ( 'layer_area' )  ; column(av)%cell => zarea(:)
+            CASE ( 'layer_area' )  ; column(av)%cell => theZones%zarea
             CASE ( 'rain' )        ; column(av)%cell_sheet => precip
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
          END SELECT
@@ -885,7 +885,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
 
          !# If multiple benthic zones, we must update the benthic variable pointer for the new zone
          IF ( zone_var .GE. 1 ) THEN
-            column_sed(zone_var)%cell_sheet => z_sed_zones(zon)
+            column_sed(zone_var)%cell_sheet => theZones(zon)%z_sed_zones
     !       !MH WE NEED A COLUMN TO CC VAR MAP FOR BENTHIC GUYS
             !CAB Yes, a map (or 2 maps) would be better, but QnD since this all needs reworking
             sv = 0 ; sd = 0
@@ -905,8 +905,8 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
          ENDIF
          IF ( benthic_mode .EQ. 3 ) THEN
             !# Zone is able to operated on by riparian and dry methods
-            CALL aed2_calculate_riparian(column_sed, zon, z_pc_wet(zon))
-            IF (z_pc_wet(zon) .EQ. 0. ) CALL aed2_calculate_dry(column_sed, zon)
+            CALL aed2_calculate_riparian(column_sed, zon, theZones(zon)%z_pc_wet)
+            IF (theZones(zon)%z_pc_wet .EQ. 0. ) CALL aed2_calculate_dry(column_sed, zon)
 
             !# update feedback arrays to host model, to reduce rain (or if -ve then add flow)
             CALL aed2_rain_loss(column, 1, localrainl);
@@ -980,7 +980,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
       !# model configurations where mass balance of benthic variables is required.
 
       !# Calculate temporal derivatives due to exchanges at the sediment/water interface
-      IF ( zone_var .GE. 1 ) column(zone_var)%cell_sheet => z_sed_zones(1)
+      IF ( zone_var .GE. 1 ) column(zone_var)%cell_sheet => theZones(1)%z_sed_zones
       CALL aed2_calculate_benthic(column, 1)
 
       !# Limit flux out of bottom layers to concentration of that layer
@@ -1499,5 +1499,36 @@ INTEGER FUNCTION WQVar_Index(name)
    WQVar_Index = -1
 END FUNCTION WQVar_Index
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#if 1
+SUBROUTINE GInitialTemp(m,depth,wv,topTemp,botTemp,nSPinUpDays,tNew) BIND(C, name="InitialTemp")
+   USE aed2_util
+   INTEGER,intent(in)   :: m
+   AED_REAL,intent(in)  :: wv,depth(0:m+1)
+   AED_REAL,intent(in)  :: topTemp,botTemp,nSPinUpDays
+   AED_REAL,intent(out) :: tNew(0:m+1)
+
+   CALL InitialTemp(m,depth,wv,topTemp,botTemp,nSPinUpDays,tNew)
+END SUBROUTINE GInitialTemp
+/*
+void InitialTemp(CINTEGER *m, const AED_REAL *depth, const AED_REAL *wv,
+                         const AED_REAL *topTemp, const AED_REAL *botTemp,
+                         const AED_REAL *nSPinUpDays, AED_REAL *tNew);
+*/
+
+SUBROUTINE GSoilTemp(m,depth,wv,topTemp,temp) BIND(C, name="SoilTemp")
+   USE aed2_util
+   INTEGER,intent(in) :: m
+   AED_REAL,intent(in) :: depth(0:m+1), wv(m), topTemp
+   AED_REAL,intent(inout) :: temp(m+1)
+
+   CALL SoilTemp(m,depth,wv,topTemp,temp)
+END SUBROUTINE GSoilTemp
+/*
+void SoilTemp(CINTEGER *m, const AED_REAL *depth, const AED_REAL *wv,
+                      const AED_REAL *topTemp, AED_REAL *temp);
+*/
+
+#endif
 
 END MODULE glm_aed2
