@@ -121,18 +121,19 @@ void run_model()
     init_model(&jstart, &nsave);
 
     begn = time(NULL);
-    printf("Wall clock start time :  %s", ctime_r(&begn, buf));
+    if (quiet < 10) printf("Wall clock start time :  %s", ctime_r(&begn, buf));
     if (non_avg)
         do_model_non_avg(jstart, nsave);
     else
         do_model(jstart, nsave);
     done = time(NULL);
-    printf("Wall clock finish time : %s", ctime_r(&done, buf));
+    if (quiet < 10) printf("Wall clock finish time : %s", ctime_r(&done, buf));
     ltd = difftime(done, begn);
     lth = ltd / 3600;
     ltm = (ltd - (lth * 3600)) / 60;
     lts = ltd - (lth * 3600) - (ltm * 60);
-    printf("Wall clock runtime %d seconds : %02d:%02d:%02d [hh:mm:ss]\n", ltd, lth, ltm, lts);
+    if (quiet < 10)
+        printf("Wall clock runtime %d seconds : %02d:%02d:%02d [hh:mm:ss]\n", ltd, lth, ltm, lts);
 
     end_model();
 }
@@ -368,13 +369,15 @@ void do_model(int jstart, int nsave)
             flush_all_plots();
         else
 #endif
+          if (quiet < 2) {
             printf("Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
-        fflush(stdout);
+            fflush(stdout);
+        }
 
         write_diags(jday, calculate_lake_number());
         write_balance(jday);
     }   //# do while (ntot < nDates)
-    printf("\n"); fflush(stdout);
+    if (quiet < 2) { printf("\n"); fflush(stdout); }
     /*----------########### End of main daily loop ################-----------*/
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -488,13 +491,15 @@ void do_model_non_avg(int jstart, int nsave)
             flush_all_plots();
         else
 #endif
+          if (quiet < 2) {
             printf("Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
-        fflush(stdout);
+            fflush(stdout);
+        }
 
         write_diags(jday, calculate_lake_number());
         write_balance(jday);
     }   //# do while (ntot < nDates)
-    printf("\n"); fflush(stdout);
+    if (quiet < 2) { printf("\n"); fflush(stdout); }
     /*----------########### End of main daily loop ################-----------*/
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -605,13 +610,15 @@ void do_model_coupled(int step_start, int step_end,
             flush_all_plots();
         else
 #endif
+          if (quiet < 2) {
             printf("Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
-        fflush(stdout);
+            fflush(stdout);
+        }
 
         write_diags(jday, calculate_lake_number());
         write_balance(jday);
     }   //# do while (ntot < nDates)
-    printf("\n"); fflush(stdout);
+    if (quiet < 2) { printf("\n"); fflush(stdout); }
     /*----------########### End of main daily loop ################-----------*/
 
     *elevation = Lake[surfLayer].Height;
@@ -637,7 +644,8 @@ void calc_mass_temp(const char *msg)
         Lake_Temp += Lake[i].Temp * Lake[i].Density * Lake[i].LayerVol;
     Lake_Temp = Lake_Temp / Lake_Mass;
 
-    printf("%s Lake_Mass = %10.5f\t, Lake_Temp = %10.5f\n", msg, Lake_Mass/1e6, Lake_Temp);
+    if ( quiet < 5)
+        printf("%s Lake_Mass = %10.5f\t, Lake_Temp = %10.5f\n", msg, Lake_Mass/1e6, Lake_Temp);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

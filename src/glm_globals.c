@@ -233,6 +233,7 @@ AED_REAL *zone_area = NULL;
 //------------------------------------------------------------------------------
 CLOGICAL dbg_mix = FALSE;   //# debug output from mixer
 CLOGICAL no_evap = FALSE;   //# turn off evaporation
+int      quiet   = 0;       //# turn down output messages
 
 void set_c_wqvars_ptr(AED_REAL *iwqv) { WQ_Vars = iwqv; }
 

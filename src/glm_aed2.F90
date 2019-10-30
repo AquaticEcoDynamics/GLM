@@ -878,6 +878,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
       !# water conditions need to be aggregated from multiple cells/layers, and output flux
       !# needs disaggregating from each zone back to the overlying cells/layers
 
+!$OMP DO
       DO zon=1,nsed
          !# Reinitialise flux_ben to be repopulated for this zone
          flux_ben = zero_
@@ -890,7 +891,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
             !CAB Yes, a map (or 2 maps) would be better, but QnD since this all needs reworking
             sv = 0 ; sd = 0
             DO av=1,n_aed2_vars
-               IF ( .NOT.  aed2_get_var(av, tvar) ) STOP "Error getting variable info"
+               IF ( .NOT. aed2_get_var(av, tvar) ) STOP "Error getting variable info"
                IF ( .NOT. tvar%extern .AND. tvar%sheet ) THEN
                   IF ( tvar%diag ) THEN
                      sd = sd + 1
@@ -934,6 +935,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
          !# disaggregate it to relevant layers
          flux_pel_z(zon,:) = flux_pel(zon,:)-flux_pel_pre(zon,:)
       ENDDO
+!$OMP END DO
 
       !# Disaggregation of zone induced fluxes to overlying layers
       v_start = 1 ; v_end = n_vars
@@ -989,6 +991,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
       flux_pel(1, :) = max(-1.0 * cc(1, :), flux_pel(1, :)/dz(1))
 
       IF ( benthic_mode .EQ. 1 ) THEN
+!$OMP DO
          DO lev=2,wlev
             !# Calculate temporal derivatives due to benthic fluxes.
             CALL aed2_calculate_benthic(column, lev)
@@ -1000,6 +1003,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
             flux_pel(lev, :) = max(-1.0 * cc(lev, :), flux_pel(lev, :)/dz(lev))
             flux_pel(lev, :) = flux_pel(lev, :) * (area(lev)-area(lev-1))/area(lev)
          ENDDO
+!$OMP END DO
       ENDIF
    ENDIF
 

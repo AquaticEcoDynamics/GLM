@@ -98,9 +98,16 @@ int main(int argc, char *argv[])
             }
         }
 #endif
+        else if (strcmp(*argv, "--quiet") == 0) {
+            quiet = 5;
+            if ( argc > 1 && strncmp(argv[1], "--", 2) != 0 ) {
+                argv++; argc--;
+                quiet = atoi(*argv);
+            }
+        }
         else {
             if (strcmp(*argv, "--help") != 0)
-                printf("Unknown flag %s\n", *argv);
+                fprintf(stderr, "Unknown flag %s\n", *argv);
             show_options = 1;
             all_ok = 0;
         }
@@ -115,15 +122,17 @@ int main(int argc, char *argv[])
 # endif
 #endif
 
-    printf("       ----------------------------------------------------\n");
-    printf("       |  General Lake Model (GLM)   Version %-12s |\n", GLM_VERSION);
-    printf("       ----------------------------------------------------\n");
+    if (quiet < 10) {
+        printf("       ----------------------------------------------------\n");
+        printf("       |  General Lake Model (GLM)   Version %-12s |\n", GLM_VERSION);
+        printf("       ----------------------------------------------------\n");
 
 #ifdef __GNUC__
-    printf("glm built using gcc version %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+        printf("glm built using gcc version %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
 #elif defined(_MSC_VER) && !defined(__INTEL_COMPILER)
-    printf("glm built using MSC version %ld\n", _MSC_VER);
+        printf("glm built using MSC version %ld\n", _MSC_VER);
 #endif
+    }
 
     if ( show_options ) {
        printf("--help  : show this blurb\n");
@@ -136,14 +145,19 @@ int main(int argc, char *argv[])
        printf("--saveall : save plots to png files\n");
        printf("--save-all-in-one : save all plots to png file\n");
        printf("--save-all-in-one <destfile> : save all plots to png file <destfile>\n");
+
+       printf("--quiet   : less messages\n");
+       printf("--quiet <level> : set quiet level (1-10)\n");
 #endif
     }
     else if ( all_ok ) {
         if ( nmlfile != NULL ) strncpy(glm_nml_file, nmlfile, 256);
         run_model();
 
-        printf("------------------------------------------------\n");
-        printf("              Run Complete\n");
+        if (quiet < 10) {
+            printf("------------------------------------------------\n");
+            printf("              Run Complete\n");
+        }
     }
 
     exit(0);

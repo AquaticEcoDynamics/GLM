@@ -12,6 +12,12 @@ while [ $# -gt 0 ] ; do
     --fence)
       export FENCE=true
       ;;
+    --fabm)
+      export FABM=true
+      ;;
+    --ifort)
+      export FC=ifort
+      ;;
     *)
       ;;
   esac
@@ -59,14 +65,15 @@ if [ "$FC" = "" ] ; then
 fi
 
 if [ "$FC" = "ifort" ] ; then
-   if [ `uname -m` = "i686" ] ; then
-      CPU="ia32"
-   else
-      CPU="intel64"
-   fi
+   # if [ `uname -m` = "i686" ] ; then
+   #    CPU="ia32"
+   # else
+   #    CPU="intel64"
+   # fi
 
    if [ -d /opt/intel/bin ] ; then
-      . /opt/intel/bin/compilervars.sh $CPU
+      # . /opt/intel/bin/compilervars.sh $CPU
+      . /opt/intel/bin/compilervars.sh intel64
    fi
    which ifort >& /dev/null
    if [ $? != 0 ] ; then

@@ -245,6 +245,7 @@ extern int noSecs;
 // DEBUGGING
 extern CLOGICAL dbg_mix;   //# debug output from mixer
 extern CLOGICAL no_evap;   //# turn off evaporation
+extern int      quiet;     //# turn down output messages
 
 
 /******************************************************************************/

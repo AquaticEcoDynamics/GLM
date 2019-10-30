@@ -583,7 +583,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     //-------------------------------------------------
     wq_calc   = TRUE;
     if ( get_namelist(namlst, wq_setup) ) {
-        fprintf(stderr, "No WQ config\n");
+        // fprintf(stderr, "No WQ config\n");
         twq_lib           = DEFAULT_WQ_LIB;
         wq_calc           = FALSE;
         ode_method        = 1;
@@ -610,7 +610,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     nDays = num_days;
     timestep = dt;
 
-    printf("nDays %d timestep %f\n", nDays, timestep);
+    if (quiet < 2) printf("nDays %d timestep %f\n", nDays, timestep);
 
     //-------------------------------------------------
     create_lake(namlst);
@@ -732,12 +732,12 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     //--------------------------------------------------------------------------
     // sediment heat (sed_heat)
-    printf("*starting sediment = %10.5f\n",sed_heat_Ksoil);
+    if (quiet < 2) printf("*starting sediment = %10.5f\n",sed_heat_Ksoil);
 
     sed_heat_Ksoil     = 5.0;
     sed_temp_depth     = 0.1;
 //  sed_temp_mean[0]   = 9.7;
-    printf("*starting sediment = %10.5f\n",sed_temp_depth);
+    if (quiet < 2) printf("*starting sediment = %10.5f\n",sed_temp_depth);
 //  sed_temp_amplitude = 2.7;
 //  sed_temp_peak_doy  = 151;
     if ( get_namelist(namlst, sediment) ) {
@@ -746,7 +746,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     } else {
         sed_heat_sw = TRUE;
         fprintf(stderr,"Sediment section present, simulating sediment heating\n");
-        if (sed_temp_mean != NULL) {
+        if (sed_temp_mean != NULL && quiet < 2) {
             printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[0]);
             printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[1]);
         }
@@ -1137,8 +1137,10 @@ void create_lake(int namlst)
     }
     if (crest_elev > max_elev) crest_elev = max_elev;
 
-    printf("Maximum lake depth is %f\n", max_elev - base_elev);
-    printf("Depth where flow will occur over the crest is %f\n", crest_elev - base_elev);
+    if (quiet < 2) {
+        printf("Maximum lake depth is %f\n", max_elev - base_elev);
+        printf("Depth where flow will occur over the crest is %f\n", crest_elev - base_elev);
+    }
 
     if ( (MaxLayers * DMax) < (max_elev - base_elev) ) {
         fprintf(stderr, "Configuration Error. MaxLayers * max_layer_height < depth of the lake\n");
