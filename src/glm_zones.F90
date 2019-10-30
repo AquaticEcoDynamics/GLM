@@ -54,14 +54,6 @@ MODULE glm_zones
    AED_REAL,ALLOCATABLE,DIMENSION(:,:),TARGET :: z_diag_hz !(nsed_zones, n_vars)
 
    AED_REAL,DIMENSION(:),POINTER :: zz
-!  AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: z_sed_zones
-
-!  AED_REAL,ALLOCATABLE,DIMENSION(:) :: z_pc_wet
-!  AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: zrad, zsalt, ztemp, zrho, zarea
-!  AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: zextc_coef, zlayer_stress, ztss
-
-!  AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: zdz, zpar, zdepth, zpres
-!  AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: znir, zuva, zuvb
 
    INTEGER :: n_zones, w_zones
 
@@ -75,9 +67,6 @@ MODULE glm_zones
    PUBLIC n_zones, zone_heights, zz, z_cc, theLake
    PUBLIC wq_set_glm_zones, copy_from_zone, copy_to_zone, calc_zone_areas
 
-!  PUBLIC zrad, zsalt, ztemp, zrho, zarea, zextc_coef, zlayer_stress, ztss, zdz, zpar
-!  PUBLIC zdepth, zpres, z_pc_wet, z_sed_zones, z_diag, z_diag_hz
-!  PUBLIC znir, zuva, zuvb
    PUBLIC z_diag, z_diag_hz, theZones
 
 CONTAINS

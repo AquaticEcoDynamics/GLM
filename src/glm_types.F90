@@ -157,7 +157,8 @@ MODULE glm_types
       AED_REAL :: z_sed_zones
       AED_REAL :: z_pc_wet
       CINTEGER :: n_sedLayers;     !# number of sediment layers
-      TYPE(SedLayerType),ALLOCATABLE,DIMENSION(:) :: layers
+      TYPE(C_PTR) :: c_layers      !# the C version of the below
+      TYPE(SedLayerType),DIMENSION(:),POINTER :: layers
    END TYPE ZoneType
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

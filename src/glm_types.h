@@ -192,9 +192,9 @@ typedef char filname[80];
    // Structured type for Surface Data vars
    typedef struct SurfaceDataType {
        AED_REAL Evap;            // Evaporation
-       AED_REAL delzBlueIce;   // Thickness of blue ice layer
-       AED_REAL delzWhiteIce;  // Thickness of white ice layer
-       AED_REAL delzSnow;      // Thickness of snow layer
+       AED_REAL delzBlueIce;     // Thickness of blue ice layer
+       AED_REAL delzWhiteIce;    // Thickness of white ice layer
+       AED_REAL delzSnow;        // Thickness of snow layer
        AED_REAL dHt;             // Change in thickness of the snow / ice layer
        AED_REAL RhoSnow;         // Density of snow layer (kg/m^3)
        AED_REAL dailyEvap;       // Daily Evaporation (m3/day)
@@ -211,6 +211,39 @@ typedef char filname[80];
        AED_REAL albedo;          // Daily surface albedo
        AED_REAL dailyzonL;       // Daily atmospheric stability
    } SurfaceDataType;
+
+   /*===========================================================*/
+   // Structured type for Sediment Layer
+   typedef struct  SedLayerType {
+      AED_REAL temp;             // Layer temperature
+      AED_REAL vwc;
+      AED_REAL wq;
+   } SedLayerType;
+
+   /*===========================================================*/
+   // Structured type for iSediment Zones
+   typedef struct ZoneType {
+       AED_REAL zrad;
+       AED_REAL zsalt;
+       AED_REAL ztemp;
+       AED_REAL zrho;
+       AED_REAL zarea;
+       AED_REAL zextc_coef;
+       AED_REAL zlayer_stress;
+       AED_REAL ztss;
+       AED_REAL zdz;
+       AED_REAL zpar;
+       AED_REAL znir;
+       AED_REAL zuva;
+       AED_REAL zuvb;
+       AED_REAL zpres;
+       AED_REAL zdepth;
+       AED_REAL z_sed_zones;
+       AED_REAL z_pc_wet;
+       int n_sedLayers;      // number of sediment layers
+       SedLayerType *layers;
+       void *f_layers;       // the fortran version
+   } ZoneType;
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif
