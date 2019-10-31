@@ -145,10 +145,11 @@ ifeq ($(F90),ifort)
   FFLAGS+=-real-size 64
   FLIBS+=-L/opt/intel/lib
   FLIBS+=-lifcore -lsvml
-  FLIBS+=-limf -lintlc
+  FLIBS+=-limf -lintlc -liomp5
   ifneq ("$(AED2PLBS)", "")
     AED2PLBS+=-lifport
   endif
+  OMPFLAG=-openmp
 else ifeq ($(F90),pgfortran)
   LINK=$(CC)
   DEBUG_FFLAGS=-g -DDEBUG=1
@@ -170,7 +171,8 @@ else
     FFLAGS+=-fcheck=all
   endif
   FFLAGS+=-fdefault-real-8 -fdefault-double-8
-  FLIBS+=-lgfortran
+  OMPFLAG=-fopenmp
+  FLIBS+=-lgfortran -lgomp
 endif
 
 ifneq ($(USE_DL),true)
@@ -312,7 +314,7 @@ libglm_wq_fabm.${so_ext}: ${objdir}/glm_zones.o ${objdir}/glm_fabm.o ${objdir}/o
 # special needs dependancies
 
 ${objdir}/glm_aed2.o: ${srcdir}/glm_aed2.F90 ${objdir}/glm_types.o
-	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -openmp -c $< -o $@
+	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ $(OMPFLAG) -c $< -o $@
 
 ${objdir}/glm_zones.o: ${srcdir}/glm_zones.F90 ${objdir}/glm_types.o
 	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
