@@ -713,13 +713,13 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     sed_temp_depth     = 0.1;
     if ( get_namelist(namlst, sediment) ) {
         sed_heat_sw = FALSE;
-        fprintf(stderr,"     No 'sediment' section, turning off sediment heating\n");
+        if (quiet < 2) fprintf(stderr,"     No 'sediment' section, turning off sediment heating\n");
     } else {
         sed_heat_sw = TRUE;
-        fprintf(stderr,"     'sediment' section present, simulating sediment heating\n");
+        if (quiet < 2) fprintf(stderr,"     'sediment' section present, simulating sediment heating\n");
         if (sed_temp_mean != NULL && quiet < 2) {
-            printf("     *sed_temp_mean = %10.5f\n",sed_temp_mean[0]);
-            printf("     *sed_temp_mean = %10.5f\n",sed_temp_mean[1]);
+            printf("       *sed_temp_mean = %10.5f\n",sed_temp_mean[0]);
+            printf("       *sed_temp_mean = %10.5f\n",sed_temp_mean[1]);
         }
     }
     if ( sed_reflectivity == NULL ) {
@@ -967,7 +967,7 @@ for (i = 0; i < n_zones; i++) {
 
         prime_wq(wq_lib);
         wq_init_glm(wq_nml_file, &l, &MaxLayers, &Num_WQ_Vars, &Num_WQ_Ben, &Kw); // Reads WQ namelist file
-        fprintf(stderr, "     WQ plugin enabled: included Num_WQ_Vars = %d\n", Num_WQ_Vars);
+        fprintf(stderr, "     WQ plugin active: included Num_WQ_Vars = %d\n", Num_WQ_Vars);
         if ( Num_WQ_Vars > MaxVars ) {
             fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", MaxVars);
             exit(1);
@@ -1282,7 +1282,7 @@ void create_lake(int namlst)
     } else
         VolAtCrest = MphLevelVol[0];
 
-    fprintf(stderr,"     VolAtCrest= %10.5f; MaxVol= %10.5f (m3)\n", VolAtCrest, MaxVol);
+    if (quiet < 2) fprintf(stderr,"     VolAtCrest= %10.5f; MaxVol= %10.5f (m3)\n", VolAtCrest, MaxVol);
 
     memcpy(MphLevelVoldash, MphLevelVol, sizeof(AED_REAL) * Nmorph);    // MphLevelVoldash = MphLevelVol;
     memcpy(dMphLevelVolda, dMphLevelVol, sizeof(AED_REAL) * Nmorph);    // dMphLevelVolda = dMphLevelVol;

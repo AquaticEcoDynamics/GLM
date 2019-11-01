@@ -178,7 +178,7 @@ int prime_wq(const char *which)
     // This is weird. Comment out the debug fprintf below and the flags come out wrong, leave the debug in and
     // they are OK ....
     fprintf(stderr,
-        "     WQ link options: split_factor %d mobility_off %d bioshade_feedback %d repair_state %d ode_method %d benthic_mode %d do_plots %d\n",
+        "     'wq_setup': split_factor %d mobility_off %d bioshade_feedback %d repair_state %d ode_method %d benthic_mode %d do_plots %d\n",
                     split_factor, mobility_off, bioshade_feedback,repair_state, ode_method, benthic_mode, do_plots);
 
     (*p_wq_set_flags)(&split_factor, &mobility_off, &bioshade_feedback,

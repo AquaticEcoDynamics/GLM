@@ -267,15 +267,15 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
    lKw = pKw
 
 #ifdef __INTEL_COMPILER
-   print *,'     glm_aed2 built using intel fortran version ', __INTEL_COMPILER
+   print *,'    glm_aed2 built using intel fortran version ', __INTEL_COMPILER
 #else
 # ifdef __PGI
-   print *,'     glm_aed2 built using pgfortran version ', __PGIC__, '.', __PGIC_MINOR__, '.', __PGIC_PATCHLEVEL__
+   print *,'    glm_aed2 built using pgfortran version ', __PGIC__, '.', __PGIC_MINOR__, '.', __PGIC_PATCHLEVEL__
 # else
-   print *,'     glm_aed2 built using gfortran version ', __GNUC__, '.', __GNUC_MINOR__, '.', __GNUC_PATCHLEVEL__
+   print *,'    glm_aed2 built using gfortran version ', __GNUC__, '.', __GNUC_MINOR__, '.', __GNUC_PATCHLEVEL__
 # endif
 #endif
-   print *,'     libaed2 enabled.... init_glm_aed2 using: ', TRIM(fname)
+   print *,'    libaed2 enabled.... init_glm_aed2 processing: ', TRIM(fname)
    namlst = f_get_lun()
 
    write(*,"(/,5X,'---------- AED2 config : start ----------')")
@@ -298,7 +298,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
 
    !# should be finished with this file
    CLOSE(namlst)
-   print *,"      ... file parsing completed."
+   print *,"      ... nml file parsing completed."
 
    n_aed2_vars = aed2_core_status(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
 
@@ -342,7 +342,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
    CALL set_c_wqvars_ptr(cc)
 
    ALLOCATE(min_((n_vars + n_vars_ben))) ; ALLOCATE(max_((n_vars + n_vars_ben)))
-   print "(5X,'Configured variables to simulate:')"
+   print "(5X,'Configured AED2 variables to simulate:')"
 
    j = 0
    DO i=1,n_aed2_vars
@@ -352,7 +352,8 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
             names(j) = TRIM(tvar%name)
             min_(j) = tvar%minimum
             max_(j) = tvar%maximum
-            print *,"     S(",j,") AED2 pelagic(3D) variable: ", TRIM(names(j))
+            !print *,"     S(",j,") AED2 pelagic(3D) variable: ", TRIM(names(j))
+            print "(7X,'S(',I4,') water column variable     : ',A)",j , TRIM(names(j))
          ENDIF
       ENDIF
    ENDDO
@@ -365,7 +366,8 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
             bennames(j) = TRIM(tvar%name)
             min_(n_vars+j) = tvar%minimum
             max_(n_vars+j) = tvar%maximum
-            print *,"     B(",j,") AED2 benthic(2D) variable: ", TRIM(bennames(j))
+            !print *,"     B(",j,") AED2 benthic(2D) variable: ", TRIM(bennames(j))
+            print "(7X,'B(',I4,') bottom variable           + ',A)",j , TRIM(bennames(j))
          ENDIF
       ENDIF
    ENDDO
@@ -376,7 +378,8 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
          IF ( tvar%diag ) THEN
             IF ( .NOT.  tvar%sheet ) THEN
                j = j + 1
-               print *,"     D(",j,") AED2 diagnostic 3Dvariable: ", TRIM(tvar%name)
+               print "(7X,'D(',I4,') water column diagnostic   > ',A)",j , TRIM(tvar%name)
+               !print *,"     D(",j,") AED2 diagnostic 3Dvariable: ", TRIM(tvar%name)
             ENDIF
          ENDIF
       ENDIF
@@ -388,7 +391,8 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
          IF ( tvar%diag ) THEN
             IF (tvar%sheet ) THEN
                j = j + 1
-               print *,"     D(",j,") AED2 diagnostic 2Dvariable: ", TRIM(tvar%name)
+               !print *,"     D(",j,") AED2 diagnostic 2Dvariable: ", TRIM(tvar%name)
+               print "(7X,'D(',I4,') bottom/surface diagnostic ~ ',A)",j , TRIM(tvar%name)
             ENDIF
          ENDIF
       ENDIF
@@ -402,7 +406,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
    !# Now set initial values
    v = 0 ; sv = 0;
    DO av=1,n_aed2_vars
-      IF ( .NOT.  aed2_get_var(av, tvar) ) STOP "Error getting variable info"
+      IF ( .NOT.  aed2_get_var(av, tvar) ) STOP "     ERROR getting variable info"
       IF ( .NOT. ( tvar%extern .OR. tvar%diag) ) THEN  !# neither global nor diagnostic variable
          IF ( tvar%sheet ) THEN
             sv = sv + 1
