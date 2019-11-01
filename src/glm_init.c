@@ -85,13 +85,13 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     int jyear, jmonth, jday, julianday;
     extern int startTOD, stopTOD;
 
-    /*-- %%NAMELIST glm_setup -------------------------------------------*/
+    /*-- %%NAMELIST glm_setup ------------------------------------------------*/
     char           *sim_name = NULL;
     int             max_layers;
     AED_REAL        min_layer_vol;
     AED_REAL        min_layer_thick;
     AED_REAL        max_layer_thick;
-    extern int      density_model;
+//  extern int      density_model;
 //  extern CLOGICAL littoral_sw;
 //  extern CLOGICAL non_avg;
     //==========================================================================
@@ -109,9 +109,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    /*---------------------------------------------
-     * @NAMELIST mixing
-     *-------------------------------------------*/
+    /*-- %%NAMELIST mixing ---------------------------------------------------*/
 //  extern int      surface_mixing;
 //  extern AED_REAL coef_mix_conv;
 //  extern AED_REAL coef_mix_eta;
@@ -135,10 +133,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "diff",              TYPE_DOUBLE|MASK_LIST, &mol_diffusivity      },
           { NULL,                TYPE_END,              NULL                  }
     };
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    /*---------------------------------------------
-     * @NAMELIST wq_setup
-     *-------------------------------------------*/
+    /*-- %%NAMELIST wq_setup -------------------------------------------------*/
     char           *twq_lib = NULL;
     char           *wq_nml_file = DEFAULT_WQ_NML;
     int             lode_method;
@@ -161,11 +158,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "mobility_off",      TYPE_BOOL,             &mobility_off         },
           { NULL,                TYPE_END,              NULL                  }
     };
-    /*-------------------------------------------*/
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    /*---------------------------------------------
-     * @NAMELIST time
-     *-------------------------------------------*/
+    /*-- %%NAMELIST time -----------------------------------------------------*/
     int             timefmt;
     char           *start = NULL;
     char           *stop  = NULL;
@@ -183,11 +178,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "timezone",          TYPE_DOUBLE,           &timezone_r           },
           { NULL,                TYPE_END,              NULL                  }
     };
-    /*-------------------------------------------*/
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    /*---------------------------------------------
-     * @NAMELIST output
-     *-------------------------------------------*/
+    /*-- %%NAMELIST output ---------------------------------------------------*/
     char           *out_dir = NULL;
     char           *out_fn  = NULL;
 //  LOGICAL         out_lkn;
@@ -217,18 +210,16 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "csv_point_nvars",   TYPE_INT,              &csv_point_nvars      },
           { "csv_point_vars",    TYPE_STR|MASK_LIST,    &csv_point_vars       },
           { "csv_lake_fname",    TYPE_STR,              &csv_lake_fname       },
-          { "csv_outlet_allinone", TYPE_BOOL,           &csv_outlet_allinone   },
+          { "csv_outlet_allinone", TYPE_BOOL,           &csv_outlet_allinone  },
           { "csv_outlet_fname",  TYPE_STR,              &csv_outlet_fname     },
           { "csv_outlet_nvars",  TYPE_INT,              &csv_outlet_nvars     },
           { "csv_outlet_vars",   TYPE_STR|MASK_LIST,    &csv_outlet_vars      },
           { "csv_ovrflw_fname",  TYPE_STR,              &csv_ovrflw_fname     },
           { NULL,                TYPE_END,              NULL                  }
     };
-    /*-------------------------------------------*/
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    /*---------------------------------------------
-     * @NAMELIST meteorology
-     *-------------------------------------------*/
+    /*-- * %%NAMELIST meteorology --------------------------------------------*/
     LOGICAL         met_sw;          // Include surface meteorological forcing
     char           *lw_type = NULL;  // Type LW measurement (LW_IN/LW_CC/LW_NET)
     LOGICAL         rain_sw;         // Rainfall composition
@@ -254,7 +245,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL rh_factor;
     extern AED_REAL rain_factor;
     extern int      rad_mode;
-//  extern int      albedo_mode;
+    extern int      albedo_mode;
     extern int      cloud_mode;
     extern int      light_mode;
 //  extern LOGICAL  link_solar_shade;
@@ -301,16 +292,14 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
      //   { "snow_sw",           TYPE_BOOL,             &snow_sw              },
           { NULL,                TYPE_END,              NULL                  }
     };
-    /*-------------------------------------------*/
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    /*---------------------------------------------
-     * @NAMELIST light
-     *-------------------------------------------*/
+    /*-- %%NAMELIST light ----------------------------------------------------*/
     extern AED_REAL   *light_extc;
     extern AED_REAL   *energy_frac;
     extern AED_REAL    Benthic_Imin;
 //  AED_REAL           Kw;
-    char              *Kw_file = NULL;
+    char           *Kw_file = NULL;
     //==========================================================================
     NAMELIST light[] = {
           { "light",             TYPE_START,            NULL                  },
@@ -326,11 +315,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "Kw_file",           TYPE_STR,              &Kw_file              },
           { NULL,                TYPE_END,              NULL                  }
     };
-    /*-------------------------------------------*/
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    /*---------------------------------------------
-     * @NAMELIST inflow
-     *-------------------------------------------*/
+    /*-- %%NAMELIST inflow ---------------------------------------------------*/
     int             num_inflows;
     LOGICAL        *subm_flag      = NULL;
     char          **names_of_strms = NULL;
@@ -362,11 +349,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "timezone",          TYPE_DOUBLE,           &timezone_i           },
           { NULL,                TYPE_END,              NULL                  }
     };
-    /*-------------------------------------------*/
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    /*---------------------------------------------
-     * @NAMELIST outflow
-     *-------------------------------------------*/
+    /*-- %%NAMELIST outflow --------------------------------------------------*/
     int             num_outlet;
     LOGICAL        *flt_off_sw     = NULL;
     int            *outlet_type    = NULL;
@@ -426,11 +411,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "timezone",          TYPE_DOUBLE,           &timezone_o           },
           { NULL,                TYPE_END,              NULL                  }
     };
-    /*------------------------------------------------------------------------*/
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    /*--------------------------------------------------------------------------
-     * @NAMELIST mass_balance
-     *------------------------------------------------------------------------*/
+    /*-- @NAMELIST mass_balance ----------------------------------------------*/
     char           *balance_fname   = NULL;
     int             balance_varnum;
     char          **balance_vars = NULL;
@@ -446,11 +429,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "timezone",          TYPE_DOUBLE,           &timezone_b           },
           { NULL,                TYPE_END,              NULL                  }
     };
-    /*------------------------------------------------------------------------*/
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    /*--------------------------------------------------------------------------
-     * @NAMELIST snowice
-     *------------------------------------------------------------------------*/
+    /*-- %%NAMELIST snowice --------------------------------------------------*/
     extern AED_REAL         snow_albedo_factor;
     extern AED_REAL         snow_rho_max;
     extern AED_REAL         snow_rho_min;
@@ -462,11 +443,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "snow_rho_min",      TYPE_DOUBLE,           &snow_rho_min         },
           { NULL,                TYPE_END,              NULL                  }
     };
-    /*-------------------------------------------*/
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    /*---------------------------------------------
-     * @NAMELIST fetch
-     *-------------------------------------------*/
+    /*-- %%NAMELIST fetch ----------------------------------------------------*/
     extern LOGICAL     fetch_sw;
     extern int         fetch_ndirs;
     extern AED_REAL   *fetch_dirs;
@@ -484,11 +463,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "edge_porosity",     TYPE_DOUBLE,           &fetch_porosity       },
           { NULL,                TYPE_END,              NULL                  }
     };
-    /*-------------------------------------------*/
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    /*---------------------------------------------
-     * @NAMELIST sediment
-     *-------------------------------------------*/
+    /*-- %%NAMELIST sediment -------------------------------------------------*/
+    extern CLOGICAL         sed_heat_sw;
     extern AED_REAL         sed_heat_Ksoil;
     extern AED_REAL         sed_temp_depth;
     extern AED_REAL         *sed_temp_mean       ;
@@ -513,13 +491,11 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "sed_temp_depth",    TYPE_DOUBLE,           &sed_temp_depth       },
           { NULL,                TYPE_END,              NULL                  }
     };
-    /*-------------------------------------------*/
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    /*---------------------------------------------
-     * @NAMELIST debugging
-     *-------------------------------------------*/
- // extern CLOGICAL dbg_mix;   //# debug output from mixer
- // extern CLOGICAL no_evap;   //# turn off evaporation
+    /*-- %%NAMELIST debugging ------------------------------------------------*/
+//  extern CLOGICAL dbg_mix;   //# debug output from mixer
+//  extern CLOGICAL no_evap;   //# turn off evaporation
     //==========================================================================
     NAMELIST debugging[] = {
           { "debugging",         TYPE_START,            NULL                  },
@@ -527,11 +503,12 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "disable_evap",      TYPE_BOOL,             &no_evap              },
           { NULL,                TYPE_END,              NULL                  }
     };
-    /*-------------------------------------------*/
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    //--------------------------------------------------------------------------
+    //-------------------------------------------------
     int i, j, k;
     int namlst;
+
 /*----------------------------------------------------------------------------*/
 
     //-------------------------------------------------
@@ -1012,7 +989,6 @@ for (i = 0; i < n_zones; i++) {
     }
     //--------------------------------------------------------------------------
 
-
     // This is where we could map inflow, met and csv_output vars to wq vars
 
     if ( ! WQ_VarsIdx ) {
@@ -1342,9 +1318,9 @@ void initialise_lake(int namlst)
     int             num_wq_vars;
     char          **wq_names;
     AED_REAL       *wq_init_vals;
-    AED_REAL        snow_thickness;
-    AED_REAL        white_ice_thickness;
-    AED_REAL        blue_ice_thickness;
+    AED_REAL        snow_thickness = 0.0;
+    AED_REAL        white_ice_thickness = 0.0;
+    AED_REAL        blue_ice_thickness = 0.0;
     /*-------------------------------------------*/
 
     NAMELIST init_profiles[] = {
@@ -1359,9 +1335,9 @@ void initialise_lake(int namlst)
           { "num_wq_vars",       TYPE_INT,              &num_wq_vars       },
           { "wq_names",          TYPE_STR|MASK_LIST,    &wq_names          },
           { "wq_init_vals",      TYPE_DOUBLE|MASK_LIST, &wq_init_vals      },
-          { "snow_thickness", 		 TYPE_DOUBLE,		&snow_thickness	   },
-          { "white_ice_thickness",  TYPE_DOUBLE,		&white_ice_thickness  },
-          { "blue_ice_thickness", 	 TYPE_DOUBLE,		&blue_ice_thickness   },
+          { "snow_thickness",    TYPE_DOUBLE,           &snow_thickness    },
+          { "white_ice_thickness", TYPE_DOUBLE,         &white_ice_thickness  },
+          { "blue_ice_thickness", TYPE_DOUBLE,          &blue_ice_thickness   },
           { NULL,                TYPE_END,              NULL               }
     };
 
@@ -1486,14 +1462,13 @@ void initialise_lake(int namlst)
 
     SurfData.delzWhiteIce = white_ice_thickness;
     SurfData.delzBlueIce = blue_ice_thickness;
-    
+
     //Initializing with non-zero snow thickness causes segmentation faults
     SurfData.delzSnow = zero;
-    
-    if(SurfData.delzBlueIce > 0.0 || SurfData.delzWhiteIce > 0.0){
-      ice = TRUE;
-    }
 
+    if (SurfData.delzBlueIce > 0.0 || SurfData.delzWhiteIce > 0.0) {
+        ice = TRUE;
+    }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
