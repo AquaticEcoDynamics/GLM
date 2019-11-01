@@ -267,19 +267,19 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
    lKw = pKw
 
 #ifdef __INTEL_COMPILER
-   print *,'glm_aed2 built using intel fortran version ', __INTEL_COMPILER
+   print *,'     glm_aed2 built using intel fortran version ', __INTEL_COMPILER
 #else
 # ifdef __PGI
-   print *,'glm_aed2 built using pgfortran version ', __PGIC__, '.', __PGIC_MINOR__, '.', __PGIC_PATCHLEVEL__
+   print *,'     glm_aed2 built using pgfortran version ', __PGIC__, '.', __PGIC_MINOR__, '.', __PGIC_PATCHLEVEL__
 # else
-   print *,'glm_aed2 built using gfortran version ', __GNUC__, '.', __GNUC_MINOR__, '.', __GNUC_PATCHLEVEL__
+   print *,'     glm_aed2 built using gfortran version ', __GNUC__, '.', __GNUC_MINOR__, '.', __GNUC_PATCHLEVEL__
 # endif
 #endif
-   print *,'init_glm_aed2 using: ', TRIM(fname)
+   print *,'     libaed2 enabled.... init_glm_aed2 using: ', TRIM(fname)
    namlst = f_get_lun()
 
    write(*,"(/,5X,'---------- AED2 config : start ----------')")
-   IF ( aed2_init_core('.') /= 0 ) STOP "Initialisation of aed2_core failed"
+   IF ( aed2_init_core('.') /= 0 ) STOP "     ERROR: Initialisation of aed2_core failed"
    CALL aed2_print_version
 
    !# Create model tree

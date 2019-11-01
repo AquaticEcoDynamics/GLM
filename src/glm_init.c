@@ -514,19 +514,19 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     //-------------------------------------------------
     // Open the namelist file.
     if ( (namlst = open_namelist(glm_nml_file)) < 0 ) {
-        fprintf(stderr,"\nError opening the glm namelist file %s\n", glm_nml_file);
+        fprintf(stderr,"\n     ERROR opening the glm namelist file %s\n", glm_nml_file);
         if (strcmp(glm_nml_file, DEFAULT_GLM_NML) == 0) {
-            fprintf(stderr, "Trying %s\n", DEFAULT_GLM_NML_2);
+            fprintf(stderr, "     Trying %s\n", DEFAULT_GLM_NML_2);
             strcpy(glm_nml_file, DEFAULT_GLM_NML_2);
             if ( (namlst = open_namelist(glm_nml_file)) < 0 ) {
-                fprintf(stderr,"\nError opening the glm namelist file %s\n", glm_nml_file);
+                fprintf(stderr,"\n     ERROR opening the glm namelist file %s\n", glm_nml_file);
                 exit(1);
             }
         } else
             exit(1);
     }
 
-    fprintf(stderr, "\nReading config from %s\n", glm_nml_file);
+    fprintf(stderr, "\n     Reading configuration from %s\n", glm_nml_file);
 
     //-------------------------------------------------
     // Set some default values
@@ -535,7 +535,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     //-------------------------------------------------
     if ( get_namelist(namlst, glm_setup) != 0 ) {
-       fprintf(stderr,"\nError reading the 'glm_setup' namelist from %s\n", glm_nml_file);
+       fprintf(stderr,"\n     ERROR reading the 'glm_setup' namelist from %s\n", glm_nml_file);
        exit(1);
     }
 
@@ -546,7 +546,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     //-------------------------------------------------
     if ( get_namelist(namlst, mixing) ) {
-        fprintf(stderr,"\nError reading the 'mixing' namelist from %s\n", glm_nml_file);
+        fprintf(stderr,"\n     ERROR reading the 'mixing' namelist from %s\n", glm_nml_file);
         exit(1);
     }
 
@@ -576,7 +576,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     //-------------------------------------------------
     if ( get_namelist(namlst, time) ) {
-        fprintf(stderr,"Error reading the 'time' namelist from %s\n", glm_nml_file);
+        fprintf(stderr,"\n     ERROR reading the 'time' namelist from %s\n", glm_nml_file);
         exit(1);
     }
     // set met, inflow and outflow data file timezones to be the default value.
@@ -587,7 +587,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     nDays = num_days;
     timestep = dt;
 
-    if (quiet < 2) printf("nDays %d timestep %f\n", nDays, timestep);
+    if (quiet < 2) printf("\n     nDays= %d; timestep= %f (s)\n", nDays, timestep);
 
     //-------------------------------------------------
     create_lake(namlst);
@@ -598,7 +598,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     csv_lake_fname = NULL;
 
     if ( get_namelist(namlst, output) ) {
-        fprintf(stderr,"Error in output parameters specified");
+        fprintf(stderr,"\n     ERROR in output parameters specified");
         strcpy(outp_dir, ".");
         strcpy(outp_fn, "output");
         *nsave = 24;
@@ -650,7 +650,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     configure_outfl_csv(csv_outlet_allinone, csv_outlet_fname, csv_outlet_nvars, csv_ovrflw_fname);
 
     //--------------------------------------------------------------------------
-    // met
+    // meteorology
     wind_factor = 1.0;
     sw_factor = 1.0;
     lw_factor = 1.0;
@@ -660,7 +660,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     rain_factor = 1.0;
 
     if ( get_namelist(namlst, meteorology) ) {
-        fprintf(stderr,"Error reading 'meteorology' from namelist file %s\n", glm_nml_file);
+        fprintf(stderr,"\n     ERROR reading 'meteorology' from namelist file %s\n", glm_nml_file);
         exit(1);
     }
 
@@ -673,7 +673,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     else if ( strcmp(lw_type, "LW_NET") == 0 )
         lw_ind = LW_NET;
     else {
-        fprintf(stderr," Error in long wave type : '%s' unknown\n", lw_type);
+        fprintf(stderr,"\n     ERROR in long-wave type : '%s' unknown\n", lw_type);
         exit(1);
     }
     coef_wind_drag = CD;
@@ -681,7 +681,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     //-------------------------------------------------
     if ( get_namelist(namlst, light) ) {
-        fprintf(stderr,"\nError reading the 'light' namelist from %s\n", glm_nml_file);
+        fprintf(stderr,"\n     ERROR reading the 'light' namelist from %s\n", glm_nml_file);
         exit(1);
     }
     if ( Kw_file != NULL ) open_kw_file(Kw_file, timefmt_m);
@@ -696,7 +696,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     if ( get_namelist(namlst, snowice) ) {
          snow_sw = FALSE;
-         fprintf(stderr,"No snow and ice section, setting default parameters and assuming no snowfall\n");
+         fprintf(stderr,"     No 'snowice' section, setting defaults & assuming no snowfall\n");
     } else
          snow_sw = TRUE;
 
@@ -708,24 +708,18 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
          fetch_sw = TRUE;
 
     //--------------------------------------------------------------------------
-    // sediment heat (sed_heat)
-    if (quiet < 2) printf("*starting sediment = %10.5f\n",sed_heat_Ksoil);
-
+    // sediment heat
     sed_heat_Ksoil     = 5.0;
     sed_temp_depth     = 0.1;
-//  sed_temp_mean[0]   = 9.7;
-    if (quiet < 2) printf("*starting sediment = %10.5f\n",sed_temp_depth);
-//  sed_temp_amplitude = 2.7;
-//  sed_temp_peak_doy  = 151;
     if ( get_namelist(namlst, sediment) ) {
         sed_heat_sw = FALSE;
-        fprintf(stderr,"No sediment section, turning off sediment heating\n");
+        fprintf(stderr,"     No 'sediment' section, turning off sediment heating\n");
     } else {
         sed_heat_sw = TRUE;
-        fprintf(stderr,"Sediment section present, simulating sediment heating\n");
+        fprintf(stderr,"     'sediment' section present, simulating sediment heating\n");
         if (sed_temp_mean != NULL && quiet < 2) {
-            printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[0]);
-            printf("*sed_temp_mean = %10.5f\n",sed_temp_mean[1]);
+            printf("     *sed_temp_mean = %10.5f\n",sed_temp_mean[0]);
+            printf("     *sed_temp_mean = %10.5f\n",sed_temp_mean[1]);
         }
     }
     if ( sed_reflectivity == NULL ) {
@@ -736,11 +730,11 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     if ( n_zones > 0 && zone_heights != NULL ) {
         if ( zone_heights[n_zones-1] < (max_elev-base_elev) ) {
-            fprintf(stderr, "WARNING last zone height is less than maximum depth\n");
-            fprintf(stderr, "   adding an extra zone to compensate\n");
+            fprintf(stderr, "     WARNING last zone height is less than maximum depth\n");
+            fprintf(stderr, "        ... adding an extra zone to compensate\n");
             zone_heights = realloc(zone_heights, (n_zones+2)*sizeof(AED_REAL));
             if ( zone_heights == NULL) {
-                fprintf(stderr, "Memory error ...\n"); exit(1);
+                fprintf(stderr, "     Memory ERROR ...\n"); exit(1);
             }
             zone_heights[n_zones++] = (max_elev-base_elev)+1;
         }
@@ -771,9 +765,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     }
 
     if (benthic_mode > 1 && n_zones <= 0) {
-        fprintf(stderr, "benthic mode > 1 but no zones defined; reverting to benthic mode 1\n");
+        fprintf(stderr, "     NOTE: benthic_mode > 1 but no zones defined; reverting to benthic_mode 1\n");
         benthic_mode = 1;
     }
+
 /*
 fprintf(stderr, "n_zones %d\n", n_zones);
 for (i = 0; i < n_zones; i++) {
@@ -819,17 +814,17 @@ for (i = 0; i < n_zones; i++) {
     if ( get_namelist(namlst, inflow) ) {
         NumInf = 0;
         if ( num_inflows == 0 )
-            fprintf(stderr, "No inflow config, assuming no inflows\n");
+            fprintf(stderr, "     No 'inflow' config, assuming no inflows\n");
         else {
             if ( num_inflows > MaxInf )
-                fprintf(stderr, "Too many inflows specified in inflow config %d > %d\n", num_inflows, MaxInf);
+                fprintf(stderr, "     Too many inflows specified in inflow config %d > %d\n", num_inflows, MaxInf);
             else
-                fprintf(stderr, "Unknown error in inflow config\n");
+                fprintf(stderr, "     Unknown ERROR in inflow config\n");
             exit(1);
         }
     } else {
         if ( num_inflows > MaxInf ) {
-            fprintf(stderr, "Too many inflows specified in inflow config %d > %d\n", num_inflows, MaxInf);
+            fprintf(stderr, "     ERROR: Too many inflows specified in 'inflow' config %d > %d\n", num_inflows, MaxInf);
             exit(1);
         }
         NumInf = num_inflows;
@@ -850,11 +845,11 @@ for (i = 0; i < n_zones; i++) {
     seepage = FALSE; seepage_rate = 0.0;
 
     if ( get_namelist(namlst, outflow) ) {
-        fprintf(stderr, "No outflow config, assuming no outflows\n");
+        fprintf(stderr, "     No 'outflow' config, assuming no outflows\n");
         NumOut = 0;
     } else {
         if ( num_outlet > MaxOut) {
-            fprintf(stderr, "Too many outlets specified in outflow config %d > %d\n", num_outlet, MaxOut);
+            fprintf(stderr, "     ERROR: Too many outlets specified in 'outflow' config %d > %d\n", num_outlet, MaxOut);
             exit(1);
         }
         NumOut = num_outlet;
@@ -873,7 +868,7 @@ for (i = 0; i < n_zones; i++) {
                 if ( (outlet_type[i] > 0) && (outlet_type[i] <= 5) ) {
                     Outflows[i].Type = outlet_type[i];
                 } else {
-                    fprintf(stderr, "Wrong outlet type\n");
+                    fprintf(stderr, "     ERROR: Wrong outlet type\n");
                     exit(1);
                 }
             }
@@ -885,7 +880,7 @@ for (i = 0; i < n_zones; i++) {
             if ( Outflows[i].FloatOff ) {
                 if ( (outl_elvs[i] > (max_elev-base_elev)) || (outl_elvs[i] < 0.0) ) {
                     fprintf(stderr,
-                    "Depth of floating outflow (%124lf) is above lake surface or deeper than lake depth (%12.4lf)\n",
+                    "     ERROR: Depth of floating outflow (%124lf) is above lake surface or deeper than lake depth (%12.4lf)\n",
                                     outl_elvs[i], max_elev - base_elev);
                     exit(1);
                 }
@@ -893,7 +888,7 @@ for (i = 0; i < n_zones; i++) {
             } else {
                 if ( (outl_elvs[i] > crest_elev) || (outl_elvs[i] < base_elev) ) {
                     fprintf(stderr,
-                    "Outflow elevation (%124lf) above crest elevation (%12.4lf) or below base elevation (%12.4lf)\n",
+                    "     ERROR: Outflow elevation (%124lf) above crest elevation (%12.4lf) or below base elevation (%12.4lf)\n",
                                     outl_elvs[i], crest_elev, base_elev);
                     exit(1);
                 }
@@ -913,7 +908,7 @@ for (i = 0; i < n_zones; i++) {
     }
     if ( outlet_crit != NULL ) { // only relevant if we have defined it.
         if ((crit_O2 < 0) || (crit_O2_dep < base_elev) || (crit_O2_days < 1)) {
-            fprintf(stderr, "crit_O2 < 0 or crit_O2_dep < base elevation or crit_O2_days < 1\n");
+            fprintf(stderr, "     ERROR: crit_O2 < 0 or crit_O2_dep < base elevation or crit_O2_days < 1\n");
             exit(1);
         }
     }
@@ -927,15 +922,15 @@ for (i = 0; i < n_zones; i++) {
     if (withdrTemp_fl != NULL) open_withdrtemp_file(withdrTemp_fl, timefmt_o);
 
     if ( timefmt != 2 && timefmt != 3 ) {
-        fprintf(stderr, "invalid time format \"%d\"\n", timefmt);
+        fprintf(stderr, "     ERROR: invalid time format \"%d\"\n", timefmt);
         exit(1);
     }
     if ( start == NULL ) {
-        fprintf(stderr, "Start date is required\n"); exit(1);
+        fprintf(stderr, "     ERROR: Start date is required\n"); exit(1);
     }
     if ( timefmt == 2 ) {
         if ( stop == NULL ) {
-            fprintf(stderr, "Stop date is required for timefmt == 2\n"); exit(1);
+            fprintf(stderr, "     ERROR: Stop date is required if timefmt == 2\n"); exit(1);
         }
     }
 /*
@@ -972,9 +967,9 @@ for (i = 0; i < n_zones; i++) {
 
         prime_wq(wq_lib);
         wq_init_glm(wq_nml_file, &l, &MaxLayers, &Num_WQ_Vars, &Num_WQ_Ben, &Kw); // Reads WQ namelist file
-        fprintf(stderr, "Num_WQ_Vars = %d\n", Num_WQ_Vars);
+        fprintf(stderr, "     WQ plugin enabled: included Num_WQ_Vars = %d\n", Num_WQ_Vars);
         if ( Num_WQ_Vars > MaxVars ) {
-            fprintf(stderr, "Sorry, this version of GLM only supports %d water quality variables\n", MaxVars);
+            fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", MaxVars);
             exit(1);
         }
     }
@@ -1003,7 +998,7 @@ for (i = 0; i < n_zones; i++) {
 
         if ( benthic_mode > 1 ) {
             if ( (n_zones <= 0 || zone_heights == NULL) ) {
-                fprintf(stderr, "benthic mode %d must define zones\n", benthic_mode);
+                fprintf(stderr, "     benthic_mode %d must define zones\n", benthic_mode);
                 exit(1);
             } else
                 wq_set_glm_zones(zone_heights, &n_zones, &Num_WQ_Vars, &Num_WQ_Ben);
@@ -1014,7 +1009,7 @@ for (i = 0; i < n_zones; i++) {
                 size_t tl = strlen(O2name[j]);
                 O2idx = wq_var_index_c(O2name[j],&tl);
                 if (O2idx < 0) {
-                    fprintf(stderr, "Wrong oxygen name for outlet %3d ?\n",j+1); // How does it exit???
+                    fprintf(stderr, "     wrong oxygen name for outlet %3d ?\n",j+1); // How does it exit???
                     Outflows[j].O2idx = -1;
                 } else  {
                     Outflows[j].O2idx = O2idx;
@@ -1094,32 +1089,32 @@ void create_lake(int namlst)
     crest_elev = MISVAL;
     //-------------------------------------------------
     if ( get_namelist(namlst, morphometry) ) {
-        fprintf(stderr,"Error reading the 'morphometry' namelist from %s\n", glm_nml_file);
+        fprintf(stderr,"     ERROR: reading the 'morphometry' namelist from %s\n", glm_nml_file);
         exit(1);
     }
 
     if (base_elev != MISVAL ) {
-        fprintf(stderr, "value for base_elev is no longer used; A[1] is assumed.\n");
+        fprintf(stderr, "     NOTE: value for base_elev is no longer used; A[1] is assumed.\n");
     }
     if ( V != NULL ) {
-        fprintf(stderr, "values for V are no longer used\n");
+        fprintf(stderr, "     NOTE: values for V are no longer used\n");
         V = NULL;
     }
 
     base_elev = H[0];  max_elev = H[bsn_vals-1];
     if ( crest_elev == MISVAL ) {
-        fprintf(stderr, "values for crest_elev not provided, assuming max elevation, H[bsn]\n");
+        fprintf(stderr, "     NOTE: values for crest_elev not provided, assuming max elevation, H[bsn]\n");
         crest_elev = H[bsn_vals-1];
     }
     if (crest_elev > max_elev) crest_elev = max_elev;
 
     if (quiet < 2) {
-        printf("Maximum lake depth is %f\n", max_elev - base_elev);
-        printf("Depth where flow will occur over the crest is %f\n", crest_elev - base_elev);
+        printf("     Maximum lake depth is %f\n", max_elev - base_elev);
+        printf("     Depth where flow will occur over the crest is %f\n", crest_elev - base_elev);
     }
 
     if ( (MaxLayers * DMax) < (max_elev - base_elev) ) {
-        fprintf(stderr, "Configuration Error. MaxLayers * max_layer_height < depth of the lake\n");
+        fprintf(stderr, "Configuration ERROR. MaxLayers * max_layer_height < depth of the lake\n");
         exit(1);
     }
 
@@ -1133,8 +1128,8 @@ void create_lake(int namlst)
     V[0] = 0.;
     for (b = 1; b < bsn_vals; b++) {
         if ( (A[b] < A[b-1]) || (H[b] < H[b-1]) ) {
-            fprintf(stderr, "Error. H and A in morphometry must be monotonically increasing\n");
-            fprintf(stderr, "A[%d] = %f; A[%d] = %f; H[%d] = %f; H[%d] = %f\n",
+            fprintf(stderr, "     ERROR: H and A in morphometry must be monotonically increasing\n");
+            fprintf(stderr, "     A[%d] = %f; A[%d] = %f; H[%d] = %f; H[%d] = %f\n",
                              b-1, A[b-1], b, A[b], b-1, H[b-1], b, H[b]);
             exit(1);
         }
@@ -1287,7 +1282,7 @@ void create_lake(int namlst)
     } else
         VolAtCrest = MphLevelVol[0];
 
-    fprintf(stderr,"VolAtCrest= %10.5f, and Max Lake Vol= %10.5f (m3)\n", VolAtCrest, MaxVol);
+    fprintf(stderr,"     VolAtCrest= %10.5f; MaxVol= %10.5f (m3)\n", VolAtCrest, MaxVol);
 
     memcpy(MphLevelVoldash, MphLevelVol, sizeof(AED_REAL) * Nmorph);    // MphLevelVoldash = MphLevelVol;
     memcpy(dMphLevelVolda, dMphLevelVol, sizeof(AED_REAL) * Nmorph);    // dMphLevelVolda = dMphLevelVol;
@@ -1354,7 +1349,7 @@ void initialise_lake(int namlst)
     lake_depth = MISVAL;
     num_wq_vars = 0;
     if ( get_namelist(namlst, init_profiles) ) {
-        fprintf(stderr,"Error reading initial_profiles from namelist file %s\n", glm_nml_file);
+        fprintf(stderr,"     ERROR: reading initial_profiles from namelist file %s\n", glm_nml_file);
         exit(1);
     }
     if (! wq_calc) num_wq_vars = 0;
@@ -1369,7 +1364,7 @@ void initialise_lake(int namlst)
         }
 
         if (the_heights[num_depths-1] > CrestHeight) {
-            fprintf(stderr, "maximum height is greater than crest level\n");
+            fprintf(stderr, "     ERROR: maximum height is greater than crest level\n");
             exit(1);
         }
         num_depths = num_heights;
@@ -1377,7 +1372,7 @@ void initialise_lake(int namlst)
         // Initial values for the number of levels specified in the glm.nml file
         NumLayers = num_depths;
         if ( lake_depth == MISVAL ) {
-            fprintf(stderr, "the depths format requires a lake_depth value\n");
+            fprintf(stderr, "     ERROR: the depths format requires a lake_depth value\n");
             exit(1);
         }
         for (i = 0, j = num_depths-1; i < num_depths; i++, j--) {
@@ -1387,7 +1382,7 @@ void initialise_lake(int namlst)
         }
 
         if (the_depths[num_depths-1] > lake_depth ) {
-            fprintf(stderr, "last depth is greater the specified lake depth\n");
+            fprintf(stderr, "     ERROR: last depth is greater the specified lake depth\n");
             exit(1);
         }
     }
@@ -1403,7 +1398,7 @@ void initialise_lake(int namlst)
     }
 
     if ( (j = get_nml_listlen(namlst, "init_profiles", "wq_init_vals")) != (num_wq_vars * num_depths) )
-        fprintf(stderr, "WARNING: Initial profiles problem - expected %d wd_init_vals entries but got %d\n",
+        fprintf(stderr, "     WARNING: Initial profiles problem - expected %d wd_init_vals entries but got %d\n",
                                              (num_wq_vars * num_depths), j);
 
     // Likewise for each of the listed wq vars
@@ -1509,7 +1504,7 @@ static int init_time(const char *start, char *stop, int timefmt, int *startTOD, 
 
     switch (timefmt) {
         case INIT_T_STEP:
-            fprintf(stderr, "timefmt = 1 not supported\n");
+            fprintf(stderr, "     ERROR: timefmt = 1 not supported\n");
             exit(1);
             break;
         case INIT_T_BEGIN_END:
@@ -1532,7 +1527,7 @@ static int init_time(const char *start, char *stop, int timefmt, int *startTOD, 
             *stopTOD = *startTOD;
             break;
         default:
-            fprintf(stderr, "Invalid time format specified\n");
+            fprintf(stderr, "     ERROR: Invalid time format specified\n");
             exit(1);
             break;
     }
