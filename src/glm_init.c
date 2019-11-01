@@ -466,16 +466,15 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- %%NAMELIST sediment -------------------------------------------------*/
-    extern CLOGICAL         sed_heat_sw;
-    extern AED_REAL         sed_heat_Ksoil;
-    extern AED_REAL         sed_temp_depth;
-    extern AED_REAL         *sed_temp_mean       ;
-    extern AED_REAL         *sed_temp_amplitude  ;
-    extern AED_REAL         *sed_temp_peak_doy   ;
-    extern AED_REAL         *sed_reflectivity    ;
-    extern AED_REAL         *sed_roughness       ;
-//  extern AED_REAL          sed_temp_amplitude;
-//  extern AED_REAL          sed_temp_peak_doy;
+    extern CLOGICAL         sed_heat_sw         ;
+    extern AED_REAL         sed_heat_Ksoil      ;
+    extern AED_REAL         sed_temp_depth      ;
+    extern AED_REAL        *sed_temp_mean       ;
+    extern AED_REAL        *sed_temp_amplitude  ;
+    extern AED_REAL        *sed_temp_peak_doy   ;
+    extern AED_REAL        *sed_reflectivity    ;
+    extern AED_REAL        *sed_temp_model      ;
+    extern int              fetch_ndirs         ;
     //==========================================================================
     NAMELIST sediment[] = {
           { "sediment",          TYPE_START,            NULL                  },
@@ -489,6 +488,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "sed_temp_peak_doy", TYPE_DOUBLE|MASK_LIST, &sed_temp_peak_doy    },
           { "sed_heat_Ksoil",    TYPE_DOUBLE,           &sed_heat_Ksoil       },
           { "sed_temp_depth",    TYPE_DOUBLE,           &sed_temp_depth       },
+          { "sed_heat_model",    TYPE_INT,              &sed_heat_model       },
           { NULL,                TYPE_END,              NULL                  }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
@@ -716,10 +716,12 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         if (quiet < 2) fprintf(stderr,"     No 'sediment' section, turning off sediment heating\n");
     } else {
         sed_heat_sw = TRUE;
-        if (quiet < 2) fprintf(stderr,"     'sediment' section present, simulating sediment heating\n");
-        if (sed_temp_mean != NULL && quiet < 2) {
-            printf("       *sed_temp_mean = %10.5f\n",sed_temp_mean[0]);
-            printf("       *sed_temp_mean = %10.5f\n",sed_temp_mean[1]);
+        if (quiet < 2 && sed_heat_model > 0 ) fprintf(stderr,"     'sediment' section present, simulating sediment heating\n");
+      //  InitialTemp(int *m, const AED_REAL *depth, const AED_REAL *wv,
+      //                           const AED_REAL *topTemp, const AED_REAL *botTemp,
+      //                           const AED_REAL *nSPinUpDays, AED_REAL *tNew);
+        if (sed_temp_mean != NULL && quiet < 2 && sed_heat_model == 1 ) {
+            printf("       *sed_temp_mean[0] = %10.5f\n",sed_temp_mean[0]);
         }
     }
     if ( sed_reflectivity == NULL ) {

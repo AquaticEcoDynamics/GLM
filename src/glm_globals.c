@@ -180,6 +180,7 @@ AED_REAL snow_rho_min       = 50.;
 //------------------------------------------------------------------------------
 // SED_HEAT
 CLOGICAL sed_heat_sw        = FALSE;
+int  sed_heat_model         = 0;
 //AED_REAL sed_temp_mean      = 9.7;
 //AED_REAL sed_temp_amplitude = 2.7;
 //AED_REAL sed_temp_peak_doy  = 151.;

@@ -208,6 +208,7 @@ extern AED_REAL snow_rho_min;
 /*----------------------------------------------------------------------------*/
 // SEDIMENT
 extern CLOGICAL sed_heat_sw;
+extern int sed_heat_model;
 extern AED_REAL sed_heat_Ksoil;
 extern AED_REAL sed_temp_depth;
 extern AED_REAL *sed_temp_mean;

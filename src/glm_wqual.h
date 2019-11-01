@@ -119,7 +119,7 @@ void InitialTemp(int *m, const AED_REAL *depth, const AED_REAL *wv,
                          const AED_REAL *topTemp, const AED_REAL *botTemp,
                          const AED_REAL *nSPinUpDays, AED_REAL *tNew);
 void SoilTemp(int *m, const AED_REAL *depth, const AED_REAL *wv,
-                      const AED_REAL *topTemp, AED_REAL *temp);
+                      const AED_REAL *topTemp, AED_REAL *temp, AED_REAL *heatflux);
 
 #endif
 

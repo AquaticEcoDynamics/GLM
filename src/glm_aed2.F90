@@ -1524,17 +1524,18 @@ void InitialTemp(CINTEGER *m, const AED_REAL *depth, const AED_REAL *wv,
                          const AED_REAL *nSPinUpDays, AED_REAL *tNew);
 */
 
-SUBROUTINE GSoilTemp(m,depth,wv,topTemp,temp) BIND(C, name="SoilTemp")
+SUBROUTINE GSoilTemp(m,depth,wv,topTemp,temp,heatflux) BIND(C, name="SoilTemp")
    USE aed2_util
    INTEGER,intent(in) :: m
    AED_REAL,intent(in) :: depth(0:m+1), wv(m), topTemp
    AED_REAL,intent(inout) :: temp(m+1)
+   AED_REAL,intent(out) :: heatflux
 
-   CALL SoilTemp(m,depth,wv,topTemp,temp)
+   CALL SoilTemp(m,depth,wv,topTemp,temp,heatflux)
 END SUBROUTINE GSoilTemp
 /*
 void SoilTemp(CINTEGER *m, const AED_REAL *depth, const AED_REAL *wv,
-                      const AED_REAL *topTemp, AED_REAL *temp);
+                      const AED_REAL *topTemp, AED_REAL *temp, AED_REAL *heatflux);
 */
 
 #endif
