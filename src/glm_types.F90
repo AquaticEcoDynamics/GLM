@@ -130,6 +130,7 @@ MODULE glm_types
    !#===========================================================#!
    !# Structured type for Sediment Layer
    TYPE,BIND(C) :: SedLayerType
+      AED_REAL :: depth            !# Layer depth
       AED_REAL :: temp             !# Layer temperature
       AED_REAL :: vwc
       AED_REAL :: wq
@@ -137,8 +138,8 @@ MODULE glm_types
 
    !#===========================================================#!
    !# Structured type for iSediment Zones
-!  TYPE,BIND(C) :: ZoneType
-   TYPE :: ZoneType
+   TYPE,BIND(C) :: ZoneType
+      AED_REAL :: zheight
       AED_REAL :: zrad
       AED_REAL :: zsalt
       AED_REAL :: ztemp
@@ -157,8 +158,7 @@ MODULE glm_types
       AED_REAL :: z_sed_zones
       AED_REAL :: z_pc_wet
       CINTEGER :: n_sedLayers;     !# number of sediment layers
-      TYPE(C_PTR) :: c_layers      !# the C version of the below
-      TYPE(SedLayerType),DIMENSION(:),POINTER :: layers
+      TYPE(C_PTR) :: c_layers      !# array of sed layers
    END TYPE ZoneType
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

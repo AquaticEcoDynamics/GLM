@@ -215,6 +215,7 @@ typedef char filname[80];
    /*===========================================================*/
    // Structured type for Sediment Layer
    typedef struct  SedLayerType {
+      AED_REAL depth;            // Layer height
       AED_REAL temp;             // Layer temperature
       AED_REAL vwc;
       AED_REAL wq;
@@ -223,6 +224,7 @@ typedef char filname[80];
    /*===========================================================*/
    // Structured type for iSediment Zones
    typedef struct ZoneType {
+       AED_REAL zheight;
        AED_REAL zrad;
        AED_REAL zsalt;
        AED_REAL ztemp;
@@ -242,7 +244,6 @@ typedef char filname[80];
        AED_REAL z_pc_wet;
        int n_sedLayers;      // number of sediment layers
        SedLayerType *layers;
-       void *f_layers;       // the fortran version
    } ZoneType;
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

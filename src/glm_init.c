@@ -143,9 +143,6 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 //  LOGICAL         bioshade_feedback;
 //  LOGICAL         repair_state;
 //  CLOGICAL        mobility_off;
-//  int             benthic_mode;
-//  int             n_zones;
-//  AED_REAL       *zone_heights = NULL;
     //==========================================================================
     NAMELIST wq_setup[] = {
           { "wq_setup",          TYPE_START,            NULL                  },
@@ -299,7 +296,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL   *energy_frac;
     extern AED_REAL    Benthic_Imin;
 //  AED_REAL           Kw;
-    char           *Kw_file = NULL;
+    char              *Kw_file = NULL;
     //==========================================================================
     NAMELIST light[] = {
           { "light",             TYPE_START,            NULL                  },
@@ -466,16 +463,20 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- %%NAMELIST sediment -------------------------------------------------*/
-    extern CLOGICAL         sed_heat_sw;
-    extern AED_REAL         sed_heat_Ksoil;
-    extern AED_REAL         sed_temp_depth;
-    extern AED_REAL         *sed_temp_mean       ;
-    extern AED_REAL         *sed_temp_amplitude  ;
-    extern AED_REAL         *sed_temp_peak_doy   ;
-    extern AED_REAL         *sed_reflectivity    ;
-    extern AED_REAL         *sed_roughness       ;
-//  extern AED_REAL          sed_temp_amplitude;
-//  extern AED_REAL          sed_temp_peak_doy;
+//  int              benthic_mode;
+//  int              n_zones;
+    AED_REAL        *zone_heights = NULL;
+    extern CLOGICAL  sed_heat_sw;
+    extern int       sed_heat_model;
+    extern AED_REAL  sed_heat_Ksoil;
+    extern AED_REAL  sed_temp_depth;
+    extern AED_REAL *sed_temp_mean;
+    extern AED_REAL *sed_temp_amplitude;
+    extern AED_REAL *sed_temp_peak_doy;
+    extern AED_REAL *sed_reflectivity;
+    extern AED_REAL *sed_roughness;
+//  extern AED_REAL  sed_temp_amplitude;
+//  extern AED_REAL  sed_temp_peak_doy;
     //==========================================================================
     NAMELIST sediment[] = {
           { "sediment",          TYPE_START,            NULL                  },
@@ -744,8 +745,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
             }
             zone_heights[n_zones++] = (max_elev-base_elev)+1;
         }
-
-        zone_area = calloc(n_zones, sizeof(AED_REAL));
+        theZones = calloc(n_zones, sizeof(ZoneType));
+        for (i = 0; i < n_zones; i++) theZones[i].zheight = zone_heights[i];
     }
 
     /**************************************************************************
@@ -1005,8 +1006,9 @@ for (i = 0; i < n_zones; i++) {
             if ( (n_zones <= 0 || zone_heights == NULL) ) {
                 fprintf(stderr, "benthic mode %d must define zones\n", benthic_mode);
                 exit(1);
-            } else
-                wq_set_glm_zones(zone_heights, &n_zones, &Num_WQ_Vars, &Num_WQ_Ben);
+            } else {
+                wq_set_glm_zones(theZones, &n_zones, &Num_WQ_Vars, &Num_WQ_Ben);
+            }
         }
 
         for (j = 0; j < NumOut; j++) {
@@ -1150,11 +1152,11 @@ void create_lake(int namlst)
 
         /* Create the zone areas */
         if (benthic_mode > 1 && z < n_zones) {
-            if ( zone_heights[z] <= H[b] ) {
-                zone_area[z] = A[b];
+            if ( theZones[z].zheight <= H[b] ) {
+                theZones[z].zarea = A[b];
                 if ( b > 0 ) {
-                    zone_area[z] += A[b-1];
-                    zone_area[z] /= 2;
+                    theZones[z].zarea += A[b-1];
+                    theZones[z].zarea /= 2;
                 }
                 z++;
             }
@@ -1305,9 +1307,7 @@ void create_lake(int namlst)
  ******************************************************************************/
 void initialise_lake(int namlst)
 {
-    /*---------------------------------------------
-     * init_profiles
-     *-------------------------------------------*/
+    /*-- %%NAMELIST init_profiles --------------------------------------------*/
     AED_REAL        lake_depth;
     int             num_heights; // support the old way
     AED_REAL       *the_heights; // support the old way
@@ -1321,25 +1321,26 @@ void initialise_lake(int namlst)
     AED_REAL        snow_thickness = 0.0;
     AED_REAL        white_ice_thickness = 0.0;
     AED_REAL        blue_ice_thickness = 0.0;
-    /*-------------------------------------------*/
 
+    //==========================================================================
     NAMELIST init_profiles[] = {
-          { "init_profiles",     TYPE_START,            NULL               },
-          { "lake_depth",        TYPE_DOUBLE,           &lake_depth        },
-          { "num_heights",       TYPE_INT,              &num_heights       },
-          { "the_heights",       TYPE_DOUBLE|MASK_LIST, &the_heights       },
-          { "num_depths",        TYPE_INT,              &num_depths        },
-          { "the_depths",        TYPE_DOUBLE|MASK_LIST, &the_depths        },
-          { "the_temps",         TYPE_DOUBLE|MASK_LIST, &the_temps         },
-          { "the_sals",          TYPE_DOUBLE|MASK_LIST, &the_sals          },
-          { "num_wq_vars",       TYPE_INT,              &num_wq_vars       },
-          { "wq_names",          TYPE_STR|MASK_LIST,    &wq_names          },
-          { "wq_init_vals",      TYPE_DOUBLE|MASK_LIST, &wq_init_vals      },
-          { "snow_thickness",    TYPE_DOUBLE,           &snow_thickness    },
-          { "white_ice_thickness", TYPE_DOUBLE,         &white_ice_thickness  },
-          { "blue_ice_thickness", TYPE_DOUBLE,          &blue_ice_thickness   },
-          { NULL,                TYPE_END,              NULL               }
+          { "init_profiles",       TYPE_START,            NULL                },
+          { "lake_depth",          TYPE_DOUBLE,           &lake_depth         },
+          { "num_heights",         TYPE_INT,              &num_heights        },
+          { "the_heights",         TYPE_DOUBLE|MASK_LIST, &the_heights        },
+          { "num_depths",          TYPE_INT,              &num_depths         },
+          { "the_depths",          TYPE_DOUBLE|MASK_LIST, &the_depths         },
+          { "the_temps",           TYPE_DOUBLE|MASK_LIST, &the_temps          },
+          { "the_sals",            TYPE_DOUBLE|MASK_LIST, &the_sals           },
+          { "num_wq_vars",         TYPE_INT,              &num_wq_vars        },
+          { "wq_names",            TYPE_STR|MASK_LIST,    &wq_names           },
+          { "wq_init_vals",        TYPE_DOUBLE|MASK_LIST, &wq_init_vals       },
+          { "snow_thickness",      TYPE_DOUBLE,           &snow_thickness     },
+          { "white_ice_thickness", TYPE_DOUBLE,           &white_ice_thickness },
+          { "blue_ice_thickness",  TYPE_DOUBLE,           &blue_ice_thickness },
+          { NULL,                  TYPE_END,              NULL                }
     };
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
     int i, j, min_layers;
     int nx, np, nz;

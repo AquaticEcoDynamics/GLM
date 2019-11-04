@@ -226,7 +226,7 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
         set_plot_varname(theplots[i], vars[i]);
         if ( n_zones > 0 ) {
             int j;
-            for (j = 0; j < n_zones; j++) show_h_line(i, zone_heights[j]);
+            for (j = 0; j < n_zones; j++) show_h_line(i, theZones[j].zheight);
         } else {
             show_h_line(i, CrestHeight);
         }

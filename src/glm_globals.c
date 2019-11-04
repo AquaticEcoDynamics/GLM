@@ -180,16 +180,17 @@ AED_REAL snow_rho_min       = 50.;
 //------------------------------------------------------------------------------
 // SED_HEAT
 CLOGICAL sed_heat_sw        = FALSE;
-//AED_REAL sed_temp_mean      = 9.7;
-//AED_REAL sed_temp_amplitude = 2.7;
-//AED_REAL sed_temp_peak_doy  = 151.;
-AED_REAL  sed_heat_Ksoil     = 5.0;
-AED_REAL  sed_temp_depth     = 0.1;
-AED_REAL *sed_temp_mean = NULL;
+int      sed_heat_model     = 0;
+//AED_REAL sed_temp_mean        = 9.7;
+//AED_REAL sed_temp_amplitude   = 2.7;
+//AED_REAL sed_temp_peak_doy    = 151.;
+AED_REAL  sed_heat_Ksoil    = 5.0;
+AED_REAL  sed_temp_depth    = 0.1;
+AED_REAL *sed_temp_mean     = NULL;
 AED_REAL *sed_temp_amplitude = NULL;
 AED_REAL *sed_temp_peak_doy = NULL;
-AED_REAL *sed_reflectivity = NULL;
-AED_REAL *sed_roughness = NULL;
+AED_REAL *sed_reflectivity  = NULL;
+AED_REAL *sed_roughness     = NULL;
 
 //------------------------------------------------------------------------------
 // FETCH
@@ -223,9 +224,9 @@ int noSecs;
 
 AED_REAL *WQ_Vars = NULL;  //# water quality array, nlayers, nvars
 
-int       n_zones;
-AED_REAL *zone_heights = NULL;
-AED_REAL *zone_area = NULL;
+int       n_zones = 0;
+//AED_REAL *zone_heights = NULL;
+ZoneType *theZones = NULL;
 
 
 //------------------------------------------------------------------------------

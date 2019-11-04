@@ -57,7 +57,8 @@ MODULE glm_zones
 
    INTEGER :: n_zones, w_zones
 
-   TYPE(ZoneType),ALLOCATABLE,DIMENSION(:),TARGET :: theZones
+!  TYPE(ZoneType),ALLOCATABLE,DIMENSION(:),TARGET :: theZones
+   TYPE(ZoneType),DIMENSION(:),POINTER :: theZones
 
    AED_REAL,DIMENSION(:),POINTER :: zone_heights
    INTEGER :: nvars, nbenv
@@ -72,46 +73,33 @@ MODULE glm_zones
 CONTAINS
 
 !###############################################################################
-SUBROUTINE wq_set_glm_zones(z_heights, numZones, numVars, numBenV) BIND(C, name="wq_set_glm_zones")
+SUBROUTINE wq_set_glm_zones(Zones, numZones, numVars, numBenV) BIND(C, name="wq_set_glm_zones")
 !-------------------------------------------------------------------------------
 !ARGUMENTS
+!  AED_REAL,TARGET,INTENT(in) :: z_heights(1:numZones)
+   TYPE(C_PTR),VALUE :: Zones
    CINTEGER,INTENT(in) :: numZones, numVars, numBenV
-   AED_REAL,TARGET,INTENT(in) :: z_heights(1:numZones)
 !
 !LOCALS
    INTEGER :: i
    INTEGER :: n_sed_layers = 20
 !  AED_REAL :: surf
+   TYPE(SedLayerType),DIMENSION(:),POINTER :: layers
 !
 !-------------------------------------------------------------------------------
 !BEGIN
    n_zones = numZones
-   zone_heights => z_heights
    nvars = numVars
    nbenv = numBenV
+   CALL C_F_POINTER(Zones, theZones, [numZones]);
+   zone_heights => theZones%zheight
+!  CALL C_F_POINTER(z_heights, zone_heights, [numZones]);
+   DO i=1,n_zones
+!     ALLOCATE(theZones(i)%layers(n_sed_layers))
+      CALL C_F_POINTER(theZones(i)%c_layers, layers, [n_sed_layers]);
+   ENDDO
    ALLOCATE(z_cc(n_zones, numVars+numBenV))
    z_cc = 900.!   !MH if i initialise this in init then nothing happens so doing it here.
-!  ALLOCATE(zrad(n_zones))
-!  ALLOCATE(zsalt(n_zones))
-!  ALLOCATE(ztemp(n_zones))
-!  ALLOCATE(zrho(n_zones))
-!  ALLOCATE(zarea(n_zones))
-!  ALLOCATE(zextc_coef(n_zones))
-!  ALLOCATE(zlayer_stress(n_zones))
-!  ALLOCATE(ztss(n_zones))
-!  ALLOCATE(zdz(n_zones))
-!  ALLOCATE(zpar(n_zones))
-!  ALLOCATE(znir(n_zones))
-!  ALLOCATE(zuva(n_zones))
-!  ALLOCATE(zuvb(n_zones))
-!  ALLOCATE(zpres(n_zones))
-!  ALLOCATE(zdepth(n_zones))
-!  ALLOCATE(z_sed_zones(n_zones))
-!  ALLOCATE(z_pc_wet(n_zones))
-   ALLOCATE(theZones(n_zones))
-   DO i=1,n_zones
-      ALLOCATE(theZones(i)%layers(n_sed_layers))
-   ENDDO
 
 !  zdz(1) = z_dep(1)
 !  DO i=2,n_zones
@@ -336,5 +324,54 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
 END SUBROUTINE copy_to_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+
+!###############################################################################
+SUBROUTINE GInitialTemp(m,depth,wv,topTemp,botTemp,nSPinUpDays,tNew) BIND(C, name="InitialTemp")
+!-------------------------------------------------------------------------------
+   USE aed2_util
+!ARGUMENTS
+   INTEGER,intent(in)   :: m
+   AED_REAL,intent(in)  :: wv,depth(0:m+1)
+   AED_REAL,intent(in)  :: topTemp,botTemp,nSPinUpDays
+   AED_REAL,intent(out) :: tNew(0:m+1)
+!-------------------------------------------------------------------------------
+!BEGIN
+   CALL InitialTemp(m, depth, wv, topTemp, botTemp, nSPinUpDays, tNew)
+END SUBROUTINE GInitialTemp
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE ZSoilTemp(izone) BIND(C, name="ZSoilTemp")
+!-------------------------------------------------------------------------------
+   USE aed2_util
+!ARGUMENTS
+   TYPE(C_PTR),INTENT(inout) :: izone
+!LOCALS
+   TYPE(ZoneType),POINTER :: zone
+   TYPE(SedLayerType),DIMENSION(:),POINTER :: layers
+!-------------------------------------------------------------------------------
+!BEGIN
+   CALL C_F_POINTER(izone, zone);
+   CALL C_F_POINTER(zone%c_layers, layers, [zone%n_sedLayers]);
+   CALL SoilTemp(zone%n_sedLayers, layers%depth, layers%vwc, zone%ztemp, layers%temp)
+END SUBROUTINE ZSoilTemp
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE GSoilTemp(m,depth,wv,topTemp,temp) BIND(C, name="SoilTemp")
+!-------------------------------------------------------------------------------
+   USE aed2_util
+!ARGUMENTS
+   INTEGER,intent(in) :: m
+   AED_REAL,intent(in) :: depth(0:m+1), wv(m), topTemp
+   AED_REAL,intent(inout) :: temp(m+1)
+
+!-------------------------------------------------------------------------------
+!BEGIN
+   CALL SoilTemp(m, depth, wv, topTemp, temp)
+END SUBROUTINE GSoilTemp
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 END MODULE glm_zones

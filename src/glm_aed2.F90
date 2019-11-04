@@ -1504,35 +1504,4 @@ INTEGER FUNCTION WQVar_Index(name)
 END FUNCTION WQVar_Index
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-#if 1
-SUBROUTINE GInitialTemp(m,depth,wv,topTemp,botTemp,nSPinUpDays,tNew) BIND(C, name="InitialTemp")
-   USE aed2_util
-   INTEGER,intent(in)   :: m
-   AED_REAL,intent(in)  :: wv,depth(0:m+1)
-   AED_REAL,intent(in)  :: topTemp,botTemp,nSPinUpDays
-   AED_REAL,intent(out) :: tNew(0:m+1)
-
-   CALL InitialTemp(m,depth,wv,topTemp,botTemp,nSPinUpDays,tNew)
-END SUBROUTINE GInitialTemp
-/*
-void InitialTemp(CINTEGER *m, const AED_REAL *depth, const AED_REAL *wv,
-                         const AED_REAL *topTemp, const AED_REAL *botTemp,
-                         const AED_REAL *nSPinUpDays, AED_REAL *tNew);
-*/
-
-SUBROUTINE GSoilTemp(m,depth,wv,topTemp,temp) BIND(C, name="SoilTemp")
-   USE aed2_util
-   INTEGER,intent(in) :: m
-   AED_REAL,intent(in) :: depth(0:m+1), wv(m), topTemp
-   AED_REAL,intent(inout) :: temp(m+1)
-
-   CALL SoilTemp(m,depth,wv,topTemp,temp)
-END SUBROUTINE GSoilTemp
-/*
-void SoilTemp(CINTEGER *m, const AED_REAL *depth, const AED_REAL *wv,
-                      const AED_REAL *topTemp, AED_REAL *temp);
-*/
-
-#endif
-
 END MODULE glm_aed2

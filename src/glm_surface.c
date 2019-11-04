@@ -149,29 +149,29 @@ AED_REAL atm_density(AED_REAL atmosPressure, // (total) atmospheric pressure    
  * Performs thermal transfers across the lake surface (water and ice)         *
  ******************************************************************************/
 void do_surface_thermodynamics(int jday, int iclock, int LWModel,
-                              AED_REAL Latitude, AED_REAL SWOld, AED_REAL ShortWave)
+                          AED_REAL Latitude, AED_REAL SWOld, AED_REAL ShortWave)
 
    // LWModel   // type of longwave radiation
    // SWOld     // Total solar radiation at the surface for yesterday
    // ShortWave // Total solar radiation at the surface for today
 {
 /*----------------------------------------------------------------------------*/
-    const AED_REAL  K_ice_white = 2.3;     //# thermal conductivity of white ice
-    const AED_REAL  K_ice_blue = 2.0;      //# thermal conductivity of blue ice
-    const AED_REAL  K_water = 0.57;        //# molecular thermal conductivity of water
-    const AED_REAL  Latent_Heat_Fusion = 334000.0;  // latent heat of fusion J/kg both ice & snow
-    const AED_REAL  Temp_melt = 0.0;       //# temperature at which ice melts ~= temperature at which water freezes = 0.0oC
-    const AED_REAL  f_sw_wl1 = 0.7;        //# fraction of short wave radiation in first wavelength band
-    const AED_REAL  f_sw_wl2 = 0.3;        //# fraction of short wave radiation in second wavelength band
-    const AED_REAL  attn_ice_blue_wl1 = 1.5;   //# attenuation coefficient of the ice in the first spectral band
-    const AED_REAL  attn_ice_blue_wl2 = 20.;   //# attenuation coefficient of the ice in the second spectral band
-    const AED_REAL  attn_ice_white_wl1 = 6.0;  //# attenuation coefficient of the white ice in the first spectral band
-    const AED_REAL  attn_ice_white_wl2 = 20.;  //# attenuation coefficient of the white ice in the second spectral band
-    const AED_REAL  attn_snow_wl1 = 6.0;   //# attenuation coefficient of the snow in the first spectral band
-    const AED_REAL  attn_snow_wl2 = 20.;   //# attenuation coefficient of the snow in the second spectral band
-    const AED_REAL  rho_ice_blue = 917.0;  //# density of blue ice
-    const AED_REAL  rho_ice_white = 890.0; //# density of white ice
-    const AED_REAL  eps_water = 0.985;     //# emissivity of the water surface
+    const AED_REAL  K_ice_white = 2.3;             //# thermal conductivity of white ice
+    const AED_REAL  K_ice_blue = 2.0;              //# thermal conductivity of blue ice
+    const AED_REAL  K_water = 0.57;                //# molecular thermal conductivity of water
+    const AED_REAL  Latent_Heat_Fusion = 334000.0; //# latent heat of fusion J/kg both ice & snow
+    const AED_REAL  Temp_melt = 0.0;               //# temperature at which ice melts ~= temperature at which water freezes = 0.0oC
+    const AED_REAL  f_sw_wl1 = 0.7;                //# fraction of short wave radiation in first wavelength band
+    const AED_REAL  f_sw_wl2 = 0.3;                //# fraction of short wave radiation in second wavelength band
+    const AED_REAL  attn_ice_blue_wl1 = 1.5;       //# attenuation coefficient of the ice in the first spectral band
+    const AED_REAL  attn_ice_blue_wl2 = 20.;       //# attenuation coefficient of the ice in the second spectral band
+    const AED_REAL  attn_ice_white_wl1 = 6.0;      //# attenuation coefficient of the white ice in the first spectral band
+    const AED_REAL  attn_ice_white_wl2 = 20.;      //# attenuation coefficient of the white ice in the second spectral band
+    const AED_REAL  attn_snow_wl1 = 6.0;           //# attenuation coefficient of the snow in the first spectral band
+    const AED_REAL  attn_snow_wl2 = 20.;           //# attenuation coefficient of the snow in the second spectral band
+    const AED_REAL  rho_ice_blue = 917.0;          //# density of blue ice
+    const AED_REAL  rho_ice_white = 890.0;         //# density of white ice
+    const AED_REAL  eps_water = 0.985;             //# emissivity of the water surface
 /*----------------------------------------------------------------------------*/
 
 //  int nband = 4;
@@ -214,6 +214,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
     AED_REAL flankArea, NotPARLight_s, NotPARLight_sm1;
 
+
     //# NB These are set to 1.0 to remove a "possibly uninitialised" warning
     //#     They are initialised if litoral_sw is true, and only used if litoral_sw
     //#     so it should be OK, but should check from time to time.
@@ -229,6 +230,15 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
     //int nband, npoint;
     AED_REAL depth, rb, anglei, hdir, hdif;
+
+
+    int sed_layers = 12;
+    AED_REAL ztemp = 20.0;
+    AED_REAL soil_heat_flux, zone_temp;
+    AED_REAL *sed_depths=NULL;
+    AED_REAL *sed_vwc=NULL;
+    AED_REAL *sed_temps=NULL;
+
 
 /*----------------------------------------------------------------------------*/
 
@@ -1074,7 +1084,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         KSED = sed_heat_Ksoil;
 
         if (benthic_mode == 1) {
-            //# Apply the same sediment heating parameters across all layers
+            //# Apply the same sediment heating parameters across flanks of all layers
             kDays = day_of_year(jday);
             TYEAR = sed_temp_mean[0] + sed_temp_amplitude[0] * cos(((kDays-sed_temp_peak_doy[0])*2.*Pi)/365.);
             for (i = botmLayer+1; i <= surfLayer; i++) {
@@ -1091,29 +1101,59 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
             for (i = botmLayer; i <= surfLayer; i++) {
                 layer_zone[i] = 0;
                 for (z = 1; z < n_zones; z++) {
-                    if ((Lake[i].Height < zone_heights[z]) && (Lake[i].Height > zone_heights[z-1]))
+                    if ((Lake[i].Height < theZones[z].zheight) && (Lake[i].Height > theZones[z-1].zheight))
                         layer_zone[i] = z;
                 }
             }
             //# Now compute layer-specifc sed heating and increment temperature
-            for (i = botmLayer+1; i <= surfLayer; i++) {
-                TYEAR = sed_temp_mean[layer_zone[i]] +
-                        sed_temp_amplitude[layer_zone[i]] * cos(((kDays-sed_temp_peak_doy[layer_zone[i]])*2.*Pi)/365.);
-                Lake[i].Temp += ((KSED * (TYEAR - Lake[i].Temp) / ZSED) *
-                      (Lake[i].LayerArea - Lake[i-1].LayerArea) * noSecs) /
-                                    (SPHEAT * Lake[i].Density * Lake[i].LayerVol);
-            }
-            TYEAR = sed_temp_mean[0] + sed_temp_amplitude[0] * cos(((kDays-sed_temp_peak_doy[0])*2.*Pi)/365.);
-            Lake[botmLayer].Temp += ((KSED * (TYEAR - Lake[botmLayer].Temp) / ZSED) *
-                                        Lake[botmLayer].LayerArea * noSecs) /
+            if ( sed_heat_model == 2 ){
+              memset(sed_depths, 0, sizeof(AED_REAL)*sed_layers);
+              memset(sed_vwc, 0, sizeof(AED_REAL)*sed_layers);
+              memset(sed_temps, 0, sizeof(AED_REAL)*sed_layers);
+
+              for (z = 1; z < n_zones; z++) {
+                  // call the dynamic soil/sediment temperature model
+                  /*
+                  SoilTemp( &theZones[z].n_sedLayers,
+                             theZones[z].layers->depths,
+                             theZones[z].layers->vwc,
+                             theZones[z].ztemp,
+                             theZones[z].layers->temp );
+                            // &soil_heat_flux );
+                  */
+                  ZSoilTemp(&theZones[z]);
+                  // flux heat from the soil into the water, if the layer is over z
+                  for (i = botmLayer+1; i <= surfLayer; i++) {
+                    if (layer_zone[i] == z){
+                      Lake[i].Temp += soil_heat_flux
+                              * ((Lake[i].LayerArea - Lake[i-1].LayerArea) * noSecs)
+                              / (SPHEAT * Lake[i].Density * Lake[i].LayerVol);
+                    }
+                  }
+               }
+            } else if ( sed_heat_model == 1 ){
+              for (i = botmLayer+1; i <= surfLayer; i++) {
+                TYEAR = sed_temp_mean[layer_zone[i]]
+                        + sed_temp_amplitude[layer_zone[i]]
+                        * cos(((kDays-sed_temp_peak_doy[layer_zone[i]])*2.*Pi)/365.);
+                soil_heat_flux = KSED * (TYEAR - Lake[i].Temp) / ZSED;
+                Lake[i].Temp += soil_heat_flux
+                              * ((Lake[i].LayerArea - Lake[i-1].LayerArea) * noSecs)
+                              / (SPHEAT * Lake[i].Density * Lake[i].LayerVol);
+              }
+
+              TYEAR = sed_temp_mean[0] + sed_temp_amplitude[0] * cos(((kDays-sed_temp_peak_doy[0])*2.*Pi)/365.);
+              Lake[botmLayer].Temp += ((KSED * (TYEAR - Lake[botmLayer].Temp) / ZSED) *
+                                      Lake[botmLayer].LayerArea * noSecs) /
                                       (SPHEAT * Lake[botmLayer].Density*Lake[botmLayer].LayerVol);
+            }
         }
-        if (littoral_sw) {
-            TYEAR = sed_temp_mean[2] + sed_temp_amplitude[2] * cos(((kDays-sed_temp_peak_doy[2])*2.*Pi)/365.);
-            Lake[onshoreLayer].Temp += ((KSED * (TYEAR - Lake[onshoreLayer].Temp) / ZSED) * onshoreVol * noSecs) /
-                                            (SPHEAT * onshoreDensity * onshoreVol);
-       }
+//        if (littoral_sw) {
+//            TYEAR = sed_temp_mean[2] + sed_temp_amplitude[2] * cos(((kDays-sed_temp_peak_doy[2])*2.*Pi)/365.);
+//            Lake[onshoreLayer].Temp += ((KSED * (TYEAR - Lake[onshoreLayer].Temp) / ZSED) * onshoreVol * noSecs) /
+//                                            (SPHEAT * onshoreDensity * onshoreVol);
     }
+
 
     /**************************************************************************
      * SURFACE MASS FLUXES (NO ICE COVER PRESENT)
@@ -1165,10 +1205,10 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     for (i = botmLayer; i <= surfLayer; i++)
         Lake[i].Density = calculate_density(Lake[i].Temp,Lake[i].Salinity);
 
-    if (littoral_sw) {
-        onshoreDensity = calculate_density(Lake[onshoreLayer].Temp,Lake[surfLayer].Salinity);
-        offshoreDensity = calculate_density(Lake[onshoreLayer].Temp,Lake[surfLayer].Salinity);
-    }
+    //if (littoral_sw) {
+    //    onshoreDensity = calculate_density(Lake[onshoreLayer].Temp,Lake[surfLayer].Salinity);
+    //    offshoreDensity = calculate_density(Lake[onshoreLayer].Temp,Lake[surfLayer].Salinity);
+    //  }
 
     //# Check and set ice cover flag. To ensure ice is due a moving average
     //  of surface temperature is computed and used to assess ice-on event
