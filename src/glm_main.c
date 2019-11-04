@@ -123,14 +123,16 @@ int main(int argc, char *argv[])
 #endif
 
     if (quiet < 10) {
-        printf("       ----------------------------------------------------\n");
-        printf("       |  General Lake Model (GLM)   Version %-12s |\n", GLM_VERSION);
-        printf("       ----------------------------------------------------\n");
+        printf("     \n");
+        printf("    -------------------------------------------------------\n");
+        printf("    |  General Lake Model (GLM)   Version %-12s    |\n", GLM_VERSION);
+        printf("    -------------------------------------------------------\n");
+        printf("     \n");
 
 #ifdef __GNUC__
-        printf("glm built using gcc version %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+        printf("     glm built using gcc version %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
 #elif defined(_MSC_VER) && !defined(__INTEL_COMPILER)
-        printf("glm built using MSC version %ld\n", _MSC_VER);
+        printf("     glm built using MSC version %ld\n", _MSC_VER);
 #endif
     }
 
@@ -152,11 +154,12 @@ int main(int argc, char *argv[])
     }
     else if ( all_ok ) {
         if ( nmlfile != NULL ) strncpy(glm_nml_file, nmlfile, 256);
+
         run_model();
 
         if (quiet < 10) {
-            printf("------------------------------------------------\n");
-            printf("              Run Complete\n");
+            printf("    Model Run Complete\n");
+            printf("    -------------------------------------------------------\n\n");
         }
     }
 

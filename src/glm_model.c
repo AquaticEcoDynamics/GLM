@@ -121,19 +121,21 @@ void run_model()
     init_model(&jstart, &nsave);
 
     begn = time(NULL);
-    if (quiet < 10) printf("Wall clock start time :  %s", ctime_r(&begn, buf));
+    if (quiet < 10) printf("\n     Wall clock start time :  %s", ctime_r(&begn, buf));
+
     if (non_avg)
         do_model_non_avg(jstart, nsave);
     else
         do_model(jstart, nsave);
+
     done = time(NULL);
-    if (quiet < 10) printf("Wall clock finish time : %s", ctime_r(&done, buf));
+    if (quiet < 10) printf("\n     Wall clock finish time : %s", ctime_r(&done, buf));
     ltd = difftime(done, begn);
     lth = ltd / 3600;
     ltm = (ltd - (lth * 3600)) / 60;
     lts = ltd - (lth * 3600) - (ltm * 60);
     if (quiet < 10)
-        printf("Wall clock runtime %d seconds : %02d:%02d:%02d [hh:mm:ss]\n", ltd, lth, ltm, lts);
+        printf("     Wall clock runtime was %d seconds : %02d:%02d:%02d [hh:mm:ss]\n", ltd, lth, ltm, lts);
 
     end_model();
 }
@@ -166,13 +168,11 @@ void init_model(int *jstart, int *nsave)
     //# Create the output files.
     init_output(*jstart, out_dir, out_fn, MaxLayers, Longitude, Latitude);
 
-    /*------------------------------------------------------------------------*
-     * Main run-time code begins here                                         *
-     *------------------------------------------------------------------------*/
-
     //# Calculate cumulative layer volumes from layer depths
     resize_internals(1, botmLayer);
-    check_layer_thickness();   //# Check layers for vmax,vmin
+
+    //# Check layers for vmax,vmin
+    check_layer_thickness();
 
     init_mixer();
 
@@ -259,7 +259,7 @@ void do_model(int jstart, int nsave)
      *  Start Simulation                                                      *
      *------------------------------------------------------------------------*/
 
-    fputs("Simulation begins...\n", stdout);
+    fputs("\n     Simulation begins...\n", stdout);
 
     ntot = 0;
     stepnum = 0;
@@ -331,17 +331,18 @@ void do_model(int jstart, int nsave)
         }
         SWnew = MetNew.ShortWave;
 
-//#if DEBUG
-//      fprintf(stderr, "------- next day - do_model -------\n");
-//#endif
+
+        //# Now enter into sub-daily calculations            ------>
+
         stepnum = do_subdaily_loop(stepnum, jday, stoptime, nsave, SWold, SWnew);
-//if ( n_steps_done > END_STEPS ) return;
 
-        //# End of forcing-mixing-diffusion loop
+        //# End of forcing-mixing-diffusion loop             ------>
 
+
+        //# Read & set today's outflow properties
         SurfData.dailyInflow = do_inflows(); //# Do inflow for all streams
 
-        //# Do withdrawal for all offtakes
+        //# Extract withdrawal from all offtakes
         SurfData.dailyOutflow = do_outflows(jday);
 
         //# Take care of any overflow
@@ -370,7 +371,7 @@ void do_model(int jstart, int nsave)
         else
 #endif
           if (quiet < 2) {
-            printf("Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
+            printf("     Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
             fflush(stdout);
         }
 
@@ -404,7 +405,7 @@ void do_model_non_avg(int jstart, int nsave)
 
 
     /**************************** Start Simulation ****************************/
-    fputs("Simulation begins...\n", stdout);
+    fputs("\n     Simulation begins...\n", stdout);
 
     ntot = 0; stepnum = 0; stoptime = iSecsPerDay; SWold = 0.;
 
@@ -420,7 +421,7 @@ void do_model_non_avg(int jstart, int nsave)
         //# If it is the last day, adjust the stop time for the day if necessary
         if(ntot == nDates) stoptime = stopTOD;
 
-        //# Initialise daily values for volume & heat balance output (lake.csv)
+        //# Initialise daily values for volume & heat balance reporting (lake.csv)
         SurfData.dailyRain    = 0.; SurfData.dailyEvap     = 0.;
         SurfData.dailyQsw     = 0.; SurfData.dailyQe       = 0.;
         SurfData.dailyQh      = 0.; SurfData.dailyQlw      = 0.;
@@ -429,7 +430,7 @@ void do_model_non_avg(int jstart, int nsave)
         SurfData.dailyzonL    = 0.; SurfData.dailyRunoff  = 0.;
         SurfData.albedo       = 1.;
 
-        //# Read & set today's inflow
+        //# Read & set today's inflow properties
         read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, WQNew);
 
         //# To get daily inflow (i.e. m3/day) times by SecsPerDay
@@ -442,7 +443,7 @@ void do_model_non_avg(int jstart, int nsave)
             }
         }
 
-        //# Read & set today's outflow
+        //# Read & set today's outflow properties
         read_daily_outflow(jday, NumOut, DrawNew);
         //# To get daily outflow (i.e. m3/day) times by SecsPerDay
         for (i = 0; i < NumOut; i++)
@@ -451,34 +452,34 @@ void do_model_non_avg(int jstart, int nsave)
         read_daily_withdraw_temp(jday, &WithdrTempNew);
         WithdrawalTemp = WithdrTempNew;
 
-        //# Read & set today's Kw (if being read in)
+        //# Read & set today's Kw (if it is being read in)
         read_daily_kw(jday, &DailyKw);
         for (i = 0; i <= MaxLayers; i++) Lake[i].ExtcCoefSW = DailyKw;
 
-        //# Read & set today's meterological data
+        //# Read & set today's meteorological data
         read_daily_met(jday, &MetData);
         SWnew = MetData.ShortWave;
 
+
         //# Now enter into sub-daily calculations            ------>
-//#if DEBUG
-//        fprintf(stderr, "------- next day - do_model_non_avg -------\n");
-//#endif
+
         stepnum = do_subdaily_loop(stepnum, jday, stoptime, nsave, SWold, SWnew);
-//if ( n_steps_done > END_STEPS ) return;
 
         //# End of forcing-mixing-diffusion loop             ------>
 
-        //# Do inflow for all streams
+
+        //# Insert inflows for all streams
         SurfData.dailyInflow = do_inflows();
 
         if(Lake[surfLayer].Vol1>zero) {
-          //# Do withdrawal for all offtakes
+          //# Extract withdrawal from all offtakes
           SurfData.dailyOutflow = do_outflows(jday);
 
           //# Take care of any overflow
           SurfData.dailyOverflow = do_overflow(jday);
         }
 
+        //# Enforce layer limits
         check_layer_thickness();
 
         /***********************************************************************
@@ -492,7 +493,7 @@ void do_model_non_avg(int jstart, int nsave)
         else
 #endif
           if (quiet < 2) {
-            printf("Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
+            printf("     Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
             fflush(stdout);
         }
 
@@ -527,7 +528,7 @@ void do_model_coupled(int step_start, int step_end,
     memset(WQNew, 0, sizeof(AED_REAL)*MaxInf*MaxVars);
 
     /**************************** Start Simulation ****************************/
-    fputs("Simulation begins...\n", stdout);
+    fputs("     Simulation begins...\n", stdout);
 
     ntot = 0;
     stepnum = 0;
@@ -611,7 +612,7 @@ void do_model_coupled(int step_start, int step_end,
         else
 #endif
           if (quiet < 2) {
-            printf("Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
+            printf("     Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
             fflush(stdout);
         }
 
@@ -645,7 +646,7 @@ void calc_mass_temp(const char *msg)
     Lake_Temp = Lake_Temp / Lake_Mass;
 
     if ( quiet < 5)
-        printf("%s Lake_Mass = %10.5f\t, Lake_Temp = %10.5f\n", msg, Lake_Mass/1e6, Lake_Temp);
+        printf("     %s Lake_Mass = %10.5f\t, Lake_Temp = %10.5f\n", msg, Lake_Mass/1e6, Lake_Temp);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -676,16 +677,8 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
         stepnum++;
         _dbg_time(jday, iclock);
 
-//printf("n0 = %d %d %d \n",surfLayer, botmLayer, NumLayers);
-//printf("n1 = %10.5f %10.5f\n",Lake[surfLayer].Vol1, Lake[botmLayer].Vol1);
-//printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);
-//printf("nh = %10.5f %10.5f %10.5f %10.5f\n",Lake[0].Height, Lake[1].Height,Lake[2].Height,Lake[3].Height);
-
         //# Thermal transfers are done by do_surface_thermodynamics
         do_surface_thermodynamics(jday, iclock, lw_ind, Latitude, SWold, SWnew);
-//dbgprt("surf[%d]: Temp = %f Density = %f botm(%d) Temp %f Density %f\n",
-//                                            surfLayer, Lake[surfLayer].Temp, Lake[surfLayer].Density,
-//                                            botmLayer, Lake[botmLayer].Temp, Lake[botmLayer].Density);
 
         //# Save surface light to use at end of sub-daily time loop
         Light_Surface = Lake[surfLayer].Light/0.45;
@@ -695,24 +688,16 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
             do_mixing();
 
 //      calc_mass_temp("After do_mixing");
-//printf("n3 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
-//printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);
-//printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
 
         //# Mix out instabilities, combine/split  layers
         check_layer_thickness();
         fix_radiation(Light_Surface);
-//printf("n4 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
-//printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);
-//printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
+
 
         if ( surface_mixing > -1 ){
              check_layer_stability();
              fix_radiation(Light_Surface);
         }
-//printf("n5 = %10.5f %10.5f\n",Lake[surfLayer].LayerVol, Lake[botmLayer].LayerVol);
-//printf("na = %10.5f %10.5f\n",Lake[surfLayer].LayerArea, Lake[botmLayer].LayerArea);
-//printf("nh = %10.5f %10.5f\n",Lake[surfLayer].Height, Lake[botmLayer].Height);
 
         // flag in &glm_setup (int deep_mixing 0 = off, >0 = on)
         if ( deep_mixing > 0 ) {
