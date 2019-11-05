@@ -67,7 +67,7 @@ extern int ncid;
 
 /* from glm_surf.F90 */
 extern int ice;
-
+extern AED_REAL AvgSurfTemp;
 /*----------------------------------------------------------------------------*/
 extern int MaxLayers;   //# Maximum number of layers in this sim
 extern int NumLayers;   //# current number of layers
