@@ -1319,6 +1319,7 @@ void initialise_lake(int namlst)
     AED_REAL        snow_thickness = 0.0;
     AED_REAL        white_ice_thickness = 0.0;
     AED_REAL        blue_ice_thickness = 0.0;
+    AED_REAL        avg_surf_temp = 6.0;
 
     //==========================================================================
     NAMELIST init_profiles[] = {
@@ -1334,8 +1335,9 @@ void initialise_lake(int namlst)
           { "wq_names",            TYPE_STR|MASK_LIST,    &wq_names           },
           { "wq_init_vals",        TYPE_DOUBLE|MASK_LIST, &wq_init_vals       },
           { "snow_thickness",      TYPE_DOUBLE,           &snow_thickness     },
-          { "white_ice_thickness", TYPE_DOUBLE,           &white_ice_thickness },
+          { "white_ice_thickness", TYPE_DOUBLE,           &white_ice_thickness},
           { "blue_ice_thickness",  TYPE_DOUBLE,           &blue_ice_thickness },
+          { "avg_surf_temp",       TYPE_DOUBLE,           &avg_surf_temp      },
           { NULL,                  TYPE_END,              NULL                }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
@@ -1468,6 +1470,8 @@ void initialise_lake(int namlst)
     if (SurfData.delzBlueIce > 0.0 || SurfData.delzWhiteIce > 0.0) {
         ice = TRUE;
     }
+    
+    AvgSurfTemp = avg_surf_temp;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
