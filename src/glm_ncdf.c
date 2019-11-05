@@ -55,7 +55,7 @@ static size_t start[4],edges[4];
 
 //# variable ids
 static int lon_id,lat_id,z_id,V_id,TV_id,Taub_id,NS_id,time_id;
-static int HICE_id,HSNOW_id,HWICE_id;
+static int HICE_id,HSNOW_id,HWICE_id, AvgSurfTemp_id;
 static int precip_id,evap_id,rho_id,rad_id,extc_id,i0_id,wnd_id;
 static int temp_id, salt_id, umean_id, uorb_id;
 
@@ -107,6 +107,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_var(ncid, "hice",  NC_REALTYPE, 1, dims, &HICE_id));
     check_nc_error(nc_def_var(ncid, "hsnow", NC_REALTYPE, 1, dims, &HSNOW_id));
     check_nc_error(nc_def_var(ncid, "hwice", NC_REALTYPE, 1, dims, &HWICE_id));
+    check_nc_error(nc_def_var(ncid, "avg_surf_temp", NC_REALTYPE, 1, dims, &AvgSurfTemp_id));
 
     /**************************************************************************
      * define variables                                                       *
@@ -157,6 +158,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     set_nc_attributes(ncid, HICE_id,   "meters",  "Height of Ice"   PARAM_FILLVALUE);
     set_nc_attributes(ncid, HSNOW_id,  "meters",  "Height of Snow"  PARAM_FILLVALUE);
     set_nc_attributes(ncid, HWICE_id,  "meters",  "Height of WhiteIce" PARAM_FILLVALUE);
+     set_nc_attributes(ncid, AvgSurfTemp_id,  "celsius",  "Running average surface temperature" PARAM_FILLVALUE);
 
     //# x,y,t
     set_nc_attributes(ncid, precip_id, "m/s",     "precipitation"   PARAM_FILLVALUE);
@@ -229,6 +231,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     store_nc_scalar(ncid,  HICE_id, T_SHAPE, SurfData.delzBlueIce);
     store_nc_scalar(ncid, HWICE_id, T_SHAPE, SurfData.delzWhiteIce);
     store_nc_scalar(ncid, HSNOW_id, T_SHAPE, SurfData.delzSnow);
+    store_nc_scalar(ncid, AvgSurfTemp_id, T_SHAPE, AvgSurfTemp);
 
     store_nc_scalar(ncid, precip_id, XYT_SHAPE, MetData.Rain);
     store_nc_scalar(ncid,   evap_id, XYT_SHAPE, SurfData.Evap);
