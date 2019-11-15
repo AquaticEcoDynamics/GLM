@@ -1115,8 +1115,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                   // call the dynamic soil/sediment temperature model
                   /*
                   SoilTemp( &theZones[z].n_sedLayers,
-                             theZones[z].layers->depths,
-                             theZones[z].layers->vwc,
+                             sed_depths,
+                             sed_vwc,
                              theZones[z].ztemp,
                              theZones[z].layers->temp );
                             // &soil_heat_flux );

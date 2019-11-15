@@ -743,6 +743,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
             zone_heights[n_zones++] = (max_elev-base_elev)+1;
         }
         theZones = calloc(n_zones, sizeof(ZoneType));
+        printf("     Sediment zones being set at %7.1f %7.1f %7.1f ... \n",zone_heights[0],zone_heights[1],zone_heights[2]);
         for (i = 0; i < n_zones; i++) theZones[i].zheight = zone_heights[i];
     }
 
@@ -1470,7 +1471,7 @@ void initialise_lake(int namlst)
     if (SurfData.delzBlueIce > 0.0 || SurfData.delzWhiteIce > 0.0) {
         ice = TRUE;
     }
-    
+
     AvgSurfTemp = avg_surf_temp;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
