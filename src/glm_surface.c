@@ -1118,7 +1118,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                              sed_depths,
                              sed_vwc,
                              theZones[z].ztemp,
-                             theZones[z].layers->temp );
+                             sed_temps );
                             // &soil_heat_flux );
                   */
                   ZSoilTemp(&theZones[z]);
