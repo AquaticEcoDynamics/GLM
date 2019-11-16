@@ -204,6 +204,23 @@ extern AED_REAL lw_offset ;
 extern AED_REAL snow_albedo_factor;
 extern AED_REAL snow_rho_max;
 extern AED_REAL snow_rho_min;
+extern AED_REAL snow_water_equivalent;
+extern AED_REAL snow_rain_compact;
+extern AED_REAL  K_ice_white;
+extern AED_REAL  K_ice_blue;
+extern AED_REAL  K_water;
+extern AED_REAL  f_sw_wl1;
+extern AED_REAL  f_sw_wl2;
+extern AED_REAL  attn_ice_blue_wl1;
+extern AED_REAL  attn_ice_blue_wl2;
+extern AED_REAL  attn_ice_white_wl1;
+extern AED_REAL  attn_ice_white_wl2;
+extern AED_REAL  attn_snow_wl1;
+extern AED_REAL  attn_snow_wl2;
+extern AED_REAL  rho_ice_blue;
+extern AED_REAL  rho_ice_white;
+extern AED_REAL  min_ice_thickness;
+extern AED_REAL  dt_iceon_avg;
 
 /*----------------------------------------------------------------------------*/
 // SEDIMENT

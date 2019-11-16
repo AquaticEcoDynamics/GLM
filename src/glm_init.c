@@ -429,16 +429,51 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- %%NAMELIST snowice --------------------------------------------------*/
-    extern AED_REAL         snow_albedo_factor;
-    extern AED_REAL         snow_rho_max;
-    extern AED_REAL         snow_rho_min;
+    extern AED_REAL snow_albedo_factor;
+    extern AED_REAL snow_rho_max;
+    extern AED_REAL snow_rho_min;
+    extern AED_REAL snow_water_equivalent;
+    extern AED_REAL snow_rain_compact;
+    extern AED_REAL K_ice_white;
+    extern AED_REAL K_ice_blue;
+    extern AED_REAL K_water;
+    extern AED_REAL f_sw_wl1;
+    extern AED_REAL f_sw_wl2;
+    extern AED_REAL attn_ice_blue_wl1;
+    extern AED_REAL attn_ice_blue_wl2;
+    extern AED_REAL attn_ice_white_wl1;
+    extern AED_REAL attn_ice_white_wl2;
+    extern AED_REAL attn_snow_wl1;
+    extern AED_REAL attn_snow_wl2;
+    extern AED_REAL rho_ice_blue;
+    extern AED_REAL rho_ice_white;
+    extern AED_REAL min_ice_thickness;
+    extern AED_REAL dt_iceon_avg;
+
     //==========================================================================
     NAMELIST snowice[] = {
-          { "snowice",           TYPE_START,            NULL                  },
-          { "snow_albedo_factor",TYPE_DOUBLE,           &snow_albedo_factor   },
-          { "snow_rho_max",      TYPE_DOUBLE,           &snow_rho_max         },
-          { "snow_rho_min",      TYPE_DOUBLE,           &snow_rho_min         },
-          { NULL,                TYPE_END,              NULL                  }
+          { "snowice",               TYPE_START,        NULL                  },
+          { "snow_albedo_factor",    TYPE_DOUBLE,       &snow_albedo_factor   },
+          { "snow_rho_max",          TYPE_DOUBLE,       &snow_rho_max         },
+          { "snow_rho_min",          TYPE_DOUBLE,       &snow_rho_min         },
+          { "snow_water_equivalent", TYPE_DOUBLE,       &snow_water_equivalent},
+          { "snow_rain_compact",     TYPE_DOUBLE,       &snow_rain_compact    },
+          { "K_ice_white",           TYPE_DOUBLE,       &K_ice_white          },
+          { "K_ice_blue",            TYPE_DOUBLE,       &K_ice_blue           },
+          { "K_water",               TYPE_DOUBLE,       &K_water              },
+          { "f_sw_wl1",              TYPE_DOUBLE,       &f_sw_wl1             },
+          { "f_sw_wl2",              TYPE_DOUBLE,       &f_sw_wl2             },
+          { "attn_ice_blue_wl1",     TYPE_DOUBLE,       &attn_ice_blue_wl1    },
+          { "attn_ice_blue_wl2",     TYPE_DOUBLE,       &attn_ice_blue_wl2    },
+          { "attn_ice_white_wl1",    TYPE_DOUBLE,       &attn_ice_white_wl1   },
+          { "attn_ice_white_wl2",    TYPE_DOUBLE,       &attn_ice_white_wl2   },
+          { "attn_snow_wl1",         TYPE_DOUBLE,       &attn_snow_wl1        },
+          { "attn_snow_wl2",         TYPE_DOUBLE,       &attn_snow_wl2        },
+          { "rho_ice_blue",          TYPE_DOUBLE,       &rho_ice_blue         },
+          { "rho_ice_white",         TYPE_DOUBLE,       &rho_ice_white        },
+          { "min_ice_thickness",     TYPE_DOUBLE,       &min_ice_thickness    },
+          { "dt_iceon_avg",          TYPE_DOUBLE,       &dt_iceon_avg         },
+          { NULL,                    TYPE_END,          NULL                  }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
