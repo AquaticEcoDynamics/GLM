@@ -93,7 +93,6 @@ SUBROUTINE wq_set_glm_zones(Zones, numZones, numVars, numBenV) BIND(C, name="wq_
    nbenv = numBenV
    CALL C_F_POINTER(Zones, theZones, [numZones]);
 
-   theZones(1)%zheight=14; theZones(2)%zheight=50; theZones(3)%zheight=80;
    zone_heights => theZones%zheight
 
    print *,'C_F_POINTER',zone_heights(:),theZones(1)%zheight,theZones(2)%zheight

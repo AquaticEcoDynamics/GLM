@@ -1163,7 +1163,7 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
               v = v + 1
               ws(:,i) = zero_
               ! only for state_vars that are not sheet
-              IF ( .NOT. ieee_is_nan(tv%mobility) ) THEN
+              IF ( .NOT. isnan(tv%mobility) ) THEN
                  ! default to ws that was set during initialisation
                  ws(1:wlev,i) = tv%mobility
                  IF(i == 14) print *,'ws',i,ws(1:wlev,i)
@@ -1186,7 +1186,7 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
             IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern)   ) THEN
                v = v + 1
                !# only for state_vars that are not sheet, and also non-zero ws
-               IF ( .NOT. ieee_is_nan(tv%mobility) .AND. SUM(ABS(ws(1:wlev,i)))>zero_ ) THEN
+               IF ( .NOT. isnan(tv%mobility) .AND. SUM(ABS(ws(1:wlev,i)))>zero_ ) THEN
                   min_C = tv%minimum
                   CALL Mobility(wlev, dt, dz, area, ws(:, i), min_C, cc(:, v))
                ENDIF
