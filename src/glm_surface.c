@@ -104,7 +104,7 @@ static AED_REAL  Q_surflayer;  // Heat flux through the water surface
 static AED_REAL  Q_underflow;  // Heat flux through water due to flow under the ice
 //static AED_REAL  U_flow;     // Velocity estimate of the underflow
 
-static AED_REAL  snow_rain_compact = 1. ; //update based on timestep and scaling
+//static AED_REAL  snow_rain_compact = 1. ; //update based on timestep and scaling
 
 void recalc_surface_salt(void);
 
@@ -132,7 +132,7 @@ AED_REAL atm_density(AED_REAL atmosPressure, // (total) atmospheric pressure    
     // Dry air
     return (p_atm)/(287.058 * (AirTemp + Kelvin));
 */
-  //r_o = humidity_surface/(1-humidity_surface/c_gas);
+    //r_o = humidity_surface/(1-humidity_surface/c_gas);
 
     // Moist air
     // mixing ratio: r = Mwater/(Mwater+Mdry_air)
@@ -156,21 +156,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
    // ShortWave // Total solar radiation at the surface for today
 {
 /*----------------------------------------------------------------------------*/
-    const AED_REAL  K_ice_white = 2.3;             //# thermal conductivity of white ice
-    const AED_REAL  K_ice_blue = 2.0;              //# thermal conductivity of blue ice
-    const AED_REAL  K_water = 0.57;                //# molecular thermal conductivity of water
-    const AED_REAL  Latent_Heat_Fusion = 334000.0; //# latent heat of fusion J/kg both ice & snow
     const AED_REAL  Temp_melt = 0.0;               //# temperature at which ice melts ~= temperature at which water freezes = 0.0oC
-    const AED_REAL  f_sw_wl1 = 0.7;                //# fraction of short wave radiation in first wavelength band
-    const AED_REAL  f_sw_wl2 = 0.3;                //# fraction of short wave radiation in second wavelength band
-    const AED_REAL  attn_ice_blue_wl1 = 1.5;       //# attenuation coefficient of the ice in the first spectral band
-    const AED_REAL  attn_ice_blue_wl2 = 20.;       //# attenuation coefficient of the ice in the second spectral band
-    const AED_REAL  attn_ice_white_wl1 = 6.0;      //# attenuation coefficient of the white ice in the first spectral band
-    const AED_REAL  attn_ice_white_wl2 = 20.;      //# attenuation coefficient of the white ice in the second spectral band
-    const AED_REAL  attn_snow_wl1 = 6.0;           //# attenuation coefficient of the snow in the first spectral band
-    const AED_REAL  attn_snow_wl2 = 20.;           //# attenuation coefficient of the snow in the second spectral band
-    const AED_REAL  rho_ice_blue = 917.0;          //# density of blue ice
-    const AED_REAL  rho_ice_white = 890.0;         //# density of white ice
+    const AED_REAL  Latent_Heat_Fusion = 334000.0; //# latent heat of fusion J/kg both ice & snow
     const AED_REAL  eps_water = 0.985;             //# emissivity of the water surface
 /*----------------------------------------------------------------------------*/
 
@@ -496,7 +483,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
           // Snow cover as well as ice cover
           if (MetData.Snow > 0.0 && MetData.Rain >= 0.0) {
                 // Snowfall on snow
-                if (MetData.Rain == 0.0) MetData.Rain = MetData.Snow*0.10;  //Use 10:1 snow volume to water equivalent
+                if (MetData.Rain == 0.0) MetData.Rain = MetData.Snow*snow_water_equivalent; //0.10;
                 if (MetData.AirTemp > 0.0)
                     compact_snow = 0.166+0.834*(1.-exp(-1.*MetData.Rain/snow_rain_compact));
                 else
@@ -1115,10 +1102,10 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                   // call the dynamic soil/sediment temperature model
                   /*
                   SoilTemp( &theZones[z].n_sedLayers,
-                             theZones[z].layers->depths,
-                             theZones[z].layers->vwc,
+                             sed_depths,
+                             sed_vwc,
                              theZones[z].ztemp,
-                             theZones[z].layers->temp );
+                             sed_temps );
                             // &soil_heat_flux );
                   */
                   ZSoilTemp(&theZones[z]);
@@ -1210,34 +1197,38 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     //    offshoreDensity = calculate_density(Lake[onshoreLayer].Temp,Lake[surfLayer].Salinity);
     //  }
 
+
+    //printf(">min_ice_thickness = %10.5f\n",min_ice_thickness);
+
     //# Check and set ice cover flag. To ensure ice is due a moving average
     //  of surface temperature is computed and used to assess ice-on event
-    AED_REAL dt_ice_avg = MAX(0.5,noSecs/SecsPerDay);
-    AvgSurfTemp = AvgSurfTemp * (1 - (noSecs/SecsPerDay)/dt_ice_avg) +
-                  Lake[surfLayer].Temp * (noSecs/SecsPerDay)/dt_ice_avg ;
+    //AED_REAL dt_ice_avg = MAX(0.5,noSecs/SecsPerDay);
+    AED_REAL dt_ice_avg = MAX(dt_iceon_avg,noSecs/SecsPerDay);
+    AvgSurfTemp = AvgSurfTemp * (1 - (noSecs/SecsPerDay)/dt_ice_avg)
+                       + Lake[surfLayer].Temp * (noSecs/SecsPerDay)/dt_ice_avg ;
 
-    if (AvgSurfTemp <= 0.0 && SurfData.delzBlueIce == 0. && Lake[surfLayer].Height>0.1) {
+    if (AvgSurfTemp <= 0.0 && SurfData.delzBlueIce == 0.0 && Lake[surfLayer].Height>0.1) {
         // Start a new blue ice layer
         ice                     = TRUE;
-        SurfData.delzBlueIce    = 0.05;
-        SurfData.delzWhiteIce   = 0.00;
-        SurfData.delzSnow       = 0.00;
-        Lake[surfLayer].Height -= 0.05 * (rho_ice_blue/Lake[surfLayer].Density);
+        SurfData.delzBlueIce    = min_ice_thickness; //0.05;
+        SurfData.delzWhiteIce   = 0.0;
+        SurfData.delzSnow       = 0.0;
+        Lake[surfLayer].Height -= min_ice_thickness * (rho_ice_blue/Lake[surfLayer].Density);
 
         recalc_surface_salt();
     }
-    if ((SurfData.delzBlueIce+SurfData.delzWhiteIce) < 0.05  &&  ice) {
+    if ((SurfData.delzBlueIce+SurfData.delzWhiteIce) < min_ice_thickness && ice) {
         Lake[surfLayer].Height = Lake[surfLayer].Height
-         + SurfData.delzBlueIce  * (rho_ice_blue/Lake[surfLayer].Density)
-         + SurfData.delzWhiteIce * (rho_ice_white/Lake[surfLayer].Density)
-         + SurfData.delzSnow     * (rho_snow/Lake[surfLayer].Density);
+                + SurfData.delzBlueIce  * (rho_ice_blue/Lake[surfLayer].Density)
+                + SurfData.delzWhiteIce * (rho_ice_white/Lake[surfLayer].Density)
+                + SurfData.delzSnow     * (rho_snow/Lake[surfLayer].Density);
 
         recalc_surface_salt();
 
         ice = FALSE;
-        SurfData.delzBlueIce = 0.0;
+        SurfData.delzBlueIce  = 0.0;
         SurfData.delzWhiteIce = 0.0;
-        SurfData.delzSnow = 0.0;
+        SurfData.delzSnow    = 0.0;
     }
     SurfData.RhoSnow = rho_snow;
 
@@ -1301,15 +1292,15 @@ AED_REAL calculate_qsw(int kDays,          // Days since start of year for yeste
             else if (Temp_ice >= 0.)                   Albedo0 = 0.44;
         } else{
             Albedo0 = (albedo_mean + 0.44 *
-                  pow((SurfData.delzBlueIce+SurfData.delzWhiteIce-0.05), 0.28));
+                  pow((SurfData.delzBlueIce+SurfData.delzWhiteIce-min_ice_thickness), 0.28));
         }
         // Adjust albedo based on multiplicative factor, limited to 1
         Albedo0 = MIN( 1.0, snow_albedo_factor * Albedo0 );
 
         if (SurfData.delzSnow > 0.0) {
-            if (Temp_ice <= -5.)                   Albedo1 = 0.7;
-            else if (Temp_ice > -5.0 && Temp_ice < 0.) Albedo1 = 0.5 - 0.04 * Temp_ice;
-            else if (Temp_ice >= 0.)               Albedo1 = 0.5;
+            if (Temp_ice <= -5.)                      Albedo1 = 0.7;
+            else if (Temp_ice > -5. && Temp_ice < 0.) Albedo1 = 0.5 - 0.04*Temp_ice;
+            else if (Temp_ice >= 0.)                  Albedo1 = 0.5;
 
             if (SurfData.delzSnow < 0.1)
                 Albedo0 = Albedo1-(((0.1-SurfData.delzSnow)/0.1)*(Albedo1-Albedo0));

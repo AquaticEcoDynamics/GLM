@@ -1134,6 +1134,8 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    IF ( benthic_mode .GT. 1 ) THEN
       j = 1
       DO i=1,wlev
+        !print *,'j',i,j
+        !print *,'zone_heights',z(i),zone_heights(j)!,theZones(1)%zheight,theZones(2)%zheight
          IF (z(i) .GT. zone_heights(j)) THEN
             sed_zones(i) = j * area(i)
             j = j+1
@@ -1154,6 +1156,21 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    cc_diag_hz = 0.
 
    IF ( .NOT. mobility_off ) THEN
+     v = 0
+     DO i=1,n_aed2_vars
+        IF ( aed2_get_var(i, tv) ) THEN
+           IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern) ) THEN
+              v = v + 1
+              ws(:,i) = zero_
+              ! only for state_vars that are not sheet
+              IF ( .NOT. isnan(tv%mobility) ) THEN
+                 ! default to ws that was set during initialisation
+                 ws(1:wlev,i) = tv%mobility
+                 IF(i == 14) print *,'ws',i,ws(1:wlev,i)
+              ENDIF
+           ENDIF
+        ENDIF
+     ENDDO
       DO i = 1, wlev
          ! update ws for modules that use the mobility method
          CALL aed2_mobility(column, i, ws(i,:))
@@ -1164,14 +1181,14 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
       !# is done in aed2_do_benthos)
       v = 0
       DO i=1,n_aed2_vars
+
          IF ( aed2_get_var(i, tv) ) THEN
-            IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern) ) THEN
+            IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern)   ) THEN
                v = v + 1
-               !# only for state_vars that are not sheet
-               IF ( .NOT. isnan(tv%mobility) ) THEN
-                  ws(:, v) = tv%mobility
+               !# only for state_vars that are not sheet, and also non-zero ws
+               IF ( .NOT. isnan(tv%mobility) .AND. SUM(ABS(ws(1:wlev,i)))>zero_ ) THEN
                   min_C = tv%minimum
-                  CALL Mobility(wlev, dt, dz, area, ws(:, v), min_C, cc(:, v))
+                  CALL Mobility(wlev, dt, dz, area, ws(:, i), min_C, cc(:, v))
                ENDIF
             ENDIF
          ENDIF

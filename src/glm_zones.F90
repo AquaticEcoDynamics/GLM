@@ -92,7 +92,11 @@ SUBROUTINE wq_set_glm_zones(Zones, numZones, numVars, numBenV) BIND(C, name="wq_
    nvars = numVars
    nbenv = numBenV
    CALL C_F_POINTER(Zones, theZones, [numZones]);
+
    zone_heights => theZones%zheight
+
+   print *,'C_F_POINTER',zone_heights(:),theZones(1)%zheight,theZones(2)%zheight
+
 !  CALL C_F_POINTER(z_heights, zone_heights, [numZones]);
    DO i=1,n_zones
 !     ALLOCATE(theZones(i)%layers(n_sed_layers))
@@ -354,23 +358,24 @@ SUBROUTINE ZSoilTemp(izone) BIND(C, name="ZSoilTemp")
 !BEGIN
    CALL C_F_POINTER(izone, zone);
    CALL C_F_POINTER(zone%c_layers, layers, [zone%n_sedLayers]);
-   CALL SoilTemp(zone%n_sedLayers, layers%depth, layers%vwc, zone%ztemp, layers%temp)
+   CALL SoilTemp(zone%n_sedLayers, layers%depth, layers%vwc, zone%ztemp, layers%temp, zone%heatflux)
 END SUBROUTINE ZSoilTemp
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 !###############################################################################
-SUBROUTINE GSoilTemp(m,depth,wv,topTemp,temp) BIND(C, name="SoilTemp")
+SUBROUTINE GSoilTemp(m,depth,wv,topTemp,temp,heatflux) BIND(C, name="SoilTemp")
 !-------------------------------------------------------------------------------
    USE aed2_util
 !ARGUMENTS
    INTEGER,intent(in) :: m
    AED_REAL,intent(in) :: depth(0:m+1), wv(m), topTemp
    AED_REAL,intent(inout) :: temp(m+1)
+   AED_REAL, intent(out) :: heatflux
 
 !-------------------------------------------------------------------------------
 !BEGIN
-   CALL SoilTemp(m, depth, wv, topTemp, temp)
+   CALL SoilTemp(m, depth, wv, topTemp, temp, heatflux)
 END SUBROUTINE GSoilTemp
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

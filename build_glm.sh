@@ -172,7 +172,6 @@ cd ${UTILDIR}
 make || exit 1
 
 cd ${CURDIR}
-
 make || exit 1
 if [ -d ${AED2PLS} ] ; then
   make glm+ || exit 1
