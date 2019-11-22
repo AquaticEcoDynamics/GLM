@@ -118,6 +118,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\glm_balance.c" />
     <ClCompile Include="..\..\src\glm_bird.c" />
     <ClCompile Include="..\..\src\glm_const.c" />
     <ClCompile Include="..\..\src\glm_csv.c" />
@@ -145,6 +146,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\glm.h" />
+    <ClInclude Include="..\..\src\glm_balance.h" />
     <ClInclude Include="..\..\src\glm_bird.h" />
     <ClInclude Include="..\..\src\glm_const.h" />
     <ClInclude Include="..\..\src\glm_csv.h" />
