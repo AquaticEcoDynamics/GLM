@@ -170,6 +170,8 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
     maxy = height;
 
     set_progname(glm_vers);
+    set_shortprogname("GLM");
+    set_aboutmessage("General Lake Model\n(C) The University of Western Australia\nhttp://aquatic.science.uwa.edu.au/");
 #ifdef PLOTS
 #ifdef XPLOTS
     if ( xdisp ) {
