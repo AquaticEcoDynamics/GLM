@@ -1105,7 +1105,8 @@ void create_lake(int namlst)
     int lanext;                  // temporary counter for interpolating area
     int lvnext;                  // temporary counter for interpolating volume
     AED_REAL x, y;
-    int z, b, ij, mi;
+//  int z, b, ij, mi;
+    int b, ij, mi;
 
     NAMELIST morphometry[] = {
           { "morphometry",       TYPE_START,            NULL               },
@@ -1177,24 +1178,25 @@ void create_lake(int namlst)
         V[b] = V[b-1] + (  (A[b-1]+(A[b]-A[b-1])/2.0) * (H[b] - H[b-1]));
     }
 
-    z = 0;
+//  z = 0;
     for (b = 0; b < bsn_vals; b++) {
         H[b] -= Base;
 
         if (A[b] <= 0.0 ) kar++;
         if (H[b] <= 0.0 ) ksto++;
 
+        // this will never run because n_zones is 0 when create_lake is called
         /* Create the zone areas */
-        if (benthic_mode > 1 && z < n_zones) {
-            if ( theZones[z].zheight <= H[b] ) {
-                theZones[z].zarea = A[b];
-                if ( b > 0 ) {
-                    theZones[z].zarea += A[b-1];
-                    theZones[z].zarea /= 2;
-                }
-                z++;
-            }
-        }
+//      if (benthic_mode > 1 && z < n_zones) {
+//          if ( theZones[z].zheight <= H[b] ) {
+//              theZones[z].zarea = A[b];
+//              if ( b > 0 ) {
+//                  theZones[z].zarea += A[b-1];
+//                  theZones[z].zarea /= 2;
+//              }
+//              z++;
+//          }
+//      }
     }
     MaxArea = A[bsn_vals-1];
 

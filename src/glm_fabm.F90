@@ -30,7 +30,13 @@
 !#                                                                             #
 !###############################################################################
 
-#include "fabm_driver.h"
+#define _FABM_DIMENSION_COUNT_ 1
+#define _FABM_DEPTH_DIMENSION_INDEX_ 1
+#define _FABM_VECTORIZED_DIMENSION_INDEX_ 1
+#define _FABM_VERTICAL_BOTTOM_TO_SURFACE_
+
+#include "fabm.h"
+
 
 #undef REALTYPE
 #ifndef _FORTRAN_SOURCE_
@@ -51,13 +57,6 @@
 #define varname_par      standard_variables%downwelling_photosynthetic_radiative_flux
 #define varname_par_sf   standard_variables%surface_downwelling_photosynthetic_radiative_flux
 #define varname_pres     standard_variables%pressure
-
-!# Some time after july 2014 the parameters for some FABM routines were changed,
-!#  this makes the calls right for newer version on fabm
-#define _NEWER_FABM_
-!# Then some time after dec 2014 the parameters were changed again - sigh
-!#  Not ready to roll this out yet - still need to do appropriate testing
-#define _EVEN_NEWER_
 
 #ifdef __GFORTRAN__
 #  if __GNUC__ < 8
@@ -609,13 +608,7 @@ SUBROUTINE fabm_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 
    IF ( .NOT. mobility_off ) THEN
       !# Get updated vertical movement (m/s, positive for upwards) for biological state variables.
-#ifdef _FABM_USE_1D_LOOP_
       CALL fabm_get_vertical_movement(model,1,wlev,ws(1:wlev,:))
-#else
-      DO i=1,wlev
-         CALL fabm_get_vertical_movement(model,i,ws(i,:))
-      ENDDO
-#endif
 
       !# (3) Calculate source/sink terms due to settling rising of state
       !# variables in the water column (note that settling into benthos
@@ -689,21 +682,11 @@ SUBROUTINE do_repair_state(wlev,location)
 !
 !LOCALS
    LOGICAL :: valid = .true., l_repair_state
-#ifndef _FABM_USE_1D_LOOP_
-   INTEGER :: ci
-#endif
 !
 !-------------------------------------------------------------------------------
 !BEGIN
    l_repair_state = repair_state
-#ifdef _FABM_USE_1D_LOOP_
    CALL fabm_check_state(model,1,wlev, l_repair_state, valid)
-#else
-   DO ci=1,wlev
-      CALL fabm_check_state(model, ci, l_repair_state, valid)
-   !  IF (.NOT. (valid .OR. repair_state)) EXIT
-   ENDDO
-#endif
 
    IF (.NOT. (valid .OR. repair_state)) THEN
       write(stderr,*) 'FATAL ERROR:  State variable values are invalid and repair is not allowed.'
@@ -759,15 +742,7 @@ SUBROUTINE right_hand_side_rhs(first,numc,nlev,cc,rhs)
    !# (1) surface exchange
    !# Calculate temporal derivatives due to air water exchange.
    IF (.NOT. lIce) THEN !# no surface exchange under ice cover
-#if defined(_FABM_USE_1D_LOOP_) && !defined(_NEWER_FABM_)
-      CALL fabm_get_surface_exchange(model,nlev,nlev,rhs_flux(:,:))
-#else
-# ifdef _EVEN_NEWER_
       CALL fabm_get_surface_exchange(model,rhs_flux(nlev,:))
-# else
-      CALL fabm_get_surface_exchange(model,nlev,rhs_flux(nlev,:))
-# endif
-#endif
       !# Distribute surface flux into pelagic surface layer volume (i.e., divide by layer height).
       rhs(nlev,:) = rhs(nlev,:) + rhs_flux(nlev,:)/dz(nlev)
    ENDIF
@@ -777,15 +752,7 @@ SUBROUTINE right_hand_side_rhs(first,numc,nlev,cc,rhs)
 
    bottom_stress => layer_stress(1)
          !# Calculate temporal derivatives due to benthic processes.
-#if defined(_FABM_USE_1D_LOOP_) && !defined(_NEWER_FABM_)
-   CALL fabm_do_benthos(model,1,1,rhs_flux(:, :),rhs(:, nvars+1:))
-#else
-# ifdef _EVEN_NEWER_
    CALL fabm_do_benthos(model,rhs_flux(1, :),rhs(1, nvars+1:))
-# else
-   CALL fabm_do_benthos(model,1,rhs_flux(1, :),rhs(1, nvars+1:))
-# endif
-#endif
    !# Limit flux out of bottom layers to concentration of that layer
    !# i.e. don't flux out more than is there
    rhs_flux(1,:) = max(-1.0 * cc(1,:)*dz(1), rhs_flux(1,:))
@@ -798,15 +765,7 @@ SUBROUTINE right_hand_side_rhs(first,numc,nlev,cc,rhs)
          bottom_stress => layer_stress(k)
 
          !# Calculate temporal derivatives due to benthic processes.
-#if defined(_FABM_USE_1D_LOOP_) && !defined(_NEWER_FABM_)
-         CALL fabm_do_benthos(model,k,k,rhs_flux(:, :),rhs(:, nvars+1:))
-#else
-# ifdef _EVEN_NEWER_
          CALL fabm_do_benthos(model,rhs_flux(k, :),rhs(k, nvars+1:))
-# else
-         CALL fabm_do_benthos(model,k,rhs_flux(k, :),rhs(k, nvars+1:))
-# endif
-#endif
 
          !# Limit flux out of bottom layers to concentration of that layer
          !# i.e. don't flux out more than is there
@@ -818,13 +777,7 @@ SUBROUTINE right_hand_side_rhs(first,numc,nlev,cc,rhs)
    ENDIF
 
    !# Add pelagic sink and source terms for all depth levels.
-#ifdef _FABM_USE_1D_LOOP_
    CALL fabm_do(model,1,nlev,rhs(1:nlev,1:nvars))
-#else
-   DO i=1,nlev
-      CALL fabm_do(model,i,rhs(i,1:nvars))
-   ENDDO
-#endif
 END SUBROUTINE right_hand_side_rhs
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -869,28 +822,13 @@ SUBROUTINE right_hand_side_ppdd(first,numc,nlev,cc,pp,dd)
    dd = _ZERO_
 
    !# Calculate temporal derivatives due to benthic processes.
-#if defined(_FABM_USE_1D_LOOP_) && !defined(_NEWER_FABM_)
-   CALL fabm_do_benthos(model,1,nlev,pp(1:nlev,:,:),dd(1:nlev,:,:),nvars)
-#else
-# ifdef _EVEN_NEWER_
    CALL fabm_do_benthos(model,pp(1,:,:),dd(1,:,:),nvars)
-# else
-   CALL fabm_do_benthos(model,1,pp(1,:,:),dd(1,:,:),nvars)
-# endif
-#endif
 
    !# Distribute bottom flux into pelagic over bottom box (i.e., divide by layer height).
    pp(1,1:nvars,:) = pp(1,1:nvars,:)/dz(1)
    dd(1,1:nvars,:) = dd(1,1:nvars,:)/dz(1)
 
-#ifdef _FABM_USE_1D_LOOP_
    CALL fabm_do(model,1,nlev,pp(1:nlev,1:nvars,1:nvars),dd(1:nlev,1:nvars,1:nvars))
-#else
-   !# Add pelagic sink and source terms for all depth levels.
-   DO i=1,nlev
-      CALL fabm_do(model,i,pp(i,1:nvars,1:nvars),dd(i,1:nvars,1:nvars))
-   ENDDO
-#endif
 END SUBROUTINE right_hand_side_ppdd
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -929,26 +867,18 @@ SUBROUTINE update_light(nlev, bioshade_feedback)
 !LOCALS
    INTEGER :: i
    AED_REAL :: zz,localext
-#ifdef _FABM_USE_1D_LOOP_
    AED_REAL :: localexts(1:nlev)
-#endif
 
 !
 !-------------------------------------------------------------------------------
 !BEGIN
    zz = _ZERO_
 
-#ifdef _FABM_USE_1D_LOOP_
    localexts = _ZERO_
    CALL fabm_get_light_extinction(model,1,nlev,localexts)
-#endif
+
    DO i=nlev,1,-1
-#ifdef _FABM_USE_1D_LOOP_
       localext = localexts(i)
-#else
-      localext = _ZERO_
-      CALL fabm_get_light_extinction(model,i,localext)
-#endif
 
       zz = zz + 0.5*dz(i)
 
@@ -1138,15 +1068,8 @@ SUBROUTINE fabm_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE
 
    !# Integrate conserved quantities over depth.
    total = _ZERO_
-#ifdef _FABM_USE_1D_LOOP_
   !CALL fabm_get_conserved_quantities(model,1,wlev,local)
   !total = total + dz*local
-#else
-   DO n=1,wlev
-      CALL fabm_get_conserved_quantities(model,n,local)
-      total = total + dz(n)*local
-   ENDDO
-#endif
 
    !# Store conserved quantity integrals.
    DO n=1,ubound(model%info%conserved_quantities,1)
