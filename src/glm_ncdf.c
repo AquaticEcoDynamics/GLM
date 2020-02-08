@@ -274,8 +274,8 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
 	restart_variables[12] = FO;
 	restart_variables[13] = FSUM;
 	restart_variables[14] = u_f;
-	restart_variables[16] = u0;
-	restart_variables[17] = u_avg;
+	restart_variables[15] = u0;
+	restart_variables[16] = u_avg;
 	 
     start_r[0] = 0; edges_r[0] = restart_len;
 	
