@@ -199,6 +199,31 @@ extern AED_REAL albedo_amplitude;   //#  albedo seasonal amplitude
 extern AED_REAL lw_factor ;
 extern AED_REAL lw_offset ;
 
+//# DepMX is the layer height of the meta top on the previous timestep.
+extern AED_REAL DepMX;
+
+extern AED_REAL PrevThick;   //# mixed layer thickness from previous time step
+
+extern AED_REAL gPrimeTwoLayer;  //# Reduced gravity for int wave estimate
+
+extern AED_REAL Energy_AvailableMix;  //# Total available energy to mix (carries over from previous timesteps)
+
+extern AED_REAL Mass_Epi; //# Sigma mass of Epilimnion (surface layer after Kelvin-Helmholtz) kg
+
+extern AED_REAL OldSlope;
+extern AED_REAL Time_end_shear;  //# Time left before shear cut off [hours]
+extern AED_REAL Time_start_shear; //# Time count since start of sim for shear period start [hours]
+extern AED_REAL Time_count_end_shear;  //# Time count since start of sim for shear period end [hours]
+extern AED_REAL Time_count_sim;  //# Time count since start of simulation [hours]
+
+extern AED_REAL Half_Seiche_Period; //# One half the seiche period
+extern AED_REAL Thermocline_Height; //# Height at the top of the metalimnion [m]
+extern AED_REAL FO;
+extern AED_REAL FSUM;
+extern AED_REAL u_f;
+extern AED_REAL u0;
+extern AED_REAL u_avg;
+
 /*----------------------------------------------------------------------------*/
 // SNOWICE
 extern AED_REAL snow_albedo_factor;

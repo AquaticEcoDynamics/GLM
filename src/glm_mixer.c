@@ -66,33 +66,33 @@
 /*============================================================================*/
 
 //# DepMX is the layer height of the meta top on the previous timestep.
-static   AED_REAL DepMX   = 0.;
+AED_REAL DepMX   = 0.;
 
-static   AED_REAL Epi_dz;     //# Thickness of epilimnion [m]
-static   AED_REAL MeanSalt;   //# MeanSalt ... mean salinity
-static   AED_REAL MeanTemp;   //# MeanTemp ... mass averaged mean temperature of epilimnion
+AED_REAL Epi_dz;     //# Thickness of epilimnion [m]
+AED_REAL MeanSalt;   //# MeanSalt ... mean salinity
+AED_REAL MeanTemp;   //# MeanTemp ... mass averaged mean temperature of epilimnion
 
-static   AED_REAL PrevThick = 0.;   //# mixed layer thickness from previous time step
+AED_REAL PrevThick = 0.;   //# mixed layer thickness from previous time step
 
-static   AED_REAL gPrimeTwoLayer = 0.;  //# Reduced gravity for int wave estimate
+AED_REAL gPrimeTwoLayer = 0.;  //# Reduced gravity for int wave estimate
 
-static   AED_REAL Energy_AvailableMix = 0.;  //# Total available energy to mix (carries over from previous timesteps)
+AED_REAL Energy_AvailableMix = 0.;  //# Total available energy to mix (carries over from previous timesteps)
 
-static   AED_REAL Mass_Epi = 0.; //# Sigma mass of Epilimnion (surface layer after Kelvin-Helmholtz) kg
+AED_REAL Mass_Epi = 0.; //# Sigma mass of Epilimnion (surface layer after Kelvin-Helmholtz) kg
 
-static   AED_REAL OldSlope   = 0.;
-static   AED_REAL Time_end_shear   = 0.;  //# Time left before shear cut off [hours]
-static   AED_REAL Time_start_shear = 0.;  //# Time count since start of sim for shear period start [hours]
-static   AED_REAL Time_count_end_shear = 0.;  //# Time count since start of sim for shear period end [hours]
-static   AED_REAL Time_count_sim     = 0.;  //# Time count since start of simulation [hours]
+AED_REAL OldSlope   = 0.;
+AED_REAL Time_end_shear   = 0.;  //# Time left before shear cut off [hours]
+AED_REAL Time_start_shear = 0.;  //# Time count since start of sim for shear period start [hours]
+AED_REAL Time_count_end_shear = 0.;  //# Time count since start of sim for shear period end [hours]
+AED_REAL Time_count_sim     = 0.;  //# Time count since start of simulation [hours]
 
-static   AED_REAL Half_Seiche_Period = 0.; //# One half the seiche period
-static   AED_REAL Thermocline_Height = 0.; //# Height at the top of the metalimnion [m]
-static   AED_REAL FO      = 0.;
-static   AED_REAL FSUM    = 0.;
-static   AED_REAL u_f     = 0.;
-static   AED_REAL u0      = 0.;
-static   AED_REAL u_avg   = 0.;
+AED_REAL Half_Seiche_Period = 0.; //# One half the seiche period
+AED_REAL Thermocline_Height = 0.; //# Height at the top of the metalimnion [m]
+AED_REAL FO      = 0.;
+AED_REAL FSUM    = 0.;
+AED_REAL u_f     = 0.;
+AED_REAL u0      = 0.;
+AED_REAL u_avg   = 0.;
 
 //# Wind parameters
 static AED_REAL WindSpeedX;  //# Actual wind speed, accounting for wind factor or ice [m s-1]

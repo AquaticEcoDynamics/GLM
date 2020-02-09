@@ -44,20 +44,23 @@ int ncid=-1;
 static int set_no = -1;
 
 //# dimension sizes
-int x_dim, y_dim, z_dim, zone_dim, time_dim;
+int x_dim, y_dim, z_dim, zone_dim, time_dim, restart_dim;
 
 //# dimension lengths
 static int lon_len=1;
 static int lat_len=1;
 static int height_len;
+static int restart_len = 17;
 
 static size_t start[4],edges[4];
+
+static size_t start_r[1],edges_r[1];
 
 //# variable ids
 static int lon_id,lat_id,z_id,V_id,TV_id,Taub_id,NS_id,time_id;
 static int HICE_id,HSNOW_id,HWICE_id, AvgSurfTemp_id;
 static int precip_id,evap_id,rho_id,rad_id,extc_id,i0_id,wnd_id;
-static int temp_id, salt_id, umean_id, uorb_id;
+static int temp_id, salt_id, umean_id, uorb_id, restart_id;
 
 #ifdef _WIN32
     char *strndup(const char *s, size_t len);
@@ -90,6 +93,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_dim(ncid, "lon", 1, &x_dim));
     check_nc_error(nc_def_dim(ncid, "lat", 1, &y_dim));
     check_nc_error(nc_def_dim(ncid, "z", nlev, &z_dim));
+    check_nc_error(nc_def_dim(ncid, "restart", 17, &restart_dim));
     if ( n_zones > 0 )
         check_nc_error(nc_def_dim(ncid, "nzones", n_zones, &zone_dim));
     check_nc_error(nc_def_dim(ncid, "time", NC_UNLIMITED, &time_dim));
@@ -108,11 +112,14 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_var(ncid, "hsnow", NC_REALTYPE, 1, dims, &HSNOW_id));
     check_nc_error(nc_def_var(ncid, "hwice", NC_REALTYPE, 1, dims, &HWICE_id));
     check_nc_error(nc_def_var(ncid, "avg_surf_temp", NC_REALTYPE, 1, dims, &AvgSurfTemp_id));
+    
+    dims[0] = restart_dim;
+    check_nc_error(nc_def_var(ncid, "restart_variables", NC_REALTYPE, 1, dims, &restart_id));
 
     /**************************************************************************
      * define variables                                                       *
      **************************************************************************/
-
+     
     //# x,y,t
     dims[2] = x_dim;
     dims[1] = y_dim;
@@ -159,6 +166,12 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     set_nc_attributes(ncid, HSNOW_id,  "meters",  "Height of Snow"  PARAM_FILLVALUE);
     set_nc_attributes(ncid, HWICE_id,  "meters",  "Height of WhiteIce" PARAM_FILLVALUE);
      set_nc_attributes(ncid, AvgSurfTemp_id,  "celsius",  "Running average surface temperature" PARAM_FILLVALUE);
+     
+    set_nc_attributes(ncid, restart_id,  "various",  "dep_mx,prev_thick,g_prime_two_layer,\
+    energy_avail_max,mass_epi,old_slope,time_end_shear,time_start_shear,\
+    time_count_end,time_count_sim,half_seiche_period,thermocline_height,\
+    f0, fsum,u_f,u0,u_avg" PARAM_FILLVALUE);
+
 
     //# x,y,t
     set_nc_attributes(ncid, precip_id, "m/s",     "precipitation"   PARAM_FILLVALUE);
@@ -213,7 +226,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
 {
     AED_REAL temp_time, LakeVolume;
     AED_REAL *heights, *vols, *salts, *temps, *dens, *qsw, *extc_coef;
-    AED_REAL *u_mean, *u_orb, *taub;
+    AED_REAL *u_mean, *u_orb, *taub, *restart_variables;
     int i, littoralLayer = 0;
 
     set_no++;
@@ -240,7 +253,34 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     store_nc_scalar(ncid, wnd_id, XYT_SHAPE, MetData.WindSpeed);
 
     store_nc_scalar(ncid,  TV_id, XYT_SHAPE, LakeVolume);
+    
+    
+    //# Restart variables
+    /*------------------------------------------------------------------------*/
 
+    restart_variables   = malloc(17*sizeof(AED_REAL));
+    restart_variables[0] = DepMX;
+	restart_variables[1] = PrevThick;
+	restart_variables[2] = gPrimeTwoLayer;
+	restart_variables[3] = Energy_AvailableMix;
+	restart_variables[4] = Mass_Epi;
+	restart_variables[5] = OldSlope;
+	restart_variables[6] = Time_end_shear;
+	restart_variables[7] = Time_start_shear;
+	restart_variables[8] = Time_count_end_shear;
+	restart_variables[9] = Time_count_sim;
+	restart_variables[10] = Half_Seiche_Period;
+	restart_variables[11] = Thermocline_Height;
+	restart_variables[12] = FO;
+	restart_variables[13] = FSUM;
+	restart_variables[14] = u_f;
+	restart_variables[15] = u0;
+	restart_variables[16] = u_avg;
+	 
+    start_r[0] = 0; edges_r[0] = restart_len;
+	
+	//store_nc_scalar(ncid,  restart_id, R_SHAPE, restart_variables);
+    check_nc_error(nc_put_vara(ncid,  restart_id, start_r, edges_r, restart_variables));
 
     //# Time varying profile data : z,t
     /*------------------------------------------------------------------------*/
@@ -297,7 +337,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
         u_orb[littoralLayer] = NC_FILLER;
         taub[littoralLayer] = NC_FILLER;
     }
-
+    
     check_nc_error(nc_put_vara(ncid,     z_id, start, edges, heights));
     check_nc_error(nc_put_vara(ncid,     V_id, start, edges, vols));
     check_nc_error(nc_put_vara(ncid,  salt_id, start, edges, salts));
@@ -312,7 +352,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     free(heights); free(vols); free(salts);
     free(temps);  free(dens); free(qsw);
     free(extc_coef); free(u_mean); free(u_orb);
-    free(taub);
+    free(taub); free(restart_variables);
 
     check_nc_error(nc_sync(ncid));
 }

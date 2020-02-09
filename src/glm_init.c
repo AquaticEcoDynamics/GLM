@@ -1358,6 +1358,7 @@ void initialise_lake(int namlst)
     AED_REAL        white_ice_thickness = 0.0;
     AED_REAL        blue_ice_thickness = 0.0;
     AED_REAL        avg_surf_temp = 6.0;
+    AED_REAL		*restart_variables;
 
     //==========================================================================
     NAMELIST init_profiles[] = {
@@ -1376,6 +1377,7 @@ void initialise_lake(int namlst)
           { "white_ice_thickness", TYPE_DOUBLE,           &white_ice_thickness},
           { "blue_ice_thickness",  TYPE_DOUBLE,           &blue_ice_thickness },
           { "avg_surf_temp",       TYPE_DOUBLE,           &avg_surf_temp      },
+          { "restart_variables",   TYPE_DOUBLE|MASK_LIST, &restart_variables  },
           { NULL,                  TYPE_END,              NULL                }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
@@ -1383,6 +1385,9 @@ void initialise_lake(int namlst)
     int i, j, min_layers;
     int nx, np, nz;
     int *idx = NULL;
+    
+    restart_variables = calloc(17, sizeof(AED_REAL));
+    restart_variables[0] = MISVAL;
 
 /*----------------------------------------------------------------------------*/
     //-------------------------------------------------
@@ -1392,10 +1397,12 @@ void initialise_lake(int namlst)
     num_depths = 0;
     lake_depth = MISVAL;
     num_wq_vars = 0;
+         
     if ( get_namelist(namlst, init_profiles) ) {
         fprintf(stderr,"     ERROR: reading initial_profiles from namelist file %s\n", glm_nml_file);
         exit(1);
     }
+    
     if (! wq_calc) num_wq_vars = 0;
 
     // Initial values for the number of levels specified in the glm.nml file
@@ -1510,6 +1517,31 @@ void initialise_lake(int namlst)
     }
 
     AvgSurfTemp = avg_surf_temp;
+    
+   
+    if(restart_variables[0] != MISVAL){
+    	DepMX = restart_variables[0];
+    	PrevThick =  restart_variables[1]; //# mixed layer thickness from previous time step
+    	gPrimeTwoLayer =  restart_variables[2]; //# Reduced gravity for int wave estimate
+    	Energy_AvailableMix = restart_variables[3];  //# Total available energy to mix (carries over from previous timesteps)
+    	Mass_Epi =  restart_variables[4];//# Sigma mass of Epilimnion (surface layer after Kelvin-Helmholtz) kg
+    	OldSlope = restart_variables[5];
+    	Time_end_shear =  restart_variables[6]; //# Time left before shear cut off [hours]
+    	Time_start_shear =  restart_variables[7];//# Time count since start of sim for shear period start [hours]
+    	Time_count_end_shear =  restart_variables[8]; //# Time count since start of sim for shear period end [hours]
+    	Time_count_sim = restart_variables[9];  //# Time count since start of simulation [hours]
+    	Half_Seiche_Period = restart_variables[10];//# One half the seiche period
+    	Thermocline_Height =  restart_variables[11];//# Height at the top of the metalimnion [m]
+    	FO = restart_variables[12];
+    	FSUM = restart_variables[13];
+    	u_f = restart_variables[14];
+    	u0 = restart_variables[15];
+    	u_avg = restart_variables[16];
+    }
+    
+    
+    free(restart_variables);
+    
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
