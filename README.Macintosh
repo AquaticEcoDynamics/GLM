@@ -71,3 +71,9 @@ Note:
 Note:
    GLM requires gfortran v8 or later in order to build correctly - previous versions of gfortran
    had a bug in the C compatibility that prevented correct compilation.
+
+Note:
+   If you have upgraded Xcode you might need to make it use the right version :
+      sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+   and you may need to upgrade the commandLine tools too :
+      sudo xcode-select --install

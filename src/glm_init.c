@@ -87,10 +87,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     /*-- %%NAMELIST glm_setup ------------------------------------------------*/
     char           *sim_name = NULL;
-    int             max_layers;
-    AED_REAL        min_layer_vol;
-    AED_REAL        min_layer_thick;
-    AED_REAL        max_layer_thick;
+    int             max_layers = 500;
+    AED_REAL        min_layer_vol = 0.1;
+    AED_REAL        min_layer_thick = 0.1;
+    AED_REAL        max_layer_thick = 0.1;
 //  extern int      density_model;
 //  extern CLOGICAL littoral_sw;
 //  extern CLOGICAL non_avg;
@@ -138,8 +138,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%NAMELIST wq_setup -------------------------------------------------*/
     char           *twq_lib = NULL;
     char           *wq_nml_file = DEFAULT_WQ_NML;
-    int             lode_method;
-    int             lsplit_factor;
+    int             lode_method = -1;
+    int             lsplit_factor = 1;
 //  LOGICAL         bioshade_feedback;
 //  LOGICAL         repair_state;
 //  CLOGICAL        mobility_off;
@@ -161,8 +161,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     int             timefmt;
     char           *start = NULL;
     char           *stop  = NULL;
-    AED_REAL        dt;        // timestep
-    int             num_days;  // number of days to run the sim
+    AED_REAL        dt = 0.0;      // timestep
+    int             num_days = 0;  // number of days to run the sim
 //  AED_REAL        timezone_r;
     //==========================================================================
     NAMELIST time[] = {
@@ -217,10 +217,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- * %%NAMELIST meteorology --------------------------------------------*/
-    LOGICAL         met_sw;          // Include surface meteorological forcing
+    LOGICAL         met_sw = FALSE;  // Include surface meteorological forcing
     char           *lw_type = NULL;  // Type LW measurement (LW_IN/LW_CC/LW_NET)
-    LOGICAL         rain_sw;         // Rainfall composition
-    LOGICAL         snow_sw;         // Snowfall
+    LOGICAL         rain_sw = FALSE; // Rainfall composition
+    LOGICAL         snow_sw = FALSE; // Snowfall
     char           *meteo_fl = NULL; // Name of meteorology input file
 //  int             lw_ind;          // type of longwave radiation - now in glm_input
 //  LOGICAL         atm_stab;        // Account for non-neutral atmospheric stability
@@ -315,7 +315,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- %%NAMELIST inflow ---------------------------------------------------*/
-    int             num_inflows;
+    int             num_inflows    = 0;
     LOGICAL        *subm_flag      = NULL;
     char          **names_of_strms = NULL;
     AED_REAL       *strm_hf_angle  = NULL;
@@ -323,9 +323,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     AED_REAL       *strmbd_drag    = NULL;
     AED_REAL       *inflow_factor  = NULL;
     char          **inflow_fl      = NULL;
-    int             inflow_varnum;
+    int             inflow_varnum  = 0;
     char          **inflow_vars    = NULL;
-    AED_REAL        coef_inf_entrain;
+    AED_REAL        coef_inf_entrain = 0.0;
     char           *timefmt_i      = NULL;
     extern AED_REAL timezone_i;
     //==========================================================================
@@ -349,7 +349,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- %%NAMELIST outflow --------------------------------------------------*/
-    int             num_outlet;
+    int             num_outlet     = 0;
     LOGICAL        *flt_off_sw     = NULL;
     int            *outlet_type    = NULL;
     int             crit_O2        = -1;
@@ -359,11 +359,11 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     char          **O2name         = NULL;
     int             O2idx          = 0;
     AED_REAL       *target_temp    = NULL;
-    AED_REAL        min_lake_temp;
-    LOGICAL         mix_withdraw;
+    AED_REAL        min_lake_temp  = 0.0;
+    LOGICAL         mix_withdraw   = FALSE;
     extern AED_REAL outflow_thick_limit;
     extern LOGICAL  single_layer_draw;
-    LOGICAL         coupl_oxy_sw;
+    LOGICAL         coupl_oxy_sw   = FALSE;
     extern AED_REAL fac_range_upper;
     extern AED_REAL fac_range_lower;
     AED_REAL       *outl_elvs    = NULL;
