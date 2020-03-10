@@ -82,10 +82,12 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     int dims[4];
 /*----------------------------------------------------------------------------*/
 
-    check_nc_error(nc_create(fn,NC_CLOBBER,&ncid));
+    if ( fn == NULL || strcmp(fn, "")==0 ) return -1;
+
+    check_nc_error(nc_create(fn, NC_CLOBBER, &ncid));
 
     snprintf(time_str, 128, "hours since %s", start_time);
-    snprintf(history,  128, "Created by glm2/%s v. %s", wq_lib, GLM_VERSION);
+    snprintf(history,  128, "Created by glm3/%s v. %s", wq_lib, GLM_VERSION);
 
     height_len = nlev;
 
@@ -165,13 +167,12 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     set_nc_attributes(ncid, HICE_id,   "meters",  "Height of Ice"   PARAM_FILLVALUE);
     set_nc_attributes(ncid, HSNOW_id,  "meters",  "Height of Snow"  PARAM_FILLVALUE);
     set_nc_attributes(ncid, HWICE_id,  "meters",  "Height of WhiteIce" PARAM_FILLVALUE);
-     set_nc_attributes(ncid, AvgSurfTemp_id,  "celsius",  "Running average surface temperature" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, AvgSurfTemp_id,  "celsius",  "Running average surface temperature" PARAM_FILLVALUE);
      
     set_nc_attributes(ncid, restart_id,  "various",  "dep_mx,prev_thick,g_prime_two_layer,\
-    energy_avail_max,mass_epi,old_slope,time_end_shear,time_start_shear,\
-    time_count_end,time_count_sim,half_seiche_period,thermocline_height,\
-    f0, fsum,u_f,u0,u_avg" PARAM_FILLVALUE);
-
+energy_avail_max,mass_epi,old_slope,time_end_shear,time_start_shear,\
+time_count_end,time_count_sim,half_seiche_period,thermocline_height,\
+f0, fsum,u_f,u0,u_avg" PARAM_FILLVALUE);
 
     //# x,y,t
     set_nc_attributes(ncid, precip_id, "m/s",     "precipitation"   PARAM_FILLVALUE);
@@ -196,7 +197,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     set_nc_attributes(ncid, Taub_id,   "N/m2",    "layer stress"    PARAM_FILLVALUE);
 
     //# global attributes
-    nc_put_att(ncid,NC_GLOBAL,"Title", NC_CHAR, strlen(title), title);
+    nc_put_att(ncid, NC_GLOBAL, "Title", NC_CHAR, strlen(title), title);
 
     nc_put_att(ncid, NC_GLOBAL, "history", NC_CHAR, strlen(history), history);
     check_nc_error(nc_put_att(ncid, NC_GLOBAL, "Conventions", NC_CHAR, 6, "COARDS"));
@@ -229,6 +230,8 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     AED_REAL *u_mean, *u_orb, *taub, *restart_variables;
     int i, littoralLayer = 0;
 
+    if (ncid == -1) return;
+
     set_no++;
 
     store_nc_integer(ncid, NS_id, T_SHAPE, wlev);
@@ -253,33 +256,31 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     store_nc_scalar(ncid, wnd_id, XYT_SHAPE, MetData.WindSpeed);
 
     store_nc_scalar(ncid,  TV_id, XYT_SHAPE, LakeVolume);
-    
-    
+
     //# Restart variables
     /*------------------------------------------------------------------------*/
-
     restart_variables   = malloc(17*sizeof(AED_REAL));
     restart_variables[0] = DepMX;
-	restart_variables[1] = PrevThick;
-	restart_variables[2] = gPrimeTwoLayer;
-	restart_variables[3] = Energy_AvailableMix;
-	restart_variables[4] = Mass_Epi;
-	restart_variables[5] = OldSlope;
-	restart_variables[6] = Time_end_shear;
-	restart_variables[7] = Time_start_shear;
-	restart_variables[8] = Time_count_end_shear;
-	restart_variables[9] = Time_count_sim;
-	restart_variables[10] = Half_Seiche_Period;
-	restart_variables[11] = Thermocline_Height;
-	restart_variables[12] = FO;
-	restart_variables[13] = FSUM;
-	restart_variables[14] = u_f;
-	restart_variables[15] = u0;
-	restart_variables[16] = u_avg;
-	 
+    restart_variables[1] = PrevThick;
+    restart_variables[2] = gPrimeTwoLayer;
+    restart_variables[3] = Energy_AvailableMix;
+    restart_variables[4] = Mass_Epi;
+    restart_variables[5] = OldSlope;
+    restart_variables[6] = Time_end_shear;
+    restart_variables[7] = Time_start_shear;
+    restart_variables[8] = Time_count_end_shear;
+    restart_variables[9] = Time_count_sim;
+    restart_variables[10] = Half_Seiche_Period;
+    restart_variables[11] = Thermocline_Height;
+    restart_variables[12] = FO;
+    restart_variables[13] = FSUM;
+    restart_variables[14] = u_f;
+    restart_variables[15] = u0;
+    restart_variables[16] = u_avg;
+
     start_r[0] = 0; edges_r[0] = restart_len;
-	
-	//store_nc_scalar(ncid,  restart_id, R_SHAPE, restart_variables);
+
+    //store_nc_scalar(ncid,  restart_id, R_SHAPE, restart_variables);
     check_nc_error(nc_put_vara(ncid,  restart_id, start_r, edges_r, restart_variables));
 
     //# Time varying profile data : z,t
@@ -380,8 +381,9 @@ int new_nc_variable(int ncid, const char *name, int data_type,
 {
    int id;
 
-   check_nc_error(nc_def_var(ncid,name,data_type,ndim,dims,&id));
-   return id;
+    if (ncid == -1) return -1;
+    check_nc_error(nc_def_var(ncid,name,data_type,ndim,dims,&id));
+    return id;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -392,6 +394,7 @@ int new_nc_variable(int ncid, const char *name, int data_type,
 void set_nc_attributes(int ncid, int id, const char *units,
                                       const char *long_name, AED_REAL FillValue)
 {
+    if (ncid == -1) return;
     nc_put_att(ncid, id, "units", NC_CHAR, strlen(units), units);
     if ( long_name != NULL ) {
         nc_put_att(ncid, id, "long_name", NC_CHAR, strlen(long_name), long_name);
@@ -408,6 +411,7 @@ void store_nc_integer(int ncid, int id, int var_shape, int iscalar)
 {
     int iret;
 
+    if (ncid == -1) return;
     /*------------------------------------------------------------------------*/
     if (var_shape == POINT)
         iret = nc_put_var(ncid, id, &iscalar);
@@ -430,6 +434,7 @@ void store_nc_scalar(int ncid, int id, int var_shape, AED_REAL scalar)
 {
     int iret;
 
+    if (ncid == -1) return;
     /*------------------------------------------------------------------------*/
     if (var_shape == POINT)
         iret = nc_put_var(ncid, id, &scalar);
@@ -460,6 +465,7 @@ void store_nc_array(int ncid, int id, int var_shape, int nvals,
     int iret, i;
     AED_REAL *tarr;
 
+    if (ncid == -1) return;
     /*------------------------------------------------------------------------*/
     if (var_shape == Z_SHAPE) {
         start[0] = 0;      edges[0] = height_len;
@@ -479,7 +485,7 @@ void store_nc_array(int ncid, int id, int var_shape, int nvals,
     tarr = malloc(maxvals*sizeof(AED_REAL));
     for (i = 0; i < nvals; i++) tarr[i] = array[i];
     for (i = nvals; i < maxvals; i++) tarr[i] = NC_FILLER;
-    iret = nc_put_vara(ncid,id,start,edges,tarr);
+    iret = nc_put_vara(ncid, id, start, edges, tarr);
     free(tarr);
 
     check_nc_error(iret);

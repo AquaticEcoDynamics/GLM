@@ -221,7 +221,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
     int sed_layers = 12;
 //  AED_REAL ztemp = 20.0;
-    AED_REAL soil_heat_flux;
+    AED_REAL soil_heat_flux = 0.0;
     AED_REAL *sed_depths=NULL;
     AED_REAL *sed_vwc=NULL;
     AED_REAL *sed_temps=NULL;
