@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2018 -  The University of Western Australia               *
+ * Copyright 2013 - 2020 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -768,7 +768,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     }
 
     if ( n_zones > 0 && zone_heights != NULL ) {
-        if ( zone_heights[n_zones-1] < (max_elev-base_elev) ) {
+        if ( zone_heights[n_zones-1] <= (max_elev-base_elev) ) {
             fprintf(stderr, "     WARNING last zone height is less than maximum depth\n");
             fprintf(stderr, "        ... adding an extra zone to compensate\n");
             zone_heights = realloc(zone_heights, (n_zones+2)*sizeof(AED_REAL));
@@ -1358,7 +1358,7 @@ void initialise_lake(int namlst)
     AED_REAL        white_ice_thickness = 0.0;
     AED_REAL        blue_ice_thickness = 0.0;
     AED_REAL        avg_surf_temp = 6.0;
-    AED_REAL       *restart_variables;
+    AED_REAL       *restart_variables = NULL;
 
     //==========================================================================
     NAMELIST init_profiles[] = {
@@ -1386,9 +1386,6 @@ void initialise_lake(int namlst)
     int nx, np, nz;
     int *idx = NULL;
     
-    restart_variables = calloc(17, sizeof(AED_REAL));
-    restart_variables[0] = MISVAL;
-
 /*----------------------------------------------------------------------------*/
     //-------------------------------------------------
     // Do the initial profiles
@@ -1469,8 +1466,10 @@ void initialise_lake(int namlst)
     if (min_layers > 50) min_layers = 50;
     if (min_layers < 3) min_layers = 3;
     
-    if(restart_variables[0] == MISVAL){
-    // Now interpolate into at least min_layers
+    if (restart_variables == NULL) {
+        restart_variables = calloc(17, sizeof(AED_REAL));
+
+        // Now interpolate into at least min_layers
         while (NumLayers <= min_layers) {
             for (i = botmLayer; i < NumLayers; i++) {
                 nx = 2 * (surfLayer - i);
@@ -1494,7 +1493,7 @@ void initialise_lake(int namlst)
             NumLayers = 2*NumLayers - 1;
             if ( NumLayers * 2 >= MaxLayers ) break;
         }
-    }else{
+    } else {
         // Use the layers exactly as provided in the nml (used in restarting)
         NumLayers = num_depths;
     }
@@ -1523,7 +1522,7 @@ void initialise_lake(int namlst)
 
     AvgSurfTemp = avg_surf_temp;
 
-    if (restart_variables[0] != MISVAL) {
+    if (restart_variables != NULL) {
         DepMX = restart_variables[0];
         PrevThick =  restart_variables[1]; //# mixed layer thickness from previous time step
         gPrimeTwoLayer =  restart_variables[2]; //# Reduced gravity for int wave estimate
@@ -1541,9 +1540,9 @@ void initialise_lake(int namlst)
         u_f = restart_variables[14];
         u0 = restart_variables[15];
         u_avg = restart_variables[16];
-    }
 
-    free(restart_variables);
+//      free(restart_variables);
+    }
     
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

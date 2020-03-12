@@ -1,4 +1,4 @@
-glm (3.1.0a3-0) UNRELEASED; urgency=low
+glm (3.1.0a4-0) UNRELEASED; urgency=low
 
   [ Casper Boon ]
   * new version 3.0.0
@@ -10,8 +10,9 @@ glm (3.1.0a3-0) UNRELEASED; urgency=low
   * new version 3.1.0a1
   * new version 3.1.0a2
   * new version 3.1.0a3
+  * new version 3.1.0a4
 
- -- Casper Boon <casper@eridanus.aed-net.science.uwa.edu.au>  Tue, 10 Mar 2020 13:41:05 +0800
+ -- Casper Boon <casper@eridanus.aed-net.science.uwa.edu.au>  Fri, 13 Mar 2020 06:47:40 +0800
 
 glm (2.4.1-0) UNRELEASED; urgency=low
 
