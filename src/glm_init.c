@@ -1468,30 +1468,35 @@ void initialise_lake(int namlst)
     if (min_layers > (MaxLayers-1)/2) min_layers = (MaxLayers-1)/2;
     if (min_layers > 50) min_layers = 50;
     if (min_layers < 3) min_layers = 3;
-
+    
+    if(restart_variables[0] == MISVAL){
     // Now interpolate into at least min_layers
-    while (NumLayers <= min_layers) {
-        for (i = botmLayer; i < NumLayers; i++) {
-            nx = 2 * (surfLayer - i);
-            np = surfLayer - i;
-            Lake[nx].Height = Lake[np].Height;
-            Lake[nx].Temp = Lake[np].Temp;
-            Lake[nx].Salinity = Lake[np].Salinity;
-            for (j = 0; j < num_wq_vars; j++)
-                if ( idx[j] >= 0 ) _WQ_Vars(idx[j],nx) = _WQ_Vars(idx[j],np);
+        while (NumLayers <= min_layers) {
+            for (i = botmLayer; i < NumLayers; i++) {
+                nx = 2 * (surfLayer - i);
+                np = surfLayer - i;
+                Lake[nx].Height = Lake[np].Height;
+                Lake[nx].Temp = Lake[np].Temp;
+                Lake[nx].Salinity = Lake[np].Salinity;
+                for (j = 0; j < num_wq_vars; j++)
+                    if ( idx[j] >= 0 ) _WQ_Vars(idx[j],nx) = _WQ_Vars(idx[j],np);
+            }
+            for (i = botmLayer+1; i < NumLayers; i++) {
+                nx = 2 * i - 1;
+                np = 2 * i - 2;
+                nz = 2 * i - 0;
+                Lake[nx].Temp = (Lake[np].Temp + Lake[nz].Temp) / 2.0;
+                Lake[nx].Height = (Lake[np].Height + Lake[nz].Height) / 2.0;
+                Lake[nx].Salinity = (Lake[np].Salinity + Lake[nz].Salinity) / 2.0;
+                for (j = 0; j < num_wq_vars; j++)
+                    if ( idx[j] >= 0 ) _WQ_Vars(idx[j],nx) = (_WQ_Vars(idx[j],np) + _WQ_Vars(idx[j],nz)) / 2.0;
+            }
+            NumLayers = 2*NumLayers - 1;
+            if ( NumLayers * 2 >= MaxLayers ) break;
         }
-        for (i = botmLayer+1; i < NumLayers; i++) {
-            nx = 2 * i - 1;
-            np = 2 * i - 2;
-            nz = 2 * i - 0;
-            Lake[nx].Temp = (Lake[np].Temp + Lake[nz].Temp) / 2.0;
-            Lake[nx].Height = (Lake[np].Height + Lake[nz].Height) / 2.0;
-            Lake[nx].Salinity = (Lake[np].Salinity + Lake[nz].Salinity) / 2.0;
-            for (j = 0; j < num_wq_vars; j++)
-                if ( idx[j] >= 0 ) _WQ_Vars(idx[j],nx) = (_WQ_Vars(idx[j],np) + _WQ_Vars(idx[j],nz)) / 2.0;
-        }
-        NumLayers = 2*NumLayers - 1;
-        if ( NumLayers * 2 >= MaxLayers ) break;
+    }else{
+        // Use the layers exactly as provided in the nml (used in restarting)
+        NumLayers = num_depths;
     }
 
     // And free the temporary index map
