@@ -15,9 +15,9 @@ You will need to configure visual studio to find fortran libs : see
 
 which, in short says :
 
-    Intel® Visual Fortran Composer XE 2013 supports Microsoft Visual Studio 2012, 2010 and 2008. In the text below, substitute 13 where vv is shown.
-    Intel® Visual Fortran Composer XE 2011 supports Microsoft Visual Studio 2010, 2008 and 2005. In the text below, substitute 12 where vv is shown.
-    Intel® Visual Fortran Compiler Professional Edition 11.1 supports Microsoft Visual Studio 2008, 2005 and 2003. In the text below, substitute 11 where vv is shown.
+    Intel(R) Visual Fortran Composer XE 2013 supports Microsoft Visual Studio 2012, 2010 and 2008. In the text below, substitute 13 where vv is shown.
+    Intel(R) Visual Fortran Composer XE 2011 supports Microsoft Visual Studio 2010, 2008 and 2005. In the text below, substitute 12 where vv is shown.
+    Intel(R) Visual Fortran Compiler Professional Edition 11.1 supports Microsoft Visual Studio 2008, 2005 and 2003. In the text below, substitute 11 where vv is shown.
 
 
 

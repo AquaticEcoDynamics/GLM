@@ -1,4 +1,4 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
+Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "libglm_wq_fabm", "libglm_wq_fabm.vfproj", "{078DD61C-C7B7-4728-B574-6C23F753B7A4}"
 	ProjectSection(ProjectDependencies) = postProject
 		{BABAE57A-9D0A-73CC-BEBE-87002A6CCA5F} = {BABAE57A-9D0A-73CC-BEBE-87002A6CCA5F}
