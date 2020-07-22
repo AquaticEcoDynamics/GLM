@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2018 -  The University of Western Australia               *
+ * Copyright 2013 - 2020 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -125,6 +125,7 @@ typedef char filname[80];
        int  InPar[MaxPar];
 
        LOGICAL  SubmFlag;        // Is this a submerged inflow
+       AED_REAL SubmElev;        // elevation of inflow
    } InflowDataType;
 
    /*===========================================================*/

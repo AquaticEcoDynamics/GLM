@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2018 -  The University of Western Australia               *
+ * Copyright 2013 - 2020 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -874,7 +874,7 @@ AED_REAL do_inflows()
                 //# adjust layer properties including water quality variables
                 //# Get layer number at submerged inflow level
                 for (Layer_subm = botmLayer; Layer_subm <= surfLayer; Layer_subm++)
-                    if (Lake[Layer_subm].Height >= Inflows[iRiver].DragCoeff) break;
+                    if (Lake[Layer_subm].Height >= Inflows[iRiver].SubmElev) break;
 
                 Lake[Layer_subm].Temp = combine(Lake[Layer_subm].Temp, Lake[Layer_subm].LayerVol, Lake[Layer_subm].Density,
                                                Inflows[iRiver].TemInf, (Inflows[iRiver].FlowRate*Inflows[iRiver].Factor),

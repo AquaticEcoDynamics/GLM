@@ -1,8 +1,8 @@
 #!/usr/bin/make -f
 
 package=glm
-year=2019
-version=3.1.0b1
+year=2020
+version=3.1.0b8
 release=0.0
 
 #export DH_VERBOSE=1

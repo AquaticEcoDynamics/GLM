@@ -316,8 +316,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     /*-- %%NAMELIST inflow ---------------------------------------------------*/
     int             num_inflows    = 0;
-    LOGICAL        *subm_flag      = NULL;
     char          **names_of_strms = NULL;
+    LOGICAL        *subm_flag      = NULL;
+    AED_REAL       *subm_elev      = NULL;
     AED_REAL       *strm_hf_angle  = NULL;
     AED_REAL       *strmbd_slope   = NULL;
     AED_REAL       *strmbd_drag    = NULL;
@@ -332,8 +333,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     NAMELIST inflow[] = {
           { "inflow",            TYPE_START,            NULL                  },
           { "num_inflows",       TYPE_INT,              &num_inflows          },
-          { "subm_flag",         TYPE_BOOL|MASK_LIST,   &subm_flag            },
           { "names_of_strms",    TYPE_STR|MASK_LIST,    &names_of_strms       },
+          { "subm_flag",         TYPE_BOOL|MASK_LIST,   &subm_flag            },
+          { "subm_elev",         TYPE_DOUBLE|MASK_LIST, &subm_elev            },
           { "strm_hf_angle",     TYPE_DOUBLE|MASK_LIST, &strm_hf_angle        },
           { "strmbd_slope",      TYPE_DOUBLE|MASK_LIST, &strmbd_slope         },
           { "strmbd_drag",       TYPE_DOUBLE|MASK_LIST, &strmbd_drag          },
@@ -871,6 +873,7 @@ for (i = 0; i < n_zones; i++) {
 
         for (i = 0; i < NumInf; i++) {
             Inflows[i].SubmFlag = (subm_flag != NULL)?subm_flag[i]:FALSE;
+            Inflows[i].SubmElev = (subm_elev != NULL)?subm_elev[i]:0.0;
             Inflows[i].Alpha = strm_hf_angle[i] * Pi/PiDeg;
             Inflows[i].Phi = strmbd_slope[i] * Pi/PiDeg;
             Inflows[i].DragCoeff = strmbd_drag[i];
