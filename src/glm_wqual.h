@@ -48,6 +48,7 @@ typedef void (*wq_set_flags_t)(int *split_factor, CLOGICAL *mobility, CLOGICAL *
                       CLOGICAL *c_link_rain_loss, CLOGICAL *c_link_solar_shade, CLOGICAL *c_link_bottom_drag);
 typedef int (*wq_is_var_t)(int *id, const char *v, size_t *len);
 typedef void (*wq_set_glm_zones_t)(ZoneType *zones, int *numZones, int *numVars, int *numBenV);
+typedef void (*wq_ZSoilTemp_t)(ZoneType *zone);
 
 
 extern wq_init_glm_t        p_wq_init_glm;
@@ -59,6 +60,7 @@ extern wq_write_glm_t       p_wq_write_glm;
 extern wq_var_index_c_t     p_wq_var_index_c;
 extern wq_set_flags_t       p_wq_set_flags;
 extern wq_is_var_t          p_wq_is_var;
+extern wq_ZSoilTemp_t       p_wq_ZSoilTemp;
 
 #define wq_init_glm        (*p_wq_init_glm)
 #define wq_set_glm_data    (*p_wq_set_glm_data)
@@ -69,6 +71,7 @@ extern wq_is_var_t          p_wq_is_var;
 #define wq_var_index_c     (*p_wq_var_index_c)
 #define wq_set_flags       (*p_wq_set_flags)
 #define wq_is_var          (*p_wq_is_var)
+#define ZSoilTemp          (*p_wq_ZSoilTemp)
 
 int prime_wq(const char *which);
 

@@ -317,8 +317,6 @@ void write_diags(int jday, AED_REAL LakeNum)
     write_csv_lake("CD",              coef_wind_drag,            NULL, FALSE);
     write_csv_lake("CHE",             coef_wind_chwn,            NULL, FALSE);
     write_csv_lake("z/L",             SurfData.dailyzonL*(noSecs/SecsPerDay), NULL, TRUE);
-//    write_csv_lake("coef_wind_drag",  coef_wind_drag,            NULL, TRUE);
-
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

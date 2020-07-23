@@ -64,6 +64,7 @@ wq_var_index_c_t     p_wq_var_index_c     = NULL;
 wq_set_flags_t       p_wq_set_flags       = NULL;
 wq_is_var_t          p_wq_is_var          = NULL;
 wq_set_glm_zones_t   p_wq_set_glm_zones   = NULL;
+wq_ZSoilTemp_t       p_wq_ZSoilTemp       = NULL;
 
 
 int ode_method = 1, split_factor = 1;
@@ -84,6 +85,10 @@ void *find_entry(void *glm_wq_handle, const char *entry)
         exit(1);
     }
     return ret;
+}
+
+void dummyZSoilTemp(ZoneType *zone)
+{
 }
 #endif
 
@@ -130,6 +135,8 @@ int prime_wq(const char *which)
     p_wq_set_flags       =       (wq_set_flags_t) find_entry(glm_wq_handle, "wq_set_flags");
     p_wq_is_var          =          (wq_is_var_t) find_entry(glm_wq_handle, "wq_is_var");
     p_wq_set_glm_zones   =   (wq_set_glm_zones_t) find_entry(glm_wq_handle, "wq_set_glm_zones");
+    p_wq_ZSoilTemp       =       (wq_ZSoilTemp_t) find_entry(glm_wq_handle, "ZSoilTemp");
+    if ( p_wq_ZSoilTemp == NULL ) p_wq_ZSoilTemp = (wq_ZSoilTemp_t) dummyZSoilTemp;
 #ifdef _WIN32
     p_set_funcs          =          (set_funcs_t) find_entry(glm_wq_handle, "set_funcs");
 
@@ -172,6 +179,8 @@ int prime_wq(const char *which)
         fprintf(stderr, "AED2 not supported in this build\n");
         exit(1);
 #endif
+
+        p_wq_ZSoilTemp       =       (wq_ZSoilTemp_t) ZSoilTemp;
     }
 #endif
 
