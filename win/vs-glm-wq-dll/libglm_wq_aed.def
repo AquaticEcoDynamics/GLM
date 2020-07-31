@@ -1,4 +1,4 @@
-LIBRARY glm-aed2
+LIBRARY glm-aed
 EXPORTS
     wq_init_glm @1
     wq_set_glm_data @2

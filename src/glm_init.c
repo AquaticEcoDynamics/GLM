@@ -53,8 +53,8 @@
 
 #define DEFAULT_GLM_NML   "glm3.nml"
 #define DEFAULT_GLM_NML_2 "glm2.nml"
-#define DEFAULT_WQ_LIB    "aed2"
-#define DEFAULT_WQ_NML    "aed2.nml"
+#define DEFAULT_WQ_LIB    "aed"
+#define DEFAULT_WQ_NML    "aed.nml"
 
 //#define dbgprt(...) fprintf(stderr, __VA_ARGS__)
 #define dbgprt(...) /* __VA_ARGS__ */
@@ -1043,8 +1043,10 @@ for (i = 0; i < n_zones; i++) {
             if ( (n_zones <= 0 || zone_heights == NULL) ) {
                 fprintf(stderr, "     benthic_mode %d must define zones\n", benthic_mode);
                 exit(1);
+#ifdef AED
             } else {
                 wq_set_glm_zones(theZones, &n_zones, &Num_WQ_Vars, &Num_WQ_Ben);
+#endif
             }
         }
 
@@ -1061,8 +1063,10 @@ for (i = 0; i < n_zones; i++) {
             }
         }
 
+#ifdef AED
         wq_set_glm_data(Lake, &MaxLayers, &MetData, &SurfData, &dt,
                                    rain_factor, sw_factor, biodrag);
+#endif
     }
 
 

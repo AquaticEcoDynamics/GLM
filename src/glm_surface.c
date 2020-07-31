@@ -1108,7 +1108,9 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                              sed_temps );
                             // &soil_heat_flux );
                   */
+#ifdef AED
                   ZSoilTemp(&theZones[z]);
+#endif
                   // flux heat from the soil into the water, if the layer is over z
                   for (i = botmLayer+1; i <= surfLayer; i++) {
                     if (layer_zone[i] == z){

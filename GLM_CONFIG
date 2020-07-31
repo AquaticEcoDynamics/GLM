@@ -3,7 +3,7 @@
 #
 
 #export FABM=true
-export AED2=true
+export AED=true
 export USE_DL=false
 export WITH_PLOTS=true
 export WITH_XPLOTS=true
@@ -20,8 +20,6 @@ export WITH_XPLOTS=true
 export CURDIR=`pwd`
 export FABMDIR=${CURDIR}/../fabm-git
 export PLOTDIR=${CURDIR}/../libplot
-export AED2DIR=${CURDIR}/../libaed2
-export AED2PLS=${CURDIR}/../libaed2-plus
 export UTILDIR=${CURDIR}/../libutil
 
 export GLM_CONFIGURED=true

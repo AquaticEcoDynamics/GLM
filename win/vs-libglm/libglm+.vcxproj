@@ -77,13 +77,13 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>..\..\..\win-3rd-party\$(Platform)-$(Configuration)\include;..\..\..\libplot\include;..\..\..\libutil\include;..\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AED2;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AED;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <CallingConvention>Cdecl</CallingConvention>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glm-aed2.lib;libaed2+.lib;libutil.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glm-aed.lib;libaed+.lib;libutil.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;$(Platform)-$(Configuration)\lib\;..\..\..\win-3rd-party\$(Platform)-$(Configuration)\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>

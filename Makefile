@@ -111,24 +111,40 @@ ifeq ($(FABM),true)
   endif
 endif
 
-ifeq ($(AED2),true)
-  DEFINES+=-DAED2
+EXTFFLAGS=
+ifeq ($(AED),true)
+  DEFINES+=-DAED
 
-  ifeq ($(AED2DIR),)
-    AED2DIR=../libaed2
+  AEDWATDIR=../libaed-water
+  FINCLUDES+=-I$(AEDWATDIR)/include -I$(AEDWATDIR)/mod
+  AEDLIBS=-L$(AEDWATDIR)/lib -laed-water
+  ifdef AEDBENDIR
+    AEDLIBS+=-L$(AEDBENDIR)/lib -laed-benthic
+  else
+    EXTFFLAGS+=-DNO_BENTHIC
   endif
-
-  FINCLUDES+=-I$(AED2DIR)/include -I$(AED2DIR)/mod
-  AED2LIBS=-L$(AED2DIR)/lib -laed2
-  ifneq ("$(wildcard ${AED2PLS}/Makefile)","")
-    AED2PLBS=-L${AED2PLS}/lib -laed2+
+  ifdef AEDRIPDIR
+    AEDLIBS+=-L$(AEDRIPDIR)/lib -laed-riparian
+  else
+    EXTFFLAGS+=-DNO_RIPARIAN
   endif
+  ifdef AEDDMODIR
+    AEDLIBS+=-L$(AEDDMODIR)/lib -laed-demo
+  else
+    EXTFFLAGS+=-DNO_DEMO
+  endif
+  ifdef AEDDEVDIR
+    AEDLIBS+=-L$(AEDDEVDIR)/lib -laed-dev
+  else
+    EXTFFLAGS+=-DNO_DEV
+  endif
+  AEDLIBS+=-ldl
 
   ifeq ($(USE_DL),true)
-    AED2TARGETS=libglm_wq_aed2.${so_ext}
+    AEDTARGETS=libglm_wq_aed.${so_ext}
   endif
 
-  GLM_DEPS+=$(AED2DIR)/lib/libaed2.a
+  GLM_DEPS+=$(AEDWATDIR)/lib/libaed-water.a
 endif
 
 FLIBS=
@@ -144,12 +160,13 @@ ifeq ($(F90),ifort)
   endif
   FFLAGS+=-real-size 64
   FLIBS+=-L/opt/intel/lib
-  FLIBS+=-lifcore -lsvml
+  FLIBS+=-lifcore -lsvml -lifport
   FLIBS+=-limf -lintlc -liomp5
-  ifneq ("$(AED2PLBS)", "")
-    AED2PLBS+=-lifport
+  ifneq ("$(AEDPLBS)", "")
+    AEDPLBS+=-lifport
   endif
   OMPFLAG=-openmp
+  #EXTFFLAGS=-warn-no-unused-dummy-argument
 else ifeq ($(F90),pgfortran)
   LINK=$(CC)
   DEBUG_FFLAGS=-g -DDEBUG=1
@@ -173,11 +190,11 @@ else
   FFLAGS+=-fdefault-real-8 -fdefault-double-8
   OMPFLAG=-fopenmp
   FLIBS+=-lgfortran -lgomp
+  EXTFFLAGS+=-Wno-unused-dummy-argument
 endif
 
 ifneq ($(USE_DL),true)
-  WQLIBS=$(AED2LIBS) $(FABMLIBS)
-  WQPLIBS=$(AED2PLBS) $(FABMLIBS)
+  WQLIBS=$(AEDLIBS) $(FABMLIBS)
 endif
 
 ifeq ($(DEBUG),true)
@@ -252,11 +269,16 @@ ifeq ($(USE_DL),true)
   LIBS+=-ldl
   CFLAGS+=-DUSE_DL_LOADER=1
   FFLAGS+=-DUSE_DL_LOADER=1
-  TARGETS+=$(AED2TARGETS) $(FABMTARGETS)
+  TARGETS+=$(AEDTARGETS) $(FABMTARGETS)
 else
-  OBJS+=${objdir}/glm_zones.o
-  ifeq ($(AED2),true)
-    OBJS+=${objdir}/glm_aed2.o
+  ifeq ($(AED),true)
+    OBJS+=${objdir}/glm_zones.o
+  else ifeq ($(FABM),true)
+    OBJS+=${objdir}/glm_zones.o
+  endif
+  ifeq ($(AED),true)
+    OBJS+=${objdir}/glm_aed.o \
+          ${objdir}/aed_external.o
   endif
   ifeq ($(FABM),true)
     OBJS+=${objdir}/glm_fabm.o ${objdir}/ode_solvers.o
@@ -277,8 +299,8 @@ ${moddir}:
 glm: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS)
 	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQLIBS) $(FLIBS)
 
-glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS) ${AED2PLS}/lib/libaed2+.a
-	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQPLIBS) $(FLIBS)
+glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS)
+	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQLIBS) $(FLIBS)
 
 clean: ${objdir} ${moddir}
 	@touch ${objdir}/1.o ${moddir}/1.mod 1.t 1__genmod.f90 glm 1.${so_ext} glm_test_bird
@@ -288,8 +310,8 @@ clean: ${objdir} ${moddir}
 distclean: clean
 	@/bin/rm -rf ${objdir} ${moddir} glm glm+
 
-#${objdir}/%.o: ${srcdir}%.F90 ${incdir}/glm.h ${moddir} ${objdir}
-#	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
+${objdir}/%.o: ${srcdir}/%.F90 ${incdir}/glm.h ${moddir} ${objdir}
+	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
 
 ${objdir}/%.o: ${srcdir}/%.c ${incdir}/glm.h
 	$(CC) -fPIC $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
@@ -302,31 +324,19 @@ ${objdir}/%.o: ${srcdir}/%.c ${incdir}/glm.h
 
 # Build rules
 
-libglm_wq_aed2.${so_ext}: ${objdir}/glm_zones.o ${objdir}/glm_aed2.o ${objdir}/glm_plugin.o
-	$(CC) ${SHARED} $(LDFLAGS) -o $@ $^ $(AED2LIBS)
+libglm_wq_aed.${so_ext}: ${objdir}/glm_zones.o ${objdir}/glm_aed.o ${objdir}/glm_plugin.o
+	$(CC) ${SHARED} $(LDFLAGS) -o $@ $^ $(AEDLIBS)
 
-libglm_wq_aed2+.${so_ext}: ${objdir}/glm_zones.o ${objdir}/glm_aed2.o ${objdir}/glm_plugin.o
-	$(CC) ${SHARED} $(LDFLAGS) -o $@ $^ $(AED2PLBS)
+libglm_wq_aed+.${so_ext}: ${objdir}/glm_zones.o ${objdir}/glm_aed.o ${objdir}/glm_plugin.o
+	$(CC) ${SHARED} $(LDFLAGS) -o $@ $^ $(AEDPLBS)
 
 libglm_wq_fabm.${so_ext}: ${objdir}/glm_zones.o ${objdir}/glm_fabm.o ${objdir}/ode_solvers.o ${objdir}/glm_plugin.o
 	$(CC) ${SHARED} $(LDFLAGS) -o $@ $^ $(FABMLIBS)
 
 # special needs dependancies
 
-${objdir}/glm_aed2.o: ${srcdir}/glm_aed2.F90 ${objdir}/glm_types.o
-	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ $(OMPFLAG) -c $< -o $@
-
-${objdir}/glm_zones.o: ${srcdir}/glm_zones.F90 ${objdir}/glm_types.o
-	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
-
-${objdir}/glm_fabm.o: ${srcdir}/glm_fabm.F90 ${objdir}/glm_types.o ${objdir}/ode_solvers.o
-	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
-
-${objdir}/glm_types.o: ${srcdir}/glm_types.F90 ${incdir}/glm.h
-	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
-
-${objdir}/ode_solvers.o: ${srcdir}/ode_solvers.F90
-	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
+${objdir}/aed_external.o: ../libaed-water/src/aed_external.F90
+	$(FC) -fPIC $(FFLAGS) $(EXTFFLAGS) -D_FORTRAN_SOURCE_ $(OMPFLAG) -c $< -o $@
 
 ${objdir}/glm_globals.o: ${srcdir}/glm_globals.c ${incdir}/glm_globals.h ${incdir}/glm.h
 ${objdir}/glm_plugin.o: ${srcdir}/glm_plugin.c ${incdir}/glm_plugin.h ${incdir}/glm.h

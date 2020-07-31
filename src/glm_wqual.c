@@ -165,18 +165,18 @@ int prime_wq(const char *which)
         exit(1);
 #endif
     } else {
-#ifdef AED2
-        p_wq_init_glm        =        (wq_init_glm_t) aed2_init_glm;
-        p_wq_set_glm_data    =    (wq_set_glm_data_t) aed2_set_glm_data;
-        p_wq_do_glm          =          (wq_do_glm_t) aed2_do_glm;
-        p_wq_clean_glm       =       (wq_clean_glm_t) aed2_clean_glm;
-        p_wq_init_glm_output = (wq_init_glm_output_t) aed2_init_glm_output;
-        p_wq_write_glm       =       (wq_write_glm_t) aed2_write_glm;
-        p_wq_var_index_c     =     (wq_var_index_c_t) aed2_var_index_c;
-        p_wq_set_flags       =       (wq_set_flags_t) aed2_set_flags;
-        p_wq_is_var          =          (wq_is_var_t) aed2_is_var;
+#ifdef AED
+        p_wq_init_glm        =        (wq_init_glm_t) aed_init_glm;
+        p_wq_set_glm_data    =    (wq_set_glm_data_t) aed_set_glm_data;
+        p_wq_do_glm          =          (wq_do_glm_t) aed_do_glm;
+        p_wq_clean_glm       =       (wq_clean_glm_t) aed_clean_glm;
+        p_wq_init_glm_output = (wq_init_glm_output_t) aed_init_glm_output;
+        p_wq_write_glm       =       (wq_write_glm_t) aed_write_glm;
+        p_wq_var_index_c     =     (wq_var_index_c_t) aed_var_index_c;
+        p_wq_set_flags       =       (wq_set_flags_t) aed_set_flags;
+        p_wq_is_var          =          (wq_is_var_t) aed_is_var;
 #else
-        fprintf(stderr, "AED2 not supported in this build\n");
+        fprintf(stderr, "AED not supported in this build\n");
         exit(1);
 #endif
 

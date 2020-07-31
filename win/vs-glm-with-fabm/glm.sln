@@ -9,9 +9,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glm", "glm.vcxproj", "{5CDB
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libutil", "..\..\..\libutil\win\libutil.vcxproj", "{8EF4B62A-1CAF-4C2A-AF8F-FBAF3350EA84}"
 EndProject
-Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "libaed2", "..\..\..\libaed2\win\libaed2.vfproj", "{71B1A1B7-387A-4D58-8607-F9B24B896995}"
+Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "libaed", "..\..\..\libaed\win\libaed.vfproj", "{71B1A1B7-387A-4D58-8607-F9B24B896995}"
 EndProject
-Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "glm-aed2", "glm-aed2.vfproj", "{654D6ADD-1676-4136-918C-3F14C09F29D1}"
+Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "glm-aed", "glm-aed.vfproj", "{654D6ADD-1676-4136-918C-3F14C09F29D1}"
 	ProjectSection(ProjectDependencies) = postProject
 		{71B1A1B7-387A-4D58-8607-F9B24B896995} = {71B1A1B7-387A-4D58-8607-F9B24B896995}
 	EndProjectSection
