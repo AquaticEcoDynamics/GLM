@@ -412,7 +412,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    /*-- @NAMELIST mass_balance ----------------------------------------------*/
+    /*-- %%NAMELIST mass_balance ---------------------------------------------*/
     char           *balance_fname   = NULL;
     int             balance_varnum;
     char          **balance_vars = NULL;

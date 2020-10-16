@@ -303,12 +303,12 @@ glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS)
 	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQLIBS) $(FLIBS)
 
 clean: ${objdir} ${moddir}
-	@touch ${objdir}/1.o ${moddir}/1.mod 1.t 1__genmod.f90 glm 1.${so_ext} glm_test_bird
+	@touch ${objdir}/1.o ${moddir}/1.mod 1.t 1__genmod.f90 glm 1.${so_ext} glm_test_bird macos/glm.app macos/glm+.app
 	@/bin/rm ${moddir}/*.mod ${objdir}/*.o *.t *__genmod.f90 *.${so_ext} glm_test_bird
 	@echo Made clean
 
 distclean: clean
-	@/bin/rm -rf ${objdir} ${moddir} glm glm+
+	@/bin/rm -rf ${objdir} ${moddir} glm glm+ macos/glm.app macos/glm+.app
 
 ${objdir}/%.o: ${srcdir}/%.F90 ${incdir}/glm.h ${moddir} ${objdir}
 	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@

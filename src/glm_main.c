@@ -105,6 +105,10 @@ int main(int argc, char *argv[])
                 quiet = atoi(*argv);
             }
         }
+        else if ( (*argv)[0] != '-' ) {
+            // assume its the run file name
+            nmlfile = *argv;
+        }
         else {
             if (strcmp(*argv, "--help") != 0)
                 fprintf(stderr, "Unknown flag %s\n", *argv);
@@ -151,8 +155,7 @@ int main(int argc, char *argv[])
        printf("--quiet   : less messages\n");
        printf("--quiet <level> : set quiet level (1-10)\n");
 #endif
-    }
-    else if ( all_ok ) {
+    } else if ( all_ok ) {
         if ( nmlfile != NULL ) strncpy(glm_nml_file, nmlfile, 256);
 
         run_model();
