@@ -220,18 +220,22 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
             set_plot_y_label(theplots[i], "Depth");
             set_plot_y_limits(theplots[i], min_y, max_y);
             set_plot_z_limits(theplots[i], min_z[i], max_z[i]);
+            if ( n_zones > 0 ) {
+                int j;
+                for (j = 0; j < n_zones; j++) show_h_line(i, theZones[j].zheight);
+            } else {
+                show_h_line(i, CrestHeight);
+            }
         } else {
             set_plot_y_label(theplots[i], "mmol/m3");
             set_plot_y_limits(theplots[i], min_z[i], max_z[i]);
+            if ( n_zones > 0 ) {
+                int j;
+                for (j = 0; j < n_zones; j++) add_plot_subplot_y(theplots[i]);
+            }
         }
         set_plot_version(theplots[i], glm_vers);
         set_plot_varname(theplots[i], vars[i]);
-        if ( n_zones > 0 ) {
-            int j;
-            for (j = 0; j < n_zones; j++) show_h_line(i, theZones[j].zheight);
-        } else {
-            show_h_line(i, CrestHeight);
-        }
     }
     free(glm_vers);
     if (default_t) {
@@ -261,6 +265,27 @@ void do_internal_plots(const int plot_id[])
         if ( (j=plot_id[5]) >= 0 ) plot_value(theplots[j], todayish, Lake[i].Height, Lake[i].Uorb);
         if ( (j=plot_id[6]) >= 0 ) plot_value(theplots[j], todayish, Lake[i].Height, Lake[i].LayerStress);
     }
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************/
+void put_glm_val_z_(int *plot_id, AED_REAL *val, int *zone)
+{ put_glm_val_z(*plot_id, val, *zone); }
+/******************************************************************************/
+void put_glm_val_z(int plot_id, AED_REAL *val, int zone)
+{
+    AED_REAL todayish;
+    AED_REAL zone_ish = zone;
+
+/*----------------------------------------------------------------------------*/
+    if ( !do_plots || plot_id >= nplots || today <= 0 ) return;
+
+    todayish = psubday;
+    todayish *= plotstep;
+    todayish += today;
+
+    plot_value(theplots[plot_id], todayish, val[0], zone_ish);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

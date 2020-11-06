@@ -161,10 +161,7 @@ ifeq ($(F90),ifort)
   FFLAGS+=-real-size 64
   FLIBS+=-L/opt/intel/lib
   FLIBS+=-lifcore -lsvml -lifport
-  FLIBS+=-limf -lintlc -liomp5
-  ifneq ("$(AEDPLBS)", "")
-    AEDPLBS+=-lifport
-  endif
+  FLIBS+=-limf -lintlc -liomp5  -lifport
   OMPFLAG=-openmp
   #EXTFFLAGS=-warn-no-unused-dummy-argument
 else ifeq ($(F90),pgfortran)
@@ -304,7 +301,13 @@ glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS)
 
 clean: ${objdir} ${moddir}
 	@touch ${objdir}/1.o ${moddir}/1.mod 1.t 1__genmod.f90 glm 1.${so_ext} glm_test_bird macos/glm.app macos/glm+.app
+	@touch debian/.debhelper debian/files
+	@touch debian/glm debian/glm.debhelper.log debian/glm.substvars
+	@touch debian/glm+ debian/glm+.debhelper.log debian/glm+.substvars
 	@/bin/rm ${moddir}/*.mod ${objdir}/*.o *.t *__genmod.f90 *.${so_ext} glm_test_bird
+	@/bin/rm -rf debian/.debhelper debian/files
+	@/bin/rm -rf debian/glm debian/glm.debhelper.log debian/glm.substvars
+	@/bin/rm -rf debian/glm+ debian/glm+.debhelper.log debian/glm+.substvars
 	@echo Made clean
 
 distclean: clean

@@ -242,7 +242,6 @@ int noSecs;
 AED_REAL *WQ_Vars = NULL;  //# water quality array, nlayers, nvars
 
 int       n_zones = 0;
-//AED_REAL *zone_heights = NULL;
 ZoneType *theZones = NULL;
 
 

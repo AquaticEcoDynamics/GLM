@@ -83,7 +83,7 @@ void Mobility(int *N_in,          // number of vertical layers
     AED_REAL *mins;  // minimum layer mass of variable (mmol)
     AED_REAL *Y;     // total mass of variable (mmol) in layer
 
-    AED_REAL dtMax = dt, tdt, tmp;
+    AED_REAL dtMax, tdt, tmp;
     int dirChng, sign;
 
 /*----------------------------------------------------------------------------*/
@@ -140,29 +140,31 @@ void Mobility(int *N_in,          // number of vertical layers
     /**************************************************************************/
 
     tdt = dtMax;
-    do  {   // do this in steps of dtMax, but at least once
-        // each time tdt is dtMax, except, possibly, the last which is whatever
-        // was left.
-        if ( (dt -= dtMax) < 0. ) tdt = dtMax + dt;
+    if ( dtMax > 0.0001 ) { // in case a cell height was very small or the ww value very large
+        do  {   // do this in steps of dtMax, but at least once
+            // each time tdt is dtMax, except, possibly, the last which is
+            // whatever was left.
+            if ( (dt -= dtMax) < 0. ) tdt = dtMax + dt;
 
-        /**********************************************************************
-         * 2 possibilities,                                                   *
-         *   1) lower levels rising, upper levels sinking                     *
-         *   2) lower levels sinking, upper levels rising                     *
-         **********************************************************************/
-        if ( ww[0] > 0. ) { // lower levels rising
-            if ( ww[N-1] < 0. ) { // top levels are sinking
-                tmp = Sinking(Y, cc, ww, vols, A, mins, tdt, N-1, dirChng);
-                Y[dirChng-1] += tmp;
-                cc[dirChng-1] = Y[dirChng-1] / vols[dirChng-1];
+            /******************************************************************
+             * 2 possibilities,                                               *
+             *   1) lower levels rising, upper levels sinking                 *
+             *   2) lower levels sinking, upper levels rising                 *
+             ******************************************************************/
+            if ( ww[0] > 0. ) { // lower levels rising
+                if ( ww[N-1] < 0. ) { // top levels are sinking
+                    tmp = Sinking(Y, cc, ww, vols, A, mins, tdt, N-1, dirChng);
+                    Y[dirChng-1] += tmp;
+                    cc[dirChng-1] = Y[dirChng-1] / vols[dirChng-1];
+                }
+                Rising( Y, cc, ww, vols, A, mins, tdt, 0,   dirChng-1);
+            } else { // lower levels sinking
+                Sinking(Y, cc, ww, vols, A, mins, tdt, dirChng-1, 0);
+                if ( ww[N-1] > 0. )   // top levels are rising
+                    Rising( Y, cc, ww, vols, A, mins, tdt, dirChng,   N-1);
             }
-            Rising( Y, cc, ww, vols, A, mins, tdt, 0,   dirChng-1);
-        } else { // lower levels sinking
-            Sinking(Y, cc, ww, vols, A, mins, tdt, dirChng-1, 0);
-            if ( ww[N-1] > 0. )   // top levels are rising
-                Rising( Y, cc, ww, vols, A, mins, tdt, dirChng,   N-1);
-        }
-    } while ( dt > 0. );
+        } while ( dt > 0. );
+    }
 
     /**************************************************************************/
     free(vols); free(mins); free(Y);

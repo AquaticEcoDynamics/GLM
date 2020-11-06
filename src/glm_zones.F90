@@ -83,7 +83,6 @@ SUBROUTINE wq_set_glm_zones(Zones, numZones, numVars, numBenV) BIND(C, name="wq_
 !LOCALS
    INTEGER :: i
    INTEGER :: n_sed_layers = 20
-!  AED_REAL :: surf
    TYPE(SedLayerType),DIMENSION(:),POINTER :: layers
 !
 !-------------------------------------------------------------------------------
@@ -105,11 +104,6 @@ SUBROUTINE wq_set_glm_zones(Zones, numZones, numVars, numBenV) BIND(C, name="wq_
    ALLOCATE(z_cc(n_zones, numVars+numBenV))
    z_cc = 900.!   !MH if i initialise this in init then nothing happens so doing it here.
 
-!  zdz(1) = z_dep(1)
-!  DO i=2,n_zones
-!     zdz(i) = z_dep(i) - z_dep(i-1)
-!  ENDDO
-!  DO i=1,n_zones ; z_sed_zones(i) = i; ENDDO
    theZones%zarea = 0.
 END SUBROUTINE wq_set_glm_zones
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -258,7 +252,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
    INTEGER,INTENT(in) :: wlev
 !
 !LOCALS
-   INTEGER  :: zon, lev
+   INTEGER  :: zon, lev, a_zones
    AED_REAL :: surf
    INTEGER  :: zcount(n_zones)
 !
@@ -269,6 +263,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
    theZones%zextc_coef = 0. ; theZones%zlayer_stress = 0. ; theZones%ztss = 0. ; theZones%zpar = 0.
    theZones%znir = 0. ; theZones%zuva = 0. ; theZones%zuvb = 0. ; theZones%z_sed_zones = 1.
 
+   a_zones = 1
    zcount = 0
    DO lev=1,wlev
       IF ( zz(lev) > zone_heights(zon) ) THEN
@@ -292,17 +287,27 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
 
       zcount(zon) = zcount(zon) + 1
    ENDDO
+   a_zones = zon
 
-   DO zon=1,n_zones
+   DO zon=1,a_zones
       z_cc(zon,1:nvars) = z_cc(zon,1:nvars)/zcount(zon)
    ENDDO
 
-   theZones%ztemp         = theZones%ztemp / zcount
-   theZones%zsalt         = theZones%zsalt / zcount
-   theZones%zrho          = theZones%zrho  / zcount
-   theZones%zrad          = theZones%zrad  / zcount
-   theZones%zextc_coef    = theZones%zextc_coef / zcount
-   theZones%zlayer_stress = theZones%zlayer_stress / zcount
+   WHERE (zcount /= 0.)
+      theZones%ztemp         = theZones%ztemp / zcount
+      theZones%zsalt         = theZones%zsalt / zcount
+      theZones%zrho          = theZones%zrho  / zcount
+      theZones%zrad          = theZones%zrad  / zcount
+      theZones%zextc_coef    = theZones%zextc_coef / zcount
+      theZones%zlayer_stress = theZones%zlayer_stress / zcount
+   ELSEWHERE
+      theZones%ztemp         = 0.
+      theZones%zsalt         = 0.
+      theZones%zrho          = 0.
+      theZones%zrad          = 0.
+      theZones%zextc_coef    = 0.
+      theZones%zlayer_stress = 0.
+   ENDWHERE
 
    surf = zz(wlev)
    IF ( surf > zone_heights(1) ) THEN
@@ -312,7 +317,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
       w_zones = 1
    ENDIF
 
-   DO zon=2,n_zones
+   DO zon=2,a_zones
       theZones(zon)%z_sed_zones = zon
       IF ( w_zones == 0 ) THEN
           IF ( surf > zone_heights(zon) ) THEN

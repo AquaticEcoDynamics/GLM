@@ -101,7 +101,7 @@ LIBS1=`find_libs local ${PKG}`
 if [ "$FC" = "ifort" ] ; then
   PATH2=/opt/intel
   PATH3=
-  LIBS2="libifcore.dylib libsvml.dylib libimf.dylib libintlc.dylib"
+  LIBS2="libifcore.dylib libsvml.dylib libimf.dylib libintlc.dylib libiomp5.dylib libifport.dylib"
   if [ "${PKG}" = "glm+" ] ; then
     LIBS2="${LIBS2} libifport.dylib"
   fi

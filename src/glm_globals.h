@@ -298,7 +298,6 @@ void debug_print_lake(void);
 void debug_initialisation(int which);
 void debug_initialisation_(int *which);
 
-//#define _WQ_Vars(var,lyr) WQ_Vars[_IDX_2d(Num_WQ_Vars,MaxLayers,var,lyr)]
 #define _WQ_Vars(var,lyr) WQ_Vars[_IDX_2d(MaxLayers,Num_WQ_Vars,lyr,var)]
 #endif
 

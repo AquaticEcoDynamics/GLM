@@ -19,7 +19,7 @@ for FILE in ./glm.rc ./glm+.rc ; do
   ver2=`echo $vers | sed "s/\./,/g"`
 
   if [ "$ver2" != "$OFV" ] ; then
-    echo sed -e "s/${OFV}/${ver2}/" -i${EXTN} ${FILE}
+    echo sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
     sed -e "s/${OFV}/${ver2}/" -i${EXTN} ${FILE}
     OFV=`grep FileVersion ${FILE} | sed 's/^[ \t]*//' | cut -f3 -d\ `
     echo sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
