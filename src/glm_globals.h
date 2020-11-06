@@ -89,7 +89,6 @@ extern int Num_WQ_Ben;         //# number of benthic water quality variables
 extern AED_REAL *WQ_Vars;      //# water quality array : nlayers, nvars
 
 extern int       n_zones;      //# number of sediment zones
-//extern AED_REAL *zone_heights; //# heights for sed_zones
 extern ZoneType *theZones;
 
 /*----------------------------------------------------------------------------*/

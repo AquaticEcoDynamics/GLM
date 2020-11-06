@@ -57,7 +57,6 @@ MODULE glm_zones
 
    INTEGER :: n_zones, w_zones
 
-!  TYPE(ZoneType),ALLOCATABLE,DIMENSION(:),TARGET :: theZones
    TYPE(ZoneType),DIMENSION(:),POINTER :: theZones
 
    AED_REAL,DIMENSION(:),POINTER :: zone_heights
@@ -76,7 +75,6 @@ CONTAINS
 SUBROUTINE wq_set_glm_zones(Zones, numZones, numVars, numBenV) BIND(C, name="wq_set_glm_zones")
 !-------------------------------------------------------------------------------
 !ARGUMENTS
-!  AED_REAL,TARGET,INTENT(in) :: z_heights(1:numZones)
    TYPE(C_PTR),VALUE :: Zones
    CINTEGER,INTENT(in) :: numZones, numVars, numBenV
 !
@@ -94,11 +92,7 @@ SUBROUTINE wq_set_glm_zones(Zones, numZones, numVars, numBenV) BIND(C, name="wq_
 
    zone_heights => theZones%zheight
 
-!  print *,'C_F_POINTER',zone_heights(:),theZones(1)%zheight,theZones(2)%zheight
-
-!  CALL C_F_POINTER(z_heights, zone_heights, [numZones]);
    DO i=1,n_zones
-!     ALLOCATE(theZones(i)%layers(n_sed_layers))
       CALL C_F_POINTER(theZones(i)%c_layers, layers, [n_sed_layers]);
    ENDDO
    ALLOCATE(z_cc(n_zones, numVars+numBenV))
@@ -146,8 +140,9 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
    zon = 1
    DO lev=2, wlev
       IF ( zz(lev) > zone_heights(zon) ) zon = zon + 1
+      IF (zon > n_zones) zon = n_zones
 
-      IF ( zone_heights(zon) > surf ) THEN
+      IF ( surf <= zone_heights(zon) ) THEN
          IF (w_zones == 0) THEN
             w_zones = lev
             theZones(zon)%z_pc_wet = surf / (zone_heights(zon) - zone_heights(zon-1))
@@ -163,10 +158,11 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
    theZones(1)%zarea = areas(1)
    DO lev=2, wlev
       IF ( zz(lev) > zone_heights(zon) ) zon = zon + 1
+      IF (zon > n_zones) zon = n_zones
 
       theZones(zon)%zarea = theZones(zon)%zarea + areas(lev) - areas(lev-1)
 
-      IF ( zone_heights(zon) > surf ) THEN
+      IF ( surf <= zone_heights(zon) ) THEN
          IF (w_zones == 0) THEN
             w_zones = lev
             theZones(zon)%z_pc_wet = surf / (zone_heights(zon) - zone_heights(zon-1))
@@ -268,6 +264,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
    DO lev=1,wlev
       IF ( zz(lev) > zone_heights(zon) ) THEN
          zon = zon + 1
+         IF (zon > n_zones) zon = n_zones
          theZones(zon)%z_sed_zones = zon
       ENDIF
 

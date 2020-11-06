@@ -1431,7 +1431,13 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
             ELSE
                d = d + 1
                !# Store diagnostic variable values defined on the full domain.
-               CALL store_nc_array(ncid, externalid(i), XYZT_SHAPE, wlev, nlev, array=cc_diag(:, d))
+!!!!           CALL store_nc_array(ncid, externalid(i), XYZT_SHAPE, wlev, nlev, array=cc_diag(:, d))
+               IF ( n_zones .GT. 0 ) THEN
+                  CALL store_nc_array(ncid, externalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_diag(:, d))
+               ELSE
+                  CALL store_nc_array(ncid, externalid(i), XYZT_SHAPE, wlev, nlev, array=cc_diag(:, d))
+               ENDIF
+
 #ifdef PLOTS
                IF ( do_plots .AND. plot_id_d(d).GE.0 ) CALL put_glm_val(plot_id_d(d), cc_diag(1:wlev, d))
 !IF ( do_plots .AND. plot_id_d(d).GE.0 ) print*,"PLOT ",d,plot_id_d(d),cc_diag(1:3, d)

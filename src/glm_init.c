@@ -763,25 +763,26 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
             printf("       *sed_temp_mean[0] = %10.5f\n",sed_temp_mean[0]);
         }
     }
+    if ( n_zones > 0 && zone_heights != NULL ) {
+        int x_zones = n_zones;
+        if ( (max_elev-base_elev) > zone_heights[n_zones-1] ) {
+            fprintf(stderr, "     WARNING last zone height is less than maximum depth\n");
+            fprintf(stderr, "        ... adding an extra zone to compensate\n");
+            x_zones++;
+        }
+        theZones = calloc(x_zones, sizeof(ZoneType));
+        if ( theZones == NULL) {
+            fprintf(stderr, "     Memory ERROR ...\n"); exit(1);
+        }
+        for (i = 0; i < n_zones; i++) theZones[i].zheight = zone_heights[i];
+        if ( x_zones > n_zones )
+            zone_heights[n_zones++] = (max_elev-base_elev)+1;
+    }
+
     if ( sed_reflectivity == NULL ) {
         int t_zones = 2;
         if ( n_zones > 1 ) t_zones = n_zones;
         sed_reflectivity = calloc(t_zones, sizeof(AED_REAL));
-    }
-
-    if ( n_zones > 0 && zone_heights != NULL ) {
-        if ( zone_heights[n_zones-1] <= (max_elev-base_elev) ) {
-            fprintf(stderr, "     WARNING last zone height is less than maximum depth\n");
-            fprintf(stderr, "        ... adding an extra zone to compensate\n");
-            zone_heights = realloc(zone_heights, (n_zones+2)*sizeof(AED_REAL));
-            if ( zone_heights == NULL) {
-                fprintf(stderr, "     Memory ERROR ...\n"); exit(1);
-            }
-            zone_heights[n_zones++] = (max_elev-base_elev)+1;
-        }
-        theZones = calloc(n_zones, sizeof(ZoneType));
-        printf("     Sediment zones being set at %7.1f %7.1f %7.1f ... \n",zone_heights[0],zone_heights[1],zone_heights[2]);
-        for (i = 0; i < n_zones; i++) theZones[i].zheight = zone_heights[i];
     }
 
     /**************************************************************************
