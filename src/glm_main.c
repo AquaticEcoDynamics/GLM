@@ -53,7 +53,11 @@ extern char glm_nml_file[];
 extern void run_model(void);
 
 /******************************************************************************/
+#ifdef PLOTS
 int _main_(int argc, char *argv[])
+#else
+int main(int argc, char *argv[])
+#endif
 {
     char *nmlfile = NULL;
     int all_ok = 1, show_options = 0;
@@ -61,7 +65,7 @@ int _main_(int argc, char *argv[])
 #ifdef PLOTS
     saveall = 0;
 #ifdef XPLOTS
-    xdisp = 1;
+    xdisp = 0;
 #endif
 #endif
 

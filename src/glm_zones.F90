@@ -57,6 +57,7 @@ MODULE glm_zones
 
    INTEGER :: n_zones, w_zones
 
+!  TYPE(ZoneType),ALLOCATABLE,DIMENSION(:),TARGET :: theZones
    TYPE(ZoneType),DIMENSION(:),POINTER :: theZones
 
    AED_REAL,DIMENSION(:),POINTER :: zone_heights
@@ -140,9 +141,8 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
    zon = 1
    DO lev=2, wlev
       IF ( zz(lev) > zone_heights(zon) ) zon = zon + 1
-      IF (zon > n_zones) zon = n_zones
 
-      IF ( surf <= zone_heights(zon) ) THEN
+      IF ( zone_heights(zon) > surf ) THEN
          IF (w_zones == 0) THEN
             w_zones = lev
             theZones(zon)%z_pc_wet = surf / (zone_heights(zon) - zone_heights(zon-1))
@@ -158,11 +158,10 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
    theZones(1)%zarea = areas(1)
    DO lev=2, wlev
       IF ( zz(lev) > zone_heights(zon) ) zon = zon + 1
-      IF (zon > n_zones) zon = n_zones
 
       theZones(zon)%zarea = theZones(zon)%zarea + areas(lev) - areas(lev-1)
 
-      IF ( surf <= zone_heights(zon) ) THEN
+      IF ( zone_heights(zon) > surf ) THEN
          IF (w_zones == 0) THEN
             w_zones = lev
             theZones(zon)%z_pc_wet = surf / (zone_heights(zon) - zone_heights(zon-1))
@@ -264,7 +263,6 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
    DO lev=1,wlev
       IF ( zz(lev) > zone_heights(zon) ) THEN
          zon = zon + 1
-         IF (zon > n_zones) zon = n_zones
          theZones(zon)%z_sed_zones = zon
       ENDIF
 
