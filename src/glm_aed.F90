@@ -143,6 +143,7 @@ MODULE glm_aed
    AED_REAL,ALLOCATABLE,DIMENSION(:) :: min_, max_
 
    INTEGER,ALLOCATABLE,DIMENSION(:) :: externalid
+   INTEGER,ALLOCATABLE,DIMENSION(:) :: zexternalid
 #if PLOTS
    INTEGER,ALLOCATABLE,DIMENSION(:) :: plot_id_v, plot_id_sv, plot_id_d, plot_id_sd
 #endif
@@ -401,6 +402,8 @@ SUBROUTINE aed_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C, 
 
 !  ALLOCATE(column(n_aed_vars))
    ALLOCATE(externalid(n_aed_vars))
+!  IF ( n_zones .GT. 0 )  &
+      ALLOCATE(zexternalid(n_aed_vars))
 
    !----------------------------------------------------------------------------
 
@@ -574,7 +577,7 @@ SUBROUTINE aed_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_,          &
 
    IF (benthic_mode .GT. 1) THEN
       ALLOCATE(z_diag(n_zones, n_vars_diag)) ; z_diag = zero_
-      ALLOCATE(z_diag_hz(n_zones, n_vars_diag_sheet)) ; z_diag_hz = zero_
+      ALLOCATE(z_diag_hz(n_zones+1, n_vars_diag_sheet)) ; z_diag_hz = zero_
 
       !# At this point we have z_cc allocated, so now we can copy the initial values
       !# from cc benthic vars to it
@@ -1353,8 +1356,24 @@ SUBROUTINE aed_init_glm_output(ncid,x_dim,y_dim,z_dim,zone_dim,time_dim) BIND(C,
       ENDIF
    ENDDO
 
+   !# Set up dimension indices for 2D (+ time) variables (longitude,latitude,time).
+   dims(1) = x_dim
+   dims(2) = y_dim
+   dims(3) = time_dim
+
+!  v = 0; d = 0
+   DO i=1,n_aed_vars
+      IF ( aed_get_var(i, tv) ) THEN
+         IF ( tv%sheet .AND. .NOT. tv%extern ) THEN
+            !# only for state and diag sheet vars
+            externalid(i) = NEW_NC_VARIABLE(ncid, TRIM(tv%name), LEN_TRIM(tv%name), NF90_REALTYPE, 3, dims(1:3))
+            CALL set_nc_attributes(ncid, externalid(i), MYTRIM(tv%units), MYTRIM(tv%longname) PARAM_FILLVALUE)
+         ENDIF
+      ENDIF
+   ENDDO
+
+   !# Set up dimension indices for 2D+zone (+ time) variables (longitude,latitude,zone,time).
    IF ( n_zones .GT. 0 ) THEN
-      !# Set up dimension indices for 3D (+ time) variables (longitude,latitude,zone,time).
       dims(1) = x_dim
       dims(2) = y_dim
       dims(3) = zone_dim
@@ -1366,24 +1385,8 @@ SUBROUTINE aed_init_glm_output(ncid,x_dim,y_dim,z_dim,zone_dim,time_dim) BIND(C,
          IF ( aed_get_var(i, tv) ) THEN
             IF ( tv%sheet .AND. .NOT. tv%extern ) THEN
                !# only for state and diag sheet vars
-               externalid(i) = NEW_NC_VARIABLE(ncid, TRIM(tv%name), LEN_TRIM(tv%name), NF90_REALTYPE, 4, dims(1:4))
-               CALL set_nc_attributes(ncid, externalid(i), MYTRIM(tv%units), MYTRIM(tv%longname) PARAM_FILLVALUE)
-            ENDIF
-         ENDIF
-      ENDDO
-   ELSE
-      !# Set up dimension indices for 2D (+ time) variables (longitude,latitude,time).
-      dims(1) = x_dim
-      dims(2) = y_dim
-      dims(3) = time_dim
-
-!     v = 0; d = 0
-      DO i=1,n_aed_vars
-         IF ( aed_get_var(i, tv) ) THEN
-            IF ( tv%sheet .AND. .NOT. tv%extern ) THEN
-               !# only for state and diag sheet vars
-               externalid(i) = NEW_NC_VARIABLE(ncid, TRIM(tv%name), LEN_TRIM(tv%name), NF90_REALTYPE, 3, dims(1:3))
-               CALL set_nc_attributes(ncid, externalid(i), MYTRIM(tv%units), MYTRIM(tv%longname) PARAM_FILLVALUE)
+               zexternalid(i) = NEW_NC_VARIABLE(ncid, TRIM(tv%name)//"_Z", LEN_TRIM(tv%name)+2, NF90_REALTYPE, 4, dims(1:4))
+               CALL set_nc_attributes(ncid, zexternalid(i), MYTRIM(tv%units), MYTRIM(tv%longname) PARAM_FILLVALUE)
             ENDIF
          ENDIF
       ENDDO
@@ -1426,18 +1429,17 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                sd = sd + 1
                !# Process and store diagnostic variables defined on horizontal slices of the domain.
                IF ( n_zones .GT. 0 ) THEN
-                  CALL store_nc_array(ncid, externalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_diag_hz(1:n_zones,sd))
-               ELSE
-                  CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc_diag_hz(sd))
+                  z_diag_hz(n_zones+1,sd) = cc_diag_hz(sd)
+                  CALL store_nc_array(ncid, zexternalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_diag_hz(1:n_zones+1,sd))
                ENDIF
+               CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc_diag_hz(sd))
 #ifdef PLOTS
                IF ( do_plots .AND. plot_id_sd(sd).GE.0 ) THEN
+                  CALL put_glm_val_s(plot_id_sd(sd),cc_diag_hz(sd))
                   IF ( n_zones .GT. 0 ) THEN
                      DO z=1,n_zones
                         CALL put_glm_val_z(plot_id_sd(sd),z_diag_hz(z, sd), z)
                      ENDDO
-                  ELSE
-                     CALL put_glm_val_s(plot_id_sd(sd),cc_diag_hz(sd))
                   ENDIF
                ENDIF
 #endif
@@ -1461,17 +1463,15 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                sv = sv + 1
                !# Store benthic biogeochemical state variables.
                IF ( n_zones .GT. 0 ) THEN
-                  CALL store_nc_array(ncid, externalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_cc(1:n_zones, n_vars+sv))
-               ELSE
-                  CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc(1, n_vars+sv))
+                  CALL store_nc_array(ncid, zexternalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_cc(1:n_zones, n_vars+sv))
                ENDIF
+               CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc(1, n_vars+sv))
 #ifdef PLOTS
                IF ( do_plots .AND. plot_id_sv(sv).GE.0 ) THEN
                   IF (benthic_mode .GT. 1) THEN
                      CALL put_glm_val(plot_id_sv(sv), z_cc(1:n_zones, n_vars+sv))
-                  ELSE
-                     CALL put_glm_val_s(plot_id_sv(sv), cc(1, n_vars+sv))
                   ENDIF
+                  CALL put_glm_val_s(plot_id_sv(sv), cc(1, n_vars+sv))
                ENDIF
 #endif
             ELSE     !# not sheet

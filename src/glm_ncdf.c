@@ -97,7 +97,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_dim(ncid, "z", nlev, &z_dim));
     check_nc_error(nc_def_dim(ncid, "restart", 17, &restart_dim));
     if ( n_zones > 0 )
-        check_nc_error(nc_def_dim(ncid, "nzones", n_zones, &zone_dim));
+        check_nc_error(nc_def_dim(ncid, "nzones", n_zones+1, &zone_dim));
     check_nc_error(nc_def_dim(ncid, "time", NC_UNLIMITED, &time_dim));
 
     //# define coordinates
@@ -493,7 +493,7 @@ void store_nc_array(int ncid, int id, int var_shape, int nvals,
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-#undef DEBUG
+//#undef DEBUG
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/

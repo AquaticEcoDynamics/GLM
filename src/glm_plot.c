@@ -231,6 +231,7 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
             set_plot_y_limits(theplots[i], min_z[i], max_z[i]);
             if ( n_zones > 0 ) {
                 int j;
+                add_plot_subplot_y(theplots[i]);
                 for (j = 0; j < n_zones; j++) add_plot_subplot_y(theplots[i]);
             }
         }
