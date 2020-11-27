@@ -499,11 +499,7 @@ CINTEGER FUNCTION aed_is_var(id,i_vname,len) BIND(C, name=_WQ_IS_VAR)
             IF ( tvar%sheet ) THEN ; sv=sv+1; ELSE ; v=v+1 ; ENDIF
             IF ( TRIM(tvar%name) == vname ) THEN
                IF (tvar%sheet) THEN
-                  IF (benthic_mode .GT. 1) THEN
-                     aed_is_var=sv
-                  ELSE
-                     aed_is_var=-sv
-                  ENDIF
+                  aed_is_var=-sv
 #ifdef PLOTS
                   plot_id_sv(sv) = id;
 #endif
@@ -1435,12 +1431,12 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc_diag_hz(sd))
 #ifdef PLOTS
                IF ( do_plots .AND. plot_id_sd(sd).GE.0 ) THEN
-                  CALL put_glm_val_s(plot_id_sd(sd),cc_diag_hz(sd))
                   IF ( n_zones .GT. 0 ) THEN
                      DO z=1,n_zones
                         CALL put_glm_val_z(plot_id_sd(sd),z_diag_hz(z, sd), z)
                      ENDDO
                   ENDIF
+                  CALL put_glm_val_s(plot_id_sd(sd),cc_diag_hz(sd))
                ENDIF
 #endif
             ELSE  !# not sheet
@@ -1468,8 +1464,10 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc(1, n_vars+sv))
 #ifdef PLOTS
                IF ( do_plots .AND. plot_id_sv(sv).GE.0 ) THEN
-                  IF (benthic_mode .GT. 1) THEN
-                     CALL put_glm_val(plot_id_sv(sv), z_cc(1:n_zones, n_vars+sv))
+                  IF ( n_zones .GT. 0 ) THEN
+                     DO z=1,n_zones
+                        CALL put_glm_val_z(plot_id_sv(sv), z_cc(z, n_vars+sv), z)
+                     ENDDO
                   ENDIF
                   CALL put_glm_val_s(plot_id_sv(sv), cc(1, n_vars+sv))
                ENDIF

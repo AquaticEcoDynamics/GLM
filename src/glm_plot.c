@@ -272,9 +272,9 @@ void do_internal_plots(const int plot_id[])
 
 /******************************************************************************/
 void put_glm_val_z_(int *plot_id, AED_REAL *val, int *zone)
-{ put_glm_val_z(*plot_id, val, *zone); }
+{ put_glm_val_z(*plot_id, *val, *zone); }
 /******************************************************************************/
-void put_glm_val_z(int plot_id, AED_REAL *val, int zone)
+void put_glm_val_z(int plot_id, AED_REAL val, int zone)
 {
     AED_REAL todayish;
     AED_REAL zone_ish = zone;
@@ -286,16 +286,16 @@ void put_glm_val_z(int plot_id, AED_REAL *val, int zone)
     todayish *= plotstep;
     todayish += today;
 
-    plot_value(theplots[plot_id], todayish, val[0], zone_ish);
+    plot_value(theplots[plot_id], todayish, val, zone_ish);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
 /******************************************************************************/
 void put_glm_val_s_(int *plot_id, AED_REAL *val)
-{ put_glm_val_s(*plot_id, val); }
+{ put_glm_val_s(*plot_id, *val); }
 /******************************************************************************/
-void put_glm_val_s(int plot_id, AED_REAL *val)
+void put_glm_val_s(int plot_id, AED_REAL val)
 {
     AED_REAL todayish;
 
@@ -306,7 +306,7 @@ void put_glm_val_s(int plot_id, AED_REAL *val)
     todayish *= plotstep;
     todayish += today;
 
-    plot_value(theplots[plot_id], todayish, val[0], 0.);
+    plot_value(theplots[plot_id], todayish, val, 0.);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

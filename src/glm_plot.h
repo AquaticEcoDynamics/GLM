@@ -51,7 +51,7 @@
 #       endif
         USE ISO_C_BINDING
         CINTEGER,INTENT(in) :: plot_id
-        AED_REAL,INTENT(in) :: val(*)
+        AED_REAL,INTENT(in) :: val
         CINTEGER,INTENT(in) :: zone
      END SUBROUTINE put_glm_val_z
 
@@ -61,7 +61,7 @@
 #       endif
         USE ISO_C_BINDING
         CINTEGER,INTENT(in) :: plot_id
-        AED_REAL,INTENT(in) :: val(*)
+        AED_REAL,INTENT(in) :: val
      END SUBROUTINE put_glm_val_s
 
      SUBROUTINE put_glm_val(plot_id,val) BIND(C,name="put_glm_val_")
@@ -89,12 +89,12 @@
 
 /******************************************************************************/
 void init_plots(int jstart, int ndays, AED_REAL crest);
-void put_glm_val_s(int plot_id, AED_REAL *val);
+void put_glm_val_s(int plot_id, AED_REAL val);
 void put_glm_val(int plot_id, AED_REAL *val);
 void do_internal_plots(const int plot_id[]);
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-void put_glm_val_z(int plot_id, AED_REAL *val, int z);
+void put_glm_val_z(int plot_id, AED_REAL val, int z);
 void put_glm_val_z_(int *plot_id, AED_REAL *val, int *z);
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 void init_plots_(int *jstart, int *ndays, AED_REAL *crest);
