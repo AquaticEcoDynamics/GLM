@@ -60,12 +60,13 @@ int main(int argc, char *argv[])
 #endif
 {
     char *nmlfile = NULL;
-    int all_ok = 1, show_options = 0;
+    int all_ok = 1, show_options = 0, show_vers = 0;
 
 #ifdef PLOTS
     saveall = 0;
 #ifdef XPLOTS
     xdisp = 0;
+    int no_gui = 0;
 #endif
 #endif
 
@@ -84,11 +85,14 @@ int main(int argc, char *argv[])
 #ifdef PLOTS
 #ifdef XPLOTS
         else if (strcmp(*argv, "--xdisp") == 0) {
-            xdisp = 1;
+            if ( !no_gui ) xdisp = 1;
             if ( argc > 1 && strncmp(argv[1], "--", 2) != 0 ) {
                 argv++; argc--;
                 plots_nml_name = *argv;
             }
+        }
+        else if (strcmp(*argv, "--no-gui") == 0) {
+            no_gui = 1; xdisp = 0;
         }
 #endif
         else if (strcmp(*argv, "--saveall") == 0) {
@@ -114,9 +118,13 @@ int main(int argc, char *argv[])
             nmlfile = *argv;
         }
         else {
-            if (strcmp(*argv, "--help") != 0)
+            if (strcmp(*argv, "--version") == 0) {
+                show_vers = 1;
+            } else if (strcmp(*argv, "--help") != 0) {
+                show_options = 1;
+            } else {
                 fprintf(stderr, "Unknown flag %s\n", *argv);
-            show_options = 1;
+            }
             all_ok = 0;
         }
         argc--; argv++;
@@ -142,6 +150,8 @@ int main(int argc, char *argv[])
 #elif defined(_MSC_VER) && !defined(__INTEL_COMPILER)
         printf("     glm built using MSC version %ld\n", _MSC_VER);
 #endif
+        printf("     build date %s\n", BUILDDATE);
+        if (show_vers)  exit(0);
     }
 
     if ( show_options ) {

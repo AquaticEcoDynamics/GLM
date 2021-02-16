@@ -29,6 +29,7 @@
 ###############################################################################
 
 OSTYPE=$(shell uname -s)
+BUILDDATE=$(shell date -u +%Y%m%d-%H%MUTC)
 
 ifeq ($(WITH_PLOTS),)
   WITH_PLOTS=true
@@ -315,6 +316,9 @@ distclean: clean
 
 ${objdir}/%.o: ${srcdir}/%.F90 ${incdir}/glm.h ${moddir} ${objdir}
 	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
+
+${objdir}/glm_main.o: ${srcdir}/glm_main.c ${incdir}/glm.h
+	$(CC) -fPIC -DBUILDDATE=\"${BUILDDATE}\" $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
 
 ${objdir}/%.o: ${srcdir}/%.c ${incdir}/glm.h
 	$(CC) -fPIC $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
