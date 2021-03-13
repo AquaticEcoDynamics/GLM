@@ -114,14 +114,14 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_var(ncid, "hsnow", NC_REALTYPE, 1, dims, &HSNOW_id));
     check_nc_error(nc_def_var(ncid, "hwice", NC_REALTYPE, 1, dims, &HWICE_id));
     check_nc_error(nc_def_var(ncid, "avg_surf_temp", NC_REALTYPE, 1, dims, &AvgSurfTemp_id));
-    
+
     dims[0] = restart_dim;
     check_nc_error(nc_def_var(ncid, "restart_variables", NC_REALTYPE, 1, dims, &restart_id));
 
     /**************************************************************************
      * define variables                                                       *
      **************************************************************************/
-     
+
     //# x,y,t
     dims[2] = x_dim;
     dims[1] = y_dim;
@@ -168,7 +168,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     set_nc_attributes(ncid, HSNOW_id,  "meters",  "Height of Snow"  PARAM_FILLVALUE);
     set_nc_attributes(ncid, HWICE_id,  "meters",  "Height of WhiteIce" PARAM_FILLVALUE);
     set_nc_attributes(ncid, AvgSurfTemp_id,  "celsius",  "Running average surface temperature" PARAM_FILLVALUE);
-     
+
     set_nc_attributes(ncid, restart_id,  "various",  "dep_mx,prev_thick,g_prime_two_layer,\
 energy_avail_max,mass_epi,old_slope,time_end_shear,time_start_shear,\
 time_count_end,time_count_sim,half_seiche_period,thermocline_height,\
@@ -338,7 +338,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
         u_orb[littoralLayer] = NC_FILLER;
         taub[littoralLayer] = NC_FILLER;
     }
-    
+
     check_nc_error(nc_put_vara(ncid,     z_id, start, edges, heights));
     check_nc_error(nc_put_vara(ncid,     V_id, start, edges, vols));
     check_nc_error(nc_put_vara(ncid,  salt_id, start, edges, salts));

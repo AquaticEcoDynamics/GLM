@@ -87,7 +87,13 @@ ifeq ($(OSTYPE),Darwin)
   EXTRALINKFLAGS=-Wl,-no_compact_unwind,-headerpad_max_install_names
   SHARED=-dynamiclib -undefined dynamic_lookup
   so_ext=dylib
+else ifeq ($(OSTYPE),FreeBSD)
+  FINCLUDES+=-I../flang_extra/mod
+  FINCLUDES+=-I/usr/local/include
+  CINCLUDES+=-I/usr/local/include
+  LIBS+=-L../flang_extra/ -lflang_extra -L/usr/local/lib
 else
+  CINCLUDES+=-I/usr/local/include
   EXTRALINKFLAGS=-Wl,--export-dynamic
   SHARED=-shared
   so_ext=so
@@ -155,7 +161,7 @@ ifeq ($(F90),ifort)
   FINCLUDES+=-I/opt/intel/include
   DEBUG_FFLAGS=-g -traceback -DDEBUG=1
   OPT_FFLAGS=-O3
-  FFLAGS=-warn all -module ${moddir} -i-static -mp1 -stand f08 $(DEFINES) $(FINCLUDES)
+  FFLAGS=-warn all -module ${moddir} -static-intel -mp1 -stand f08 $(DEFINES) $(FINCLUDES)
   ifeq ($(WITH_CHECKS),true)
     FFLAGS+=-check
   endif
@@ -163,8 +169,21 @@ ifeq ($(F90),ifort)
   FLIBS+=-L/opt/intel/lib
   FLIBS+=-lifcore -lsvml -lifport
   FLIBS+=-limf -lintlc -liomp5  -lifport
-  OMPFLAG=-openmp
+  OMPFLAG=-qopenmp
   #EXTFFLAGS=-warn-no-unused-dummy-argument
+else ifeq ($(F90),flang)
+# LINK=$(FC) -fno-fortran-main
+  LINK=$(CC)
+  DEBUG_FFLAGS=-g -DDEBUG=1
+  OPT_FFLAGS=-O3
+  FFLAGS=-module ${moddir} $(DEFINES) $(FINCLUDES)
+  ifeq ($(WITH_CHECKS),true)
+    FFLAGS+=-Mbounds
+  endif
+  FFLAGS+=-r8
+  FLIBS+=-L/usr/local/flang/lib
+  FLIBS+=-lexecinfo -lpgmath -lomp
+  FLIBS+=-lflang -lflangrti -lflangADT -lflangArgParser
 else ifeq ($(F90),pgfortran)
   LINK=$(CC)
   DEBUG_FFLAGS=-g -DDEBUG=1
@@ -314,7 +333,7 @@ clean: ${objdir} ${moddir}
 distclean: clean
 	@/bin/rm -rf ${objdir} ${moddir} glm glm+ macos/glm.app macos/glm+.app
 
-${objdir}/%.o: ${srcdir}/%.F90 ${incdir}/glm.h ${moddir} ${objdir}
+${objdir}/%.o: ${srcdir}/%.F90 ${incdir}/glm.h
 	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
 
 ${objdir}/glm_main.o: ${srcdir}/glm_main.c ${incdir}/glm.h

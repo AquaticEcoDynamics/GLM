@@ -14,7 +14,7 @@ Building n on macOS-X requires :
       or
           Homebrew : http://brew.sh/
 
-      Although I like MacPorts and it is the default we use, it does have some annoying problems. 
+      Although I like MacPorts and it is the default we use, it does have some annoying problems.
       One that has caught me again is when XCode is upgraded to a new major release it breaks
       builds :
            ld: framework not found Cocoa
@@ -45,7 +45,7 @@ Building n on macOS-X requires :
 
              brew install gd
 
-   6) To build a version including FABM you will need cmake, both brew and port seem to include it 
+   6) To build a version including FABM you will need cmake, both brew and port seem to include it
       in their compiler bundles, but in case they don't :
 
              sudo port install cmake

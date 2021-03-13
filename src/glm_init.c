@@ -1392,7 +1392,7 @@ void initialise_lake(int namlst)
     int i, j, min_layers;
     int nx, np, nz;
     int *idx = NULL;
-    
+
 /*----------------------------------------------------------------------------*/
     //-------------------------------------------------
     // Do the initial profiles
@@ -1401,12 +1401,12 @@ void initialise_lake(int namlst)
     num_depths = 0;
     lake_depth = MISVAL;
     num_wq_vars = 0;
-         
+
     if ( get_namelist(namlst, init_profiles) ) {
         fprintf(stderr,"     ERROR: reading initial_profiles from namelist file %s\n", glm_nml_file);
         exit(1);
     }
-    
+
     if (! wq_calc) num_wq_vars = 0;
 
     // Initial values for the number of levels specified in the glm.nml file
@@ -1472,7 +1472,7 @@ void initialise_lake(int namlst)
     if (min_layers > (MaxLayers-1)/2) min_layers = (MaxLayers-1)/2;
     if (min_layers > 50) min_layers = 50;
     if (min_layers < 3) min_layers = 3;
-    
+
     if (restart_variables == NULL) {
         restart_variables = calloc(17, sizeof(AED_REAL));
 
@@ -1550,7 +1550,7 @@ void initialise_lake(int namlst)
 
 //      free(restart_variables);
     }
-    
+
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

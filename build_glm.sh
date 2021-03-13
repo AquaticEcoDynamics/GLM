@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 if [ "$GLM_CONFIGURED" != "true" ] ; then
   . ./GLM_CONFIG
@@ -24,12 +24,13 @@ while [ $# -gt 0 ] ; do
   shift
 done
 
+export MAKE=make
 export OSTYPE=`uname -s`
-if [ "$OSTYPE" == "Darwin" ] ; then
+if [ "$OSTYPE" = "Darwin" ] ; then
   if [ "$HOMEBREW" = "" ] ; then
-    brew -v >& /dev/null
+    brew -v > /dev/null 2>&1
     if [ $? != 0 ] ; then
-      which port >& /dev/null
+      which port > /dev/null 2>&1
       if [ $? != 0 ] ; then
         echo no ports and no brew
       else
@@ -39,6 +40,11 @@ if [ "$OSTYPE" == "Darwin" ] ; then
       export HOMEBREW=true
     fi
   fi
+else
+  if [ "$OSTYPE" = "FreeBSD" ] ; then
+    export FC=flang
+    export MAKE=gmake
+  fi
 fi
 
 
@@ -46,9 +52,9 @@ fi
 # will have gfortran at version 7 but also gfortran version 8 as gfortran-8
 # if we can't find gfortran default to ifort
 if [ "$FC" = "" ] ; then
-  gfortran-8 -v >& /dev/null
+  gfortran-8 -v > /dev/null 2>&1
   if [ $? != 0 ] ; then
-    gfortran -v >& /dev/null
+    gfortran -v > /dev/null 2>&1
     if [ $? != 0 ] ; then
       export FC=ifort
     else
@@ -68,7 +74,7 @@ if [ "$FC" = "ifort" ] ; then
    if [ -d /opt/intel/bin ] ; then
       . /opt/intel/bin/compilervars.sh intel64
    fi
-   which ifort >& /dev/null
+   which ifort > /dev/null 2>&1
    if [ $? != 0 ] ; then
       echo ifort compiler requested, but not found
       exit 1
@@ -93,7 +99,7 @@ if [ "$FABM" = "true" ] ; then
     echo "FABM directory not found"
     export FABM=false
   else
-    which cmake >& /dev/null
+    which cmake > /dev/null 2>&1
     if [ $? != 0 ] ; then
       echo "cmake not found - FABM cannot be built"
       export FABM=false
@@ -116,51 +122,58 @@ if [ "$FABM" = "true" ] ; then
   else
     cmake ${FABMDIR}/src || exit 1
   fi
-  make || exit 1
+  ${MAKE} || exit 1
 fi
 
 if [ "${AED}" = "true" ] ; then
   cd  ${CURDIR}/../libaed-water
-  make || exit 1
+  ${MAKE} || exit 1
   DAEDWATDIR=`pwd`
   if [ -d ${CURDIR}/../libaed-benthic ] ; then
     echo build libaed-benthic
     cd  ${CURDIR}/../libaed-benthic
-    make || exit 1
+    ${MAKE} || exit 1
     DAEDBENDIR=`pwd`
   fi
   if [ -d ${CURDIR}/../libaed-riparian ] ; then
     echo build libaed-riparian
     cd  ${CURDIR}/../libaed-riparian
-    make || exit 1
+    ${MAKE} || exit 1
     DAEDRIPDIR=`pwd`
   fi
   if [ -d ${CURDIR}/../libaed-demo ] ; then
     echo build libaed-demo
     cd  ${CURDIR}/../libaed-demo
-    make || exit 1
+    ${MAKE} || exit 1
     DAEDDMODIR=`pwd`
   fi
   if [ -d ${CURDIR}/../libaed-dev ] ; then
     echo build libaed-dev
     cd  ${CURDIR}/../libaed-dev
-    make || exit 1
+    ${MAKE} || exit 1
     DAEDDEVDIR=`pwd`
   fi
 fi
 
 if [ "$WITH_PLOTS" = "true" ] ; then
   cd ${PLOTDIR}
-  make || exit 1
+  ${MAKE} || exit 1
 fi
 
 cd ${UTILDIR}
-make || exit 1
+${MAKE} || exit 1
+
+cd ${CURDIR}/..
+if [ "$FC" = "flang" ] && [ -d flang_extra ] ; then
+  echo making flang extras
+  cd flang_extra
+  ${MAKE} || exit 1
+fi
 
 cd ${CURDIR}
 /bin/rm obj/aed_external.o
-make AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR || exit 1
+${MAKE} AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR || exit 1
 /bin/rm obj/aed_external.o
-make glm+ AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR AEDRIPDIR=$DAEDRIPDIR AEDDEVDIR=$DAEDDEVDIR || exit 1
+${MAKE} glm+ AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR AEDRIPDIR=$DAEDRIPDIR AEDDEVDIR=$DAEDDEVDIR || exit 1
 
 exit 0

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 vers=$1
 if [ "$vers" = "" ] ; then
@@ -7,7 +7,7 @@ if [ "$vers" = "" ] ; then
 fi
 
 OSTYPE=`uname -s`
-if [ "${OSTYPE}" = "Darwin" ] ; then
+if [ "${OSTYPE}" = "Darwin" ] || [ "${OSTYPE}" = "FreeBSD" ] ; then
   EXTN='.x'
 else
   EXTN=''
@@ -24,7 +24,7 @@ for FILE in ./glm.rc ./glm+.rc ; do
     OFV=`grep FileVersion ${FILE} | sed 's/^[ \t]*//' | cut -f3 -d\ `
     echo sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
     sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
-    if [ "${OSTYPE}" = "Darwin" ] ; then
+    if [ "${OSTYPE}" = "Darwin" ] || [ "${OSTYPE}" = "FreeBSD" ] ; then
       /bin/rm ${FILE}${EXTN}
     fi
   else
