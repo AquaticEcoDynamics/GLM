@@ -213,7 +213,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
     int i, z, j, wqidx;
     int kDays;
-//  int non_nuetral_converged;
+//  int non_neutral_converged;
 
     //int nband, npoint;
     AED_REAL depth, rb, anglei, hdir, hdif;
@@ -657,7 +657,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         coef_wind_drag = CD;
 
         if (atm_stab>0) {
-//           non_nuetral_converged =
+//           non_neutral_converged =
                atmos_stability(&Q_latentheat,
                                &Q_sensibleheat,
                                 WindSp,

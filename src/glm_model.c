@@ -269,6 +269,7 @@ void do_model(int jstart, int nsave)
     read_daily_outflow(jstart, NumOut, DrawOld);
     read_daily_withdraw_temp(jstart, &WithdrTempOld);
     read_daily_met(jstart, &MetOld);
+    MetData = MetOld;
     SWold = MetOld.ShortWave;
 
     jday = jstart - 1;
@@ -313,7 +314,7 @@ void do_model(int jstart, int nsave)
         read_daily_kw(jday, &DailyKw);
         for (i = 0; i < MaxLayers; i++) Lake[i].ExtcCoefSW = DailyKw;
 
-        read_daily_met(jday, &MetNew);
+        if (jday != jstart) read_daily_met(jday, &MetNew);
         if ( !subdaily ) {
             MetData.Rain =        (MetOld.Rain + MetNew.Rain) / 2.0;
             MetData.SatVapDef =   (MetOld.SatVapDef + MetNew.SatVapDef) / 2.0;
