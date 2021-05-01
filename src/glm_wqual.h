@@ -118,10 +118,24 @@ void aed_set_flags(int *split_factor, CLOGICAL *mobility, CLOGICAL *bioshade, CL
                       CLOGICAL *c_link_rain_loss, CLOGICAL *c_link_solar_shade, CLOGICAL *c_link_bottom_drag);
 int aed_is_var(int *id, const char *v, size_t *len);
 
+void aed2_init_glm(char *fname, size_t *len, int *kk, int *NumWQVars, int *NumWQBen, AED_REAL *pKw);
+void aed2_set_glm_data(void *Lake, int *MaxLayers,
+                MetDataType *MetData, SurfaceDataType *SurfData, AED_REAL *dt,
+                 AED_REAL *c_rain_factor, AED_REAL *c_sw_factor, AED_REAL *c_friction);
+void aed2_do_glm(int *wlev, int *pIce);
+void aed2_clean_glm(void);
+void aed2_init_glm_output(int *ncid, int *x_dim, int *y_dim, int *z_dim, int *zone_dim, int *time_dim);
+void aed2_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
+int  aed2_var_index_c(const char*name, size_t *len);
+void aed2_set_flags(int *split_factor, CLOGICAL *mobility, CLOGICAL *bioshade, CLOGICAL *repair_state,
+                      int *ode_method, int *benthic_mode, CLOGICAL *do_plots,
+                      CLOGICAL *c_link_rain_loss, CLOGICAL *c_link_solar_shade, CLOGICAL *c_link_bottom_drag);
+int aed2_is_var(int *id, const char *v, size_t *len);
+
 void InitialTemp(int *m, const AED_REAL *depth, const AED_REAL *wv,
                          const AED_REAL *topTemp, const AED_REAL *botTemp,
                          const AED_REAL *nSPinUpDays, AED_REAL *tNew);
-void ZSoilTemp(ZoneType *zone);
+void zZSoilTemp(ZoneType *zone);
 void SoilTemp(int *m, const AED_REAL *depth, const AED_REAL *wv,
                       const AED_REAL *topTemp, AED_REAL *temp, const AED_REAL *heatflux);
 

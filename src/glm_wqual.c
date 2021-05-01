@@ -135,7 +135,7 @@ int prime_wq(const char *which)
     p_wq_set_flags       =       (wq_set_flags_t) find_entry(glm_wq_handle, "wq_set_flags");
     p_wq_is_var          =          (wq_is_var_t) find_entry(glm_wq_handle, "wq_is_var");
     p_wq_set_glm_zones   =   (wq_set_glm_zones_t) find_entry(glm_wq_handle, "wq_set_glm_zones");
-    p_wq_ZSoilTemp       =       (wq_ZSoilTemp_t) find_entry(glm_wq_handle, "ZSoilTemp");
+    p_wq_ZSoilTemp       =       (wq_ZSoilTemp_t) find_entry(glm_wq_handle, "zZSoilTemp");
     if ( p_wq_ZSoilTemp == NULL ) p_wq_ZSoilTemp = (wq_ZSoilTemp_t) dummyZSoilTemp;
 #ifdef _WIN32
     p_set_funcs          =          (set_funcs_t) find_entry(glm_wq_handle, "set_funcs");
@@ -164,6 +164,23 @@ int prime_wq(const char *which)
         fprintf(stderr, "FABM not supported in this build\n");
         exit(1);
 #endif
+    } else if ( strcmp(which, "aed2") == 0 ) {
+#ifdef AED2
+        p_wq_init_glm        =        (wq_init_glm_t) aed2_init_glm;
+        p_wq_set_glm_data    =    (wq_set_glm_data_t) aed2_set_glm_data;
+        p_wq_do_glm          =          (wq_do_glm_t) aed2_do_glm;
+        p_wq_clean_glm       =       (wq_clean_glm_t) aed2_clean_glm;
+        p_wq_init_glm_output = (wq_init_glm_output_t) aed2_init_glm_output;
+        p_wq_write_glm       =       (wq_write_glm_t) aed2_write_glm;
+        p_wq_var_index_c     =     (wq_var_index_c_t) aed2_var_index_c;
+        p_wq_set_flags       =       (wq_set_flags_t) aed2_set_flags;
+        p_wq_is_var          =          (wq_is_var_t) aed2_is_var;
+#else
+        fprintf(stderr, "AED2 not supported in this build\n");
+        exit(1);
+#endif
+
+        p_wq_ZSoilTemp       =       (wq_ZSoilTemp_t) ZSoilTemp;
     } else {
 #ifdef AED
         p_wq_init_glm        =        (wq_init_glm_t) aed_init_glm;
@@ -180,7 +197,7 @@ int prime_wq(const char *which)
         exit(1);
 #endif
 
-        p_wq_ZSoilTemp       =       (wq_ZSoilTemp_t) ZSoilTemp;
+        p_wq_ZSoilTemp       =       (wq_ZSoilTemp_t) zZSoilTemp;
     }
 #endif
 

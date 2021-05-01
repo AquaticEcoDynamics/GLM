@@ -266,6 +266,7 @@ void do_model(int jstart, int nsave)
     stoptime = iSecsPerDay;
 
     read_daily_inflow(jstart, NumInf, FlowOld, TempOld, SaltOld, WQOld);
+//  read_daily_gw(jstart, gw_mode, GWFlOld);
     read_daily_outflow(jstart, NumOut, DrawOld);
     read_daily_withdraw_temp(jstart, &WithdrTempOld);
     read_daily_met(jstart, &MetOld);
@@ -293,6 +294,7 @@ void do_model(int jstart, int nsave)
         SurfData.dailyRunoff = 0.;
 
         read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, WQNew);
+//      read_daily_gw(jday, gw_mode, GWFlNew);
         //# Averaging of flows
         //# To get daily inflow (i.e. m3/day) times by SecsPerDay
         for (i = 0; i < NumInf; i++) {
@@ -433,6 +435,7 @@ void do_model_non_avg(int jstart, int nsave)
 
         //# Read & set today's inflow properties
         read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, WQNew);
+//      read_daily_gw(jday, gw_mode, GWFlNew);
 
         //# To get daily inflow (i.e. m3/day) times by SecsPerDay
         for (i = 0; i < NumInf; i++) {

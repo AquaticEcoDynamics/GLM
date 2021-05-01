@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2020 -  The University of Western Australia               *
+ * Copyright 2013 - 2021 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -532,6 +532,22 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
+    /*-- %%NAMELIST groundwater ----------------------------------------------*/
+//  extern int   gw_mode; // = 0;       //# mode
+//  extern char *gw_file; // = NULL;    //# name of gw file
+//  extern AED_REAL *K_gw; // = NULL;   //# turn off evaporation
+//  extern AED_REAL *L_gw; // = NULL;   //# turn off evaporation
+    //==========================================================================
+    NAMELIST groundwater[] = {
+          { "groundwater",       TYPE_START,            NULL                  },
+          { "gw_mode",           TYPE_INT,              &gw_mode              },
+          { "gw_file",           TYPE_STR,              &gw_file              },
+          { "K_gw",              TYPE_DOUBLE|MASK_LIST, &K_gw                 },
+          { "L_gw",              TYPE_DOUBLE|MASK_LIST, &L_gw                 },
+          { NULL,                TYPE_END,              NULL                  }
+    };
+    /*-- %%END NAMELIST ------------------------------------------------------*/
+
     /*-- %%NAMELIST debugging ------------------------------------------------*/
 //  extern CLOGICAL dbg_mix;   //# debug output from mixer
 //  extern CLOGICAL no_evap;   //# turn off evaporation
@@ -883,6 +899,23 @@ for (i = 0; i < n_zones; i++) {
         }
     }
     einff = coef_inf_entrain;
+
+    if ( get_namelist(namlst, groundwater) ) {
+        if ( (num_inflows+gw_mode) > MaxInf ) {
+            fprintf(stderr, "     ERROR: Too many inflows specified in 'inflow' and 'groundwater' config %d+%d > %d\n", num_inflows, gw_mode, MaxInf);
+            exit(1);
+        }
+        for (i = 0; i < gw_mode; i++) {
+            Inflows[num_inflows+i].SubmFlag = TRUE;
+            Inflows[num_inflows+i].SubmElev = 0.05 + base_elev;
+            Inflows[num_inflows+i].Factor = 1.0;
+            Inflows[num_inflows+i].Alpha = 0.0;
+            Inflows[num_inflows+i].Phi = 0.0;
+            Inflows[num_inflows+i].DragCoeff = 0.0;
+
+            open_gw_file(i, inflow_fl[i], inflow_varnum, (const char**)inflow_vars, timefmt_i);
+        }
+    }
 
     //-------------------------------------------------
     seepage = FALSE; seepage_rate = 0.0;

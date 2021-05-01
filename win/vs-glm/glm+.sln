@@ -43,7 +43,16 @@ Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "glm-aed", "glm-aed.vfproj",
 		{71B1A1B7-387A-4D58-8607-F9B24B896995} = {71B1A1B7-387A-4D58-8607-F9B24B896995}
 	EndProjectSection
 EndProject
+Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "glm-aed2", "glm-aed2.vfproj", "{654D6ADD-1676-4136-918C-3F14C09F29D1}"
+    ProjectSection(ProjectDependencies) = postProject
+        {71B1A1B7-387A-4D58-8607-F9B24B896995} = {71B1A1B7-387A-4D58-8607-F9B24B896995}
+    EndProjectSection
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libplot", "..\..\..\libplot\win\libplot.vcxproj", "{C16EC5B0-C713-4564-A4D0-497EE322E68B}"
+EndProject
+Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "libaed2", "..\..\..\libaed2\win\libaed2.vfproj", "{B46ED787-01C6-4931-AF0C-9C88C9D06BF6}"
+EndProject
+Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "libaed2+", "..\..\..\libaed2-plus\win\libaed2+.vfproj", "{DACFBEA4-D622-4DC5-A904-82E0CEFBCE6A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -125,6 +134,22 @@ Global
 		{C16EC5B0-C713-4564-A4D0-497EE322E68B}.Release|Win32.Build.0 = Release|Win32
 		{C16EC5B0-C713-4564-A4D0-497EE322E68B}.Release|x64.ActiveCfg = Release|x64
 		{C16EC5B0-C713-4564-A4D0-497EE322E68B}.Release|x64.Build.0 = Release|x64
+		{B46ED787-01C6-4931-AF0C-9C88C9D06BF6}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B46ED787-01C6-4931-AF0C-9C88C9D06BF6}.Debug|Win32.Build.0 = Debug|Win32
+		{B46ED787-01C6-4931-AF0C-9C88C9D06BF6}.Debug|x64.ActiveCfg = Debug|x64
+		{B46ED787-01C6-4931-AF0C-9C88C9D06BF6}.Debug|x64.Build.0 = Debug|x64
+		{B46ED787-01C6-4931-AF0C-9C88C9D06BF6}.Release|Win32.ActiveCfg = Release|Win32
+		{B46ED787-01C6-4931-AF0C-9C88C9D06BF6}.Release|Win32.Build.0 = Release|Win32
+		{B46ED787-01C6-4931-AF0C-9C88C9D06BF6}.Release|x64.ActiveCfg = Release|x64
+		{B46ED787-01C6-4931-AF0C-9C88C9D06BF6}.Release|x64.Build.0 = Release|x64
+		{DACFBEA4-D622-4DC5-A904-82E0CEFBCE6A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DACFBEA4-D622-4DC5-A904-82E0CEFBCE6A}.Debug|Win32.Build.0 = Debug|Win32
+		{DACFBEA4-D622-4DC5-A904-82E0CEFBCE6A}.Debug|x64.ActiveCfg = Debug|x64
+		{DACFBEA4-D622-4DC5-A904-82E0CEFBCE6A}.Debug|x64.Build.0 = Debug|x64
+		{DACFBEA4-D622-4DC5-A904-82E0CEFBCE6A}.Release|Win32.ActiveCfg = Release|Win32
+		{DACFBEA4-D622-4DC5-A904-82E0CEFBCE6A}.Release|Win32.Build.0 = Release|Win32
+		{DACFBEA4-D622-4DC5-A904-82E0CEFBCE6A}.Release|x64.ActiveCfg = Release|x64
+		{DACFBEA4-D622-4DC5-A904-82E0CEFBCE6A}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -131,6 +131,37 @@ void read_daily_inflow(int julian, int NumInf, AED_REAL *flow, AED_REAL *temp,
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
+void read_daily_gw(int julian, int NumInf, AED_REAL *flow)
+{
+    int csv;
+    int i,j,k;
+
+    for (i = 0; i < NumInf; i++) {
+        int n_invars = inf[i].n_vars;
+        csv = inf[i].inf;
+        find_day(csv, time_idx, julian);
+
+/*
+        flow[i] = get_csv_val_r(csv,inf[i].flow_idx);
+        temp[i] = get_csv_val_r(csv,inf[i].temp_idx);
+        salt[i] = get_csv_val_r(csv,inf[i].salt_idx);
+
+        for (j = 0; j < n_invars; j++) {
+            if (WQ_VarsIdx[j] < 0) k = j; else k = WQ_VarsIdx[j];
+            if (inf[i].in_vars[k] == -1 )
+                WQ_INF_(wq, i, k) = 0.;
+            else
+                WQ_INF_(wq, i, k) = get_csv_val_r(csv,inf[i].in_vars[j]);
+        }
+*/
+    }
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
 void read_daily_outflow(int julian, int NumOut, AED_REAL *draw)
 {
     int csv, i;
@@ -532,6 +563,41 @@ void open_inflow_file(int idx, const char *fname,
         }
     }
     inf[idx].n_vars = l;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
+void open_gw_file(int idx, const char *fname,
+                             int nvars, const char *vars[], const char *timefmt)
+{
+    int j,k,l;
+
+    if ( (inf[idx].inf = open_csv_input(fname, timefmt)) < 0 ) {
+        fprintf(stderr, "Failed to open '%s'\n", fname);
+        exit(1) ;
+    }
+    locate_time_column(inf[idx].inf, "groundwater", fname);
+
+/*
+    inf[idx].flow_idx = find_csv_var(inf[idx].inf,"flow");
+    inf[idx].temp_idx = find_csv_var(inf[idx].inf,"temp");
+    inf[idx].salt_idx = find_csv_var(inf[idx].inf,"salt");
+    l = 0;
+    for (j = 0; j < nvars; j++) {
+        k = find_csv_var(inf[idx].inf, vars[j]);
+        if (k == -1)
+            fprintf(stderr, "No match for '%s' in file '%s'\n", vars[j], fname);
+        else {
+            if ( k != inf[idx].flow_idx && k != inf[idx].temp_idx &&
+                                           k != inf[idx].salt_idx )
+                inf[idx].in_vars[l++] = k;
+        }
+    }
+    inf[idx].n_vars = l;
+*/
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

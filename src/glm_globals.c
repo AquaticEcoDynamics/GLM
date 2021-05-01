@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2020 -  The University of Western Australia               *
+ * Copyright 2013 - 2021 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -208,6 +208,13 @@ AED_REAL *sed_temp_amplitude = NULL;
 AED_REAL *sed_temp_peak_doy = NULL;
 AED_REAL *sed_reflectivity  = NULL;
 AED_REAL *sed_roughness     = NULL;
+
+//------------------------------------------------------------------------------
+// GROUNDWATER
+int   gw_mode = 0;       //# mode
+char *gw_file = NULL;    //# name of gw file
+AED_REAL *K_gw = NULL;   //# turn off evaporation
+AED_REAL *L_gw = NULL;   //# turn off evaporation
 
 //------------------------------------------------------------------------------
 // FETCH

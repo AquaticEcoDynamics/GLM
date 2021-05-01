@@ -154,6 +154,26 @@ ifeq ($(AED),true)
   GLM_DEPS+=$(AEDWATDIR)/lib/libaed-water.a
 endif
 
+ifeq ($(AED2),true)
+  DEFINES+=-DAED2
+
+  ifeq ($(AED2DIR),)
+    AED2DIR=../libaed2
+  endif
+
+  FINCLUDES+=-I$(AED2DIR)/include -I$(AED2DIR)/mod
+  AED2LIBS=-L$(AED2DIR)/lib -laed2
+  ifneq ("$(wildcard ${AED2PLS}/Makefile)","")
+    AED2PLBS=-L${AED2PLS}/lib -laed2+
+  endif
+
+  ifeq ($(USE_DL),true)
+    AED2TARGETS=libglm_wq_aed2.${so_ext}
+  endif
+
+  GLM_DEPS+=$(AED2DIR)/lib/libaed2.a
+endif
+
 FLIBS=
 # Select specific compiler bits
 ifeq ($(F90),ifort)
@@ -211,7 +231,7 @@ else
 endif
 
 ifneq ($(USE_DL),true)
-  WQLIBS=$(AEDLIBS) $(FABMLIBS)
+  WQLIBS=$(AEDLIBS) $(FABMLIBS) $(AED2LIBS)
 endif
 
 ifeq ($(DEBUG),true)
@@ -292,6 +312,9 @@ else
     OBJS+=${objdir}/glm_zones.o
   else ifeq ($(FABM),true)
     OBJS+=${objdir}/glm_zones.o
+  endif
+  ifeq ($(AED2),true)
+    OBJS+=${objdir}/glm_aed2.o
   endif
   ifeq ($(AED),true)
     OBJS+=${objdir}/glm_aed.o \

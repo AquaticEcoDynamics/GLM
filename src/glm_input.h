@@ -35,6 +35,9 @@ void open_inflow_file(int inf_id, const char *fname,
                             int nvars, const char *vars[], const char *timefmt);
 void read_daily_inflow(int julian, int NumInf, AED_REAL *flow, AED_REAL *temp,
                                                AED_REAL *salt, AED_REAL *wq);
+void open_gw_file(int inf_id, const char *fname,
+                            int nvars, const char *vars[], const char *timefmt);
+void read_daily_gw(int julian, int NumGW, AED_REAL *flow);
 
 void open_outflow_file(int i, const char *fname, const char *timefmt);
 void read_daily_outflow(int julian, int NumOut, AED_REAL *drw);

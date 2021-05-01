@@ -48,37 +48,40 @@ else
 fi
 
 
-# if FC is not defined we look for gfortran-8 first because some systems
-# will have gfortran at version 7 but also gfortran version 8 as gfortran-8
-# if we can't find gfortran default to ifort
+# see if FC is defined, if not look for gfortran at least v8
 if [ "$FC" = "" ] ; then
-  gfortran-8 -v > /dev/null 2>&1
+  gfortran -v > /dev/null 2>&1
   if [ $? != 0 ] ; then
-    gfortran -v > /dev/null 2>&1
-    if [ $? != 0 ] ; then
-      export FC=ifort
+    export FC=ifort
+  else
+    VERS=`gfortran -dumpversion | cut -d\. -f1`
+    if [ $VERS -ge 8 ] ; then
+      export FC=gfortran
     else
-      VERS=`gfortran -dumpversion | cut -d\. -f1`
-      if [ $VERS -ge 8 ] ; then
-        export FC=gfortran
-      else
+      gfortran-8 -v > /dev/null 2>&1
+      if [ $? != 0 ] ; then
         export FC=ifort
+      else
+        export gfortran-8
       fi
     fi
-  else
-    export FC=gfortran-8
   fi
 fi
 
 if [ "$FC" = "ifort" ] ; then
-   if [ -d /opt/intel/bin ] ; then
-      . /opt/intel/bin/compilervars.sh intel64
-   fi
-   which ifort > /dev/null 2>&1
-   if [ $? != 0 ] ; then
-      echo ifort compiler requested, but not found
-      exit 1
-   fi
+  # if trying the intel fortran, initialise it
+  if [ -d /opt/intel/oneapi ] ; then
+     . /opt/intel/oneapi/setvars.sh
+  else
+    if [ -d /opt/intel/bin ] ; then
+       . /opt/intel/bin/compilervars.sh intel64
+    fi
+    which ifort > /dev/null 2>&1
+    if [ $? != 0 ] ; then
+       echo ifort compiler requested, but not found
+       exit 1
+    fi
+  fi
 fi
 
 export F77=$FC
@@ -87,6 +90,9 @@ export F95=$FC
 
 export MPI=OPENMPI
 
+if [ "$AED2DIR" = "" ] ; then
+  export AED2DIR=../libaed2
+fi
 if [ "$PLOTDIR" = "" ] ; then
   export PLOTDIR=../libplot
 fi
@@ -123,6 +129,19 @@ if [ "$FABM" = "true" ] ; then
     cmake ${FABMDIR}/src || exit 1
   fi
   ${MAKE} || exit 1
+fi
+
+if [ "${AED2}" = "true" ] ; then
+  cd ${AED2DIR}
+  ${MAKE} || exit 1
+  cd ..
+  if [ "${AED2PLS}" != "" ] ; then
+    if [ -d ${AED2PLS} ] ; then
+      cd ${AED2PLS}
+      ${MAKE} || exit 1
+      cd ..
+    fi
+  fi
 fi
 
 if [ "${AED}" = "true" ] ; then
@@ -171,9 +190,14 @@ if [ "$FC" = "flang" ] && [ -d flang_extra ] ; then
 fi
 
 cd ${CURDIR}
-/bin/rm obj/aed_external.o
+if [ -f obj/aed_external.o ] ; then
+  /bin/rm obj/aed_external.o
+fi
 ${MAKE} AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR || exit 1
-/bin/rm obj/aed_external.o
-${MAKE} glm+ AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR AEDRIPDIR=$DAEDRIPDIR AEDDEVDIR=$DAEDDEVDIR || exit 1
+if [ "${DAEDDEVDIR}" != "" -a -d ${DAEDDEVDIR} ] ; then
+  echo now build plus version
+  /bin/rm obj/aed_external.o
+  ${MAKE} glm+ AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR AEDRIPDIR=$DAEDRIPDIR AEDDEVDIR=$DAEDDEVDIR || exit 1
+fi
 
 exit 0
