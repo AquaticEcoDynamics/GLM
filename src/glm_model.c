@@ -451,7 +451,7 @@ void do_model_non_avg(int jstart, int nsave)
         read_daily_outflow(jday, NumOut, DrawNew);
         //# To get daily outflow (i.e. m3/day) times by SecsPerDay
         for (i = 0; i < NumOut; i++)
-            Outflows[i].Draw = DrawNew[i] * SecsPerDay;
+             Outflows[i].Draw = DrawNew[i] * SecsPerDay;
 
         read_daily_withdraw_temp(jday, &WithdrTempNew);
         WithdrawalTemp = WithdrTempNew;
@@ -463,25 +463,25 @@ void do_model_non_avg(int jstart, int nsave)
         //# Read & set today's meteorological data
         read_daily_met(jday, &MetData);
         SWnew = MetData.ShortWave;
+            
+        //# Insert inflows for all streams
+        //# unless it is the last day and it is a partial day
+        if(stoptime == iSecsPerDay){
+             SurfData.dailyInflow = do_inflows();
+             if(Lake[surfLayer].Vol1>zero) {
+          	//# Extract withdrawal from all offtakes
+          	SurfData.dailyOutflow = do_outflows(jday);
 
+          	//# Take care of any overflow
+          	SurfData.dailyOverflow = do_overflow(jday);
+             }
+        }
 
         //# Now enter into sub-daily calculations            ------>
 
         stepnum = do_subdaily_loop(stepnum, jday, stoptime, nsave, SWold, SWnew);
 
         //# End of forcing-mixing-diffusion loop             ------>
-
-
-        //# Insert inflows for all streams
-        SurfData.dailyInflow = do_inflows();
-
-        if(Lake[surfLayer].Vol1>zero) {
-          //# Extract withdrawal from all offtakes
-          SurfData.dailyOutflow = do_outflows(jday);
-
-          //# Take care of any overflow
-          SurfData.dailyOverflow = do_overflow(jday);
-        }
 
         //# Enforce layer limits
         check_layer_thickness();
