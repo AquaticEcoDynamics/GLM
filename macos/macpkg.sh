@@ -48,8 +48,8 @@ cp glm_files.icns  ${PKG}.app/Contents/Resources
 cp InfoPlist.strings ${PKG}.app/Contents/Resources/English.lproj
 
 if [ "${PKG}" = "glm+" ] ; then
-  sed -i '' -e "s/GLM2/XLM2/" ${PKG}.app/Contents/Info.plist
-  echo -n "APPLXLM2" > ${PKG}.app/Contents/PkgInfo
+  sed -i '' -e "s/GLM3/XLM3/" ${PKG}.app/Contents/Info.plist
+  echo -n "APPLXLM3" > ${PKG}.app/Contents/PkgInfo
   sed -i '' -e "s/au.edu.uwa.science.aquatic.glm/au.edu.uwa.science.aquatic.glm+/" ${PKG}.app/Contents/Info.plist
 fi
 
