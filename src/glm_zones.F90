@@ -263,6 +263,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
    DO lev=1,wlev
       IF ( zz(lev) > zone_heights(zon) ) THEN
          zon = zon + 1
+         IF (zon >  n_zones) STOP 'Water level height is higher than highest zone height'
          theZones(zon)%z_sed_zones = zon
       ENDIF
 
