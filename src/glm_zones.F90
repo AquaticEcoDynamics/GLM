@@ -332,7 +332,11 @@ END SUBROUTINE copy_to_zone
 !###############################################################################
 SUBROUTINE GInitialTemp(m,depth,wv,topTemp,botTemp,nSPinUpDays,tNew) BIND(C, name="InitialTemp")
 !-------------------------------------------------------------------------------
+#ifdef AED2
+   USE aed2_util, ONLY : InitialTemp
+#else
    USE aed_util, ONLY : InitialTemp
+#endif
 !ARGUMENTS
    INTEGER,intent(in)   :: m
    AED_REAL,intent(in)  :: wv,depth(0:m+1)
@@ -348,7 +352,11 @@ END SUBROUTINE GInitialTemp
 !###############################################################################
 SUBROUTINE ZSoilTemp(izone) BIND(C, name="zZSoilTemp")
 !-------------------------------------------------------------------------------
-   USE aed_util, ONLY : SoilTemp
+#ifdef AED2
+   USE aed2_util, ONLY : InitialTemp
+#else
+   USE aed_util, ONLY : InitialTemp
+#endif
 !ARGUMENTS
    TYPE(C_PTR),INTENT(inout) :: izone
 !LOCALS
@@ -366,7 +374,11 @@ END SUBROUTINE ZSoilTemp
 !###############################################################################
 SUBROUTINE GSoilTemp(m,depth,wv,topTemp,temp,heatflux) BIND(C, name="SoilTemp")
 !-------------------------------------------------------------------------------
-   USE aed_util, ONLY : SoilTemp
+#ifdef AED2
+   USE aed2_util, ONLY : InitialTemp
+#else
+   USE aed_util, ONLY : InitialTemp
+#endif
 !ARGUMENTS
    INTEGER,intent(in) :: m
    AED_REAL,intent(in) :: depth(0:m+1), wv(m), topTemp

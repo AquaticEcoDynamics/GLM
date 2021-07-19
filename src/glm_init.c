@@ -1076,7 +1076,7 @@ for (i = 0; i < n_zones; i++) {
             if ( (n_zones <= 0 || zone_heights == NULL) ) {
                 fprintf(stderr, "     benthic_mode %d must define zones\n", benthic_mode);
                 exit(1);
-#ifdef AED
+#if defined(AED) || defined(AED2)
             } else {
                 wq_set_glm_zones(theZones, &n_zones, &Num_WQ_Vars, &Num_WQ_Ben);
 #endif
@@ -1096,7 +1096,7 @@ for (i = 0; i < n_zones; i++) {
             }
         }
 
-#ifdef AED
+#if defined(AED) || defined(AED2)
         wq_set_glm_data(Lake, &MaxLayers, &MetData, &SurfData, &dt,
                                    rain_factor, sw_factor, biodrag);
 #endif

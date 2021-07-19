@@ -150,7 +150,9 @@ int main(int argc, char *argv[])
 #elif defined(_MSC_VER) && !defined(__INTEL_COMPILER)
         printf("     glm built using MSC version %ld\n", _MSC_VER);
 #endif
+#ifndef _WIN32
         printf("     build date %s\n", BUILDDATE);
+#endif
         if (show_vers)  exit(0);
     }
 
