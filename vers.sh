@@ -18,12 +18,14 @@ for FILE in ./glm.rc ./glm+.rc ; do
   OPV=`grep PRODUCTVERSION ${FILE} | sed 's/^[ \t]*//' | cut -f2 -d\ `
   ver2=`echo $vers | sed "s/\./,/g"`
 
-  if [ "$ver2" != "$OFV" ] ; then
-    echo sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
+  if [ "$vers" != "$OFV" ] ; then
+    echo sed -e "s/${OFV}/${ver2}/" -i${EXTN} ${FILE}
     sed -e "s/${OFV}/${ver2}/" -i${EXTN} ${FILE}
+
     OFV=`grep FileVersion ${FILE} | sed 's/^[ \t]*//' | cut -f3 -d\ `
     echo sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
     sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
+
     if [ "${OSTYPE}" = "Darwin" ] || [ "${OSTYPE}" = "FreeBSD" ] ; then
       /bin/rm ${FILE}${EXTN}
     fi
