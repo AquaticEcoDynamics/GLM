@@ -353,9 +353,9 @@ END SUBROUTINE GInitialTemp
 SUBROUTINE ZSoilTemp(izone) BIND(C, name="zZSoilTemp")
 !-------------------------------------------------------------------------------
 #ifdef AED2
-   USE aed2_util, ONLY : InitialTemp
+   USE aed2_util, ONLY : SoilTemp
 #else
-   USE aed_util, ONLY : InitialTemp
+   USE aed_util, ONLY : SoilTemp
 #endif
 !ARGUMENTS
    TYPE(C_PTR),INTENT(inout) :: izone
@@ -375,9 +375,9 @@ END SUBROUTINE ZSoilTemp
 SUBROUTINE GSoilTemp(m,depth,wv,topTemp,temp,heatflux) BIND(C, name="SoilTemp")
 !-------------------------------------------------------------------------------
 #ifdef AED2
-   USE aed2_util, ONLY : InitialTemp
+   USE aed2_util, ONLY : SoilTemp
 #else
-   USE aed_util, ONLY : InitialTemp
+   USE aed_util, ONLY : SoilTemp
 #endif
 !ARGUMENTS
    INTEGER,intent(in) :: m
