@@ -76,7 +76,7 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glm-aed.lib;libaed-water.lib;libaed-benthic.lib;libaed2;libaed-demo.lib;libutil.lib;libplot.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glm-aed.lib;libaed-water.lib;libaed-benthic.lib;libaed-demo.lib;glm-aed2.lib;libaed2.lib;libutil.lib;libplot.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;$(Platform)-$(Configuration)\lib\;..\..\..\win-3rd-party\$(Platform)-$(Configuration)\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>

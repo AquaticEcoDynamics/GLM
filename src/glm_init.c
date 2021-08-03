@@ -913,7 +913,7 @@ for (i = 0; i < n_zones; i++) {
             Inflows[num_inflows+i].Phi = 0.0;
             Inflows[num_inflows+i].DragCoeff = 0.0;
 
-            open_gw_file(i, inflow_fl[i], inflow_varnum, (const char**)inflow_vars, timefmt_i);
+            open_gw_file(i, inflow_fl[i], 0, (const char**)NULL, timefmt_i);
         }
     }
 
@@ -1066,8 +1066,16 @@ for (i = 0; i < n_zones; i++) {
         WQ_VarsIdx = calloc(inflow_varnum, sizeof(int));
     }
     if ( wq_calc ) {
+        if ( inflow_vars == NULL && inflow_varnum > 3 ) {
+            fprintf(stderr, "ERROR: %d inflow vars requested, but none provided\n", inflow_varnum);
+            exit(1);
+        }
         /* The first 3 vars are flow, temp and salt */
         for (j = 3; j < inflow_varnum; j++) {
+            if ( inflow_vars[j] == NULL ) {
+                fprintf(stderr, "ERROR: %d inflow vars requested, but only %d provided\n", inflow_varnum, j-3);
+                exit(1);
+            }
             size_t k =  strlen(inflow_vars[j]);
             WQ_VarsIdx[j-3] = wq_var_index_c(inflow_vars[j], &k);
         }
@@ -1076,7 +1084,7 @@ for (i = 0; i < n_zones; i++) {
             if ( (n_zones <= 0 || zone_heights == NULL) ) {
                 fprintf(stderr, "     benthic_mode %d must define zones\n", benthic_mode);
                 exit(1);
-#ifdef AED
+#if defined(AED) || defined(AED2)
             } else {
                 wq_set_glm_zones(theZones, &n_zones, &Num_WQ_Vars, &Num_WQ_Ben);
 #endif
@@ -1096,7 +1104,7 @@ for (i = 0; i < n_zones; i++) {
             }
         }
 
-#ifdef AED
+#if defined(AED) || defined(AED2)
         wq_set_glm_data(Lake, &MaxLayers, &MetData, &SurfData, &dt,
                                    rain_factor, sw_factor, biodrag);
 #endif
