@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2013 - 2020 -  The University of Western Australia                #
+!# Copyright 2013 - 2021 -  The University of Western Australia                #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -57,6 +57,7 @@ MODULE glm_aed
    USE ISO_C_BINDING
 
    USE aed_water
+!  USE aed_core
    USE aed_common
    USE glm_types
    USE glm_zones
@@ -254,7 +255,7 @@ SUBROUTINE aed_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C, 
 !
 !LOCALS
    INTEGER :: i,j,namlst,status
-   INTEGER :: rc, av, v, sv
+   INTEGER :: rc, av, v, sv, tv
 
    CHARACTER(len=80) :: fname
    TYPE(aed_variable_t),POINTER :: tvar
@@ -291,6 +292,27 @@ SUBROUTINE aed_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C, 
    write(*,"(/,5X,'---------- AED config : start ----------')")
    IF ( aed_init_core('.') /= 0 ) STOP "     ERROR: Initialisation of aed_core failed"
    CALL aed_print_version
+
+   tv = aed_provide_global( 'temperature', 'temperature' , 'celsius' )
+   tv = aed_provide_global( 'salinity', 'salinity' , 'g/Kg' )
+   tv = aed_provide_global( 'density', 'density' , '' )
+   tv = aed_provide_global( 'layer_ht', 'layer heights' , 'meters' )
+   tv = aed_provide_global( 'extc_coef', 'extinction coefficient' , '' )
+   tv = aed_provide_global( 'tss', 'tss' , '' )
+   tv = aed_provide_global( 'par', 'par' , '' )
+   tv = aed_provide_global( 'nir', 'nir' , '' )
+   tv = aed_provide_global( 'uva', 'uva' , '' )
+   tv = aed_provide_global( 'uvb', 'uvb' , '' )
+   tv = aed_provide_global( 'pressure', 'pressure' , '' )
+   tv = aed_provide_global( 'depth', 'depth' , 'm' )
+   tv = aed_provide_sheet_global( 'sed_zone', 'sediment zone' , '' )
+   tv = aed_provide_sheet_global( 'wind_speed', 'wind speed' , 'm/s' )
+   tv = aed_provide_sheet_global( 'par_sf', 'par_sf' , '' )
+   tv = aed_provide_sheet_global( 'taub', 'layer stress' , 'N/m2' )
+   tv = aed_provide_sheet_global( 'lake_depth', 'lake depth' , 'meters' )
+   tv = aed_provide_global( 'layer_area', 'layer area' , 'm2' )
+   tv = aed_provide_sheet_global( 'rain', 'rainfall' , 'm/s' )
+   tv = aed_provide_sheet_global( 'air_temp', 'air temperature' , 'celsius' )
 
    !# Create model tree
    print *,"     Processing aed_models config from ",TRIM(fname)

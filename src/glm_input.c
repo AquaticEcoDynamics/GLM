@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2020 -  The University of Western Australia               *
+ * Copyright 2013 - 2021 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -134,14 +134,14 @@ void read_daily_inflow(int julian, int NumInf, AED_REAL *flow, AED_REAL *temp,
 void read_daily_gw(int julian, int NumInf, AED_REAL *flow)
 {
     int csv;
-    int i,j,k;
+    int i   ;//,j,k;
 
     for (i = 0; i < NumInf; i++) {
-        int n_invars = inf[i].n_vars;
+//      int n_invars = inf[i].n_vars;
         csv = inf[i].inf;
         find_day(csv, time_idx, julian);
 
-/*
+#if 0
         flow[i] = get_csv_val_r(csv,inf[i].flow_idx);
         temp[i] = get_csv_val_r(csv,inf[i].temp_idx);
         salt[i] = get_csv_val_r(csv,inf[i].salt_idx);
@@ -153,7 +153,7 @@ void read_daily_gw(int julian, int NumInf, AED_REAL *flow)
             else
                 WQ_INF_(wq, i, k) = get_csv_val_r(csv,inf[i].in_vars[j]);
         }
-*/
+#endif
     }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -573,7 +573,7 @@ void open_inflow_file(int idx, const char *fname,
 void open_gw_file(int idx, const char *fname,
                              int nvars, const char *vars[], const char *timefmt)
 {
-    int j,k,l;
+//  int j,k,l;
 
     if ( (inf[idx].inf = open_csv_input(fname, timefmt)) < 0 ) {
         fprintf(stderr, "Failed to open '%s'\n", fname);
