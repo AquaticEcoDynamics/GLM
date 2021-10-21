@@ -267,15 +267,24 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
    lKw = pKw
 
 #ifdef __INTEL_COMPILER
-   print *,'    glm_aed2 built using intel fortran version ', __INTEL_COMPILER
+   print*,"    glm_aed2 built using intel fortran version ", __INTEL_COMPILER
 #else
 # ifdef __PGI
-   print *,'    glm_aed2 built using pgfortran version ', __PGIC__, '.', __PGIC_MINOR__, '.', __PGIC_PATCHLEVEL__
+   print*,"    glm_aed2 built using pgfortran version ", __PGIC__, '.', __PGIC_MINOR__, '.', __PGIC_PATCHLEVEL__
 # else
-   print *,'    glm_aed2 built using gfortran version ', __GNUC__, '.', __GNUC_MINOR__, '.', __GNUC_PATCHLEVEL__
+#  ifdef __GNUC__
+    print*,"    glm_aed2 built using gfortran version ", __GNUC__, '.', __GNUC_MINOR__, '.', __GNUC_PATCHLEVEL__
+#  else
+#   ifdef __clang__
+     print*,"    glm_aed2 built using flang version ", __clang_major__, '.', __clang_minor__, '.', __clang_patchlevel__
+#   else
+     print*,"    glm_aed2 built using unknown fortran version "
+#   endif
+#  endif
 # endif
 #endif
-   print *,'    libaed2 enabled.... init_glm_aed2 processing: ', TRIM(fname)
+
+   print*,'    libaed2 enabled.... init_glm_aed2 processing: ', TRIM(fname)
    namlst = f_get_lun()
 
    write(*,"(/,5X,'---------- AED2 config : start ----------')")
