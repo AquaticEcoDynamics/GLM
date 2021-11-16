@@ -57,7 +57,6 @@ MODULE glm_aed
    USE ISO_C_BINDING
 
    USE aed_water
-!  USE aed_core
    USE aed_common
    USE glm_types
    USE glm_zones
