@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2013 - 2020 -  The University of Western Australia                #
+!# Copyright 2013 - 2021 -  The University of Western Australia                #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -133,7 +133,7 @@ MODULE glm_aed
 !  INTEGER  :: w_adv_ctr    ! Scheme for vertical advection (0 IF not used)
    AED_REAL,POINTER,DIMENSION(:) :: rad, z, salt, temp, rho, area
    AED_REAL,POINTER,DIMENSION(:) :: extc_coef, layer_stress
-   AED_REAL,POINTER :: precip, evap, bottom_stress
+   AED_REAL,POINTER :: precip, evap, bottom_stress, air_temp
    AED_REAL,POINTER :: I_0, wnd
    AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: depth,layer_area
 
@@ -254,7 +254,7 @@ SUBROUTINE aed_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C, 
 !
 !LOCALS
    INTEGER :: i,j,namlst,status
-   INTEGER :: rc, av, v, sv
+   INTEGER :: rc, av, v, sv, tv
 
    CHARACTER(len=80) :: fname
    TYPE(aed_variable_t),POINTER :: tvar
@@ -291,6 +291,27 @@ SUBROUTINE aed_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C, 
    write(*,"(/,5X,'---------- AED config : start ----------')")
    IF ( aed_init_core('.') /= 0 ) STOP "     ERROR: Initialisation of aed_core failed"
    CALL aed_print_version
+
+   tv = aed_provide_global( 'temperature', 'temperature' , 'celsius' )
+   tv = aed_provide_global( 'salinity', 'salinity' , 'g/Kg' )
+   tv = aed_provide_global( 'density', 'density' , '' )
+   tv = aed_provide_global( 'layer_ht', 'layer heights' , 'meters' )
+   tv = aed_provide_global( 'extc_coef', 'extinction coefficient' , '' )
+   tv = aed_provide_global( 'tss', 'tss' , '' )
+   tv = aed_provide_global( 'par', 'par' , '' )
+   tv = aed_provide_global( 'nir', 'nir' , '' )
+   tv = aed_provide_global( 'uva', 'uva' , '' )
+   tv = aed_provide_global( 'uvb', 'uvb' , '' )
+   tv = aed_provide_global( 'pressure', 'pressure' , '' )
+   tv = aed_provide_global( 'depth', 'depth' , 'm' )
+   tv = aed_provide_sheet_global( 'sed_zone', 'sediment zone' , '' )
+   tv = aed_provide_sheet_global( 'wind_speed', 'wind speed' , 'm/s' )
+   tv = aed_provide_sheet_global( 'par_sf', 'par_sf' , '' )
+   tv = aed_provide_sheet_global( 'taub', 'layer stress' , 'N/m2' )
+   tv = aed_provide_sheet_global( 'lake_depth', 'lake depth' , 'meters' )
+   tv = aed_provide_global( 'layer_area', 'layer area' , 'm2' )
+   tv = aed_provide_sheet_global( 'rain', 'rainfall' , 'm/s' )
+   tv = aed_provide_sheet_global( 'air_temp', 'air temperature' , 'celsius' )
 
    !# Create model tree
    print *,"     Processing aed_models config from ",TRIM(fname)
@@ -591,6 +612,7 @@ SUBROUTINE aed_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_,          &
    ENDIF
 
    precip => MetData%Rain
+   air_temp => MetData%AirTemp
    evap   => SurfData%Evap
    bottom_stress => layer_stress(botmLayer)
 
@@ -658,6 +680,7 @@ SUBROUTINE check_data
             CASE ( 'lake_depth' )  ; tvar%found = .true.
             CASE ( 'layer_area' )  ; tvar%found = .true.
             CASE ( 'rain' )        ; tvar%found = .true.
+            CASE ( 'air_temp' )    ; tvar%found = .true.
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
@@ -733,6 +756,7 @@ SUBROUTINE define_sed_column(column, top, flux_pel, flux_atm, flux_ben)
             CASE ( 'lake_depth' )  ; column(av)%cell_sheet => depth(1)
             CASE ( 'layer_area' )  ; column(av)%cell => theZones%zarea
             CASE ( 'rain' )        ; column(av)%cell_sheet => precip
+            CASE ( 'air_temp' )    ; column(av)%cell_sheet => air_temp
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
@@ -812,6 +836,7 @@ SUBROUTINE define_column(column, top, cc, cc_diag, flux_pel, flux_atm, flux_ben)
             CASE ( 'lake_depth' )  ; column(av)%cell_sheet => depth(1)
             CASE ( 'layer_area' )  ; column(av)%cell => layer_area(:)
             CASE ( 'rain' )        ; column(av)%cell_sheet => precip
+            CASE ( 'air_temp' )    ; column(av)%cell_sheet => air_temp
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable

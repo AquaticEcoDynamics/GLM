@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2013 - 2020 -  The University of Western Australia                #
+!# Copyright 2013 - 2021 -  The University of Western Australia                #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -132,7 +132,7 @@ MODULE glm_aed2
 !  INTEGER  :: w_adv_ctr    ! Scheme for vertical advection (0 IF not used)
    AED_REAL,POINTER,DIMENSION(:) :: rad, z, salt, temp, rho, area
    AED_REAL,POINTER,DIMENSION(:) :: extc_coef, layer_stress
-   AED_REAL,POINTER :: precip, evap, bottom_stress
+   AED_REAL,POINTER :: precip, evap, bottom_stress, air_temp
    AED_REAL,POINTER :: I_0, wnd
    AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: depth,layer_area
 
@@ -267,15 +267,24 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
    lKw = pKw
 
 #ifdef __INTEL_COMPILER
-   print *,'    glm_aed2 built using intel fortran version ', __INTEL_COMPILER
+   print*,"    glm_aed2 built using intel fortran version ", __INTEL_COMPILER
 #else
 # ifdef __PGI
-   print *,'    glm_aed2 built using pgfortran version ', __PGIC__, '.', __PGIC_MINOR__, '.', __PGIC_PATCHLEVEL__
+   print*,"    glm_aed2 built using pgfortran version ", __PGIC__, '.', __PGIC_MINOR__, '.', __PGIC_PATCHLEVEL__
 # else
-   print *,'    glm_aed2 built using gfortran version ', __GNUC__, '.', __GNUC_MINOR__, '.', __GNUC_PATCHLEVEL__
+#  ifdef __GNUC__
+    print*,"    glm_aed2 built using gfortran version ", __GNUC__, '.', __GNUC_MINOR__, '.', __GNUC_PATCHLEVEL__
+#  else
+#   ifdef __clang__
+     print*,"    glm_aed2 built using flang version ", __clang_major__, '.', __clang_minor__, '.', __clang_patchlevel__
+#   else
+     print*,"    glm_aed2 built using unknown fortran version "
+#   endif
+#  endif
 # endif
 #endif
-   print *,'    libaed2 enabled.... init_glm_aed2 processing: ', TRIM(fname)
+
+   print*,'    libaed2 enabled.... init_glm_aed2 processing: ', TRIM(fname)
    namlst = f_get_lun()
 
    write(*,"(/,5X,'---------- AED2 config : start ----------')")
@@ -585,6 +594,7 @@ SUBROUTINE aed2_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_,          &
    precip => MetData%Rain
    evap   => SurfData%Evap
    bottom_stress => layer_stress(botmLayer)
+   air_temp => MetData%AirTemp
 
    !# Copy scalars that will not change during simulation, and are needed in do_glm_wq)
    dt = dt_
@@ -650,6 +660,7 @@ SUBROUTINE check_data
             CASE ( 'lake_depth' )  ; tvar%found = .true.
             CASE ( 'layer_area' )  ; tvar%found = .true.
             CASE ( 'rain' )        ; tvar%found = .true.
+            CASE ( 'air_temp' )    ; tvar%found = .true.
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
@@ -725,6 +736,7 @@ SUBROUTINE define_sed_column(column, top, flux_pel, flux_atm, flux_ben)
             CASE ( 'lake_depth' )  ; column(av)%cell_sheet => depth(1)
             CASE ( 'layer_area' )  ; column(av)%cell => theZones%zarea
             CASE ( 'rain' )        ; column(av)%cell_sheet => precip
+            CASE ( 'air_temp' )    ; column(av)%cell_sheet => air_temp
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
@@ -804,6 +816,7 @@ SUBROUTINE define_column(column, top, cc, cc_diag, flux_pel, flux_atm, flux_ben)
             CASE ( 'lake_depth' )  ; column(av)%cell_sheet => depth(1)
             CASE ( 'layer_area' )  ; column(av)%cell => layer_area(:)
             CASE ( 'rain' )        ; column(av)%cell_sheet => precip
+            CASE ( 'air_temp' )    ; column(av)%cell_sheet => air_temp
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable

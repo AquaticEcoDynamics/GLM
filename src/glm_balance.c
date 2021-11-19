@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2019 -  The University of Western Australia                      *
+ * Copyright 2019 - 2021 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *

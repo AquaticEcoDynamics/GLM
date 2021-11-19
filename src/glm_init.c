@@ -1393,15 +1393,15 @@ void initialise_lake(int namlst)
 {
     /*-- %%NAMELIST init_profiles --------------------------------------------*/
     AED_REAL        lake_depth;
-    int             num_heights; // support the old way
-    AED_REAL       *the_heights; // support the old way
-    int             num_depths;
-    AED_REAL       *the_depths;
-    AED_REAL       *the_temps;
-    AED_REAL       *the_sals;
-    int             num_wq_vars;
-    char          **wq_names;
-    AED_REAL       *wq_init_vals;
+    int             num_heights = 0;    // support the old way
+    AED_REAL       *the_heights = NULL; // support the old way
+    int             num_depths = 0;
+    AED_REAL       *the_depths = NULL;
+    AED_REAL       *the_temps = NULL;
+    AED_REAL       *the_sals = NULL;
+    int             num_wq_vars = 0;
+    char          **wq_names = NULL;
+    AED_REAL       *wq_init_vals = NULL;
     AED_REAL        snow_thickness = 0.0;
     AED_REAL        white_ice_thickness = 0.0;
     AED_REAL        blue_ice_thickness = 0.0;
@@ -1474,7 +1474,8 @@ void initialise_lake(int namlst)
         for (i = 0, j = num_depths-1; i < num_depths; i++, j--) {
             Lake[i].Height = lake_depth - (the_depths[j] - the_depths[0]);
             Lake[i].Temp = the_temps[j];
-            Lake[i].Salinity = the_sals[j];
+            if (the_sals != NULL) Lake[i].Salinity = the_sals[j];
+            else                  Lake[i].Salinity = 0.;
         }
 
         if (the_depths[num_depths-1] > lake_depth ) {
