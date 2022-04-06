@@ -47,7 +47,7 @@ BEGIN
             VALUE "FileDescription", "General Lake Model (GLM)"
             VALUE "FileVersion", 3.2.0a8
             VALUE "InternalName", "version.rc"
-            VALUE "LegalCopyright", "Copyright (C) 2020"
+            VALUE "LegalCopyright", "Copyright (C) 2022"
             VALUE "OriginalFilename", "version.rc"
             VALUE "ProductName", "GLM"
             VALUE "ProductVersion", 3.2.0a8

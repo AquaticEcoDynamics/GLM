@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2013 - 2021 -  The University of Western Australia                #
+!# Copyright 2013 - 2022 -  The University of Western Australia                #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -150,6 +150,7 @@ MODULE glm_aed
 
    LOGICAL :: link_rain_loss, link_solar_shade, link_bottom_drag
    AED_REAL,POINTER :: rain_factor, sw_factor, friction
+   LOGICAL  :: reinited = .FALSE.
 
    INTEGER :: n_aed_vars, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
    INTEGER :: zone_var = 0
@@ -1158,6 +1159,8 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 !BEGIN
    lIce = pIce
 
+   IF ( .NOT. reinited ) CALL re_initialize()
+
    surf = z(wlev)
    !# re-compute the layer heights and depths
    dz(1) = z(1)
@@ -1281,6 +1284,33 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 
       CALL check_states(column, wlev)
    ENDDO
+
+CONTAINS
+
+   !###############################################################################
+   SUBROUTINE re_initialize()
+   !-------------------------------------------------------------------------------
+   !ARGUMENTS
+   !
+   !LOCALS
+      INTEGER :: lev
+   !
+   !-------------------------------------------------------------------------------
+   !BEGIN
+      CALL define_column(column, wlev, cc, cc_diag, flux, flux_atm, flux_ben)
+      IF (benthic_mode .GT. 1) &
+         CALL define_sed_column(column_sed, n_zones, flux, flux_atm, flux_ben)
+
+      DO lev=1, wlev
+         CALL aed_initialize(column, lev)
+      ENDDO
+
+      CALL aed_initialize_benthic(column_sed, wlev)
+
+      reinited = .TRUE.
+   END SUBROUTINE re_initialize
+   !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 END SUBROUTINE aed_do_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
