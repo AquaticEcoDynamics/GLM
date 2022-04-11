@@ -321,7 +321,8 @@ else
           ${objdir}/aed_external.o
   endif
   ifeq ($(FABM),true)
-    OBJS+=${objdir}/glm_fabm.o ${objdir}/ode_solvers.o
+  # OBJS+=${objdir}/glm_fabm.o ${objdir}/ode_solvers.o
+    OBJS+=${objdir}/ode_solvers.o ${objdir}/glm_fabm.o
   endif
 endif
 
