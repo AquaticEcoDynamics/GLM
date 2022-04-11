@@ -245,6 +245,7 @@ extern AED_REAL  rho_ice_blue;
 extern AED_REAL  rho_ice_white;
 extern AED_REAL  min_ice_thickness;
 extern AED_REAL  dt_iceon_avg;
+extern AED_REAL avg_surf_temp_thres;
 
 /*----------------------------------------------------------------------------*/
 // SEDIMENT

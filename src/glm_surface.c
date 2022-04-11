@@ -1209,7 +1209,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     AvgSurfTemp = AvgSurfTemp * (1 - (noSecs/SecsPerDay)/dt_ice_avg)
                        + Lake[surfLayer].Temp * (noSecs/SecsPerDay)/dt_ice_avg ;
 
-    if (AvgSurfTemp <= 0.0 && SurfData.delzBlueIce == 0.0 && Lake[surfLayer].Height>0.1) {
+    if (AvgSurfTemp <= avg_surf_temp_thres && SurfData.delzBlueIce == 0.0 && Lake[surfLayer].Height>0.1) {
         // Start a new blue ice layer
         ice                     = TRUE;
         SurfData.delzBlueIce    = min_ice_thickness; //0.05;

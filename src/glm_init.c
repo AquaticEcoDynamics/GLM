@@ -451,6 +451,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL rho_ice_white;
     extern AED_REAL min_ice_thickness;
     extern AED_REAL dt_iceon_avg;
+    extern AED_REAL avg_surf_temp_thres;
 
     //==========================================================================
     NAMELIST snowice[] = {
@@ -475,6 +476,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "rho_ice_white",         TYPE_DOUBLE,       &rho_ice_white        },
           { "min_ice_thickness",     TYPE_DOUBLE,       &min_ice_thickness    },
           { "dt_iceon_avg",          TYPE_DOUBLE,       &dt_iceon_avg         },
+          { "avg_surf_temp_thres",   TYPE_DOUBLE,       &avg_surf_temp_thres  },
           { NULL,                    TYPE_END,          NULL                  }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
