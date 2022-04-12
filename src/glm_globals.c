@@ -193,6 +193,7 @@ AED_REAL rho_ice_blue = 917.0;        //# density of blue ice
 AED_REAL rho_ice_white = 890.0;       //# density of white ice
 AED_REAL min_ice_thickness = 0.05;    //# threshold thickness for new ice-on, or ice-off
 AED_REAL dt_iceon_avg = 0.5;          //# moving average time-scale of water temp to identify ice-on transition
+AED_REAL avg_surf_temp_thres = 0.0;
 
 //------------------------------------------------------------------------------
 // SEDIMENT
