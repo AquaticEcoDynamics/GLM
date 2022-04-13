@@ -149,6 +149,7 @@ MODULE glm_types
       AED_REAL :: zlayer_stress
       AED_REAL :: ztss
       AED_REAL :: zdz
+      AED_REAL :: zvel
       AED_REAL :: zpar
       AED_REAL :: znir
       AED_REAL :: zuva

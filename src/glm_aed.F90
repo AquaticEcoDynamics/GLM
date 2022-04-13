@@ -132,7 +132,7 @@ MODULE glm_aed
    AED_REAL :: dt, dt_eff   ! External and internal time steps
 !  INTEGER  :: w_adv_ctr    ! Scheme for vertical advection (0 IF not used)
    AED_REAL,POINTER,DIMENSION(:) :: rad, z, salt, temp, rho, area
-   AED_REAL,POINTER,DIMENSION(:) :: extc_coef, layer_stress
+   AED_REAL,POINTER,DIMENSION(:) :: extc_coef, layer_stress, vel
    AED_REAL,POINTER :: precip, evap, bottom_stress, air_temp
    AED_REAL,POINTER :: I_0, wnd
    AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: depth,layer_area
@@ -297,22 +297,32 @@ SUBROUTINE aed_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C, 
    tv = aed_provide_global( 'salinity', 'salinity' , 'g/Kg' )
    tv = aed_provide_global( 'density', 'density' , '' )
    tv = aed_provide_global( 'layer_ht', 'layer heights' , 'meters' )
+   tv = aed_provide_global( 'layer_area', 'layer area' , 'm2' ) ! sheet?
+   tv = aed_provide_sheet_global( 'rain', 'rainfall' , 'm/s' )
+   !rainloss
+   !material
+   !bathy
    tv = aed_provide_global( 'extc_coef', 'extinction coefficient' , '' )
    tv = aed_provide_global( 'tss', 'tss' , '' )
-   tv = aed_provide_global( 'par', 'par' , '' )
-   tv = aed_provide_global( 'nir', 'nir' , '' )
-   tv = aed_provide_global( 'uva', 'uva' , '' )
-   tv = aed_provide_global( 'uvb', 'uvb' , '' )
+   !ss1, ss2, ss3, ss4
+   tv = aed_provide_global( 'cell_vel', 'layer velocity' , 'm/s' )
+   tv = aed_provide_global( 'nir', 'nir' , 'W/m2' )
+   tv = aed_provide_global( 'par', 'par' , 'W/m2' )
+   tv = aed_provide_global( 'uva', 'uva' , 'W/m2' )
+   tv = aed_provide_global( 'uvb', 'uvb' , 'W/m2' )
+
    tv = aed_provide_global( 'pressure', 'pressure' , '' )
    tv = aed_provide_global( 'depth', 'depth' , 'm' )
+
    tv = aed_provide_sheet_global( 'sed_zone', 'sediment zone' , '' )
    tv = aed_provide_sheet_global( 'wind_speed', 'wind speed' , 'm/s' )
    tv = aed_provide_sheet_global( 'par_sf', 'par_sf' , '' )
    tv = aed_provide_sheet_global( 'taub', 'layer stress' , 'N/m2' )
-   tv = aed_provide_sheet_global( 'lake_depth', 'lake depth' , 'meters' )
-   tv = aed_provide_global( 'layer_area', 'layer area' , 'm2' )
-   tv = aed_provide_sheet_global( 'rain', 'rainfall' , 'm/s' )
    tv = aed_provide_sheet_global( 'air_temp', 'air temperature' , 'celsius' )
+   !longwave
+   !col_num
+   !col_depth
+   tv = aed_provide_sheet_global( 'col_depth', 'lake depth' , 'meters' )
 
    !# Create model tree
    print *,"     Processing aed_models config from ",TRIM(fname)
@@ -566,7 +576,7 @@ END FUNCTION aed_is_var
 
 
 !###############################################################################
-SUBROUTINE aed_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_,          &
+SUBROUTINE aed_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_,           &
                                 c_rain_factor, c_sw_factor, c_friction)        &
                                                   BIND(C, name=_WQ_SET_GLM_DATA)
 !-------------------------------------------------------------------------------
@@ -592,6 +602,7 @@ SUBROUTINE aed_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_,          &
    rho  => theLake%Density
    area => theLake%LayerArea
    rad  => theLake%Light
+   vel  => theLake%Umean
    extc_coef => theLake%ExtcCoefSW
    layer_stress => theLake%LayerStress
 
@@ -668,6 +679,7 @@ SUBROUTINE check_data
             CASE ( 'layer_ht' )    ; tvar%found = .true.
             CASE ( 'extc_coef' )   ; tvar%found = .true.
             CASE ( 'tss' )         ; tvar%found = .true.
+            CASE ( 'cell_vel' )    ; tvar%found = .true.
             CASE ( 'par' )         ; tvar%found = .true.
             CASE ( 'nir' )         ; tvar%found = .true.
             CASE ( 'uva' )         ; tvar%found = .true.
@@ -678,7 +690,7 @@ SUBROUTINE check_data
             CASE ( 'wind_speed' )  ; tvar%found = .true.
             CASE ( 'par_sf' )      ; tvar%found = .true.
             CASE ( 'taub' )        ; tvar%found = .true.
-            CASE ( 'lake_depth' )  ; tvar%found = .true.
+            CASE ( 'col_depth' )   ; tvar%found = .true.
             CASE ( 'layer_area' )  ; tvar%found = .true.
             CASE ( 'rain' )        ; tvar%found = .true.
             CASE ( 'air_temp' )    ; tvar%found = .true.
@@ -744,6 +756,7 @@ SUBROUTINE define_sed_column(column, top, flux_pel, flux_atm, flux_ben)
             CASE ( 'layer_ht' )    ; column(av)%cell => theZones%zdz
             CASE ( 'extc_coef' )   ; column(av)%cell => theZones%zextc_coef
             CASE ( 'tss' )         ; column(av)%cell => theZones%ztss
+            CASE ( 'cell_vel' )    ; column(av)%cell => theZones%zvel
             CASE ( 'par' )         ; column(av)%cell => theZones%zpar
             CASE ( 'nir' )         ; column(av)%cell => theZones%znir
             CASE ( 'uva' )         ; column(av)%cell => theZones%zuva
@@ -754,7 +767,7 @@ SUBROUTINE define_sed_column(column, top, flux_pel, flux_atm, flux_ben)
             CASE ( 'wind_speed' )  ; column(av)%cell_sheet => wnd
             CASE ( 'par_sf' )      ; column(av)%cell_sheet => I_0
             CASE ( 'taub' )        ; column(av)%cell_sheet => bottom_stress
-            CASE ( 'lake_depth' )  ; column(av)%cell_sheet => depth(1)
+            CASE ( 'col_depth' )   ; column(av)%cell_sheet => depth(1)
             CASE ( 'layer_area' )  ; column(av)%cell => theZones%zarea
             CASE ( 'rain' )        ; column(av)%cell_sheet => precip
             CASE ( 'air_temp' )    ; column(av)%cell_sheet => air_temp
@@ -824,6 +837,7 @@ SUBROUTINE define_column(column, top, cc, cc_diag, flux_pel, flux_atm, flux_ben)
             CASE ( 'layer_ht' )    ; column(av)%cell => dz(:)
             CASE ( 'extc_coef' )   ; column(av)%cell => extc_coef(:)
             CASE ( 'tss' )         ; column(av)%cell => tss(:)
+            CASE ( 'cell_vel' )    ; column(av)%cell => vel(:)
             CASE ( 'par' )         ; column(av)%cell => par(:)
             CASE ( 'nir' )         ; column(av)%cell => nir(:)
             CASE ( 'uva' )         ; column(av)%cell => uva(:)
@@ -834,7 +848,7 @@ SUBROUTINE define_column(column, top, cc, cc_diag, flux_pel, flux_atm, flux_ben)
             CASE ( 'wind_speed' )  ; column(av)%cell_sheet => wnd
             CASE ( 'par_sf' )      ; column(av)%cell_sheet => I_0
             CASE ( 'taub' )        ; column(av)%cell_sheet => bottom_stress
-            CASE ( 'lake_depth' )  ; column(av)%cell_sheet => depth(1)
+            CASE ( 'col_depth' )   ; column(av)%cell_sheet => depth(1)
             CASE ( 'layer_area' )  ; column(av)%cell => layer_area(:)
             CASE ( 'rain' )        ; column(av)%cell_sheet => precip
             CASE ( 'air_temp' )    ; column(av)%cell_sheet => air_temp
@@ -936,7 +950,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
                   sd = sd + 1
                   column_sed(av)%cell_sheet => z_diag_hz(zon,sd)
                ENDIF
-            ELSEIF ( .NOT. tvar%extern ) THEN !# state variable
+            ELSEIF ( .NOT. tvar%extern ) THEN !# State variable
                IF ( tvar%sheet ) THEN
                   sv = sv + 1
                   IF ( tvar%bot ) THEN
@@ -1159,7 +1173,6 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 !BEGIN
    lIce = pIce
 
-   IF ( .NOT. reinited ) CALL re_initialize()
 
    surf = z(wlev)
    !# re-compute the layer heights and depths
@@ -1172,11 +1185,14 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
       layer_area(i) = (area(i)-area(i-1))/area(i)
    ENDDO
 
+!zone_heights(2) = 5.       !MH TMP    cant get zones other than 1 to be nonzero
+!zone_heights(3) = 9.5      !MH TMP
+
    IF ( benthic_mode .GT. 1 ) THEN
       j = 1
       DO i=1,wlev
         !print *,'j',i,j
-        !print *,'zone_heights',z(i),zone_heights(j)!,theZones(1)%zheight,theZones(2)%zheight
+        !print *,'zone_heights',z(i),zone_heights(j),theZones(1)%zheight,theZones(2)%zheight
          IF (z(i) .GT. zone_heights(j)) THEN
             sed_zones(i) = j * area(i)
             j = j+1
@@ -1188,6 +1204,8 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 
    !# Calculate local pressure
    pres(1:wlev) = -z(1:wlev)
+
+   IF ( .NOT. reinited ) CALL re_initialize(n_zones)
 
    CALL define_column(column, wlev, cc, cc_diag, flux, flux_atm, flux_ben)
    IF (benthic_mode .GT. 1) &
@@ -1288,12 +1306,13 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 CONTAINS
 
    !###############################################################################
-   SUBROUTINE re_initialize()
+   SUBROUTINE re_initialize(nsed)
    !-------------------------------------------------------------------------------
    !ARGUMENTS
-   !
+   INTEGER, INTENT(in) ::  nsed
    !LOCALS
-      INTEGER :: lev
+   INTEGER :: lev,zon,av,sv,sd
+   TYPE(aed_variable_t),POINTER :: tvar
    !
    !-------------------------------------------------------------------------------
    !BEGIN
@@ -1305,7 +1324,40 @@ CONTAINS
          CALL aed_initialize(column, lev)
       ENDDO
 
-      CALL aed_initialize_benthic(column_sed, wlev)
+      !# (1) BENTHIC INITIALISATION
+      IF ( benthic_mode .GT. 1 ) THEN
+         !# Multiple static sediment zones are simulated, and therfore overlying
+         !# water conditions need to be aggregated from multiple cells/layers
+
+         DO zon=1,nsed
+           theZones(zon)%z_sed_zones = zon  !MH TMP
+           !print *,'theZones(zon)%z_sed_zones',theZones(zon)%z_sed_zones !MH TMP
+            !# If multiple benthic zones, we must update the benthic variable pointer for the new zone
+            IF (zone_var .GT. 0) column_sed(zone_var)%cell_sheet => theZones(zon)%z_sed_zones
+
+            sv = 0 ; sd = 0
+
+            DO av=1,n_aed_vars
+               IF ( .NOT. aed_get_var(av, tvar) ) STOP "Error getting variable info"
+
+               IF ( tvar%diag ) THEN  !# Diagnostic variable
+                  IF ( tvar%sheet ) THEN
+                     sd = sd + 1
+                     column_sed(av)%cell_sheet => z_diag_hz(zon,sd)
+                  ENDIF
+               ELSEIF ( .NOT. tvar%extern ) THEN !# State variable
+                  IF ( tvar%sheet ) THEN
+                     sv = sv + 1
+                     IF ( tvar%bot ) THEN
+                        column_sed(av)%cell_sheet => z_cc(zon, n_vars+sv)
+                     ENDIF
+                  ENDIF
+               ENDIF
+            ENDDO
+
+            CALL aed_initialize_benthic(column_sed, zon)
+         ENDDO
+       ENDIF
 
       reinited = .TRUE.
    END SUBROUTINE re_initialize

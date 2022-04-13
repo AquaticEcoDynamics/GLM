@@ -255,12 +255,14 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
 !BEGIN
    zon = 1 ; z_cc(:,1:nvars) = 0.
    theZones%zrad = 0. ; theZones%zsalt = 0. ; theZones%ztemp = 0. ; theZones%zrho = 0.
-   theZones%zextc_coef = 0. ; theZones%zlayer_stress = 0. ; theZones%ztss = 0. ; theZones%zpar = 0.
-   theZones%znir = 0. ; theZones%zuva = 0. ; theZones%zuvb = 0. ; theZones%z_sed_zones = 1.
+   theZones%zextc_coef = 0. ; theZones%zlayer_stress = 0. ; theZones%ztss = 0.
+   theZones%zpar = 0. ; theZones%znir = 0. ; theZones%zuva = 0. ; theZones%zuvb = 0.
+   theZones%z_sed_zones = 1. ; theZones%zvel = 0.
 
    a_zones = 1
    zcount = 0
    DO lev=1,wlev
+
       IF ( zz(lev) > zone_heights(zon) ) THEN
          zon = zon + 1
          IF (zon >  n_zones) STOP 'Water level height is higher than highest zone height'
@@ -278,6 +280,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
       theZones(zon)%zsalt         = theZones(zon)%zsalt + theLake(lev)%Salinity
       theZones(zon)%zrho          = theZones(zon)%zrho  + theLake(lev)%Density
       theZones(zon)%zrad          = theZones(zon)%zrad  + theLake(lev)%Light
+      theZones(zon)%zvel          = theZones(zon)%zvel  + theLake(lev)%Umean
       theZones(zon)%zextc_coef    = theZones(zon)%zextc_coef + theLake(lev)%ExtcCoefSW
       theZones(zon)%zlayer_stress = theZones(zon)%zlayer_stress + theLake(lev)%LayerStress
 
@@ -294,6 +297,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
       theZones%zsalt         = theZones%zsalt / zcount
       theZones%zrho          = theZones%zrho  / zcount
       theZones%zrad          = theZones%zrad  / zcount
+      theZones%zvel          = theZones%zvel  / zcount
       theZones%zextc_coef    = theZones%zextc_coef / zcount
       theZones%zlayer_stress = theZones%zlayer_stress / zcount
    ELSEWHERE
@@ -301,6 +305,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
       theZones%zsalt         = 0.
       theZones%zrho          = 0.
       theZones%zrad          = 0.
+      theZones%zvel          = 0.
       theZones%zextc_coef    = 0.
       theZones%zlayer_stress = 0.
    ENDWHERE
