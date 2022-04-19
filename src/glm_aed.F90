@@ -1161,7 +1161,7 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    TYPE(aed_variable_t),POINTER :: tv
 
    AED_REAL :: min_C, surf
-   INTEGER  :: i, j, v, lev, split
+   INTEGER  :: i, j, v, lev, split, d
 
    TYPE (aed_column_t) :: column(n_aed_vars)
    TYPE (aed_column_t) :: column_sed(n_aed_vars)
@@ -1184,9 +1184,6 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
       depth(i) = surf - z(i)
       layer_area(i) = (area(i)-area(i-1))/area(i)
    ENDDO
-
-!zone_heights(2) = 5.       !MH TMP    cant get zones other than 1 to be nonzero
-!zone_heights(3) = 9.5      !MH TMP
 
    IF ( benthic_mode .GT. 1 ) THEN
       j = 1
@@ -1255,7 +1252,6 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    CALL check_states(column,wlev)
 
    DO split=1,split_factor
-
       IF (benthic_mode .GT. 1) THEN
          CALL copy_to_zone(cc, wlev)
          CALL calc_zone_areas(area, wlev, z(wlev))
@@ -1275,6 +1271,7 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
       !# Time-integrate one biological time step
       CALL calculate_fluxes(column, wlev, column_sed, n_zones,  &
                                   flux(:,:), flux_atm, flux_ben, flux_zone(:,:))
+
       !# Update the water column layers
       DO v = 1, n_vars
          DO lev = 1, wlev
@@ -1302,6 +1299,26 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 
       CALL check_states(column, wlev)
    ENDDO
+
+
+  ! IF ( display_minmax ) THEN
+  !    v = 0; d = 0
+  !    DO i=1,n_aed_vars
+  !       IF ( aed_get_var(i, tv) ) THEN
+  !          IF ( .NOT. (tv%diag .OR. tv%extern) ) THEN
+  !             v = v + 1
+  !             WRITE(*,'(1X,"VarLims: ",I0,1X,"<=> ",f15.8,f15.8," : ",A," (",A,")")') &
+  !                                        v,MINVAL(cc(:,v)),MAXVAL(cc(:,v)),TRIM(tv%name),TRIM(tv%units)
+  !             !print *,'VarLims',v,TRIM(tv%name),MINVAL(cc(v,:)),MAXVAL(cc(v,:))
+  !          ELSE IF ( tv%diag  ) THEN
+  !             d = d + 1
+  !             WRITE(*,'(1X,"DiagLim: ",I0,1X,"<=> ",f15.8,f15.8," : ",A," (",A,")")') &
+  !                                        d,MINVAL(cc_diag(:,d)),MAXVAL(cc_diag(:,d)),TRIM(tv%name),TRIM(tv%units)
+  !             !print *,'DiagLim',d,TRIM(tv%name),MINVAL(cc_diag(d,:)),MAXVAL(cc_diag(d,:))
+  !          ENDIF
+  !       ENDIF
+  !    ENDDO
+  !  ENDIF
 
 CONTAINS
 
@@ -1358,7 +1375,6 @@ CONTAINS
             CALL aed_initialize_benthic(column_sed, zon)
          ENDDO
        ENDIF
-
       reinited = .TRUE.
    END SUBROUTINE re_initialize
    !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

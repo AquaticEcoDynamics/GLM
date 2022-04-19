@@ -163,7 +163,7 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
 
       IF ( zone_heights(zon) > surf ) THEN
          IF (w_zones == 0) THEN
-            w_zones = lev
+            w_zones = lev ! Casper: should this be zon?
             theZones(zon)%z_pc_wet = surf / (zone_heights(zon) - zone_heights(zon-1))
          ENDIF
       ELSE
@@ -261,6 +261,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
 
    a_zones = 1
    zcount = 0
+   w_zones = 0
    DO lev=1,wlev
 
       IF ( zz(lev) > zone_heights(zon) ) THEN
@@ -310,11 +311,14 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
       theZones%zlayer_stress = 0.
    ENDWHERE
 
+   theZones%zdz = 0.
    surf = zz(wlev)
    IF ( surf > zone_heights(1) ) THEN
       theZones(1)%zdepth = zone_heights(1)
+      theZones(1)%zdz = zone_heights(1)
    ELSE
       theZones%zdepth = surf
+      theZones(1)%zdz = surf
       w_zones = 1
    ENDIF
 
@@ -323,12 +327,15 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
       IF ( w_zones == 0 ) THEN
           IF ( surf > zone_heights(zon) ) THEN
              theZones(zon)%zdepth = zone_heights(zon)
+             theZones(zon)%zdz =  zone_heights(zon) - zone_heights(zon-1)
           ELSE
              theZones(zon)%zdepth = surf
+             theZones(zon)%zdz = surf - zone_heights(zon-1)
              w_zones = zon
           ENDIF
       ELSE
          theZones(zon)%zdepth = surf
+         theZones(zon)%zdz = surf - zone_heights(zon-1)
       ENDIF
    ENDDO
 END SUBROUTINE copy_to_zone
