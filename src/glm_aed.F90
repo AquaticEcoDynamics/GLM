@@ -978,12 +978,13 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
             CALL aed_bio_drag(column, 1, localdrag)
             IF (link_bottom_drag) friction = localdrag
          ENDIF
+
          !# Calculate temporal derivatives due to benthic processes.
          !# They are stored in flux_ben (benthic vars) and flux_pel (water vars)
          flux_pel_pre = flux_pel
 
 !        print*,"Calling ben for zone ",zone_var,zon,z_sed_zones(zon)
-         CALL aed_calculate_benthic(column_sed, zon)
+         CALL aed_calculate_benthic(column_sed, zon, .TRUE.)
 
          !# Record benthic fluxes in the zone array
          flux_zon(zon, :) = flux_ben(:)
@@ -1024,6 +1025,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
           flux_pel(lev,v_start:v_end) = flux_pel_z(zon,v_start:v_end)
         ENDIF
       ENDDO
+
       !# Limit flux out of bottom waters to concentration of that layer
       !# i.e. don't flux out more than is there & distribute
       !# bottom flux into pelagic over bottom box (i.e., divide by layer height).
@@ -1161,7 +1163,7 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    TYPE(aed_variable_t),POINTER :: tv
 
    AED_REAL :: min_C, surf
-   INTEGER  :: i, j, v, lev, split, d
+   INTEGER  :: i, j, v, lev, split
 
    TYPE (aed_column_t) :: column(n_aed_vars)
    TYPE (aed_column_t) :: column_sed(n_aed_vars)
@@ -1236,14 +1238,13 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
       !# is done in aed_do_benthos)
       v = 0
       DO i=1,n_aed_vars
-
          IF ( aed_get_var(i, tv) ) THEN
-            IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern)   ) THEN
+            IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern) ) THEN
                v = v + 1
                !# only for state_vars that are not sheet, and also non-zero ws
                IF ( .NOT. isnan(tv%mobility) .AND. SUM(ABS(ws(1:wlev,i)))>zero_ ) THEN
                   min_C = tv%minimum
-                  CALL Mobility(wlev, dt, dz, area, ws(:, i), min_C, cc(:, v))
+                  CALL doMobility(wlev, dt, dz, area, ws(:, i), min_C, cc(:, v))
                ENDIF
             ENDIF
          ENDIF
@@ -1275,17 +1276,50 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
       !# Update the water column layers
       DO v = 1, n_vars
          DO lev = 1, wlev
-            cc(lev, v) = cc(lev, v) + dt_eff*flux(lev, v)
+            IF ( isnan(flux(lev, v)) ) THEN
+#if DEBUG
+               j = 0
+               DO i=1,n_aed_vars
+                  IF ( aed_get_var(i, tv) ) THEN
+                     IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern) ) THEN
+                        j = j + 1
+                        IF ( j .EQ. v ) &
+                           print *, "NaN detected in flux for var ",    &
+                                     TRIM(tv%name), " at level ", lev
+                     ENDIF
+                  ENDIF
+               ENDDO
+#endif
+            ELSE
+               cc(lev, v) = cc(lev, v) + dt_eff*flux(lev, v)
+            ENDIF
          ENDDO
       ENDDO
+
       !# Now update benthic variables, depending on whether zones are simulated
       IF ( benthic_mode .GT. 1 ) THEN
          ! Loop through benthic state variables to update their mass
          DO v = n_vars+1, n_vars+n_vars_ben
             ! Loop through each sediment zone
             DO lev = 1, n_zones
-               ! Update the main cc_sed data array with the
-               z_cc(lev, v) = z_cc(lev, v)+ dt_eff*flux_zone(lev, v)
+               IF ( isnan(flux(lev, v)) ) THEN
+#if DEBUG
+                  j = 0
+                  DO i=1,n_aed_vars
+                     IF ( aed_get_var(i, tv) ) THEN
+                        IF ( tv%sheet .AND. .NOT. (tv%diag .OR. tv%extern) ) THEN
+                           j = j + 1
+                           IF ( j .EQ. v ) &
+                              print *, "NaN detected in flux_zone for var ",    &
+                                        TRIM(tv%name), " at zone ", lev
+                        ENDIF
+                     ENDIF
+                  ENDDO
+#endif
+               ELSE
+                  ! Update the main cc_sed data array with the
+                  z_cc(lev, v) = z_cc(lev, v)+ dt_eff*flux_zone(lev, v)
+               ENDIF
             ENDDO
          ENDDO
 
@@ -1293,7 +1327,22 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
          CALL copy_from_zone(cc, cc_diag, cc_diag_hz, wlev)
       ELSE
          DO v = n_vars+1, n_vars+n_vars_ben
-            cc(1, v) = cc(1, v) + dt_eff*flux_ben(v)
+            IF ( isnan(flux(1, v)) ) THEN
+#if DEBUG
+               j = 0
+               DO i=1,n_aed_vars
+                  IF ( aed_get_var(i, tv) ) THEN
+                     IF ( tv%sheet .AND. .NOT. (tv%diag .OR. tv%extern) ) THEN
+                        j = j + 1
+                        IF ( j .EQ. v ) &
+                           print *, "NaN detected in flux_ben for var ", TRIM(tv%name)
+                     ENDIF
+                  ENDIF
+               ENDDO
+#endif
+            ELSE
+               cc(1, v) = cc(1, v) + dt_eff*flux_ben(v)
+            ENDIF
          ENDDO
       ENDIF
 

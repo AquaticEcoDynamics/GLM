@@ -39,10 +39,10 @@
 
   INTERFACE
 
-    SUBROUTINE Mobility(N,dt,h,A,ww,min_C,cc) BIND(C, name="Mobility")
+    SUBROUTINE doMobility(N,dt,h,A,ww,min_C,cc) BIND(C, name="doMobility")
        USE ISO_C_BINDING
 #      if defined( _WIN32 ) && USE_DL_LOADER
-       !DEC$ ATTRIBUTES DLLIMPORT :: Mobility
+       !DEC$ ATTRIBUTES DLLIMPORT :: doMobility
 #      endif
        CINTEGER,INTENT(in)     :: N       !# number of vertical layers
        AED_REAL,INTENT(in)     :: dt      !# time step (s)
@@ -51,13 +51,13 @@
        AED_REAL,INTENT(in)     :: ww(*)   !# vertical speed (m/s)
        AED_REAL,INTENT(in)     :: min_C   !# minimum allowed cell concentration
        AED_REAL,INTENT(inout)  :: cc(*)   !# cell concentration
-    END SUBROUTINE Mobility
+    END SUBROUTINE doMobility
 
   END INTERFACE
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #else
 
-   void Mobility(int *N, AED_REAL *dt, AED_REAL *h, AED_REAL *A,
+   void doMobility(int *N, AED_REAL *dt, AED_REAL *h, AED_REAL *A,
                          AED_REAL *ww, AED_REAL *min_C, AED_REAL *cc);
 
 #endif

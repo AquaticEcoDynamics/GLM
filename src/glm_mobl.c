@@ -60,7 +60,7 @@ static AED_REAL Sinking(AED_REAL *Y, AED_REAL *cc, AED_REAL *ww, AED_REAL *vols,
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-void Mobility(int *N_in,          // number of vertical layers
+void doMobility(int *N_in,        // number of vertical layers
               AED_REAL *dt_in,    // time step (s)
               AED_REAL *h,        // array of layer thicknesses (m)
               AED_REAL *A,        // array of layer areas (m^2)
