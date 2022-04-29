@@ -57,8 +57,9 @@
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #else
 
-   void doMobility(int *N, AED_REAL *dt, AED_REAL *h, AED_REAL *A,
-                         AED_REAL *ww, AED_REAL *min_C, AED_REAL *cc);
+   void doMobility(const int *N, const AED_REAL *dt,
+                         const AED_REAL *h,  const AED_REAL *A,
+                         const AED_REAL *ww, const AED_REAL *min_C, AED_REAL *cc);
 
 #endif
 

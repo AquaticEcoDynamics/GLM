@@ -334,7 +334,8 @@ SUBROUTINE aed_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C, 
    IF ( status /= 0 ) STOP "Cannot read namelist entry aed_models"
 
    DO i=1,size(models)
-      IF (models(i)=='') EXIT
+      IF ( models(i) == '' ) EXIT
+      IF ( benthic_mode .GT. 1 ) models(i) = TRIM(models(i)) // ':za' ! make all models zone averaged
       CALL aed_define_model(models(i), namlst)
    ENDDO
 
@@ -918,6 +919,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
    flux_atm = zero_
    flux_ben = zero_
    flux_zon = zero_
+   flux_pel_z = zero_
 
    !# Start with calculating all flux terms for rhs in mass/m3/s
    !# Includes (1) benthic flux, (2) surface exchange and (3) water column kinetics
@@ -1214,20 +1216,20 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    cc_diag_hz = 0.
 
    IF ( .NOT. mobility_off ) THEN
-     v = 0
-     DO i=1,n_aed_vars
-        IF ( aed_get_var(i, tv) ) THEN
-           IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern) ) THEN
-              v = v + 1
-              ws(:,i) = zero_
-              ! only for state_vars that are not sheet
-              IF ( .NOT. isnan(tv%mobility) ) THEN
-                 ! default to ws that was set during initialisation
-                 ws(1:wlev,i) = tv%mobility
-              ENDIF
-           ENDIF
-        ENDIF
-     ENDDO
+      v = 0
+      DO i=1,n_aed_vars
+         IF ( aed_get_var(i, tv) ) THEN
+            IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern) ) THEN
+               v = v + 1
+               ws(:,i) = zero_
+               ! only for state_vars that are not sheet
+               IF ( .NOT. isnan(tv%mobility) ) THEN
+                  ! default to ws that was set during initialisation
+                  ws(1:wlev,i) = tv%mobility
+               ENDIF
+            ENDIF
+         ENDIF
+      ENDDO
       DO i = 1, wlev
          ! update ws for modules that use the mobility method
          CALL aed_mobility(column, i, ws(i,:))
@@ -1706,11 +1708,13 @@ INTEGER FUNCTION WQVar_Index(name)
 !BEGIN
    v = 0
    DO i=1, n_aed_vars
-      IF ( aed_get_var(i, tv) .AND. .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern) ) THEN
-         v = v + 1
-         IF ( name .EQ. tv%name ) THEN
-            WQVar_Index = v
-            RETURN
+      IF ( aed_get_var(i, tv) ) THEN
+         IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern) ) THEN
+            v = v + 1
+            IF ( name .EQ. tv%name ) THEN
+               WQVar_Index = v
+               RETURN
+            ENDIF
          ENDIF
       ENDIF
    ENDDO

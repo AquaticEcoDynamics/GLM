@@ -47,12 +47,14 @@
 
 
 /******************************************************************************/
-static AED_REAL Rising(AED_REAL *Y, AED_REAL *cc, AED_REAL *ww, AED_REAL *vols,
-                              AED_REAL *A,  AED_REAL *mins, AED_REAL dt,
-                                                           int start, int end);
-static AED_REAL Sinking(AED_REAL *Y, AED_REAL *cc, AED_REAL *ww, AED_REAL *vols,
-                              AED_REAL *A,  AED_REAL *mins, AED_REAL dt,
-                                                           int start, int end);
+static AED_REAL Rising(AED_REAL *Y, AED_REAL *cc,
+                                    const AED_REAL *ww, const AED_REAL *vols,
+                                    const AED_REAL *A,  const AED_REAL *mins,
+                                              AED_REAL dt, int start, int end);
+static AED_REAL Sinking(AED_REAL *Y, AED_REAL *cc,
+                                     const AED_REAL *ww, const AED_REAL *vols,
+                                     const AED_REAL *A,  const AED_REAL *mins,
+                                              AED_REAL dt, int start, int end);
 
 
 
@@ -60,13 +62,13 @@ static AED_REAL Sinking(AED_REAL *Y, AED_REAL *cc, AED_REAL *ww, AED_REAL *vols,
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-void doMobility(int *N_in,        // number of vertical layers
-              AED_REAL *dt_in,    // time step (s)
-              AED_REAL *h,        // array of layer thicknesses (m)
-              AED_REAL *A,        // array of layer areas (m^2)
-              AED_REAL *ww,       // array of vertical mobility speeds (m/s)
-              AED_REAL *min_C_in, // minimum concentration (mmol/m^3)
-              AED_REAL *cc)       // array of cell concentrations (mmol/m^3)
+void doMobility(const int *N_in,        // number of vertical layers
+              const AED_REAL *dt_in,    // time step (s)
+              const AED_REAL *h,        // array of layer thicknesses (m)
+              const AED_REAL *A,        // array of layer areas (m^2)
+              const AED_REAL *ww,       // array of vertical mobility speeds (m/s)
+              const AED_REAL *min_C_in, // minimum concentration (mmol/m^3)
+              AED_REAL *cc)             // array of cell concentrations (mmol/m^3)
 {
     /**************************************************************************
      * Since this routine is called only from the fortran the arguments are   *
@@ -185,9 +187,10 @@ void doMobility(int *N_in,        // number of vertical layers
  *    1) add the amount moved from previous cell to current cell              *
  *    2) fix concentration                                                    *
  ******************************************************************************/
-AED_REAL Rising(AED_REAL *Y, AED_REAL *cc, AED_REAL *ww, AED_REAL *vols,
-                             AED_REAL *A,  AED_REAL *mins, AED_REAL dt,
-                                                           int start, int end)
+AED_REAL Rising(AED_REAL *Y, AED_REAL *cc,
+                             const AED_REAL *ww, const AED_REAL *vols,
+                             const AED_REAL *A,  const AED_REAL *mins,
+                                              AED_REAL dt, int start, int end)
 {
     int i;
     AED_REAL mov = 0., moved = 0.;
@@ -220,9 +223,10 @@ AED_REAL Rising(AED_REAL *Y, AED_REAL *cc, AED_REAL *ww, AED_REAL *vols,
  *    4) fix concentration                                                    *
  *    5) compute the amount that will go to the next cell                     *
  ******************************************************************************/
-AED_REAL Sinking(AED_REAL *Y, AED_REAL *cc, AED_REAL *ww, AED_REAL *vols,
-                              AED_REAL *A,  AED_REAL *mins, AED_REAL dt,
-                                                           int start, int end)
+AED_REAL Sinking(AED_REAL *Y, AED_REAL *cc,
+                              const AED_REAL *ww, const AED_REAL *vols,
+                              const AED_REAL *A,  const AED_REAL *mins,
+                                               AED_REAL dt, int start, int end)
 {
     int i;
     AED_REAL mov = 0., moved = 0.;

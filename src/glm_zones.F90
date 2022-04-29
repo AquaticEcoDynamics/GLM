@@ -57,7 +57,6 @@ MODULE glm_zones
 
    INTEGER :: n_zones, w_zones
 
-!  TYPE(ZoneType),ALLOCATABLE,DIMENSION(:),TARGET :: theZones
    TYPE(ZoneType),DIMENSION(:),POINTER :: theZones
 
    AED_REAL,DIMENSION(:),POINTER :: zone_heights
