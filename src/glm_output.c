@@ -269,6 +269,7 @@ void write_diags(int jday, AED_REAL LakeNum)
 {
     char ts[20];
     extern AED_REAL Hs, L, T;
+    AED_REAL max_t, min_t, max_dt;
 
     if ( csv_lake_file < 0 ) return;
 
@@ -298,8 +299,8 @@ void write_diags(int jday, AED_REAL LakeNum)
     write_csv_lake("Snow Thickness",  SurfData.delzSnow,         NULL, FALSE);
     write_csv_lake("Snow Density",    SurfData.RhoSnow,          NULL, FALSE);
     write_csv_lake("Albedo",          SurfData.albedo,           NULL, FALSE);
-    write_csv_lake("Max Temp",        max_temp(Lake, NumLayers), NULL, FALSE);
-    write_csv_lake("Min Temp",        min_temp(Lake, NumLayers), NULL, FALSE);
+    write_csv_lake("Max Temp",        (max_t = max_temp(Lake, NumLayers)), NULL, FALSE);
+    write_csv_lake("Min Temp",        (min_t = min_temp(Lake, NumLayers)), NULL, FALSE);
     write_csv_lake("Surface Temp",    Lake[surfLayer].Temp,      NULL, FALSE);
     write_csv_lake("Daily Qsw",       SurfData.dailyQsw / Lake[surfLayer].LayerArea/SecsPerDay, NULL, FALSE);
     write_csv_lake("Daily Qe",        SurfData.dailyQe / Lake[surfLayer].LayerArea/SecsPerDay, NULL, FALSE);
@@ -313,10 +314,12 @@ void write_diags(int jday, AED_REAL LakeNum)
     write_csv_lake("Surface Wave Period",T,                      NULL, FALSE);
 
     write_csv_lake("LakeNumber",      LakeNum,                   NULL, FALSE);
-    write_csv_lake("Max dT/dz",    max_dtdz_at(Lake, NumLayers), NULL, FALSE);
+    write_csv_lake("Max dT/dz",    (max_dt = max_dtdz_at(Lake, NumLayers)), NULL, FALSE);
     write_csv_lake("CD",              coef_wind_drag,            NULL, FALSE);
     write_csv_lake("CHE",             coef_wind_chwn,            NULL, FALSE);
     write_csv_lake("z/L",             SurfData.dailyzonL*(noSecs/SecsPerDay), NULL, TRUE);
+
+    write_glm_diag_ncdf(ncid, LakeNum, max_t, min_t, max_dt);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

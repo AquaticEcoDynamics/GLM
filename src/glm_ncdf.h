@@ -109,6 +109,8 @@
   int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
                                   AED_REAL lon, int nlev, const char *start_time);
   void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep);
+  void write_glm_diag_ncdf(int ncid, AED_REAL LakeNum,
+                    AED_REAL max_temp, AED_REAL min_temp, AED_REAL max_dtdz_at);
   void close_glm_ncdf(int ncid);
   void define_mode_on(int *ncid);
   void define_mode_off(int *ncid);

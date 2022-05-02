@@ -183,7 +183,7 @@ ifeq ($(F90),ifort)
   OPT_FFLAGS=-O3
   FFLAGS=-warn all -module ${moddir} -static-intel -mp1 -stand f08 $(DEFINES) $(FINCLUDES)
   ifeq ($(WITH_CHECKS),true)
-    FFLAGS+=-check:noarg_temp_created
+    FFLAGS+=-check bounds -check noarg_temp_created
   endif
   FFLAGS+=-real-size 64
   FLIBS+=-L/opt/intel/lib
@@ -222,7 +222,7 @@ else
   OPT_FFLAGS=-O3
   FFLAGS=-Wall -J ${moddir} -Wno-c-binding-type -ffree-line-length-none -std=f2008 $(DEFINES) $(FINCLUDES) -fall-intrinsics
   ifeq ($(WITH_CHECKS),true)
-    FFLAGS+=-fcheck=all
+    FFLAGS+=-fcheck=all,no-array-temps
   endif
   FFLAGS+=-fdefault-real-8 -fdefault-double-8
   OMPFLAG=-fopenmp

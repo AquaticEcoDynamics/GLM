@@ -35,6 +35,7 @@
 #include <netcdf.h>
 
 #include "glm.h"
+#include "glm_const.h"
 #include "glm_types.h"
 #include "glm_globals.h"
 #include "glm_ncdf.h"
@@ -57,10 +58,17 @@ static size_t start[4],edges[4];
 static size_t start_r[1],edges_r[1];
 
 //# variable ids
-static int lon_id,lat_id,z_id,V_id,TV_id,Taub_id,NS_id,time_id;
-static int HICE_id,HSNOW_id,HWICE_id, AvgSurfTemp_id;
+static int lon_id,lat_id,z_id,H_id,V_id,TV_id,Taub_id,NS_id,time_id;
+static int SL_id,HICE_id,HSNOW_id,HWICE_id, AvgSurfTemp_id;
 static int precip_id,evap_id,rho_id,rad_id,extc_id,i0_id,wnd_id;
 static int temp_id, salt_id, umean_id, uorb_id, restart_id;
+
+//# from lake.csv
+static int SA_id, VSnow_id,VBIce_id,VWIce_id, TotInVol_id, TotOutVol_id;
+static int OverFVol_id, Evap_id, Rain_id, LocRunoff_id, SnowF_id, LakeLvl_id;
+static int SnowDns_id, Alb_id, MaxT_id, MinT_id, SfT_id, DQsw_id, DQe_id;
+static int DQh_id, DQlw_id, Light_id, BenLight_id, SWH_id, SWL_id, SWP_id;
+static int LkNum_id, maxdtz_id, CD_id, CHE_id, zL_id;
 
 #ifdef _WIN32
     char *strndup(const char *s, size_t len);
@@ -110,16 +118,17 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     dims[0] = time_dim;
     check_nc_error(nc_def_var(ncid, "NS",    NC_INT,      1, dims, &NS_id));
     check_nc_error(nc_def_var(ncid, "time",  NC_REALTYPE, 1, dims, &time_id));
-    check_nc_error(nc_def_var(ncid, "hice",  NC_REALTYPE, 1, dims, &HICE_id));
-    check_nc_error(nc_def_var(ncid, "hsnow", NC_REALTYPE, 1, dims, &HSNOW_id));
-    check_nc_error(nc_def_var(ncid, "hwice", NC_REALTYPE, 1, dims, &HWICE_id));
-    check_nc_error(nc_def_var(ncid, "avg_surf_temp", NC_REALTYPE, 1, dims, &AvgSurfTemp_id));
+    check_nc_error(nc_def_var(ncid, "blue_ice_thickness",  NC_REALTYPE, 1, dims, &HICE_id));
+    check_nc_error(nc_def_var(ncid, "snow_thickness",      NC_REALTYPE, 1, dims, &HSNOW_id));
+    check_nc_error(nc_def_var(ncid, "white_ice_thickness", NC_REALTYPE, 1, dims, &HWICE_id));
+    check_nc_error(nc_def_var(ncid, "surface_layer",       NC_INT,      1, dims, &SL_id));
+    check_nc_error(nc_def_var(ncid, "avg_surf_temp",       NC_REALTYPE, 1, dims, &AvgSurfTemp_id));
 
     dims[0] = restart_dim;
     check_nc_error(nc_def_var(ncid, "restart_variables", NC_REALTYPE, 1, dims, &restart_id));
 
     /**************************************************************************
-     * define variables                                                       *
+     * define 2D variables                                                    *
      **************************************************************************/
 
     //# x,y,t
@@ -127,11 +136,50 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     dims[1] = y_dim;
     dims[0] = time_dim;
 
-    check_nc_error(nc_def_var(ncid, "precip", NC_REALTYPE, 3, dims, &precip_id));
-    check_nc_error(nc_def_var(ncid, "evap",   NC_REALTYPE, 3, dims, &evap_id));
-    check_nc_error(nc_def_var(ncid, "I_0",    NC_REALTYPE, 3, dims, &i0_id));
-    check_nc_error(nc_def_var(ncid, "wind",   NC_REALTYPE, 3, dims, &wnd_id));
-    check_nc_error(nc_def_var(ncid, "Tot_V",  NC_REALTYPE, 3, dims, &TV_id));
+    check_nc_error(nc_def_var(ncid, "precipitation",  NC_REALTYPE, 3, dims, &precip_id));
+    check_nc_error(nc_def_var(ncid, "evap_mass_flux", NC_REALTYPE, 3, dims, &evap_id));
+    check_nc_error(nc_def_var(ncid, "solar",          NC_REALTYPE, 3, dims, &i0_id));
+    check_nc_error(nc_def_var(ncid, "wind",           NC_REALTYPE, 3, dims, &wnd_id));
+    check_nc_error(nc_def_var(ncid, "lake_volume",    NC_REALTYPE, 3, dims, &TV_id));
+
+    /**************************************************************************
+     * Define 2D variables from lake.csv                                      *
+     **************************************************************************/
+    check_nc_error(nc_def_var(ncid, "Surface Area", NC_REALTYPE, 3, dims, &SA_id));
+    check_nc_error(nc_def_var(ncid, "Vol Snow", NC_REALTYPE, 3, dims, &VSnow_id));
+    check_nc_error(nc_def_var(ncid, "Vol Blue Ice", NC_REALTYPE, 3, dims, &VBIce_id));
+    check_nc_error(nc_def_var(ncid, "Vol White Ice", NC_REALTYPE, 3, dims, &VWIce_id));
+    check_nc_error(nc_def_var(ncid, "Tot Inflow Vol", NC_REALTYPE, 3, dims, &TotInVol_id));
+    check_nc_error(nc_def_var(ncid, "Tot Outflow Vol", NC_REALTYPE, 3, dims, &TotOutVol_id));
+    check_nc_error(nc_def_var(ncid, "Overflow Vol", NC_REALTYPE, 3, dims, &OverFVol_id));
+    check_nc_error(nc_def_var(ncid, "Evaporation", NC_REALTYPE, 3, dims, &Evap_id));
+    check_nc_error(nc_def_var(ncid, "Rain", NC_REALTYPE, 3, dims, &Rain_id));
+    check_nc_error(nc_def_var(ncid, "Local Runoff", NC_REALTYPE, 3, dims, &LocRunoff_id));
+    check_nc_error(nc_def_var(ncid, "Snowfall", NC_REALTYPE, 3, dims, &SnowF_id));
+    check_nc_error(nc_def_var(ncid, "Lake Level", NC_REALTYPE, 3, dims, &LakeLvl_id));
+    check_nc_error(nc_def_var(ncid, "Snow Density", NC_REALTYPE, 3, dims, &SnowDns_id));
+    check_nc_error(nc_def_var(ncid, "Albedo", NC_REALTYPE, 3, dims, &Alb_id));
+    check_nc_error(nc_def_var(ncid, "Max Temp", NC_REALTYPE, 3, dims, &MaxT_id));
+    check_nc_error(nc_def_var(ncid, "Min Temp", NC_REALTYPE, 3, dims, &MinT_id));
+    check_nc_error(nc_def_var(ncid, "Surface Temp", NC_REALTYPE, 3, dims, &SfT_id));
+    check_nc_error(nc_def_var(ncid, "Daily Osw", NC_REALTYPE, 3, dims, &DQsw_id));
+    check_nc_error(nc_def_var(ncid, "Daily Oe", NC_REALTYPE, 3, dims, &DQe_id));
+    check_nc_error(nc_def_var(ncid, "Daily Oh", NC_REALTYPE, 3, dims, &DQh_id));
+    check_nc_error(nc_def_var(ncid, "Daily Olw", NC_REALTYPE, 3, dims, &DQlw_id));
+    check_nc_error(nc_def_var(ncid, "Light", NC_REALTYPE, 3, dims, &Light_id));
+    check_nc_error(nc_def_var(ncid, "Benthic Light", NC_REALTYPE, 3, dims, &BenLight_id));
+    check_nc_error(nc_def_var(ncid, "Surface Wave Height", NC_REALTYPE, 3, dims, &SWH_id));
+    check_nc_error(nc_def_var(ncid, "Surface Wave Length", NC_REALTYPE, 3, dims, &SWL_id));
+    check_nc_error(nc_def_var(ncid, "Surface Wave Period", NC_REALTYPE, 3, dims, &SWP_id));
+    check_nc_error(nc_def_var(ncid, "LakeNumber", NC_REALTYPE, 3, dims, &LkNum_id));
+    check_nc_error(nc_def_var(ncid, "Max dT/dz", NC_REALTYPE, 3, dims, &maxdtz_id));
+    check_nc_error(nc_def_var(ncid, "CD", NC_REALTYPE, 3, dims, &CD_id));
+    check_nc_error(nc_def_var(ncid, "CHE", NC_REALTYPE, 3, dims, &CHE_id));
+    check_nc_error(nc_def_var(ncid, "z/L", NC_REALTYPE, 3, dims, &zL_id));
+
+    /**************************************************************************
+     * define 3D variables                                                    *
+     **************************************************************************/
 
     //# x,y,z,t
     dims[3] = x_dim;
@@ -139,18 +187,19 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     dims[1] = z_dim;
     dims[0] = time_dim;
 
-    check_nc_error(nc_def_var(ncid, "z",         NC_REALTYPE, 4, dims, &z_id));
-    check_nc_error(nc_def_var(ncid, "V",         NC_REALTYPE, 4, dims, &V_id));
-    check_nc_error(nc_def_var(ncid, "salt",      NC_REALTYPE, 4, dims, &salt_id));
-    check_nc_error(nc_def_var(ncid, "temp",      NC_REALTYPE, 4, dims, &temp_id));
+    check_nc_error(nc_def_var(ncid, "z",     NC_REALTYPE, 4, dims, &z_id));
+    check_nc_error(nc_def_var(ncid, "H",     NC_REALTYPE, 4, dims, &H_id));
+    check_nc_error(nc_def_var(ncid, "V",     NC_REALTYPE, 4, dims, &V_id));
+    check_nc_error(nc_def_var(ncid, "salt",  NC_REALTYPE, 4, dims, &salt_id));
+    check_nc_error(nc_def_var(ncid, "temp",  NC_REALTYPE, 4, dims, &temp_id));
 
-    check_nc_error(nc_def_var(ncid, "rho",       NC_REALTYPE, 4, dims, &rho_id));
-    check_nc_error(nc_def_var(ncid, "rad",       NC_REALTYPE, 4, dims, &rad_id));
-    check_nc_error(nc_def_var(ncid, "extc_coef", NC_REALTYPE, 4, dims, &extc_id));
+    check_nc_error(nc_def_var(ncid, "dens",  NC_REALTYPE, 4, dims, &rho_id));
+    check_nc_error(nc_def_var(ncid, "radn",  NC_REALTYPE, 4, dims, &rad_id));
+    check_nc_error(nc_def_var(ncid, "extc",  NC_REALTYPE, 4, dims, &extc_id));
 
-    check_nc_error(nc_def_var(ncid, "u_mean",    NC_REALTYPE, 4, dims, &umean_id));
-    check_nc_error(nc_def_var(ncid, "u_orb",     NC_REALTYPE, 4, dims, &uorb_id));
-    check_nc_error(nc_def_var(ncid, "Taub",      NC_REALTYPE, 4, dims, &Taub_id));
+    check_nc_error(nc_def_var(ncid, "umean", NC_REALTYPE, 4, dims, &umean_id));
+    check_nc_error(nc_def_var(ncid, "uorb",  NC_REALTYPE, 4, dims, &uorb_id));
+    check_nc_error(nc_def_var(ncid, "taub",  NC_REALTYPE, 4, dims, &Taub_id));
 
     /**************************************************************************
      * assign attributes                                                      *
@@ -163,6 +212,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     set_nc_attributes(ncid, time_id,   time_str,        NULL        PARAM_FILLVALUE);
 
     nc_put_att(ncid, NS_id, "long_name", NC_CHAR, 16, "Number of Layers");
+    nc_put_att(ncid, SL_id, "long_name", NC_CHAR, 16, "Number of Layers");
 
     set_nc_attributes(ncid, HICE_id,   "meters",  "Height of Ice"   PARAM_FILLVALUE);
     set_nc_attributes(ncid, HSNOW_id,  "meters",  "Height of Snow"  PARAM_FILLVALUE);
@@ -183,6 +233,7 @@ f0, fsum,u_f,u0,u_avg" PARAM_FILLVALUE);
 
     //# x,y,z,t
     set_nc_attributes(ncid, z_id,      "meters",  "layer heights"   PARAM_FILLVALUE);
+    set_nc_attributes(ncid, H_id,      "meters",  "layer heights"   PARAM_FILLVALUE);
     set_nc_attributes(ncid, V_id,      "m3",      "layer volume"    PARAM_FILLVALUE);
     set_nc_attributes(ncid, salt_id,   "g/kg",    "salinity"        PARAM_FILLVALUE);
     set_nc_attributes(ncid, temp_id,   "celsius", "temperature"     PARAM_FILLVALUE);
@@ -235,6 +286,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     set_no++;
 
     store_nc_integer(ncid, NS_id, T_SHAPE, wlev);
+    store_nc_integer(ncid, SL_id, T_SHAPE, wlev);
 
     temp_time = (stepnum * timestep) / 3600.;
     LakeVolume = 0.0;
@@ -340,6 +392,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     }
 
     check_nc_error(nc_put_vara(ncid,     z_id, start, edges, heights));
+    check_nc_error(nc_put_vara(ncid,     H_id, start, edges, heights));
     check_nc_error(nc_put_vara(ncid,     V_id, start, edges, vols));
     check_nc_error(nc_put_vara(ncid,  salt_id, start, edges, salts));
     check_nc_error(nc_put_vara(ncid,  temp_id, start, edges, temps));
@@ -356,6 +409,62 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     free(taub); free(restart_variables);
 
     check_nc_error(nc_sync(ncid));
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ * Write the various output files and/or plots.                               *
+ ******************************************************************************/
+void write_glm_diag_ncdf(int ncid, AED_REAL LakeNum,
+                    AED_REAL max_temp, AED_REAL min_temp, AED_REAL max_dtdz_at)
+{
+    extern AED_REAL Hs, L, T;
+    AED_REAL lake_level = Lake[surfLayer].Height;
+    if (lake_level<0.011) lake_level=zero;
+
+// static int SA_id, VSnow_id,VBIce_id,VWIce_id, TotInVol_id, TotOutVol_id;
+// static int OverFVol_id, Evap_id, Rain_id, LocRunoff_id, SnowF_id, LakeLvl_id;
+// static int SnowDns_id, Alb_id, MaxT_id, MinT_id, SfT_id, DQsw_id, DQe_id;
+// static int DQh_id, DQlw_id, Light_id, BenLight_id, SWH_id, SWL_id, SWP_id;
+// static int LkNum_id, maxdtz_id, CD_id, CHE_id, zL_id;
+
+    store_nc_scalar(ncid, SA_id, XYT_SHAPE, Lake[surfLayer].LayerArea);
+    store_nc_scalar(ncid, VSnow_id, XYT_SHAPE, SurfData.delzSnow*Lake[surfLayer].LayerArea*SurfData.RhoSnow/1e3);
+    store_nc_scalar(ncid, VBIce_id, XYT_SHAPE, SurfData.delzBlueIce*Lake[surfLayer].LayerArea*917.0/1e3);
+    store_nc_scalar(ncid, VWIce_id, XYT_SHAPE, SurfData.delzWhiteIce*Lake[surfLayer].LayerArea*890.0/1e3);
+    store_nc_scalar(ncid, TotInVol_id, XYT_SHAPE, SurfData.dailyInflow);
+    store_nc_scalar(ncid, TotOutVol_id, XYT_SHAPE, SurfData.dailyOutflow);
+    store_nc_scalar(ncid, OverFVol_id, XYT_SHAPE, SurfData.dailyOverflow);
+    store_nc_scalar(ncid, Evap_id, XYT_SHAPE, SurfData.dailyEvap);
+    store_nc_scalar(ncid, Rain_id, XYT_SHAPE, SurfData.dailyRain);
+    store_nc_scalar(ncid, LocRunoff_id, XYT_SHAPE, SurfData.dailyRunoff);
+    store_nc_scalar(ncid, SnowF_id, XYT_SHAPE, SurfData.dailySnow);
+    store_nc_scalar(ncid, LakeLvl_id, XYT_SHAPE, lake_level);
+
+//  write_csv_lake("Blue Ice Thickness", SurfData.delzBlueIce);
+//  write_csv_lake("White Ice Thickness",SurfData.delzWhiteIce);
+//  write_csv_lake("Snow Thickness",  SurfData.delzSnow);
+
+    store_nc_scalar(ncid, SnowDns_id, XYT_SHAPE, SurfData.RhoSnow);
+    store_nc_scalar(ncid, Alb_id, XYT_SHAPE, SurfData.albedo);
+    store_nc_scalar(ncid, MaxT_id, XYT_SHAPE, max_temp);
+    store_nc_scalar(ncid, MinT_id, XYT_SHAPE, min_temp);
+    store_nc_scalar(ncid, SfT_id, XYT_SHAPE, Lake[surfLayer].Temp);
+    store_nc_scalar(ncid, DQsw_id, XYT_SHAPE, SurfData.dailyQsw / Lake[surfLayer].LayerArea/SecsPerDay);
+    store_nc_scalar(ncid, DQe_id, XYT_SHAPE, SurfData.dailyQe / Lake[surfLayer].LayerArea/SecsPerDay);
+    store_nc_scalar(ncid, DQh_id, XYT_SHAPE, SurfData.dailyQh / Lake[surfLayer].LayerArea/SecsPerDay);
+    store_nc_scalar(ncid, DQlw_id, XYT_SHAPE, SurfData.dailyQlw / Lake[surfLayer].LayerArea/SecsPerDay);
+    store_nc_scalar(ncid, Light_id, XYT_SHAPE, Lake[surfLayer].Light);
+    store_nc_scalar(ncid, BenLight_id, XYT_SHAPE, Benthic_Light_pcArea);
+    store_nc_scalar(ncid, SWH_id, XYT_SHAPE, Hs);
+    store_nc_scalar(ncid, SWL_id, XYT_SHAPE, L);
+    store_nc_scalar(ncid, SWP_id, XYT_SHAPE, T);
+    store_nc_scalar(ncid, LkNum_id, XYT_SHAPE, LakeNum);
+    store_nc_scalar(ncid, maxdtz_id, XYT_SHAPE, max_dtdz_at);
+    store_nc_scalar(ncid, CD_id, XYT_SHAPE, coef_wind_drag);
+    store_nc_scalar(ncid, CHE_id, XYT_SHAPE, coef_wind_chwn);
+    store_nc_scalar(ncid, zL_id, XYT_SHAPE, SurfData.dailyzonL*(noSecs/SecsPerDay));
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

@@ -1135,6 +1135,7 @@ SUBROUTINE check_states(column, wlev)
 
 #if DEBUG
    IF ( last_naned > -1 ) THEN
+      print*
       IF ( aed_get_var(last_naned, tv) ) THEN
          print*,"NaNs detected in CC in var ", TRIM(tv%name)
       ELSE
