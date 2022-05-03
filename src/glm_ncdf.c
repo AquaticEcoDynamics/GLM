@@ -172,10 +172,10 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_var(ncid, "Surface Wave Length", NC_REALTYPE, 3, dims, &SWL_id));
     check_nc_error(nc_def_var(ncid, "Surface Wave Period", NC_REALTYPE, 3, dims, &SWP_id));
     check_nc_error(nc_def_var(ncid, "LakeNumber", NC_REALTYPE, 3, dims, &LkNum_id));
-    check_nc_error(nc_def_var(ncid, "Max dT/dz", NC_REALTYPE, 3, dims, &maxdtz_id));
+    check_nc_error(nc_def_var(ncid, "Max dT_dz", NC_REALTYPE, 3, dims, &maxdtz_id));
     check_nc_error(nc_def_var(ncid, "CD", NC_REALTYPE, 3, dims, &CD_id));
     check_nc_error(nc_def_var(ncid, "CHE", NC_REALTYPE, 3, dims, &CHE_id));
-    check_nc_error(nc_def_var(ncid, "z/L", NC_REALTYPE, 3, dims, &zL_id));
+    check_nc_error(nc_def_var(ncid, "z_L", NC_REALTYPE, 3, dims, &zL_id));
 
     /**************************************************************************
      * define 3D variables                                                    *
