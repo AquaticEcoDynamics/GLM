@@ -95,7 +95,7 @@ SUBROUTINE wq_set_glm_zones(Zones, numZones, numVars, numBenV) BIND(C, name="wq_
    DO i=1,n_zones
       CALL C_F_POINTER(theZones(i)%c_layers, layers, [n_sed_layers]);
    ENDDO
-   ALLOCATE(z_cc(n_zones, numVars+numBenV))
+   ALLOCATE(z_cc(n_zones, numVars+numBenV)) ; z_cc = 0.
    z_cc = 900.!   !MH if i initialise this in init then nothing happens so doing it here.
 
    theZones%zarea = 0.
@@ -197,7 +197,7 @@ SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
 
    zon = n_zones
    DO lev=wlev,1,-1
-      IF ( zon .NE. 1 ) THEN
+      IF ( zon .GT. 1 ) THEN
          IF (lev .GT. 1) THEN
             splitZone = zz(lev-1) < zone_heights(zon-1)
          ELSE
@@ -252,7 +252,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   zon = 1 ; z_cc(:,1:nvars) = 0.
+   z_cc = 0.
    theZones%zrad = 0. ; theZones%zsalt = 0. ; theZones%ztemp = 0. ; theZones%zrho = 0.
    theZones%zextc_coef = 0. ; theZones%zlayer_stress = 0. ; theZones%ztss = 0.
    theZones%zpar = 0. ; theZones%znir = 0. ; theZones%zuva = 0. ; theZones%zuvb = 0.
@@ -261,11 +261,11 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
    a_zones = 1
    zcount = 0
    w_zones = 0
+   zon = 1
    DO lev=1,wlev
-
-      IF ( zz(lev) > zone_heights(zon) ) THEN
+      IF ( lev > 1 .and. zz(lev) > zone_heights(zon) ) THEN
          zon = zon + 1
-         IF (zon >  n_zones) STOP 'Water level height is higher than highest zone height'
+         IF (zon > n_zones) STOP 'Water level height is higher than highest zone height'
          theZones(zon)%z_sed_zones = zon
       ENDIF
 
@@ -292,7 +292,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
       z_cc(zon,1:nvars) = z_cc(zon,1:nvars)/zcount(zon)
    ENDDO
 
-   WHERE (zcount /= 0.)
+   WHERE (zcount /= 0)
       theZones%ztemp         = theZones%ztemp / zcount
       theZones%zsalt         = theZones%zsalt / zcount
       theZones%zrho          = theZones%zrho  / zcount
