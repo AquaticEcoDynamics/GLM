@@ -514,8 +514,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL *sed_temp_peak_doy;
     extern AED_REAL *sed_reflectivity;
     extern AED_REAL *sed_roughness;
-//  extern AED_REAL  sed_temp_amplitude;
-//  extern AED_REAL  sed_temp_peak_doy;
+//  extern AED_REAL *sed_temp_amplitude;
+//  extern AED_REAL *sed_temp_peak_doy;
     //==========================================================================
     NAMELIST sediment[] = {
           { "sediment",          TYPE_START,            NULL                  },
@@ -781,6 +781,48 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
             printf("       *sed_temp_mean[0] = %10.5f\n",sed_temp_mean[0]);
         }
     }
+
+    if ( n_zones > 0 ) {
+        int err = FALSE;
+        if ( zone_heights != NULL ) {
+            if ( get_nml_listlen(namlst, "sediment", "zone_heights") < n_zones ) {
+                fprintf(stderr, "zone_heights list too short in sediment\n");
+                err = TRUE;
+            }
+        }
+        if ( sed_reflectivity != NULL ) {
+            if ( get_nml_listlen(namlst, "sediment", "sed_reflectivity") < n_zones ) {
+                fprintf(stderr, "sed_reflectivity list too short in sediment\n");
+                err = TRUE;
+            }
+        }
+        if ( sed_roughness != NULL ) {
+            if ( get_nml_listlen(namlst, "sediment", "sed_roughness") < n_zones ) {
+                fprintf(stderr, "sed_roughness list too short in sediment\n");
+                err = TRUE;
+            }
+        }
+        if ( sed_temp_mean != NULL ) {
+            if ( get_nml_listlen(namlst, "sediment", "sed_temp_mean") < n_zones ) {
+                fprintf(stderr, "sed_temp_mean list too short in sediment\n");
+                err = TRUE;
+            }
+        }
+        if ( sed_temp_amplitude != NULL ) {
+            if ( get_nml_listlen(namlst, "sediment", "sed_temp_amplitude") < n_zones ) {
+                fprintf(stderr, "sed_temp_amplitude list too short in sediment\n");
+                err = TRUE;
+            }
+        }
+        if ( sed_temp_peak_doy != NULL ) {
+            if ( get_nml_listlen(namlst, "sediment", "sed_temp_peak_doy") < n_zones ) {
+                fprintf(stderr, "sed_temp_peak_doy list too short in sediment\n");
+                err = TRUE;
+            }
+        }
+        if (err ) exit(1);
+    }
+
     if ( sed_reflectivity == NULL ) {
         int t_zones = 2;
         if ( n_zones > 1 ) t_zones = n_zones;

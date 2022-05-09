@@ -726,19 +726,19 @@ END SUBROUTINE check_data
 
 
 !###############################################################################
-SUBROUTINE define_sed_column(column, top, flux_pel, flux_atm, flux_ben)
+SUBROUTINE define_sed_column(column, top, bot, flux_pel, flux_atm, flux_ben)
 !-------------------------------------------------------------------------------
 ! Set up the current column pointers
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    TYPE (aed_column_t), INTENT(inout) :: column(:)
-   INTEGER, INTENT(in)  :: top
+   INTEGER, INTENT(in)  :: top, bot
    AED_REAL, TARGET, INTENT(inout) :: flux_pel(:,:) !# (n_layers, n_vars)
    AED_REAL, TARGET, INTENT(inout) :: flux_atm(:)   !# (n_vars)
    AED_REAL, TARGET, INTENT(inout) :: flux_ben(:)   !# (n_vars)
 !
 !LOCALS
-   INTEGER :: av, bot = 1
+   INTEGER :: av
    INTEGER :: v, d, sv, sd, ev
    TYPE(aed_variable_t),POINTER :: tvar
 !-------------------------------------------------------------------------------
@@ -887,7 +887,7 @@ END SUBROUTINE define_column
 
 
 !###############################################################################
-SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, flux_ben, flux_zon)
+SUBROUTINE calculate_fluxes(column, wlev, flux_pel, flux_atm, flux_ben, flux_zon)
 !-------------------------------------------------------------------------------
 ! Checks the current values of all state variables and repairs these
 !-------------------------------------------------------------------------------
@@ -897,14 +897,14 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
 #endif
 !ARGUMENTS
    TYPE (aed_column_t), INTENT(inout) :: column(:)
-   TYPE (aed_column_t), INTENT(inout) :: column_sed(:)
-   INTEGER, INTENT(in) :: wlev, nsed
+   INTEGER, INTENT(in) :: wlev
    AED_REAL, INTENT(inout) :: flux_pel(:,:) !# (wlev, n_vars+n_vars_ben)
    AED_REAL, INTENT(inout) :: flux_atm(:)   !# (n_vars+n_vars_ben)
    AED_REAL, INTENT(inout) :: flux_ben(:)   !# (n_vars+n_vars_ben)
    AED_REAL, INTENT(inout) :: flux_zon(:,:) !# (n_zones)
 !
 !LOCALS
+   TYPE (aed_column_t) :: column_sed(n_aed_vars)
    INTEGER :: lev,zon,v_start,v_end,av,sv,sd
    AED_REAL :: scale
    AED_REAL, DIMENSION(wlev, n_vars+n_vars_ben)    :: flux_pel_pre
@@ -924,22 +924,23 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
    !# Includes (1) benthic flux, (2) surface exchange and (3) water column kinetics
    !# as calculated by glm
 
-
    !# (1) BENTHIC FLUXES
    IF ( benthic_mode .GT. 1 ) THEN
       !# Multiple static sediment zones are simulated, and therfore overlying
       !# water conditions need to be aggregated from multiple cells/layers, and output flux
       !# needs disaggregating from each zone back to the overlying cells/layers
 
+      CALL define_sed_column(column_sed, n_zones, 1, flux_pel, flux_atm, flux_ben)
+
 !$OMP DO
-      DO zon=1,nsed
+      DO zon=1,n_zones
          !# Reinitialise flux_ben to be repopulated for this zone
          flux_ben = zero_
          flux_pel_pre = zero_
 
          !# If multiple benthic zones, we must update the benthic variable pointer for the new zone
          IF (zone_var .GT. 0) column_sed(zone_var)%cell_sheet => theZones(zon)%z_sed_zones
- !       !MH WE NEED A COLUMN TO CC VAR MAP FOR BENTHIC GUYS
+!        !MH WE NEED A COLUMN TO CC VAR MAP FOR BENTHIC GUYS
          !CAB Yes, a map (or 2 maps) would be better, but QnD since this all needs reworking
          sv = 0 ; sd = 0
 
@@ -1000,31 +1001,31 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
       v_start = 1 ; v_end = n_vars
       zon = n_zones
       DO lev=wlev,1,-1
-        IF ( zon .GT. 1 ) THEN
-          IF (lev .GT. 1) THEN
-            splitZone = zz(lev-1) < zone_heights(zon-1)
-          ELSE
-            splitZone = 0.0 < zone_heights(zon-1)
-          ENDIF
-        ELSE
-          splitZone = .FALSE.
-        ENDIF
+         IF ( zon .GT. 1 ) THEN
+            IF (lev .GT. 1) THEN
+               splitZone = zz(lev-1) < zone_heights(zon-1)
+            ELSE
+               splitZone = 0.0 < zone_heights(zon-1)
+            ENDIF
+         ELSE
+            splitZone = .FALSE.
+         ENDIF
 
-        IF (splitZone) THEN
-          IF (lev .GT. 1) THEN
-            scale = (zone_heights(zon-1) - zz(lev-1)) / (zz(lev) - zz(lev-1))
-          ELSE
-            scale = (zone_heights(zon-1) - 0.0) / (zz(lev) - 0.0)
-          ENDIF
-          flux_pel(lev,v_start:v_end) = flux_pel_z(zon,v_start:v_end) * scale
+         IF (splitZone) THEN
+            IF (lev .GT. 1) THEN
+               scale = (zone_heights(zon-1) - zz(lev-1)) / (zz(lev) - zz(lev-1))
+            ELSE
+               scale = (zone_heights(zon-1) - 0.0) / (zz(lev) - 0.0)
+            ENDIF
+            flux_pel(lev,v_start:v_end) = flux_pel_z(zon,v_start:v_end) * scale
 
-          zon = zon - 1
+            zon = zon - 1
 
-          flux_pel(lev,v_start:v_end) = flux_pel(lev,v_start:v_end) + &
+            flux_pel(lev,v_start:v_end) = flux_pel(lev,v_start:v_end) + &
                                         flux_pel_z(zon,v_start:v_end) * (1.0 - scale)
-        ELSE
-          flux_pel(lev,v_start:v_end) = flux_pel_z(zon,v_start:v_end)
-        ENDIF
+         ELSE
+            flux_pel(lev,v_start:v_end) = flux_pel_z(zon,v_start:v_end)
+         ENDIF
       ENDDO
       !# Limit flux out of bottom waters to concentration of that layer
       !# i.e. don't flux out more than is there & distribute
@@ -1167,9 +1168,8 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    INTEGER  :: i, j, v, lev, split
 
    TYPE (aed_column_t) :: column(n_aed_vars)
-   TYPE (aed_column_t) :: column_sed(n_aed_vars)
    AED_REAL :: flux_ben(n_vars+n_vars_ben), flux_atm(n_vars+n_vars_ben)
-   AED_REAL :: flux(wlev, n_vars+n_vars_ben)
+   AED_REAL :: flux_pel(wlev, n_vars+n_vars_ben)
    AED_REAL :: flux_zone(n_zones, n_vars+n_vars_ben)
 !
 !-------------------------------------------------------------------------------
@@ -1206,7 +1206,7 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 
    IF ( .NOT. reinited ) CALL re_initialize
 
-   CALL define_column(column, wlev, cc, cc_diag, flux, flux_atm, flux_ben)
+   CALL define_column(column, wlev, cc, cc_diag, flux_pel, flux_atm, flux_ben)
 
    cc_diag = 0.
    cc_diag_hz = 0.
@@ -1268,17 +1268,13 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
       uva(:) = (par(:)/par_fraction) * uva_fraction
       uvb(:) = (par(:)/par_fraction) * uvb_fraction
 
-      IF (benthic_mode .GT. 1) &
-         CALL define_sed_column(column_sed, n_zones, flux, flux_atm, flux_ben)
-
       !# Time-integrate one biological time step
-      CALL calculate_fluxes(column, wlev, column_sed, n_zones,  &
-                                  flux(:,:), flux_atm, flux_ben, flux_zone(:,:))
+      CALL calculate_fluxes(column, wlev, flux_pel, flux_atm, flux_ben, flux_zone)
 
       !# Update the water column layers
       DO v = 1, n_vars
          DO lev = 1, wlev
-            cc(lev, v) = cc(lev, v) + dt_eff*flux(lev, v)
+            cc(lev, v) = cc(lev, v) + dt_eff*flux_pel(lev, v)
          ENDDO
       ENDDO
 
@@ -1332,11 +1328,12 @@ CONTAINS
    !ARGUMENTS
    !LOCALS
    INTEGER :: lev,zon,av,sv,sd
+   TYPE (aed_column_t) :: column_sed(n_aed_vars)
    TYPE(aed_variable_t),POINTER :: tvar
    !
    !-------------------------------------------------------------------------------
    !BEGIN
-      CALL define_column(column, wlev, cc, cc_diag, flux, flux_atm, flux_ben)
+      CALL define_column(column, wlev, cc, cc_diag, flux_pel, flux_atm, flux_ben)
 
       DO lev=1, wlev
          CALL aed_initialize(column, lev)
@@ -1348,10 +1345,10 @@ CONTAINS
          !# water conditions need to be aggregated from multiple cells/layers
 
          DO zon=1,n_zones
-            CALL define_sed_column(column_sed, n_zones, flux, flux_atm, flux_ben)
+            CALL define_sed_column(column_sed, n_zones, 1, flux_pel, flux_atm, flux_ben)
 
             theZones(zon)%z_sed_zones = zon  !MH TMP
-           !print *,'theZones(zon)%z_sed_zones',theZones(zon)%z_sed_zones !MH TMP
+!           print *,'theZones(zon)%z_sed_zones',theZones(zon)%z_sed_zones !MH TMP
             !# If multiple benthic zones, we must update the benthic variable pointer for the new zone
             IF (zone_var .GT. 0) column_sed(zone_var)%cell_sheet => theZones(zon)%z_sed_zones
 
