@@ -95,7 +95,7 @@ SUBROUTINE wq_set_glm_zones(Zones, numZones, numVars, numBenV) BIND(C, name="wq_
    DO i=1,n_zones
       CALL C_F_POINTER(theZones(i)%c_layers, layers, [n_sed_layers]);
    ENDDO
-   ALLOCATE(z_cc(n_zones, numVars+numBenV)) ; z_cc = 0.
+   ALLOCATE(z_cc(n_zones, numVars+numBenV))
    z_cc = 900.!   !MH if i initialise this in init then nothing happens so doing it here.
 
    theZones%zarea = 0.
@@ -252,7 +252,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   z_cc = 0.
+   z_cc(:,1:nvars) = 0.
    theZones%zrad = 0. ; theZones%zsalt = 0. ; theZones%ztemp = 0. ; theZones%zrho = 0.
    theZones%zextc_coef = 0. ; theZones%zlayer_stress = 0. ; theZones%ztss = 0.
    theZones%zpar = 0. ; theZones%znir = 0. ; theZones%zuva = 0. ; theZones%zuvb = 0.
@@ -263,7 +263,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
    w_zones = 0
    zon = 1
    DO lev=1,wlev
-      IF ( lev > 1 .and. zz(lev) > zone_heights(zon) ) THEN
+      IF ( lev > 1 .AND. zz(lev) > zone_heights(zon) ) THEN
          zon = zon + 1
          IF (zon > n_zones) STOP 'Water level height is higher than highest zone height'
          theZones(zon)%z_sed_zones = zon
