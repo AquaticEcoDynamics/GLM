@@ -1064,7 +1064,7 @@ for (i = 0; i < n_zones; i++) {
 */
     {   char *t = malloc(40);
         *t = 0;
-        if ( stop != NULL ) strncpy(t, stop, 40);
+        if ( stop != NULL ) strncpy(t, stop, 39);
         stop = t;
     }
 

@@ -181,7 +181,7 @@ ifeq ($(F90),ifort)
   FINCLUDES+=-I/opt/intel/include
   DEBUG_FFLAGS=-g -traceback -DDEBUG=1
   OPT_FFLAGS=-O3
-  FFLAGS=-warn all -module ${moddir} -static-intel -mp1 -stand f08 $(DEFINES) $(FINCLUDES)
+  FFLAGS=-warn all -module ${moddir} -static-intel -mp1 -stand f08 -warn nounused $(DEFINES) $(FINCLUDES)
   ifeq ($(WITH_CHECKS),true)
     FFLAGS+=-check bounds -check noarg_temp_created
   endif
