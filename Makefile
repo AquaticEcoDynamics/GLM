@@ -235,7 +235,12 @@ ifneq ($(USE_DL),true)
 endif
 
 ifeq ($(DEBUG),true)
-  DEBUG_CFLAGS=-g -fbounds-check -DDEBUG=1
+  ifeq ($(OSTYPE),FreeBSD)
+    DEBUG_CFLAGS=-g -fsanitize=address -DDEBUG=1
+    LIBS+=-fsanitize=address -static-libsan
+  else
+    DEBUG_CFLAGS=-g -fbounds-check -DDEBUG=1
+  endif
   OPT_CFLAGS=
   OPT_FFLAGS=
 else

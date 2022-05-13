@@ -1630,14 +1630,9 @@ CINTEGER FUNCTION aed_var_index_c(name, len) BIND(C, name=_WQ_VAR_INDEX_C)
    CCHARACTER,INTENT(in) :: name(*)
    CSIZET,INTENT(in)     :: len
 !LOCALS
-   CHARACTER(len=len+1) :: tn
-   CSIZET               :: i
+   CHARACTER(len=len) :: tn
 !BEGIN
-   tn = ''
-   DO i=1,len
-      tn=tn//' '
-      tn(i:i) = name(i)
-   ENDDO
+   tn = trim(transfer(name(1:len),tn))
    aed_var_index_c = WQVar_Index(tn) - 1
 END FUNCTION aed_var_index_c
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

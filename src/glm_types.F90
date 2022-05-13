@@ -175,18 +175,14 @@ CONTAINS
 !###############################################################################
 SUBROUTINE make_string(s1,s2,len)
    CHARACTER(len=*),INTENT(out) :: s1
-   CHARACTER,INTENT(in) :: s2(*)
+   CCHARACTER,INTENT(in) :: s2(*)
    CSIZET,INTENT(in)    :: len
 !LOCALS
-   CSIZET :: i
+   CHARACTER(len=len) :: s3
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   s1 = ''
-   DO i=1,len
-      s1 = s1 // " "
-      s1(i:i) = s2(i)
-   ENDDO
+   s1 = trim(transfer(s2(1:len),s3))
 END SUBROUTINE make_string
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
