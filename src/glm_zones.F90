@@ -188,7 +188,7 @@ SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
 !
 !LOCALS
    INTEGER  :: zon, lev, v_start, v_end
-   AED_REAL :: scale
+   AED_REAL :: scale, area
    LOGICAL  :: splitZone
 !
 !-------------------------------------------------------------------------------
@@ -230,10 +230,14 @@ SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
          x_cc(lev,v_start:v_end) = z_cc(zon,v_start:v_end)
       ENDIF
    ENDDO
+   ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
+   area = SUM(theZones(1:n_zones)%zarea)
    DO lev=1,n_zones
 !     x_diag_hz(v_start:v_end) = x_diag_hz(v_start:v_end) + z_diag_hz(lev,1:nbenv)
-      x_diag_hz = x_diag_hz + z_diag_hz(lev,:)
+!      x_diag_hz = x_diag_hz + z_diag_hz(lev,:)
+      x_diag_hz = x_diag_hz + (z_diag_hz(lev,:) * (theZones(lev)%zarea/area))
    ENDDO
+
 END SUBROUTINE copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
