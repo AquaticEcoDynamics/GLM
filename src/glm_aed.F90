@@ -887,7 +887,7 @@ END SUBROUTINE define_column
 
 
 !###############################################################################
-SUBROUTINE calculate_fluxes(column, wlev, flux_pel, flux_atm, flux_ben, flux_zon)
+SUBROUTINE calculate_fluxes(column, wlev, column_sed, flux_pel, flux_atm, flux_ben, flux_zon)
 !-------------------------------------------------------------------------------
 ! Checks the current values of all state variables and repairs these
 !-------------------------------------------------------------------------------
@@ -897,6 +897,7 @@ SUBROUTINE calculate_fluxes(column, wlev, flux_pel, flux_atm, flux_ben, flux_zon
 #endif
 !ARGUMENTS
    TYPE (aed_column_t), INTENT(inout) :: column(:)
+   TYPE (aed_column_t), INTENT(inout) :: column_sed(:)
    INTEGER, INTENT(in) :: wlev
    AED_REAL, INTENT(inout) :: flux_pel(:,:) !# (wlev, n_vars+n_vars_ben)
    AED_REAL, INTENT(inout) :: flux_atm(:)   !# (n_vars+n_vars_ben)
@@ -904,7 +905,6 @@ SUBROUTINE calculate_fluxes(column, wlev, flux_pel, flux_atm, flux_ben, flux_zon
    AED_REAL, INTENT(inout) :: flux_zon(:,:) !# (n_zones)
 !
 !LOCALS
-   TYPE (aed_column_t) :: column_sed(n_aed_vars)
    INTEGER :: lev,zon,v_start,v_end,av,sv,sd
    AED_REAL :: scale
    AED_REAL, DIMENSION(wlev, n_vars+n_vars_ben)    :: flux_pel_pre
@@ -929,8 +929,6 @@ SUBROUTINE calculate_fluxes(column, wlev, flux_pel, flux_atm, flux_ben, flux_zon
       !# Multiple static sediment zones are simulated, and therfore overlying
       !# water conditions need to be aggregated from multiple cells/layers, and output flux
       !# needs disaggregating from each zone back to the overlying cells/layers
-
-      CALL define_sed_column(column_sed, n_zones, 1, flux_pel, flux_atm, flux_ben)
 
 !$OMP DO
       DO zon=1,n_zones
@@ -1168,6 +1166,7 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    INTEGER  :: i, j, v, lev, split
 
    TYPE (aed_column_t) :: column(n_aed_vars)
+   TYPE (aed_column_t) :: column_sed(n_aed_vars)
    AED_REAL :: flux_ben(n_vars+n_vars_ben), flux_atm(n_vars+n_vars_ben)
    AED_REAL :: flux_pel(wlev, n_vars+n_vars_ben)
    AED_REAL :: flux_zone(n_zones, n_vars+n_vars_ben)
@@ -1268,8 +1267,11 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
       uva(:) = (par(:)/par_fraction) * uva_fraction
       uvb(:) = (par(:)/par_fraction) * uvb_fraction
 
+      IF (benthic_mode .GT. 1) &
+         CALL define_sed_column(column_sed, n_zones, 1, flux_pel, flux_atm, flux_ben)
+
       !# Time-integrate one biological time step
-      CALL calculate_fluxes(column, wlev, flux_pel, flux_atm, flux_ben, flux_zone)
+      CALL calculate_fluxes(column, wlev, column_sed, flux_pel, flux_atm, flux_ben, flux_zone)
 
       !# Update the water column layers
       DO v = 1, n_vars
