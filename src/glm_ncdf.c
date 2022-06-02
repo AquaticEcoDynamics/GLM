@@ -145,37 +145,37 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     /**************************************************************************
      * Define 2D variables from lake.csv                                      *
      **************************************************************************/
-    check_nc_error(nc_def_var(ncid, "Surface Area", NC_REALTYPE, 3, dims, &SA_id));
-    check_nc_error(nc_def_var(ncid, "Vol Snow", NC_REALTYPE, 3, dims, &VSnow_id));
-    check_nc_error(nc_def_var(ncid, "Vol Blue Ice", NC_REALTYPE, 3, dims, &VBIce_id));
-    check_nc_error(nc_def_var(ncid, "Vol White Ice", NC_REALTYPE, 3, dims, &VWIce_id));
-    check_nc_error(nc_def_var(ncid, "Tot Inflow Vol", NC_REALTYPE, 3, dims, &TotInVol_id));
-    check_nc_error(nc_def_var(ncid, "Tot Outflow Vol", NC_REALTYPE, 3, dims, &TotOutVol_id));
-    check_nc_error(nc_def_var(ncid, "Overflow Vol", NC_REALTYPE, 3, dims, &OverFVol_id));
-    check_nc_error(nc_def_var(ncid, "Evaporation", NC_REALTYPE, 3, dims, &Evap_id));
-    check_nc_error(nc_def_var(ncid, "Rain", NC_REALTYPE, 3, dims, &Rain_id));
-    check_nc_error(nc_def_var(ncid, "Local Runoff", NC_REALTYPE, 3, dims, &LocRunoff_id));
-    check_nc_error(nc_def_var(ncid, "Snowfall", NC_REALTYPE, 3, dims, &SnowF_id));
-    check_nc_error(nc_def_var(ncid, "Lake Level", NC_REALTYPE, 3, dims, &LakeLvl_id));
-    check_nc_error(nc_def_var(ncid, "Snow Density", NC_REALTYPE, 3, dims, &SnowDns_id));
-    check_nc_error(nc_def_var(ncid, "Albedo", NC_REALTYPE, 3, dims, &Alb_id));
-    check_nc_error(nc_def_var(ncid, "Max Temp", NC_REALTYPE, 3, dims, &MaxT_id));
-    check_nc_error(nc_def_var(ncid, "Min Temp", NC_REALTYPE, 3, dims, &MinT_id));
-    check_nc_error(nc_def_var(ncid, "Surface Temp", NC_REALTYPE, 3, dims, &SfT_id));
-    check_nc_error(nc_def_var(ncid, "Daily Osw", NC_REALTYPE, 3, dims, &DQsw_id));
-    check_nc_error(nc_def_var(ncid, "Daily Oe", NC_REALTYPE, 3, dims, &DQe_id));
-    check_nc_error(nc_def_var(ncid, "Daily Oh", NC_REALTYPE, 3, dims, &DQh_id));
-    check_nc_error(nc_def_var(ncid, "Daily Olw", NC_REALTYPE, 3, dims, &DQlw_id));
-    check_nc_error(nc_def_var(ncid, "Light", NC_REALTYPE, 3, dims, &Light_id));
-    check_nc_error(nc_def_var(ncid, "Benthic Light", NC_REALTYPE, 3, dims, &BenLight_id));
-    check_nc_error(nc_def_var(ncid, "Surface Wave Height", NC_REALTYPE, 3, dims, &SWH_id));
-    check_nc_error(nc_def_var(ncid, "Surface Wave Length", NC_REALTYPE, 3, dims, &SWL_id));
-    check_nc_error(nc_def_var(ncid, "Surface Wave Period", NC_REALTYPE, 3, dims, &SWP_id));
-    check_nc_error(nc_def_var(ncid, "LakeNumber", NC_REALTYPE, 3, dims, &LkNum_id));
-    check_nc_error(nc_def_var(ncid, "Max dT_dz", NC_REALTYPE, 3, dims, &maxdtz_id));
-    check_nc_error(nc_def_var(ncid, "CD", NC_REALTYPE, 3, dims, &CD_id));
-    check_nc_error(nc_def_var(ncid, "CHE", NC_REALTYPE, 3, dims, &CHE_id));
-    check_nc_error(nc_def_var(ncid, "z_L", NC_REALTYPE, 3, dims, &zL_id));
+    check_nc_error(nc_def_var(ncid, "surface_area",        NC_REALTYPE, 3, dims, &SA_id));
+    check_nc_error(nc_def_var(ncid, "vol_snow",            NC_REALTYPE, 3, dims, &VSnow_id));
+    check_nc_error(nc_def_var(ncid, "vol_blue_ice",        NC_REALTYPE, 3, dims, &VBIce_id));
+    check_nc_error(nc_def_var(ncid, "vol_white_ice",       NC_REALTYPE, 3, dims, &VWIce_id));
+    check_nc_error(nc_def_var(ncid, "tot_inflow_vol",      NC_REALTYPE, 3, dims, &TotInVol_id));
+    check_nc_error(nc_def_var(ncid, "tot_outflow_vol",     NC_REALTYPE, 3, dims, &TotOutVol_id));
+    check_nc_error(nc_def_var(ncid, "overflow_vol",        NC_REALTYPE, 3, dims, &OverFVol_id));
+    check_nc_error(nc_def_var(ncid, "evaporation",         NC_REALTYPE, 3, dims, &Evap_id));
+    check_nc_error(nc_def_var(ncid, "rain",                NC_REALTYPE, 3, dims, &Rain_id));
+    check_nc_error(nc_def_var(ncid, "local_runoff",        NC_REALTYPE, 3, dims, &LocRunoff_id));
+    check_nc_error(nc_def_var(ncid, "snowfall",            NC_REALTYPE, 3, dims, &SnowF_id));
+    check_nc_error(nc_def_var(ncid, "lake_level",          NC_REALTYPE, 3, dims, &LakeLvl_id));
+    check_nc_error(nc_def_var(ncid, "snow_density",        NC_REALTYPE, 3, dims, &SnowDns_id));
+    check_nc_error(nc_def_var(ncid, "albedo",              NC_REALTYPE, 3, dims, &Alb_id));
+    check_nc_error(nc_def_var(ncid, "max_temp",            NC_REALTYPE, 3, dims, &MaxT_id));
+    check_nc_error(nc_def_var(ncid, "min_temp",            NC_REALTYPE, 3, dims, &MinT_id));
+    check_nc_error(nc_def_var(ncid, "surface_temp",        NC_REALTYPE, 3, dims, &SfT_id));
+    check_nc_error(nc_def_var(ncid, "daily_qsw",           NC_REALTYPE, 3, dims, &DQsw_id));
+    check_nc_error(nc_def_var(ncid, "daily_qe",            NC_REALTYPE, 3, dims, &DQe_id));
+    check_nc_error(nc_def_var(ncid, "daily_qh",            NC_REALTYPE, 3, dims, &DQh_id));
+    check_nc_error(nc_def_var(ncid, "daily_qlw",           NC_REALTYPE, 3, dims, &DQlw_id));
+    check_nc_error(nc_def_var(ncid, "light",               NC_REALTYPE, 3, dims, &Light_id));
+    check_nc_error(nc_def_var(ncid, "benthic_light",       NC_REALTYPE, 3, dims, &BenLight_id));
+    check_nc_error(nc_def_var(ncid, "surface_wave_height", NC_REALTYPE, 3, dims, &SWH_id));
+    check_nc_error(nc_def_var(ncid, "surface_wave_length", NC_REALTYPE, 3, dims, &SWL_id));
+    check_nc_error(nc_def_var(ncid, "surface_wave_period", NC_REALTYPE, 3, dims, &SWP_id));
+    check_nc_error(nc_def_var(ncid, "lake_number",         NC_REALTYPE, 3, dims, &LkNum_id));
+    check_nc_error(nc_def_var(ncid, "max_dT_dz",           NC_REALTYPE, 3, dims, &maxdtz_id));
+    check_nc_error(nc_def_var(ncid, "CD",                  NC_REALTYPE, 3, dims, &CD_id));
+    check_nc_error(nc_def_var(ncid, "CHE",                 NC_REALTYPE, 3, dims, &CHE_id));
+    check_nc_error(nc_def_var(ncid, "z_L",                 NC_REALTYPE, 3, dims, &zL_id));
 
     /**************************************************************************
      * define 3D variables                                                    *
@@ -231,6 +231,39 @@ f0, fsum,u_f,u0,u_avg" PARAM_FILLVALUE);
     set_nc_attributes(ncid, wnd_id,    "m/s",     "wind"            PARAM_FILLVALUE);
     set_nc_attributes(ncid, TV_id,     "m3",      "lake volume"     PARAM_FILLVALUE);
 
+    // 2D variables from lake.csv
+    set_nc_attributes(ncid, SA_id,        "m2",      "Surface Area"         PARAM_FILLVALUE);
+    set_nc_attributes(ncid, VSnow_id,     "m3",      "Vol Snow"             PARAM_FILLVALUE);
+    set_nc_attributes(ncid, VBIce_id,     "m3",      "Vol Blue Ice"         PARAM_FILLVALUE);
+    set_nc_attributes(ncid, VWIce_id,     "m3",      "Vol White Ice"        PARAM_FILLVALUE);
+    set_nc_attributes(ncid, TotInVol_id,  "m3",      "Total Inflow Volume"  PARAM_FILLVALUE);
+    set_nc_attributes(ncid, TotOutVol_id, "m3",      "Total Outflow Volume" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, OverFVol_id,  "m3",      "Overflow Volume"      PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Evap_id,      "m3",      "Evaporation"          PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Rain_id,      "m3",      "Rain"                 PARAM_FILLVALUE);
+    set_nc_attributes(ncid, LocRunoff_id, "m3",      "Local Runoff"         PARAM_FILLVALUE);
+    set_nc_attributes(ncid, SnowF_id,     "m3",      "Snowfall"             PARAM_FILLVALUE);
+    set_nc_attributes(ncid, LakeLvl_id,   "meters",  "Lake Level"           PARAM_FILLVALUE);
+    set_nc_attributes(ncid, SnowDns_id,   "unknown", "Snow Density"         PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Alb_id,       "unknown", "Albedo"               PARAM_FILLVALUE);
+    set_nc_attributes(ncid, MaxT_id,      "celsius", "Maximum Temperature"  PARAM_FILLVALUE);
+    set_nc_attributes(ncid, MinT_id,      "celsius", "Minimum Temperature"  PARAM_FILLVALUE);
+    set_nc_attributes(ncid, SfT_id,       "celsius", "Surface Temperature"  PARAM_FILLVALUE);
+    set_nc_attributes(ncid, DQsw_id,      "unknown", "Daily Qsw"            PARAM_FILLVALUE);
+    set_nc_attributes(ncid, DQe_id,       "unknown", "Daily Qe"             PARAM_FILLVALUE);
+    set_nc_attributes(ncid, DQh_id,       "unknown", "Daily Qh"             PARAM_FILLVALUE);
+    set_nc_attributes(ncid, DQlw_id,      "unknown", "Daily Qlw"            PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Light_id,     "unknown", "Light"                PARAM_FILLVALUE);
+    set_nc_attributes(ncid, BenLight_id,  "unknown", "Benthic Light"        PARAM_FILLVALUE);
+    set_nc_attributes(ncid, SWH_id,       "meters",  "Surface Wave Height"  PARAM_FILLVALUE);
+    set_nc_attributes(ncid, SWL_id,       "meters",  "Surface Wave Length"  PARAM_FILLVALUE);
+    set_nc_attributes(ncid, SWP_id,       "meters",  "Surface Wave Period"  PARAM_FILLVALUE);
+    set_nc_attributes(ncid, LkNum_id,     "unknown", "Lake Number"          PARAM_FILLVALUE);
+    set_nc_attributes(ncid, maxdtz_id,    "m/s",     "Max dT_dz"            PARAM_FILLVALUE);
+    set_nc_attributes(ncid, CD_id,        "unknown", "CD"                   PARAM_FILLVALUE);
+    set_nc_attributes(ncid, CHE_id,       "unknown", "CHE"                  PARAM_FILLVALUE);
+    set_nc_attributes(ncid, zL_id,        "unknown", "z_L"                  PARAM_FILLVALUE);
+
     //# x,y,z,t
     set_nc_attributes(ncid, z_id,      "meters",  "layer heights"   PARAM_FILLVALUE);
     set_nc_attributes(ncid, H_id,      "meters",  "layer heights"   PARAM_FILLVALUE);
@@ -252,6 +285,8 @@ f0, fsum,u_f,u0,u_avg" PARAM_FILLVALUE);
 
     nc_put_att(ncid, NC_GLOBAL, "history", NC_CHAR, strlen(history), history);
     check_nc_error(nc_put_att(ncid, NC_GLOBAL, "Conventions", NC_CHAR, 6, "COARDS"));
+
+    nc_put_att(ncid, NC_GLOBAL, "start_time", NC_CHAR, strlen(start_time), start_time);
 
     /**************************************************************************
      * Save some static data                                                  *
