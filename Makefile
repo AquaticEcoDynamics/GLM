@@ -28,7 +28,11 @@
 #                                                                             #
 ###############################################################################
 
-OSTYPE=$(shell uname -s)
+ifeq ($(shell uname -o),Msys)
+  OSTYPE=$(shell uname -o)
+else
+  OSTYPE=$(shell uname -s)
+endif
 BUILDDATE=$(shell date -u +%Y%m%d-%H%MUTC)
 
 ifeq ($(WITH_PLOTS),)
@@ -87,6 +91,9 @@ ifeq ($(OSTYPE),Darwin)
   EXTRALINKFLAGS=-Wl,-no_compact_unwind,-headerpad_max_install_names
   SHARED=-dynamiclib -undefined dynamic_lookup
   so_ext=dylib
+else ifeq ($(OSTYPE),Msys)
+  CINCLUDES+=-I../win-3rd-party/x64-Release/include
+  LIBS+=-L../win-3rd-party/x64-Release/lib
 else ifeq ($(OSTYPE),FreeBSD)
   FINCLUDES+=-I../flang_extra/mod
   FINCLUDES+=-I/usr/local/include
@@ -145,7 +152,7 @@ ifeq ($(AED),true)
   else
     EXTFFLAGS+=-DNO_DEV
   endif
-  AEDLIBS+=-ldl
+  #AEDLIBS+=-ldl
 
   ifeq ($(USE_DL),true)
     AEDTARGETS=libglm_wq_aed.${so_ext}
@@ -265,10 +272,13 @@ ifeq ($(PLOTDIR),)
 endif
 
 ifeq ($(WITH_PLOTS),true)
-  LIBS+=-L$(PLOTDIR)/lib -lplot -lgd -lpng -ljpeg -lm
+  #LIBS+=-L$(PLOTDIR)/lib -lplot -lgd -lpng -ljpeg -lm
+  LIBS+=-L$(PLOTDIR)/lib -lplot -lgd -ljpeg -lm
   ifeq ($(WITH_XPLOTS),true)
     ifeq ($(OSTYPE),Darwin)
       LIBS+=-framework Cocoa
+    else ifeq ($(OSTYPE),Msys)
+      LIBS+=-lpng16 -lz -lcomdlg32 -lgdi32
     else
       LIBS+=-lX11
     endif

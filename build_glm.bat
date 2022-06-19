@@ -6,4 +6,4 @@ call "%VS_BASE_PATH%\Tools\VsDevCmd.bat" -arch=amd64
 
 cd GLM\win\vs-glm
 
-"%VS_BASE_PATH%\IDE\devenv" glm.sln /Build "Release"
+"%VS_BASE_PATH%\IDE\devenv" glm.sln /Build "Release|x64"

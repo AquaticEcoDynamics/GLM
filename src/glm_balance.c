@@ -39,8 +39,6 @@
   #include <unistd.h>
 #else
   #include <direct.h>
-  #define S_ISDIR(mode) (mode & _S_IFDIR)
-  #define mkdir(path, mode) _mkdir(path)
 #endif
 
 #include "glm.h"

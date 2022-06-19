@@ -3,8 +3,23 @@
 if [ "$GLM_CONFIGURED" != "true" ] ; then
   . ./GLM_CONFIG
 fi
+OSTYPE=`uname -o`
+if [ "$OSTYPE" = "Msys" ] ; then
+  export OSTYPE
+else
+  export OSTYPE=`uname -s`
+fi
 
+export CC=gcc
+if [ "$OSTYPE" = "FreeBSD" ] ; then
+  export FC=flang
+else
+  export FC=gfortran
+fi
+
+ARGS=""
 while [ $# -gt 0 ] ; do
+  ARGS="$ARGS $1"
   case $1 in
     --debug)
       export DEBUG=true
@@ -15,8 +30,14 @@ while [ $# -gt 0 ] ; do
     --fabm)
       export FABM=true
       ;;
+    --gfort)
+      export FC=gfortran
+      ;;
     --ifort)
       export FC=ifort
+      ;;
+    --flang)
+      export FC=flang
       ;;
     *)
       ;;
@@ -25,7 +46,6 @@ while [ $# -gt 0 ] ; do
 done
 
 export MAKE=make
-export OSTYPE=`uname -s`
 if [ "$OSTYPE" = "Darwin" ] ; then
   if [ "$HOMEBREW" = "" ] ; then
     brew -v > /dev/null 2>&1
@@ -42,11 +62,9 @@ if [ "$OSTYPE" = "Darwin" ] ; then
   fi
 else
   if [ "$OSTYPE" = "FreeBSD" ] ; then
-    export FC=flang
     export MAKE=gmake
   fi
 fi
-
 
 # see if FC is defined, if not look for gfortran at least v8
 if [ "$FC" = "" ] ; then
@@ -69,7 +87,14 @@ if [ "$FC" = "" ] ; then
 fi
 
 if [ "$FC" = "ifort" ] ; then
-  # if trying the intel fortran, initialise it
+  start_sh="$(ps -p "$$" -o  command= | awk '{print $1}')"
+  # ifort config scripts wont work with /bin/sh
+  # so we restart using bash
+  if [ "$start_sh" = "/bin/sh" ] ;  then
+     echo Restart using bash because ifort cant use /bin/sh
+     /bin/bash $0 $ARGS
+     exit $?
+  fi
   if [ -d /opt/intel/oneapi ] ; then
      . /opt/intel/oneapi/setvars.sh
   else
@@ -154,17 +179,17 @@ if [ "${AED}" = "true" ] ; then
     ${MAKE} || exit 1
     DAEDBENDIR=`pwd`
   fi
-  if [ -d ${CURDIR}/../libaed-riparian ] ; then
-    echo build libaed-riparian
-    cd  ${CURDIR}/../libaed-riparian
-    ${MAKE} || exit 1
-    DAEDRIPDIR=`pwd`
-  fi
   if [ -d ${CURDIR}/../libaed-demo ] ; then
     echo build libaed-demo
     cd  ${CURDIR}/../libaed-demo
     ${MAKE} || exit 1
     DAEDDMODIR=`pwd`
+  fi
+  if [ -d ${CURDIR}/../libaed-riparian ] ; then
+    echo build libaed-riparian
+    cd  ${CURDIR}/../libaed-riparian
+    ${MAKE} || exit 1
+    DAEDRIPDIR=`pwd`
   fi
   if [ -d ${CURDIR}/../libaed-dev ] ; then
     echo build libaed-dev
@@ -183,7 +208,7 @@ cd ${UTILDIR}
 ${MAKE} || exit 1
 
 cd ${CURDIR}/..
-if [ "$FC" = "flang" ] && [ -d flang_extra ] ; then
+if [ "$FC" = "flang" -a -d flang_extra ] ; then
   echo making flang extras
   cd flang_extra
   ${MAKE} || exit 1
@@ -199,5 +224,14 @@ if [ "${DAEDDEVDIR}" != "" -a -d ${DAEDDEVDIR} ] ; then
   /bin/rm obj/aed_external.o
   ${MAKE} glm+ AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR AEDRIPDIR=$DAEDRIPDIR AEDDEVDIR=$DAEDDEVDIR || exit 1
 fi
+
+
+VERSION=`grep GLM_VERSION src/glm.h | cut -f2 -d\"`
+
+cd ${CURDIR}/win
+${CURDIR}/vers.sh $VERSION
+#cd ${CURDIR}/win-dll
+#${CURDIR}/vers.sh $VERSION
+cd ${CURDIR}/..
 
 exit 0

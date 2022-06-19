@@ -35,7 +35,7 @@
 #endif
 #define USE_FILLVALUE 1
 
-#define GLM_VERSION  "3.3.0a6"
+#define GLM_VERSION  "3.3.0a7"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -45,7 +45,9 @@
 #define XYNT_SHAPE    6
 #define R_SHAPE       1
 
+#ifndef PATH_MAX
 #define PATH_MAX  1024
+#endif
 
 #ifdef _FORTRAN_SOURCE_
 !-------------------------------------------------------------------------------

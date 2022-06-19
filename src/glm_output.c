@@ -39,7 +39,9 @@
   #include <unistd.h>
 #else
   #include <direct.h>
+  #ifndef S_ISDIR
   #define S_ISDIR(mode) (mode & _S_IFDIR)
+  #endif
   #define mkdir(path, mode) _mkdir(path)
 #endif
 
