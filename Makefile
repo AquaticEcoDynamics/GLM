@@ -28,11 +28,16 @@
 #                                                                             #
 ###############################################################################
 
-ifeq ($(shell uname -o),Msys)
-  OSTYPE=$(shell uname -o)
-else
+ifeq ($(shell uname),Linux)
   OSTYPE=$(shell uname -s)
+else ifeq ($(shell uname),Darwin)
+  OSTYPE=$(shell uname -s)
+else ifeq ($(shell uname),FreeBSD)
+  OSTYPE=$(shell uname -s)
+else
+  OSTYPE=$(shell uname -o)
 endif
+
 BUILDDATE=$(shell date -u +%Y%m%d-%H%MUTC)
 
 ifeq ($(WITH_PLOTS),)
@@ -271,6 +276,8 @@ ifeq ($(PLOTDIR),)
   PLOTDIR=../../libplot
 endif
 
+RES=
+RESP=
 ifeq ($(WITH_PLOTS),true)
   #LIBS+=-L$(PLOTDIR)/lib -lplot -lgd -lpng -ljpeg -lm
   LIBS+=-L$(PLOTDIR)/lib -lplot -lgd -ljpeg -lm
@@ -279,6 +286,8 @@ ifeq ($(WITH_PLOTS),true)
       LIBS+=-framework Cocoa
     else ifeq ($(OSTYPE),Msys)
       LIBS+=-lpng16 -lz -lcomdlg32 -lgdi32
+      RES=${objdir}/glm_rc.o
+      RESP=${objdir}/glm+_rc.o
     else
       LIBS+=-lX11
     endif
@@ -352,11 +361,11 @@ ${objdir}:
 ${moddir}:
 	@mkdir ${moddir}
 
-glm: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS)
-	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQLIBS) $(FLIBS)
+glm: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS) $(RES)
+	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(RES) $(LIBS) $(WQLIBS) $(FLIBS)
 
-glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS)
-	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(LIBS) $(WQLIBS) $(FLIBS)
+glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS) $(RESP)
+	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(RESP) $(LIBS) $(WQLIBS) $(FLIBS)
 
 clean: ${objdir} ${moddir}
 	@touch ${objdir}/1.o ${moddir}/1.mod 1.t 1__genmod.f90 glm 1.${so_ext} glm_test_bird macos/glm.app macos/glm+.app
@@ -377,6 +386,12 @@ ${objdir}/%.o: ${srcdir}/%.F90 ${incdir}/glm.h
 
 ${objdir}/glm_main.o: ${srcdir}/glm_main.c ${incdir}/glm.h
 	$(CC) -fPIC -DBUILDDATE=\"${BUILDDATE}\" $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
+
+${objdir}/glm_rc.o: win/glm.rc
+	windres $< -o $@
+
+${objdir}/glm+_rc.o: win/glm+.rc
+	windres $< -o $@
 
 ${objdir}/%.o: ${srcdir}/%.c ${incdir}/glm.h
 	$(CC) -fPIC $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@

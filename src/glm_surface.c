@@ -219,12 +219,12 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     AED_REAL depth, rb, anglei, hdir, hdif;
 
 
-    int sed_layers = 12;
+//  int sed_layers = 12;
 //  AED_REAL ztemp = 20.0;
     AED_REAL soil_heat_flux = 0.0;
 //  AED_REAL *sed_depths=NULL;
-    AED_REAL *sed_vwc=NULL;
-    AED_REAL *sed_temps=NULL;
+//  AED_REAL *sed_vwc=NULL;
+//  AED_REAL *sed_temps=NULL;
 
 
 /*----------------------------------------------------------------------------*/
@@ -1095,8 +1095,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
             //# Now compute layer-specifc sed heating and increment temperature
             if ( sed_heat_model == 2 ){
 //            memset(sed_depths, 0, sizeof(AED_REAL)*sed_layers);
-              memset(sed_vwc, 0, sizeof(AED_REAL)*sed_layers);
-              memset(sed_temps, 0, sizeof(AED_REAL)*sed_layers);
+//            memset(sed_vwc, 0, sizeof(AED_REAL)*sed_layers);
+//            memset(sed_temps, 0, sizeof(AED_REAL)*sed_layers);
 
               for (z = 1; z < n_zones; z++) {
                   // call the dynamic soil/sediment temperature model

@@ -3,16 +3,20 @@
 if [ "$GLM_CONFIGURED" != "true" ] ; then
   . ./GLM_CONFIG
 fi
-OSTYPE=`uname -o`
-if [ "$OSTYPE" = "Msys" ] ; then
-  export OSTYPE
-else
-  export OSTYPE=`uname -s`
-fi
+
+case `uname` in
+  "Darwin"|"Linux"|"FreeBSD")
+    export OSTYPE=`uname -s`
+    ;;
+  MINGW*)
+    export OSTYPE="Msys"
+    ;;
+esac
 
 export CC=gcc
 if [ "$OSTYPE" = "FreeBSD" ] ; then
   export FC=flang
+  export CC=clang
 else
   export FC=gfortran
 fi
@@ -218,6 +222,15 @@ cd ${CURDIR}
 if [ -f obj/aed_external.o ] ; then
   /bin/rm obj/aed_external.o
 fi
+
+# Update versions in resource files
+cd ${CURDIR}/win
+${CURDIR}/vers.sh $VERSION
+#cd ${CURDIR}/win-dll
+#${CURDIR}/vers.sh $VERSION
+cd ${CURDIR}
+VERSION=`grep GLM_VERSION src/glm.h | cut -f2 -d\"`
+
 ${MAKE} AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR || exit 1
 if [ "${DAEDDEVDIR}" != "" -a -d ${DAEDDEVDIR} ] ; then
   echo now build plus version
@@ -225,13 +238,5 @@ if [ "${DAEDDEVDIR}" != "" -a -d ${DAEDDEVDIR} ] ; then
   ${MAKE} glm+ AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR AEDRIPDIR=$DAEDRIPDIR AEDDEVDIR=$DAEDDEVDIR || exit 1
 fi
 
-
-VERSION=`grep GLM_VERSION src/glm.h | cut -f2 -d\"`
-
-cd ${CURDIR}/win
-${CURDIR}/vers.sh $VERSION
-#cd ${CURDIR}/win-dll
-#${CURDIR}/vers.sh $VERSION
-cd ${CURDIR}/..
 
 exit 0

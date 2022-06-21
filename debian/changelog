@@ -1,4 +1,4 @@
-glm (3.3.0a7-0) UNRELEASED; urgency=low
+glm (3.3.0a8-0) UNRELEASED; urgency=low
 
   * new version 3.2.0a1
   * new version 3.2.0a8
@@ -8,8 +8,9 @@ glm (3.3.0a7-0) UNRELEASED; urgency=low
   * new version 3.3.0a5
   * new version 3.3.0a6
   * new version 3.3.0a7
+  * new version 3.3.0a8
 
- -- Casper Boon <casper@shark>  Sat, 11 Jun 2022 08:54:50 +0800
+ -- Casper Boon <casper@shark>  Tue, 21 Jun 2022 11:39:54 +0800
 
 glm (3.1.0-0) UNRELEASED; urgency=low
 

@@ -13,21 +13,49 @@ else
   EXTN=''
 fi
 
+N1=`echo $vers | cut -f1 -d.`
+N2=`echo $vers | cut -f2 -d.`
+N3=`echo $vers | cut -f3 -d.`
+N4=`echo $vers | cut -f4 -d.`
+
+if [ "$N4" = "" ] ; then
+  T1=`echo $N3 |  tr 'a' ' '`
+  if [ "$T1" = "$N3" ] ; then
+    S='b'
+  else
+    S='a'
+  fi
+  N4=`echo $N3 | cut -f2- -d$S`
+  N3=`echo $N3 | cut -f1 -d$S`
+
+  N4='0x'$S$N4
+fi
+OPV=$N1\,$N2\,$N3\,$N4
+
+# echo vers = $vers - OPV  = $OPV
+
 for FILE in ./glm.rc ./glm+.rc ; do
   OFV=`grep FILEVERSION ${FILE} | sed 's/^[ \t]*//' | cut -f2 -d\ `
-  OPV=`grep PRODUCTVERSION ${FILE} | sed 's/^[ \t]*//' | cut -f2 -d\ `
-  ver2=`echo $vers | sed "s/\./,/g"`
+# echo OFV  = $OFV - OPV  = $OPV
 
-  if [ "$vers" != "$OFV" ] ; then
-    echo sed -e "s/${OFV}/${ver2}/" -i${EXTN} ${FILE}
-    sed -e "s/${OFV}/${ver2}/" -i${EXTN} ${FILE}
-
-    OFV=`grep FileVersion ${FILE} | sed 's/^[ \t]*//' | cut -f3 -d\ `
-    echo sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
-    sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
+  if [ "$OPV" != "$OFV" ] ; then # new version number
+    echo /usr/bin/sed -e "s/${OFV}/${OPV}/" -i${EXTN} ${FILE}
+         /usr/bin/sed -e "s/${OFV}/${OPV}/" -i${EXTN} ${FILE}
 
     if [ "${OSTYPE}" = "Darwin" ] || [ "${OSTYPE}" = "FreeBSD" ] ; then
       /bin/rm ${FILE}${EXTN}
+    fi
+
+    OFV=`grep FileVersion ${FILE} | sed 's/^[ \t]*//' | cut -f3 -d\ | tr -d '\"'`
+#   echo OFV2 = \'$OFV\' - vers = \'$vers\'
+
+    if [ "$vers" != "$OFV" ] ; then # new version number
+      echo /usr/bin/sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
+           /usr/bin/sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
+
+      if [ "${OSTYPE}" = "Darwin" ] || [ "${OSTYPE}" = "FreeBSD" ] ; then
+        /bin/rm ${FILE}${EXTN}
+      fi
     fi
   else
     echo no change to version number in ${FILE}
