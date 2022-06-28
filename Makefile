@@ -35,8 +35,7 @@ else ifeq ($(shell uname),Darwin)
 else ifeq ($(shell uname),FreeBSD)
   OSTYPE=$(shell uname -s)
 else
-# OSTYPE=$(shell uname -o)
-  OSTYPE="Msys"
+  OSTYPE=$(shell uname -o)
 endif
 
 BUILDDATE=$(shell date -u +%Y%m%d-%H%MUTC)
