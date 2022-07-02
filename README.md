@@ -10,13 +10,11 @@ ranging from seasons to decades, and for coupling with biogeochemical models to 
 role that stratification and vertical mixing has on biogeochemical and ecological dynamics of lakes, reservoirs, ponds and wetlands.
 
 
-<br>
 
 ## Accessing the model
 
 This `GLM` repository is released coupled with the `AED` water quality model, via the **GLM-AED** release. Refer to the [`glm-aed` repository](https://github.com/AquaticEcoDynamics/glm-aed) for pre-compiled model executable files, example simulations, and information for how to get started with the model.
 
-<br>
 
 ## Reference
 
