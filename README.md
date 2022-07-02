@@ -1,5 +1,9 @@
 # GLM : The General Lake Model
 
+[![Project Status: Active – The project is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+[![GLM](https://img.shields.io/badge/GLM-3.3.0-orange)](https://aquatic.science.uwa.edu.au/research/models/GLM/)
+[![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://perso.crans.org/besson/LICENSE.html)
+
 <br> 
 
 <img src="glm.png" align="right"  width="100" >
