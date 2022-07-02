@@ -9,6 +9,7 @@ and cooling, including the effect of ice cover. It is suited to longer-term inve
 ranging from seasons to decades, and for coupling with biogeochemical models to explore the
 role that stratification and vertical mixing has on biogeochemical and ecological dynamics of lakes, reservoirs, ponds and wetlands.
 
+
 <br>
 
 ## Accessing the model
