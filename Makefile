@@ -97,13 +97,13 @@ ifeq ($(OSTYPE),Darwin)
   SHARED=-dynamiclib -undefined dynamic_lookup
   so_ext=dylib
 else ifeq ($(OSTYPE),Msys)
-  CINCLUDES+=-I../win-3rd-party/x64-Release/include
-  LIBS+=-L../win-3rd-party/x64-Release/lib
+  CINCLUDES+=-I../ancillary/windows/msys/include
+  LIBS+=-L../ancillary/windows/msys/lib
 else ifeq ($(OSTYPE),FreeBSD)
-  FINCLUDES+=-I../flang_extra/mod
+  FINCLUDES+=-I../ancillary/freebsd/mod
   FINCLUDES+=-I/usr/local/include
   CINCLUDES+=-I/usr/local/include
-  LIBS+=-L../flang_extra/ -lflang_extra -L/usr/local/lib
+  LIBS+=-L../ancillary/freebsd/lib -lflang_extra -L/usr/local/lib
 else
   CINCLUDES+=-I/usr/local/include
   EXTRALINKFLAGS=-Wl,--export-dynamic

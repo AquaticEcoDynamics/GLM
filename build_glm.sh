@@ -212,9 +212,9 @@ cd ${UTILDIR}
 ${MAKE} || exit 1
 
 cd ${CURDIR}/..
-if [ "$FC" = "flang" -a -d flang_extra ] ; then
+if [ "$OSTYPE" = "FreeBSD" -a -d ancillary/freebsd ] ; then
   echo making flang extras
-  cd flang_extra
+  cd ancillary/freebsd
   ${MAKE} || exit 1
 fi
 

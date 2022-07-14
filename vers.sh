@@ -32,26 +32,26 @@ if [ "$N4" = "" ] ; then
 fi
 OPV=$N1\,$N2\,$N3\,$N4
 
-# echo vers = $vers - OPV  = $OPV
+ echo vers = $vers - OPV  = $OPV
 
 for FILE in ./glm.rc ./glm+.rc ; do
   OFV=`grep FILEVERSION ${FILE} | sed 's/^[ \t]*//' | cut -f2 -d\ `
-# echo OFV  = $OFV - OPV  = $OPV
+ echo OFV  = $OFV - OPV  = $OPV
 
   if [ "$OPV" != "$OFV" ] ; then # new version number
-    echo /usr/bin/sed -e "s/${OFV}/${OPV}/" -i${EXTN} ${FILE}
-         /usr/bin/sed -e "s/${OFV}/${OPV}/" -i${EXTN} ${FILE}
+    echo sed -e "s/${OFV}/${OPV}/" -i${EXTN} ${FILE}
+         sed -e "s/${OFV}/${OPV}/" -i${EXTN} ${FILE}
 
     if [ "${OSTYPE}" = "Darwin" ] || [ "${OSTYPE}" = "FreeBSD" ] ; then
       /bin/rm ${FILE}${EXTN}
     fi
 
     OFV=`grep FileVersion ${FILE} | sed 's/^[ \t]*//' | cut -f3 -d\ | tr -d '\"'`
-#   echo OFV2 = \'$OFV\' - vers = \'$vers\'
+   echo OFV2 = \'$OFV\' - vers = \'$vers\'
 
     if [ "$vers" != "$OFV" ] ; then # new version number
-      echo /usr/bin/sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
-           /usr/bin/sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
+      echo sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
+           sed -e "s/${OFV}/${vers}/" -i${EXTN} ${FILE}
 
       if [ "${OSTYPE}" = "Darwin" ] || [ "${OSTYPE}" = "FreeBSD" ] ; then
         /bin/rm ${FILE}${EXTN}
