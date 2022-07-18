@@ -670,6 +670,7 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
 {
     int iclock;  //# The seconds counter during a day
     AED_REAL Light_Surface; //# Light at the surface of the lake after do_surface
+    int write_step, last_step;
 
     noSecs = timestep;
     coef_wind_drag = CD;
@@ -678,6 +679,15 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
      *  Loop for each second in a day (86400 = #seconds in a day)             *
      **************************************************************************/
     iclock = startTOD;
+    last_step = stepnum + ((stoptime - iclock) / noSecs);
+    write_step = stepnum + nsave;
+    if ( iclock != 0 ) {
+        int t = mod(((stoptime - iclock) / noSecs), nsave);
+        if ( t != 0 ) write_step = stepnum + t;
+    }
+    if ( write_step > last_step ) write_step = last_step;
+//  printf("last step %d write_step %d\n", last_step, write_step);
+
     startTOD = 0; /* from now on start at the beginning of the day */
     Benthic_Light_pcArea = 0.;
     while (iclock < stoptime) { //# iclock = seconds counter
@@ -704,7 +714,6 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
         //# Mix out instabilities, combine/split  layers
         check_layer_thickness();
         fix_radiation(Light_Surface);
-
 
         if ( surface_mixing > -1 ){
              check_layer_stability();
@@ -739,11 +748,14 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
          **********************************************************************/
         if (wq_calc) wq_do_glm(&NumLayers, &ice);
 
-        if ( mod(stepnum, nsave) == 0 ) {
+        if ( stepnum == write_step ) {
 #if PLOTS
             today = jday;
 #endif
+//          printf("writing at stepnum %d\n",stepnum);
             write_output(jday, iclock, nsave, stepnum);
+            write_step += nsave;
+            if ( write_step > last_step ) write_step = last_step;
 #if PLOTS
 //if (++n_steps_done > END_STEPS) { int i; for (i = 0; i < NumLayers; i++) show_l_line(2, Lake[i].Height); flush_all_plots(); }
             plotstep++;
@@ -756,11 +768,13 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
         //#If sub-daily re-set SWold
         if ( subdaily ) SWold = SWnew;
 
+//      printf("stepnum %d\n", stepnum);
         iclock += noSecs;
     }   //# do while (iclock < iSecsPerDay)
     /**************************************************************************
      * End of sub-daily loop                                                  *
      **************************************************************************/
+//  printf("end subdaily loop\n");
 
 #if PLOTS
     plotstep = 0;

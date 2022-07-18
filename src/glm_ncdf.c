@@ -76,6 +76,8 @@ static int LkNum_id, maxdtz_id, CD_id, CHE_id, zL_id;
 
 /*============================================================================*/
 static void check_nc_error(int err);
+static void check_nc_error_x(int err, int ncid, int id);
+static void xyt_store_nc_scalar(int ncid, int id, AED_REAL scalar);
 
 /******************************************************************************
  *                                                                            *
@@ -212,7 +214,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     set_nc_attributes(ncid, time_id,   time_str,        NULL        PARAM_FILLVALUE);
 
     nc_put_att(ncid, NS_id, "long_name", NC_CHAR, 16, "Number of Layers");
-    nc_put_att(ncid, SL_id, "long_name", NC_CHAR, 16, "Number of Layers");
+    nc_put_att(ncid, SL_id, "long_name", NC_CHAR, 16, "Surface Layer");
 
     set_nc_attributes(ncid, HICE_id,   "meters",  "Height of Ice"   PARAM_FILLVALUE);
     set_nc_attributes(ncid, HSNOW_id,  "meters",  "Height of Snow"  PARAM_FILLVALUE);
@@ -314,7 +316,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     AED_REAL temp_time, LakeVolume;
     AED_REAL *heights, *vols, *salts, *temps, *dens, *qsw, *extc_coef;
     AED_REAL *u_mean, *u_orb, *taub, *restart_variables;
-    int i, littoralLayer = 0;
+    int i, littoralLayer = 0, iret = NC_NOERR;
 
     if (ncid == -1) return;
 
@@ -367,8 +369,8 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
 
     start_r[0] = 0; edges_r[0] = restart_len;
 
-    //store_nc_scalar(ncid,  restart_id, R_SHAPE, restart_variables);
-    check_nc_error(nc_put_vara(ncid,  restart_id, start_r, edges_r, restart_variables));
+    iret = nc_put_vara(ncid,  restart_id, start_r, edges_r, restart_variables);
+    if ( iret != NC_NOERR ) check_nc_error_x(iret, ncid, restart_id);
 
     //# Time varying profile data : z,t
     /*------------------------------------------------------------------------*/
@@ -456,50 +458,52 @@ void write_glm_diag_ncdf(int ncid, AED_REAL LakeNum,
 {
     extern AED_REAL Hs, L, T;
     AED_REAL lake_level = Lake[surfLayer].Height;
+
+    if (ncid == -1) return;
+
     if (lake_level<0.011) lake_level=zero;
 
-// static int SA_id, VSnow_id,VBIce_id,VWIce_id, TotInVol_id, TotOutVol_id;
-// static int OverFVol_id, Evap_id, Rain_id, LocRunoff_id, SnowF_id, LakeLvl_id;
-// static int SnowDns_id, Alb_id, MaxT_id, MinT_id, SfT_id, DQsw_id, DQe_id;
-// static int DQh_id, DQlw_id, Light_id, BenLight_id, SWH_id, SWL_id, SWP_id;
-// static int LkNum_id, maxdtz_id, CD_id, CHE_id, zL_id;
+    /*------------------------------------------------------------------------*/
+    start[2] = 0;      edges[2] = lon_len;
+    start[1] = 0;      edges[1] = lat_len;
+    start[0] = set_no; edges[0] = 1;
 
-    store_nc_scalar(ncid, SA_id, XYT_SHAPE, Lake[surfLayer].LayerArea);
-    store_nc_scalar(ncid, VSnow_id, XYT_SHAPE, SurfData.delzSnow*Lake[surfLayer].LayerArea*SurfData.RhoSnow/1e3);
-    store_nc_scalar(ncid, VBIce_id, XYT_SHAPE, SurfData.delzBlueIce*Lake[surfLayer].LayerArea*917.0/1e3);
-    store_nc_scalar(ncid, VWIce_id, XYT_SHAPE, SurfData.delzWhiteIce*Lake[surfLayer].LayerArea*890.0/1e3);
-    store_nc_scalar(ncid, TotInVol_id, XYT_SHAPE, SurfData.dailyInflow);
-    store_nc_scalar(ncid, TotOutVol_id, XYT_SHAPE, SurfData.dailyOutflow);
-    store_nc_scalar(ncid, OverFVol_id, XYT_SHAPE, SurfData.dailyOverflow);
-    store_nc_scalar(ncid, Evap_id, XYT_SHAPE, SurfData.dailyEvap);
-    store_nc_scalar(ncid, Rain_id, XYT_SHAPE, SurfData.dailyRain);
-    store_nc_scalar(ncid, LocRunoff_id, XYT_SHAPE, SurfData.dailyRunoff);
-    store_nc_scalar(ncid, SnowF_id, XYT_SHAPE, SurfData.dailySnow);
-    store_nc_scalar(ncid, LakeLvl_id, XYT_SHAPE, lake_level);
+    xyt_store_nc_scalar(ncid, SA_id, Lake[surfLayer].LayerArea);
+    xyt_store_nc_scalar(ncid, VSnow_id, SurfData.delzSnow*Lake[surfLayer].LayerArea*SurfData.RhoSnow/1e3);
+    xyt_store_nc_scalar(ncid, VBIce_id, SurfData.delzBlueIce*Lake[surfLayer].LayerArea*917.0/1e3);
+    xyt_store_nc_scalar(ncid, VWIce_id, SurfData.delzWhiteIce*Lake[surfLayer].LayerArea*890.0/1e3);
+    xyt_store_nc_scalar(ncid, TotInVol_id, SurfData.dailyInflow);
+    xyt_store_nc_scalar(ncid, TotOutVol_id, SurfData.dailyOutflow);
+    xyt_store_nc_scalar(ncid, OverFVol_id, SurfData.dailyOverflow);
+    xyt_store_nc_scalar(ncid, Evap_id, SurfData.dailyEvap);
+    xyt_store_nc_scalar(ncid, Rain_id, SurfData.dailyRain);
+    xyt_store_nc_scalar(ncid, LocRunoff_id, SurfData.dailyRunoff);
+    xyt_store_nc_scalar(ncid, SnowF_id, SurfData.dailySnow);
+    xyt_store_nc_scalar(ncid, LakeLvl_id, lake_level);
 
 //  write_csv_lake("Blue Ice Thickness", SurfData.delzBlueIce);
 //  write_csv_lake("White Ice Thickness",SurfData.delzWhiteIce);
 //  write_csv_lake("Snow Thickness",  SurfData.delzSnow);
 
-    store_nc_scalar(ncid, SnowDns_id, XYT_SHAPE, SurfData.RhoSnow);
-    store_nc_scalar(ncid, Alb_id, XYT_SHAPE, SurfData.albedo);
-    store_nc_scalar(ncid, MaxT_id, XYT_SHAPE, max_temp);
-    store_nc_scalar(ncid, MinT_id, XYT_SHAPE, min_temp);
-    store_nc_scalar(ncid, SfT_id, XYT_SHAPE, Lake[surfLayer].Temp);
-    store_nc_scalar(ncid, DQsw_id, XYT_SHAPE, SurfData.dailyQsw / Lake[surfLayer].LayerArea/SecsPerDay);
-    store_nc_scalar(ncid, DQe_id, XYT_SHAPE, SurfData.dailyQe / Lake[surfLayer].LayerArea/SecsPerDay);
-    store_nc_scalar(ncid, DQh_id, XYT_SHAPE, SurfData.dailyQh / Lake[surfLayer].LayerArea/SecsPerDay);
-    store_nc_scalar(ncid, DQlw_id, XYT_SHAPE, SurfData.dailyQlw / Lake[surfLayer].LayerArea/SecsPerDay);
-    store_nc_scalar(ncid, Light_id, XYT_SHAPE, Lake[surfLayer].Light);
-    store_nc_scalar(ncid, BenLight_id, XYT_SHAPE, Benthic_Light_pcArea);
-    store_nc_scalar(ncid, SWH_id, XYT_SHAPE, Hs);
-    store_nc_scalar(ncid, SWL_id, XYT_SHAPE, L);
-    store_nc_scalar(ncid, SWP_id, XYT_SHAPE, T);
-    store_nc_scalar(ncid, LkNum_id, XYT_SHAPE, LakeNum);
-    store_nc_scalar(ncid, maxdtz_id, XYT_SHAPE, max_dtdz_at);
-    store_nc_scalar(ncid, CD_id, XYT_SHAPE, coef_wind_drag);
-    store_nc_scalar(ncid, CHE_id, XYT_SHAPE, coef_wind_chwn);
-    store_nc_scalar(ncid, zL_id, XYT_SHAPE, SurfData.dailyzonL*(noSecs/SecsPerDay));
+    xyt_store_nc_scalar(ncid, SnowDns_id, SurfData.RhoSnow);
+    xyt_store_nc_scalar(ncid, Alb_id, SurfData.albedo);
+    xyt_store_nc_scalar(ncid, MaxT_id, max_temp);
+    xyt_store_nc_scalar(ncid, MinT_id, min_temp);
+    xyt_store_nc_scalar(ncid, SfT_id, Lake[surfLayer].Temp);
+    xyt_store_nc_scalar(ncid, DQsw_id, SurfData.dailyQsw / Lake[surfLayer].LayerArea/SecsPerDay);
+    xyt_store_nc_scalar(ncid, DQe_id, SurfData.dailyQe / Lake[surfLayer].LayerArea/SecsPerDay);
+    xyt_store_nc_scalar(ncid, DQh_id, SurfData.dailyQh / Lake[surfLayer].LayerArea/SecsPerDay);
+    xyt_store_nc_scalar(ncid, DQlw_id, SurfData.dailyQlw / Lake[surfLayer].LayerArea/SecsPerDay);
+    xyt_store_nc_scalar(ncid, Light_id, Lake[surfLayer].Light);
+    xyt_store_nc_scalar(ncid, BenLight_id, Benthic_Light_pcArea);
+    xyt_store_nc_scalar(ncid, SWH_id, Hs);
+    xyt_store_nc_scalar(ncid, SWL_id, L);
+    xyt_store_nc_scalar(ncid, SWP_id, T);
+    xyt_store_nc_scalar(ncid, LkNum_id, LakeNum);
+    xyt_store_nc_scalar(ncid, maxdtz_id, max_dtdz_at);
+    xyt_store_nc_scalar(ncid, CD_id, coef_wind_drag);
+    xyt_store_nc_scalar(ncid, CHE_id, coef_wind_chwn);
+    xyt_store_nc_scalar(ncid, zL_id, SurfData.dailyzonL*(noSecs/SecsPerDay));
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -510,7 +514,7 @@ void write_glm_diag_ncdf(int ncid, AED_REAL LakeNum,
 void close_glm_ncdf(int ncid)
 {
    if (ncid != -1)
-      check_nc_error(nc_close(ncid));
+       check_nc_error(nc_close(ncid));
 
    set_no = -1;
 }
@@ -566,7 +570,8 @@ void store_nc_integer(int ncid, int id, int var_shape, int iscalar)
         fprintf(stderr, "store_nc_integer : non valid shape %d\n", var_shape);
         exit(1);
     }
-    check_nc_error(iret);
+
+    if ( iret != NC_NOERR ) check_nc_error_x(iret, ncid, id);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -595,7 +600,21 @@ void store_nc_scalar(int ncid, int id, int var_shape, AED_REAL scalar)
         }
         iret = nc_put_vara(ncid, id, start, edges, &scalar);
     }
-    check_nc_error(iret);
+
+    if ( iret != NC_NOERR ) check_nc_error_x(iret, ncid, id);
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
+void xyt_store_nc_scalar(int ncid, int id, AED_REAL scalar)
+{
+    int iret;
+    iret = nc_put_vara(ncid, id, start, edges, &scalar);
+
+    if ( iret != NC_NOERR ) check_nc_error_x(iret, ncid, id);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -632,7 +651,7 @@ void store_nc_array(int ncid, int id, int var_shape, int nvals,
     iret = nc_put_vara(ncid, id, start, edges, tarr);
     free(tarr);
 
-    check_nc_error(iret);
+    if ( iret != NC_NOERR ) check_nc_error_x(iret, ncid, id);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -643,12 +662,23 @@ void store_nc_array(int ncid, int id, int var_shape, int nvals,
  ******************************************************************************/
 void check_nc_error(int err)
 {
-   if (err != NC_NOERR) {
-      fprintf(stderr, "Error : %s (%d)\n", nc_strerror(err), err);
+    if (err != NC_NOERR) {
+        fprintf(stderr, "Error : %s (%d)\n", nc_strerror(err), err);
 #if DEBUG
-      CRASH("check_nc_error");
+        CRASH("check_nc_error");
 #endif
-   }
+    }
+}
+/*----------------------------------------------------------------------------*/
+/* This variant should only be called if err is not NC_NOERR                  */
+void check_nc_error_x(int err, int ncid, int id)
+{
+    char name[NC_MAX_NAME+1];
+    nc_inq_varname(ncid, id, name);
+    fprintf(stderr, "Error : %s (%d) on variable %3d : \"%s\"\n", nc_strerror(err), err, id, name);
+#if DEBUG
+    CRASH("check_nc_error");
+#endif
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
