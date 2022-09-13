@@ -152,12 +152,16 @@ ifeq ($(AED),true)
   else
     EXTFFLAGS+=-DNO_DEMO
   endif
+  ifdef AEDLGTDIR
+    AEDLIBS+=-L$(AEDLGTDIR)/lib -laed-lighting
+  else
+    EXTFFLAGS+=-DNO_LGT
+  endif
   ifdef AEDDEVDIR
     AEDLIBS+=-L$(AEDDEVDIR)/lib -laed-dev
   else
     EXTFFLAGS+=-DNO_DEV
   endif
-  #AEDLIBS+=-ldl
 
   ifeq ($(USE_DL),true)
     AEDTARGETS=libglm_wq_aed.${so_ext}
