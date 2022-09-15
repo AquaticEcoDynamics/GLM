@@ -106,7 +106,7 @@ if [ "$FC" = "ifort" ] ; then
     LIBS2="${LIBS2} libifport.dylib"
   fi
 else
-  PATH2=/usr/local/
+  PATH2=/${BASEDIR}/local/
   PATH3=/usr/local/
   LIBS2="libgfortran.5.dylib"
 fi
