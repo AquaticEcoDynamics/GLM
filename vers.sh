@@ -21,16 +21,24 @@ N4=`echo $vers | cut -f4 -d.`
 if [ "$N4" = "" ] ; then
   T1=`echo $N3 |  tr 'a' ' '`
   if [ "$T1" = "$N3" ] ; then
-    S='b'
+    T1=`echo $N3 |  tr 'b' ' '`
+    if [ "$T1" = "$N3" ] ; then
+      S=' '
+    else
+      S='b'
+    fi
   else
     S='a'
   fi
-  N4=`echo $N3 | cut -f2- -d$S`
-  N3=`echo $N3 | cut -f1 -d$S`
-
-  N4='0x'$S$N4
+  if [ "$S" = ' ' ] ; then
+    N4=
+  else
+    N4=`echo $N3 | cut -f2- -d$S`
+    N3=`echo $N3 | cut -f1 -d$S`
+    N4=',0x'$S$N4
+  fi
 fi
-OPV=$N1\,$N2\,$N3\,$N4
+OPV=$N1\,$N2\,$N3$N4
 
  echo vers = $vers - OPV  = $OPV
 
