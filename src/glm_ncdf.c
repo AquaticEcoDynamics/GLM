@@ -247,7 +247,7 @@ f0, fsum,u_f,u0,u_avg" PARAM_FILLVALUE);
     set_nc_attributes(ncid, SnowF_id,     "m3",      "Snowfall"             PARAM_FILLVALUE);
     set_nc_attributes(ncid, LakeLvl_id,   "meters",  "Lake Level"           PARAM_FILLVALUE);
     set_nc_attributes(ncid, SnowDns_id,   "unknown", "Snow Density"         PARAM_FILLVALUE);
-    set_nc_attributes(ncid, Alb_id,       "unknown", "Albedo"               PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Alb_id,       "unknown", "Surface Albedo"       PARAM_FILLVALUE);
     set_nc_attributes(ncid, MaxT_id,      "celsius", "Maximum Temperature"  PARAM_FILLVALUE);
     set_nc_attributes(ncid, MinT_id,      "celsius", "Minimum Temperature"  PARAM_FILLVALUE);
     set_nc_attributes(ncid, SfT_id,       "celsius", "Surface Temperature"  PARAM_FILLVALUE);
@@ -262,7 +262,7 @@ f0, fsum,u_f,u0,u_avg" PARAM_FILLVALUE);
     set_nc_attributes(ncid, SWP_id,       "meters",  "Surface Wave Period"  PARAM_FILLVALUE);
     set_nc_attributes(ncid, LkNum_id,     "unknown", "Lake Number"          PARAM_FILLVALUE);
     set_nc_attributes(ncid, maxdtz_id,    "m/s",     "Max dT_dz"            PARAM_FILLVALUE);
-    set_nc_attributes(ncid, CD_id,        "unknown", "CD"                   PARAM_FILLVALUE);
+    set_nc_attributes(ncid, CD_id,        "m/s",     "Coeff. of Wind Drag"  PARAM_FILLVALUE);
     set_nc_attributes(ncid, CHE_id,       "unknown", "CHE"                  PARAM_FILLVALUE);
     set_nc_attributes(ncid, zL_id,        "unknown", "z_L"                  PARAM_FILLVALUE);
 

@@ -139,7 +139,7 @@ extern MetDataType MetData;      //# Meteorological data
 extern AED_REAL runoff_coef;
 extern AED_REAL rain_threshold;
 extern CLOGICAL catchrain;
-extern int atm_stab;         //* Account for non-neutral atmospheric stability
+extern int atm_stab;         //# Account for non-neutral atmospheric stability
 extern AED_REAL coef_wind_drag;   //# = 0.0013;
 extern AED_REAL coef_wind_chwn;   //# = 0.0013;
 extern AED_REAL CD;               //# = 0.0013;
@@ -184,39 +184,39 @@ extern AED_REAL coef_mix_shear; //# shear efficiency
 extern AED_REAL coef_mix_turb;  //# unsteady effects
 extern AED_REAL coef_wind_stir; //# wind stirring
 extern AED_REAL coef_mix_hyp;   //# efficiency of hypolimnetic mixing
-extern AED_REAL coef_mix_shreq;  //# unsteady effects
+extern AED_REAL coef_mix_shreq; //# unsteady effects
 
 extern CLOGICAL mobility_off;
 extern CLOGICAL non_avg;
-extern int      deep_mixing;    //# = 0 => off > 0 => on
+extern int      deep_mixing;          //# = 0 => off > 0 => on
 extern int      surface_mixing;
 
 extern int      density_model;
 
-extern AED_REAL albedo_mean;        //# mean albedo
-extern AED_REAL albedo_amplitude;   //#  albedo seasonal amplitude
+extern AED_REAL albedo_mean;          //# mean albedo
+extern AED_REAL albedo_amplitude;     //#  albedo seasonal amplitude
 extern AED_REAL lw_factor ;
 extern AED_REAL lw_offset ;
 
 //# DepMX is the layer height of the meta top on the previous timestep.
 extern AED_REAL DepMX;
 
-extern AED_REAL PrevThick;   //# mixed layer thickness from previous time step
+extern AED_REAL PrevThick;            //# mixed layer thickness from previous time step
 
-extern AED_REAL gPrimeTwoLayer;  //# Reduced gravity for int wave estimate
+extern AED_REAL gPrimeTwoLayer;       //# Reduced gravity for int wave estimate
 
 extern AED_REAL Energy_AvailableMix;  //# Total available energy to mix (carries over from previous timesteps)
 
-extern AED_REAL Mass_Epi; //# Sigma mass of Epilimnion (surface layer after Kelvin-Helmholtz) kg
+extern AED_REAL Mass_Epi;             //# Sigma mass of Epilimnion (surface layer after Kelvin-Helmholtz) kg
 
 extern AED_REAL OldSlope;
-extern AED_REAL Time_end_shear;  //# Time left before shear cut off [hours]
-extern AED_REAL Time_start_shear; //# Time count since start of sim for shear period start [hours]
-extern AED_REAL Time_count_end_shear;  //# Time count since start of sim for shear period end [hours]
-extern AED_REAL Time_count_sim;  //# Time count since start of simulation [hours]
+extern AED_REAL Time_end_shear;       //# Time left before shear cut off [hours]
+extern AED_REAL Time_start_shear;     //# Time count since start of sim for shear period start [hours]
+extern AED_REAL Time_count_end_shear; //# Time count since start of sim for shear period end [hours]
+extern AED_REAL Time_count_sim;       //# Time count since start of simulation [hours]
 
-extern AED_REAL Half_Seiche_Period; //# One half the seiche period
-extern AED_REAL Thermocline_Height; //# Height at the top of the metalimnion [m]
+extern AED_REAL Half_Seiche_Period;   //# One half the seiche period
+extern AED_REAL Thermocline_Height;   //# Height at the top of the metalimnion [m]
 extern AED_REAL FO;
 extern AED_REAL FSUM;
 extern AED_REAL u_f;
@@ -230,21 +230,21 @@ extern AED_REAL snow_rho_max;
 extern AED_REAL snow_rho_min;
 extern AED_REAL snow_water_equivalent;
 extern AED_REAL snow_rain_compact;
-extern AED_REAL  K_ice_white;
-extern AED_REAL  K_ice_blue;
-extern AED_REAL  K_water;
-extern AED_REAL  f_sw_wl1;
-extern AED_REAL  f_sw_wl2;
-extern AED_REAL  attn_ice_blue_wl1;
-extern AED_REAL  attn_ice_blue_wl2;
-extern AED_REAL  attn_ice_white_wl1;
-extern AED_REAL  attn_ice_white_wl2;
-extern AED_REAL  attn_snow_wl1;
-extern AED_REAL  attn_snow_wl2;
-extern AED_REAL  rho_ice_blue;
-extern AED_REAL  rho_ice_white;
-extern AED_REAL  min_ice_thickness;
-extern AED_REAL  dt_iceon_avg;
+extern AED_REAL K_ice_white;
+extern AED_REAL K_ice_blue;
+extern AED_REAL K_water;
+extern AED_REAL f_sw_wl1;
+extern AED_REAL f_sw_wl2;
+extern AED_REAL attn_ice_blue_wl1;
+extern AED_REAL attn_ice_blue_wl2;
+extern AED_REAL attn_ice_white_wl1;
+extern AED_REAL attn_ice_white_wl2;
+extern AED_REAL attn_snow_wl1;
+extern AED_REAL attn_snow_wl2;
+extern AED_REAL rho_ice_blue;
+extern AED_REAL rho_ice_white;
+extern AED_REAL min_ice_thickness;
+extern AED_REAL dt_iceon_avg;
 extern AED_REAL avg_surf_temp_thres;
 
 /*----------------------------------------------------------------------------*/
@@ -268,17 +268,17 @@ extern AED_REAL *L_gw;   //# turn off evaporation
 
 /*----------------------------------------------------------------------------*/
 // FETCH
-extern LOGICAL     fetch_sw;
-extern int         fetch_ndirs;
-extern AED_REAL   *fetch_dirs;
-extern AED_REAL   *fetch_scale;
-extern AED_REAL    fetch_height;
-extern AED_REAL    fetch_porosity;
+extern LOGICAL   fetch_sw;
+extern int       fetch_ndirs;
+extern AED_REAL *fetch_dirs;
+extern AED_REAL *fetch_scale;
+extern AED_REAL  fetch_height;
+extern AED_REAL  fetch_porosity;
 
-extern int         fetch_mode;
-extern AED_REAL    fetch_aws;
-extern AED_REAL    fetch_xws;
-extern char       *fetch_fws;
+extern int       fetch_mode;
+extern AED_REAL  fetch_aws;
+extern AED_REAL  fetch_xws;
+extern char     *fetch_fws;
 
 /*----------------------------------------------------------------------------*/
 // LITTORAL

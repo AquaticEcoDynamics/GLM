@@ -122,7 +122,7 @@ MODULE glm_types
       AED_REAL :: dailyOutflow     !# Total Daily Outflow (m3/day)
       AED_REAL :: dailyOverflow    !# Total Daily Overflow (m3/day)
       AED_REAL :: albedo           !# Daily surface albedo
-      AED_REAL :: dailyzonL        !# Average z/L value, atmos stability
+      AED_REAL :: dailyzonL        !# Average z/L value, daily atmospheric stability
    END TYPE SurfaceDataType
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
