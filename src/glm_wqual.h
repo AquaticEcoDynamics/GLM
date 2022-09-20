@@ -108,6 +108,7 @@ void aed_init_glm(char *fname, size_t *len, int *kk, int *NumWQVars, int *NumWQB
 void aed_set_glm_data(void *Lake, int *MaxLayers,
                 MetDataType *MetData, SurfaceDataType *SurfData, AED_REAL *dt,
                  AED_REAL *c_rain_factor, AED_REAL *c_sw_factor, AED_REAL *c_friction);
+void aed_set_glm_where(AED_REAL *Longitude, AED_REAL *Latitude);
 void aed_do_glm(int *wlev, int *pIce);
 void aed_clean_glm(void);
 void aed_init_glm_output(int *ncid, int *x_dim, int *y_dim, int *z_dim, int *zone_dim, int *time_dim);

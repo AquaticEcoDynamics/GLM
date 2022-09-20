@@ -297,7 +297,7 @@ f0, fsum,u_f,u0,u_avg" PARAM_FILLVALUE);
     //# leave define mode
     check_nc_error(nc_enddef(ncid));
 
-    //# save latitude and logitude
+    //# save latitude and longitude
     store_nc_scalar(ncid, lon_id, POINT, lon);
     store_nc_scalar(ncid, lat_id, POINT, lat);
 

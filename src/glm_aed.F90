@@ -140,6 +140,8 @@ MODULE glm_aed
    AED_REAL,POINTER :: I_0, wnd
    AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: depth,layer_area
 
+   AED_REAL,POINTER :: lon, lat
+
    CHARACTER(len=48),ALLOCATABLE :: names(:)
    CHARACTER(len=48),ALLOCATABLE :: bennames(:)
 !  CHARACTER(len=48),ALLOCATABLE :: diagnames(:)
@@ -320,11 +322,14 @@ SUBROUTINE aed_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C, 
    tv = aed_provide_sheet_global( 'wind_speed', 'wind speed' , 'm/s' )
    tv = aed_provide_sheet_global( 'par_sf', 'par_sf' , '' )
    tv = aed_provide_sheet_global( 'taub', 'layer stress' , 'N/m2' )
-   tv = aed_provide_sheet_global( 'air_temp', 'air temperature' , 'celsius' )
+   tv = aed_provide_sheet_global( 'air_temp', 'air temperature', 'celsius' )
    !longwave
    !col_num
    !col_depth
-   tv = aed_provide_sheet_global( 'col_depth', 'lake depth' , 'meters' )
+   tv = aed_provide_sheet_global( 'col_depth', 'lake depth', 'meters' )
+   ! added for oasim
+   tv = aed_provide_sheet_global( 'longitude', 'longitude', 'degrees' )
+   tv = aed_provide_sheet_global( 'latitude',  'latitude',  'degrees' )
 
    !# Create model tree
    print *,"     Processing aed_models config from ",TRIM(fname)
@@ -655,6 +660,21 @@ END SUBROUTINE aed_set_glm_data
 
 
 !###############################################################################
+SUBROUTINE aed_set_glm_where(Longitude, Latitude) BIND(C, name="aed_set_glm_where")
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   AED_REAL,TARGET :: Longitude, Latitude
+!LOCALS
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   lon => Longitude
+   lat => Latitude
+END SUBROUTINE aed_set_glm_where
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
 SUBROUTINE check_data
 !-------------------------------------------------------------------------------
 ! Check that all variable dependencies have been met
@@ -697,6 +717,8 @@ SUBROUTINE check_data
             CASE ( 'layer_area' )  ; tvar%found = .true.
             CASE ( 'rain' )        ; tvar%found = .true.
             CASE ( 'air_temp' )    ; tvar%found = .true.
+            CASE ( 'longitude' )   ; tvar%found = .true.
+            CASE ( 'latitude' )    ; tvar%found = .true.
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
@@ -776,6 +798,8 @@ SUBROUTINE define_column(column, top, cc, cc_diag, flux_pel, flux_atm, flux_ben)
             CASE ( 'layer_area' )  ; column(av)%cell => layer_area(:)
             CASE ( 'rain' )        ; column(av)%cell_sheet => precip
             CASE ( 'air_temp' )    ; column(av)%cell_sheet => air_temp
+            CASE ( 'longitude' )   ; column(av)%cell_sheet => lon
+            CASE ( 'latitude' )    ; column(av)%cell_sheet => lat
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
@@ -1081,6 +1105,8 @@ CONTAINS
             CASE ( 'layer_area' )  ; column_sed(av)%cell => theZones(bot:top)%zarea
             CASE ( 'rain' )        ; column_sed(av)%cell_sheet => precip
             CASE ( 'air_temp' )    ; column_sed(av)%cell_sheet => air_temp
+            CASE ( 'longitude' )   ; column_sed(av)%cell_sheet => lon
+            CASE ( 'latitude' )    ; column_sed(av)%cell_sheet => lat
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable

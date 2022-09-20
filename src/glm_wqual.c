@@ -211,5 +211,10 @@ int prime_wq(const char *which)
                                      &repair_state, &ode_method, &benthic_mode, &do_plots,
                                      &link_rain_loss, &link_solar_shade, &link_bottom_drag);
 
+#ifdef AED
+    if ( strcmp(which, "aed") == 0 )
+        aed_set_glm_where(&Longitude, &Latitude);
+#endif
+
     return 0;
 }
