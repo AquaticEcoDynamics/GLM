@@ -136,7 +136,7 @@ MODULE glm_aed
 !  INTEGER  :: w_adv_ctr    ! Scheme for vertical advection (0 IF not used)
    AED_REAL,POINTER,DIMENSION(:) :: rad, z, salt, temp, rho, area
    AED_REAL,POINTER,DIMENSION(:) :: extc_coef, layer_stress, vel
-   AED_REAL,POINTER :: precip, evap, bottom_stress, air_temp
+   AED_REAL,POINTER :: precip, evap, bottom_stress, air_temp, rel_hum
    AED_REAL,POINTER :: I_0, wnd
    AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: depth,layer_area
 
@@ -323,6 +323,7 @@ SUBROUTINE aed_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C, 
    tv = aed_provide_sheet_global( 'par_sf', 'par_sf' , '' )
    tv = aed_provide_sheet_global( 'taub', 'layer stress' , 'N/m2' )
    tv = aed_provide_sheet_global( 'air_temp', 'air temperature', 'celsius' )
+   tv = aed_provide_sheet_global( 'humidity', 'relative humidity', '-' )
    !longwave
    !col_num
    !col_depth
@@ -633,6 +634,8 @@ SUBROUTINE aed_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_,           &
 
    precip => MetData%Rain
    air_temp => MetData%AirTemp
+   rel_hum => MetData%RelHum
+
    evap   => SurfData%Evap
    bottom_stress => layer_stress(botmLayer)
 
@@ -717,6 +720,7 @@ SUBROUTINE check_data
             CASE ( 'layer_area' )  ; tvar%found = .true.
             CASE ( 'rain' )        ; tvar%found = .true.
             CASE ( 'air_temp' )    ; tvar%found = .true.
+            CASE ( 'humidity' )    ; tvar%found = .true.
             CASE ( 'longitude' )   ; tvar%found = .true.
             CASE ( 'latitude' )    ; tvar%found = .true.
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
@@ -798,6 +802,7 @@ SUBROUTINE define_column(column, top, cc, cc_diag, flux_pel, flux_atm, flux_ben)
             CASE ( 'layer_area' )  ; column(av)%cell => layer_area(:)
             CASE ( 'rain' )        ; column(av)%cell_sheet => precip
             CASE ( 'air_temp' )    ; column(av)%cell_sheet => air_temp
+            CASE ( 'humidity' )    ; column(av)%cell_sheet => rel_hum
             CASE ( 'longitude' )   ; column(av)%cell_sheet => lon
             CASE ( 'latitude' )    ; column(av)%cell_sheet => lat
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
@@ -1105,6 +1110,7 @@ CONTAINS
             CASE ( 'layer_area' )  ; column_sed(av)%cell => theZones(bot:top)%zarea
             CASE ( 'rain' )        ; column_sed(av)%cell_sheet => precip
             CASE ( 'air_temp' )    ; column_sed(av)%cell_sheet => air_temp
+            CASE ( 'humidity' )    ; column_sed(av)%cell_sheet => rel_hum
             CASE ( 'longitude' )   ; column_sed(av)%cell_sheet => lon
             CASE ( 'latitude' )    ; column_sed(av)%cell_sheet => lat
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
