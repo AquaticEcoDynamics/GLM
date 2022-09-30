@@ -672,6 +672,7 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
     AED_REAL Light_Surface; //# Light at the surface of the lake after do_surface
     int write_step, last_step;
 
+    yearday = day_of_year(jday);
     noSecs = timestep;
     coef_wind_drag = CD;
 

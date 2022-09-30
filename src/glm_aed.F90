@@ -141,6 +141,7 @@ MODULE glm_aed
    AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: depth,layer_area
 
    AED_REAL,POINTER :: lon, lat
+   AED_REAL,POINTER :: yeardayP, timestepP
 
    CHARACTER(len=48),ALLOCATABLE :: names(:)
    CHARACTER(len=48),ALLOCATABLE :: bennames(:)
@@ -329,8 +330,10 @@ SUBROUTINE aed_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C, 
    !col_depth
    tv = aed_provide_sheet_global( 'col_depth', 'lake depth', 'meters' )
    ! added for oasim
-   tv = aed_provide_sheet_global( 'longitude', 'longitude', 'degrees' )
-   tv = aed_provide_sheet_global( 'latitude',  'latitude',  'degrees' )
+   tv = aed_provide_sheet_global( 'longitude', 'longitude', 'radians' )
+   tv = aed_provide_sheet_global( 'latitude',  'latitude',  'radians' )
+   tv = aed_provide_sheet_global( 'yearday',   'yearday',   'day' )
+   tv = aed_provide_sheet_global( 'timestep',  'timestep',  'seconds' )
 
    !# Create model tree
    print *,"     Processing aed_models config from ",TRIM(fname)
@@ -663,16 +666,19 @@ END SUBROUTINE aed_set_glm_data
 
 
 !###############################################################################
-SUBROUTINE aed_set_glm_where(Longitude, Latitude) BIND(C, name="aed_set_glm_where")
+SUBROUTINE aed_set_glm_where(Longitude, Latitude, yearday, timestep)           &
+                                              BIND(C, name="aed_set_glm_where")
 !-------------------------------------------------------------------------------
 !ARGUMENTS
-   AED_REAL,TARGET :: Longitude, Latitude
+   AED_REAL,TARGET :: Longitude, Latitude, yearday, timestep
 !LOCALS
 !
 !-------------------------------------------------------------------------------
 !BEGIN
    lon => Longitude
    lat => Latitude
+   yeardayP => yearday
+   timestepP => timestep
 END SUBROUTINE aed_set_glm_where
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -723,6 +729,8 @@ SUBROUTINE check_data
             CASE ( 'humidity' )    ; tvar%found = .true.
             CASE ( 'longitude' )   ; tvar%found = .true.
             CASE ( 'latitude' )    ; tvar%found = .true.
+            CASE ( 'yearday' )     ; tvar%found = .true.
+            CASE ( 'timestep' )    ; tvar%found = .true.
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
@@ -805,6 +813,8 @@ SUBROUTINE define_column(column, top, cc, cc_diag, flux_pel, flux_atm, flux_ben)
             CASE ( 'humidity' )    ; column(av)%cell_sheet => rel_hum
             CASE ( 'longitude' )   ; column(av)%cell_sheet => lon
             CASE ( 'latitude' )    ; column(av)%cell_sheet => lat
+            CASE ( 'yearday' )     ; column(av)%cell_sheet => yeardayP
+            CASE ( 'timestep' )    ; column(av)%cell_sheet => timestepP
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
@@ -1113,6 +1123,8 @@ CONTAINS
             CASE ( 'humidity' )    ; column_sed(av)%cell_sheet => rel_hum
             CASE ( 'longitude' )   ; column_sed(av)%cell_sheet => lon
             CASE ( 'latitude' )    ; column_sed(av)%cell_sheet => lat
+            CASE ( 'yearday' )     ; column_sed(av)%cell_sheet => yeardayP
+            CASE ( 'timestep' )    ; column_sed(av)%cell_sheet => timestepP
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable

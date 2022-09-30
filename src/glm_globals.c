@@ -244,6 +244,7 @@ AED_REAL timezone_r = 0.0, timezone_m = 0.0, timezone_i = 0.0, timezone_o = 0.0;
 int nDays;          //# number of days to simulate
 AED_REAL timestep;
 int noSecs;
+AED_REAL yearday;   //# day of year
 
 //------------------------------------------------------------------------------
 
