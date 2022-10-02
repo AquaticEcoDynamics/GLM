@@ -1223,6 +1223,7 @@ CONTAINS
    !
    !LOCALS
       INTEGER :: lev,zon,v_start,v_end,av,sv,sd
+      INTEGER, ALLOCATABLE :: layer_map(:)
       AED_REAL :: scale
       AED_REAL, DIMENSION(wlev, n_vars+n_vars_ben)    :: flux_pel_pre
       AED_REAL, DIMENSION(n_zones, n_vars+n_vars_ben) :: flux_pel_z
@@ -1237,11 +1238,21 @@ CONTAINS
    flux_zon = zero_
    flux_pel_z = zero_
 
-   !# Start with calculating all flux terms for rhs in mass/m3/s
-   !# Includes (1) benthic flux, (2) surface exchange and (3) water column kinetics
+   !# Start with updating column diagnostics (currently only used for light)
+
+   !# (1) WATER COLUMN UPDATING
+   ALLOCATE(layer_map(wlev))
+   DO lev=1,wlev
+      layer_map(lev) = 1 + wlev-lev
+   ENDDO
+   CALL aed_calculate_column(column, layer_map)
+   DEALLOCATE(layer_map)
+
+   !# Now do the general calculation all flux terms for rhs in mass/m3/s
+   !# Includes (i) benthic flux, (ii) surface exchange and (ii) kinetic updates in each cell
    !# as calculated by glm
 
-   !# (1) BENTHIC FLUXES
+   !# (2) BENTHIC FLUXES
    IF ( benthic_mode .GT. 1 ) THEN
          CALL define_sed_column(n_zones, 1)
 
@@ -1384,7 +1395,7 @@ CONTAINS
       ENDIF
    ENDIF
 
-   !# (2) SURFACE FLUXES
+   !# (3) SURFACE FLUXES
    !# Calculate temporal derivatives due to air-water exchange.
    IF (.NOT. lIce) THEN !# no surface exchange under ice cover
       CALL aed_calculate_surface(column, wlev)
@@ -1393,11 +1404,13 @@ CONTAINS
       flux_pel(wlev, :) = flux_pel(wlev, :) + flux_atm(:)/dz(wlev)
    ENDIF
 
-   !# (3) WATER COLUMN KINETICS
-   !# Add pelagic sink and source terms for all depth levels.
+
+   !# (4) WATER CELL KINETICS
+   !# Add pelagic sink and source terms in cells of all depth levels.
    DO lev=1,wlev
       CALL aed_calculate(column, lev)
    ENDDO
+   
    END SUBROUTINE calculate_fluxes
    !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
