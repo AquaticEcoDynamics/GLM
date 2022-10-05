@@ -248,6 +248,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 //  extern LOGICAL  link_solar_shade;
 //  extern LOGICAL  link_rain_loss;
 //  extern LOGICAL  link_bottom_drag;
+//  extern LOGICAL  use_met_atm_pres;
     char           *timefmt_m = NULL;
     extern AED_REAL timezone_m;
     //==========================================================================
@@ -286,6 +287,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "link_solar_shade",  TYPE_BOOL,             &link_solar_shade     },
           { "link_rain_loss",    TYPE_BOOL,             &link_rain_loss       },
           { "link_bottom_drag",  TYPE_BOOL,             &link_bottom_drag     },
+          { "use_met_atm_pres",  TYPE_BOOL,             &use_met_atm_pres     },
      //   { "snow_sw",           TYPE_BOOL,             &snow_sw              },
           { NULL,                TYPE_END,              NULL                  }
     };

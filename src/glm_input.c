@@ -36,6 +36,7 @@
 #include <string.h>
 
 #include "glm.h"
+#include "glm_const.h"
 #include "glm_types.h"
 #include "glm_globals.h"
 #include "aed_time.h"
@@ -75,7 +76,8 @@ static int metf = -1, kwf = -1;
 static int rain_idx = -1, hum_idx  = -1, lwav_idx = -1, sw_idx   = -1,
            atmp_idx = -1, wind_idx = -1, snow_idx = -1, rpo4_idx = -1,
            rtp_idx  = -1, rno3_idx = -1, rnh4_idx = -1, rtn_idx  = -1,
-           rsi_idx  = -1, wdir_idx = -1, kw_idx   = -1, time_idx = -1;
+           rsi_idx  = -1, wdir_idx = -1, kw_idx   = -1, time_idx = -1,
+           apres_idx = -1;
 
 int lw_ind = 0;
 static int have_snow = FALSE, have_rain_conc = FALSE;
@@ -277,6 +279,10 @@ void read_daily_met(int julian, MetDataType *met)
     //  submet[idx].AirTemp     = get_csv_val_r(csv, atmp_idx) * at_factor;
         submet[idx].AirTemp     = get_csv_val_r(csv, atmp_idx) * at_factor + at_offset;
         submet[idx].WindSpeed   = get_csv_val_r(csv, wind_idx) * wind_factor;
+        if ( use_met_atm_pres && apres_idx != -1 )
+            submet[idx].AirPres = get_csv_val_r(csv, apres_idx);
+        else
+            submet[idx].AirPres = atm_pressure_sl;
 
         // Read in rel humidity into svd (%), and convert to satvap
         submet[idx].SatVapDef   =  (submet[idx].RelHum/100.) * saturated_vapour(submet[idx].AirTemp);
@@ -446,6 +452,7 @@ void open_met_file(const char *fname, int snow_sw, int rain_sw,
     sw_idx = find_csv_var(metf,"ShortWave");
     atmp_idx = find_csv_var(metf,"AirTemp");
     wind_idx = find_csv_var(metf,"WindSpeed");
+    apres_idx = find_csv_var(metf,"AirPres");
     if ( have_snow ) {
         snow_idx = find_csv_var(metf,"Snow");
         if ( snow_idx < 0 ) {

@@ -89,6 +89,7 @@ MODULE glm_types
       AED_REAL :: LongWave         !# longwave radiation
       AED_REAL :: ShortWave        !# shortwave radiation
       AED_REAL :: AirTemp          !# temperature
+      AED_REAL :: AirPres          !# air pressure
       AED_REAL :: WindSpeed        !# windspeed
       AED_REAL :: Snow             !# snowfall
       AED_REAL :: RainConcPO4      !# Concentration of PO4 in rain

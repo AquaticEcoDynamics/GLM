@@ -160,6 +160,7 @@ AED_REAL  *energy_frac = NULL;
 LOGICAL link_solar_shade = FALSE;
 LOGICAL link_rain_loss   = FALSE;
 LOGICAL link_bottom_drag = FALSE;
+LOGICAL use_met_atm_pres = TRUE;
 AED_REAL biodrag = 0.0;
 
 AED_REAL salt_fall = 0.0;
