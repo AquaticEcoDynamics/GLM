@@ -160,6 +160,7 @@ AED_REAL  *energy_frac = NULL;
 LOGICAL link_solar_shade = FALSE;
 LOGICAL link_rain_loss   = FALSE;
 LOGICAL link_bottom_drag = FALSE;
+LOGICAL use_met_atm_pres = TRUE;
 AED_REAL biodrag = 0.0;
 
 AED_REAL salt_fall = 0.0;
@@ -244,6 +245,7 @@ AED_REAL timezone_r = 0.0, timezone_m = 0.0, timezone_i = 0.0, timezone_o = 0.0;
 int nDays;          //# number of days to simulate
 AED_REAL timestep;
 int noSecs;
+AED_REAL yearday;   //# day of year
 
 //------------------------------------------------------------------------------
 

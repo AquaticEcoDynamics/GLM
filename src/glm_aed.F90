@@ -137,10 +137,11 @@ MODULE glm_aed
    AED_REAL,POINTER,DIMENSION(:) :: rad, z, salt, temp, rho, area
    AED_REAL,POINTER,DIMENSION(:) :: extc_coef, layer_stress, vel
    AED_REAL,POINTER :: precip, evap, bottom_stress, air_temp, rel_hum
-   AED_REAL,POINTER :: I_0, wnd
+   AED_REAL,POINTER :: I_0, wnd, air_pres
    AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: depth,layer_area
 
    AED_REAL,POINTER :: lon, lat
+   AED_REAL,POINTER :: yeardayP, timestepP
 
    CHARACTER(len=48),ALLOCATABLE :: names(:)
    CHARACTER(len=48),ALLOCATABLE :: bennames(:)
@@ -329,8 +330,13 @@ SUBROUTINE aed_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C, 
    !col_depth
    tv = aed_provide_sheet_global( 'col_depth', 'lake depth', 'meters' )
    ! added for oasim
-   tv = aed_provide_sheet_global( 'longitude', 'longitude', 'degrees' )
-   tv = aed_provide_sheet_global( 'latitude',  'latitude',  'degrees' )
+   tv = aed_provide_sheet_global( 'longitude', 'longitude', 'radians' )
+   tv = aed_provide_sheet_global( 'latitude',  'latitude',  'radians' )
+   tv = aed_provide_sheet_global( 'yearday',   'yearday',   'day' )
+   tv = aed_provide_sheet_global( 'timestep',  'timestep',  'seconds' )
+
+   ! new var air_pressure
+   tv = aed_provide_sheet_global( 'air_pres',  'air_pressure',  'Pa' )
 
    !# Create model tree
    print *,"     Processing aed_models config from ",TRIM(fname)
@@ -635,6 +641,7 @@ SUBROUTINE aed_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_,           &
    precip => MetData%Rain
    air_temp => MetData%AirTemp
    rel_hum => MetData%RelHum
+   air_pres => MetData%AirPres
 
    evap   => SurfData%Evap
    bottom_stress => layer_stress(botmLayer)
@@ -663,16 +670,19 @@ END SUBROUTINE aed_set_glm_data
 
 
 !###############################################################################
-SUBROUTINE aed_set_glm_where(Longitude, Latitude) BIND(C, name="aed_set_glm_where")
+SUBROUTINE aed_set_glm_where(Longitude, Latitude, yearday, timestep)           &
+                                              BIND(C, name="aed_set_glm_where")
 !-------------------------------------------------------------------------------
 !ARGUMENTS
-   AED_REAL,TARGET :: Longitude, Latitude
+   AED_REAL,TARGET :: Longitude, Latitude, yearday, timestep
 !LOCALS
 !
 !-------------------------------------------------------------------------------
 !BEGIN
    lon => Longitude
    lat => Latitude
+   yeardayP => yearday
+   timestepP => timestep
 END SUBROUTINE aed_set_glm_where
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -720,9 +730,12 @@ SUBROUTINE check_data
             CASE ( 'layer_area' )  ; tvar%found = .true.
             CASE ( 'rain' )        ; tvar%found = .true.
             CASE ( 'air_temp' )    ; tvar%found = .true.
+            CASE ( 'air_pres' )    ; tvar%found = .true.
             CASE ( 'humidity' )    ; tvar%found = .true.
             CASE ( 'longitude' )   ; tvar%found = .true.
             CASE ( 'latitude' )    ; tvar%found = .true.
+            CASE ( 'yearday' )     ; tvar%found = .true.
+            CASE ( 'timestep' )    ; tvar%found = .true.
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
@@ -802,9 +815,12 @@ SUBROUTINE define_column(column, top, cc, cc_diag, flux_pel, flux_atm, flux_ben)
             CASE ( 'layer_area' )  ; column(av)%cell => layer_area(:)
             CASE ( 'rain' )        ; column(av)%cell_sheet => precip
             CASE ( 'air_temp' )    ; column(av)%cell_sheet => air_temp
+            CASE ( 'air_pres' )    ; column(av)%cell_sheet => air_pres
             CASE ( 'humidity' )    ; column(av)%cell_sheet => rel_hum
             CASE ( 'longitude' )   ; column(av)%cell_sheet => lon
             CASE ( 'latitude' )    ; column(av)%cell_sheet => lat
+            CASE ( 'yearday' )     ; column(av)%cell_sheet => yeardayP
+            CASE ( 'timestep' )    ; column(av)%cell_sheet => timestepP
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
@@ -1113,6 +1129,8 @@ CONTAINS
             CASE ( 'humidity' )    ; column_sed(av)%cell_sheet => rel_hum
             CASE ( 'longitude' )   ; column_sed(av)%cell_sheet => lon
             CASE ( 'latitude' )    ; column_sed(av)%cell_sheet => lat
+            CASE ( 'yearday' )     ; column_sed(av)%cell_sheet => yeardayP
+            CASE ( 'timestep' )    ; column_sed(av)%cell_sheet => timestepP
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
@@ -1211,6 +1229,7 @@ CONTAINS
    !
    !LOCALS
       INTEGER :: lev,zon,v_start,v_end,av,sv,sd
+      INTEGER, ALLOCATABLE :: layer_map(:)
       AED_REAL :: scale
       AED_REAL, DIMENSION(wlev, n_vars+n_vars_ben)    :: flux_pel_pre
       AED_REAL, DIMENSION(n_zones, n_vars+n_vars_ben) :: flux_pel_z
@@ -1225,11 +1244,21 @@ CONTAINS
    flux_zon = zero_
    flux_pel_z = zero_
 
-   !# Start with calculating all flux terms for rhs in mass/m3/s
-   !# Includes (1) benthic flux, (2) surface exchange and (3) water column kinetics
+   !# Start with updating column diagnostics (currently only used for light)
+
+   !# (1) WATER COLUMN UPDATING
+   ALLOCATE(layer_map(wlev))
+   DO lev=1,wlev
+      layer_map(lev) = 1 + wlev-lev
+   ENDDO
+   CALL aed_calculate_column(column, layer_map)
+   DEALLOCATE(layer_map)
+
+   !# Now do the general calculation all flux terms for rhs in mass/m3/s
+   !# Includes (i) benthic flux, (ii) surface exchange and (ii) kinetic updates in each cell
    !# as calculated by glm
 
-   !# (1) BENTHIC FLUXES
+   !# (2) BENTHIC FLUXES
    IF ( benthic_mode .GT. 1 ) THEN
          CALL define_sed_column(n_zones, 1)
 
@@ -1372,7 +1401,7 @@ CONTAINS
       ENDIF
    ENDIF
 
-   !# (2) SURFACE FLUXES
+   !# (3) SURFACE FLUXES
    !# Calculate temporal derivatives due to air-water exchange.
    IF (.NOT. lIce) THEN !# no surface exchange under ice cover
       CALL aed_calculate_surface(column, wlev)
@@ -1381,11 +1410,13 @@ CONTAINS
       flux_pel(wlev, :) = flux_pel(wlev, :) + flux_atm(:)/dz(wlev)
    ENDIF
 
-   !# (3) WATER COLUMN KINETICS
-   !# Add pelagic sink and source terms for all depth levels.
+
+   !# (4) WATER CELL KINETICS
+   !# Add pelagic sink and source terms in cells of all depth levels.
    DO lev=1,wlev
       CALL aed_calculate(column, lev)
    ENDDO
+   
    END SUBROUTINE calculate_fluxes
    !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

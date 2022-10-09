@@ -288,7 +288,8 @@ static AED_REAL gsw_specvol(AED_REAL sa, AED_REAL ct, AED_REAL p)
  ******************************************************************************/
 static AED_REAL calculate_density_TEOS(AED_REAL temp, AED_REAL salt)
 {
-    return (1.0/gsw_specvol(salt,temp,atm_pressure_sl/100.));
+//  return (1.0/gsw_specvol(salt,temp,atm_pressure_sl/100.));
+    return (1.0/gsw_specvol(salt,temp,MetData.AirPres/100.));
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

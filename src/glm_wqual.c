@@ -213,7 +213,7 @@ int prime_wq(const char *which)
 
 #ifdef AED
     if ( strcmp(which, "aed") == 0 )
-        aed_set_glm_where(&Longitude, &Latitude);
+        aed_set_glm_where(&Longitude, &Latitude, &yearday, &timestep);
 #endif
 
     return 0;

@@ -671,9 +671,12 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
     int iclock;  //# The seconds counter during a day
     AED_REAL Light_Surface; //# Light at the surface of the lake after do_surface
     int write_step, last_step;
+    AED_REAL part_day_per_step;
 
+    yearday = day_of_year(jday);
     noSecs = timestep;
     coef_wind_drag = CD;
+    part_day_per_step = timestep / SecsPerDay;
 
     /**************************************************************************
      *  Loop for each second in a day (86400 = #seconds in a day)             *
@@ -770,6 +773,7 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
 
 //      printf("stepnum %d\n", stepnum);
         iclock += noSecs;
+        yearday += part_day_per_step;
     }   //# do while (iclock < iSecsPerDay)
     /**************************************************************************
      * End of sub-daily loop                                                  *

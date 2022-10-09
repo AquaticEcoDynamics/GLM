@@ -157,6 +157,7 @@ extern AED_REAL *energy_frac;
 extern LOGICAL  link_solar_shade;
 extern LOGICAL  link_rain_loss;
 extern LOGICAL  link_bottom_drag;
+extern LOGICAL  use_met_atm_pres;
 extern AED_REAL biodrag;
 
 extern AED_REAL salt_fall;
@@ -290,6 +291,7 @@ extern AED_REAL timezone_r, timezone_m, timezone_i, timezone_o;
 extern int nDays;          //# number of days to simulate
 extern AED_REAL timestep;
 extern int noSecs;
+extern AED_REAL yearday;   //# day of year
 
 /*----------------------------------------------------------------------------*/
 // DEBUGGING
