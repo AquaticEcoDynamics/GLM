@@ -1126,6 +1126,7 @@ CONTAINS
             CASE ( 'layer_area' )  ; column_sed(av)%cell => theZones(bot:top)%zarea
             CASE ( 'rain' )        ; column_sed(av)%cell_sheet => precip
             CASE ( 'air_temp' )    ; column_sed(av)%cell_sheet => air_temp
+            CASE ( 'air_pres' )    ; column_sed(av)%cell_sheet => air_pres
             CASE ( 'humidity' )    ; column_sed(av)%cell_sheet => rel_hum
             CASE ( 'longitude' )   ; column_sed(av)%cell_sheet => lon
             CASE ( 'latitude' )    ; column_sed(av)%cell_sheet => lat
@@ -1260,7 +1261,7 @@ CONTAINS
 
    !# (2) BENTHIC FLUXES
    IF ( benthic_mode .GT. 1 ) THEN
-         CALL define_sed_column(n_zones, 1)
+      CALL define_sed_column(n_zones, 1)
 
       !# Multiple static sediment zones are simulated, and therfore overlying
       !# water conditions need to be aggregated from multiple cells/layers, and output flux

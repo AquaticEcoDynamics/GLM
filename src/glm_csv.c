@@ -143,7 +143,10 @@ void init_csv_output(const char *out_dir)
         for (j = 0; j < csv_point_nlevs; j++) {
             i = csv_point_at[j];
 
-            snprintf(fname,20,"%s%d", csv_point_fname, i);
+            if ( i == 0 ) {
+                snprintf(fname,20,"%s%s", csv_point_fname, (csv_point_frombot[j])?"ben":"surf");
+            } else
+                snprintf(fname,20,"%s%d", csv_point_fname, i);
             csv_points[j] = open_csv_output(out_dir, fname);
 
             csv_header_start(csv_points[j]);
