@@ -1612,6 +1612,12 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                   CALL put_glm_val_s(plot_id_sd(sd),cc_diag_hz(sd))
                ENDIF
 #endif
+               DO j=1,point_nlevs
+                  val_out = missing
+                  IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc_diag(1, v)
+                  IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc_diag(1, v)
+                  CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
+               ENDDO
             ELSE  !# not sheet
                d = d + 1
                !# Store diagnostic variable values defined on the full domain.
@@ -1644,6 +1650,12 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                   CALL put_glm_val_s(plot_id_sv(sv), cc(1, n_vars+sv))
                ENDIF
 #endif
+               DO j=1,point_nlevs
+                  val_out = missing
+                  IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc(1, v)
+                  IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc(1, v)
+                  CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
+               ENDDO
             ELSE     !# not sheet
                v = v + 1
                !# Store pelagic biogeochemical state variables.

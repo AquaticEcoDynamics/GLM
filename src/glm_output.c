@@ -229,6 +229,8 @@ void write_output(int jday, int iclock, int nsave, int stepnum)
                         lvl[i] = n;
                         break;
                     }
+                    //If reached top layer
+                    if (lvl[i] > surfLayer) lvl[i] = surfLayer;
                 }
             } else { //Measure as depth from surface
                 for (n = NumLayers-1; n >= botmLayer; n--) {
