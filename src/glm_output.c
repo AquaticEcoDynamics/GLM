@@ -245,6 +245,7 @@ void write_output(int jday, int iclock, int nsave, int stepnum)
 
             write_csv_point(i, "temp", Lake[lvl[i]].Temp,     NULL, FALSE);
             write_csv_point(i, "salt", Lake[lvl[i]].Salinity, NULL, FALSE);
+            write_csv_point(i, "dens", Lake[lvl[i]].Density,  NULL, FALSE);
         }
     }
 
