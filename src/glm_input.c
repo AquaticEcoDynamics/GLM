@@ -55,6 +55,7 @@ typedef struct _inf_data_ {
     int flow_idx;
     int temp_idx;
     int salt_idx;
+    int elev_idx;
     int in_vars[MaxVars];
 } InflowDataT;
 
@@ -103,8 +104,9 @@ int *WQ_VarsIdx = NULL;
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-void read_daily_inflow(int julian, int NumInf, AED_REAL *flow, AED_REAL *temp,
-                                               AED_REAL *salt, AED_REAL *wq)
+void read_daily_inflow(int julian, int NumInf, AED_REAL *flow,
+                                               AED_REAL *temp, AED_REAL *salt,
+                                                   AED_REAL *elev, AED_REAL *wq)
 {
     int csv;
     int i,j,k;
@@ -117,6 +119,10 @@ void read_daily_inflow(int julian, int NumInf, AED_REAL *flow, AED_REAL *temp,
         flow[i] = get_csv_val_r(csv,inf[i].flow_idx);
         temp[i] = get_csv_val_r(csv,inf[i].temp_idx);
         salt[i] = get_csv_val_r(csv,inf[i].salt_idx);
+        if ( inf[i].elev_idx != -1 )
+            elev[i] = get_csv_val_r(csv,inf[i].elev_idx);
+        else
+            elev[i] = Inflows[i].SubmElev;
 
         for (j = 0; j < n_invars; j++) {
             if (WQ_VarsIdx[j] < 0) k = j; else k = WQ_VarsIdx[j];
@@ -558,6 +564,12 @@ void open_inflow_file(int idx, const char *fname,
     inf[idx].flow_idx = find_csv_var(inf[idx].inf,"flow");
     inf[idx].temp_idx = find_csv_var(inf[idx].inf,"temp");
     inf[idx].salt_idx = find_csv_var(inf[idx].inf,"salt");
+    if ( Inflows[idx].SubmFlag )
+        inf[idx].elev_idx = find_csv_var(inf[idx].inf,"elevation");
+    else
+        inf[idx].elev_idx = -1;
+    Inflows[idx].SubmElevDynamic = (inf[idx].elev_idx >= 0);
+
     l = 0;
     for (j = 0; j < nvars; j++) {
         k = find_csv_var(inf[idx].inf, vars[j]);
@@ -565,7 +577,7 @@ void open_inflow_file(int idx, const char *fname,
             fprintf(stderr, "No match for '%s' in file '%s'\n", vars[j], fname);
         else {
             if ( k != inf[idx].flow_idx && k != inf[idx].temp_idx &&
-                                           k != inf[idx].salt_idx )
+                 k != inf[idx].salt_idx && k != inf[idx].elev_idx )
                 inf[idx].in_vars[l++] = k;
         }
     }
@@ -592,6 +604,7 @@ void open_gw_file(int idx, const char *fname,
     inf[idx].flow_idx = find_csv_var(inf[idx].inf,"flow");
     inf[idx].temp_idx = find_csv_var(inf[idx].inf,"temp");
     inf[idx].salt_idx = find_csv_var(inf[idx].inf,"salt");
+    inf[idx].elev_idx = -1;
     l = 0;
     for (j = 0; j < nvars; j++) {
         k = find_csv_var(inf[idx].inf, vars[j]);

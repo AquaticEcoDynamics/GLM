@@ -245,6 +245,7 @@ void do_model(int jstart, int nsave)
     ***************************************************************************/
     AED_REAL SaltNew[MaxInf], TempNew[MaxInf], WQNew[MaxInf * MaxVars];
     AED_REAL SaltOld[MaxInf], TempOld[MaxInf], WQOld[MaxInf * MaxVars];
+    AED_REAL Elev[MaxInf];
 
     int jday, ntot, stepnum, stoptime;
 
@@ -265,7 +266,7 @@ void do_model(int jstart, int nsave)
     stepnum = 0;
     stoptime = iSecsPerDay;
 
-    read_daily_inflow(jstart, NumInf, FlowOld, TempOld, SaltOld, WQOld);
+    read_daily_inflow(jstart, NumInf, FlowOld, TempOld, SaltOld, Elev, WQOld);
 //  read_daily_gw(jstart, gw_mode, GWFlOld);
     read_daily_outflow(jstart, NumOut, DrawOld);
     read_daily_withdraw_temp(jstart, &WithdrTempOld);
@@ -293,7 +294,7 @@ void do_model(int jstart, int nsave)
         SurfData.albedo = 1.; SurfData.dailyzonL = 0.;
         SurfData.dailyRunoff = 0.;
 
-        read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, WQNew);
+        read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, Elev, WQNew);
 //      read_daily_gw(jday, gw_mode, GWFlNew);
         //# Averaging of flows
         //# To get daily outflow (i.e. m3/day) times by the seconds in the current day
@@ -303,6 +304,7 @@ void do_model(int jstart, int nsave)
             Inflows[i].FlowRate = (FlowOld[i] + FlowNew[i]) / 2.0 * (stoptime - startTOD) ;
             Inflows[i].TemInf   = (TempOld[i] + TempNew[i]) / 2.0;
             Inflows[i].SalInf   = (SaltOld[i] + SaltNew[i]) / 2.0;
+            Inflows[i].SubmElev = Elev[i];
             for (j = 0; j < Num_WQ_Vars; j++)
                 Inflows[i].WQInf[j] = (WQ_INF_(WQOld,i, j) + WQ_INF_(WQNew, i, j)) / 2.0;
         }
@@ -404,6 +406,7 @@ void do_model_non_avg(int jstart, int nsave)
     *           look into that later ....                                     *
     ***************************************************************************/
     AED_REAL SaltNew[MaxInf], TempNew[MaxInf], WQNew[MaxInf * MaxVars];
+    AED_REAL Elev[MaxInf];
 
     /*------------------------------------------------------------------------*/
     memset(WQNew, 0, sizeof(AED_REAL)*MaxInf*MaxVars);
@@ -436,7 +439,7 @@ void do_model_non_avg(int jstart, int nsave)
         SurfData.albedo       = 1.;
 
         //# Read & set today's inflow properties
-        read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, WQNew);
+        read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, Elev, WQNew);
 //      read_daily_gw(jday, gw_mode, GWFlNew);
 
 

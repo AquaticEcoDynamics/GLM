@@ -126,6 +126,7 @@ typedef char filname[80];
 
        LOGICAL  SubmFlag;        // Is this a submerged inflow
        AED_REAL SubmElev;        // elevation of inflow
+       LOGICAL  SubmElevDynamic; // Is this dynamic elevation
    } InflowDataType;
 
    /*===========================================================*/
