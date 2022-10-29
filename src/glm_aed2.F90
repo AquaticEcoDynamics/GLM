@@ -1096,7 +1096,7 @@ SUBROUTINE check_states(column, wlev)
       ELSE
          print*,"NaNs detected in CC unidentified var"
       ENDIF
-      STOP
+!     STOP
    ENDIF
 #endif
 END SUBROUTINE check_states

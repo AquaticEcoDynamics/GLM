@@ -325,7 +325,10 @@ void insert(AED_REAL q, AED_REAL di, AED_REAL bsl, AED_REAL temp, AED_REAL salt,
         // Here for surface overflow
         i = surfLayer;
         *ll = i;
-        B0 = (Lake[surfLayer].Height-Lake[surfLayer-1].Height)/ 2.0;
+        if (surfLayer > 0)
+            B0 = (Lake[surfLayer].Height-Lake[surfLayer-1].Height) / 2.0;
+        else
+            B0 = Lake[surfLayer].Height / 2.0;
         LenAtInsert = LenAtCrest;
         if (*width <= 1E-7) *width = Lake[surfLayer].LayerArea / LenAtInsert;
         IntrusionVelocity = q / ( 2.0 * B0 * (*width));

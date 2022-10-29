@@ -113,7 +113,7 @@ static void one_layer(int i, AED_REAL *xx, AED_REAL *dxx)
         y += (ij - Nmorph);
         ij = Nmorph;
     }
-    if (ij >= 0) {  // CAB limit to 0 min.
+    if (ij > 0) {  // CAB limit to 0 min.
         ij--; // offset for 0 based index
         Lake[i].Vol1 = xx[ij] + y * dxx[ij];
         Lake[i].LayerArea = MphLevelArea[ij] + y * dMphLevelArea[ij];

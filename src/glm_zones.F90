@@ -55,7 +55,7 @@ MODULE glm_zones
 
    AED_REAL,DIMENSION(:),POINTER :: zz
 
-   INTEGER :: n_zones, w_zones
+   INTEGER :: n_zones
 
    TYPE(ZoneType),DIMENSION(:),POINTER :: theZones
 
@@ -113,14 +113,16 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
 !
 !LOCALS
    INTEGER  :: lev, zon
+   LOGICAL  :: w_zones
 #if _VOLUME_SCALING_
-   INTEGER :: ij
+   INTEGER  :: ij
    AED_REAL :: x, y
 #endif
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   theZones%zarea = 0.  ; theZones%z_pc_wet = 0. ; w_zones = 0
+   theZones%zarea = 0.  ; theZones%z_pc_wet = 0.
+   w_zones = .FALSE.
 
 #if _VOLUME_SCALING_
 
@@ -142,9 +144,13 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
       IF ( zz(lev) > zone_heights(zon) ) zon = zon + 1
 
       IF ( zone_heights(zon) > surf ) THEN
-         IF (w_zones == 0) THEN
-            w_zones = lev
-            theZones(zon)%z_pc_wet = surf / (zone_heights(zon) - zone_heights(zon-1))
+         IF (.NOT. w_zones ) THEN
+            w_zones = .TRUE.
+            IF ( zon > 1 ) THEN
+               theZones(zon)%z_pc_wet = surf / (zone_heights(zon) - zone_heights(zon-1))
+            ELSE
+               theZones(zon)%z_pc_wet = surf / zone_heights(zon)
+            ENDIF
          ENDIF
       ELSE
          theZones(zon)%z_pc_wet = 1.0
@@ -161,9 +167,13 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
       theZones(zon)%zarea = theZones(zon)%zarea + areas(lev) - areas(lev-1)
 
       IF ( zone_heights(zon) > surf ) THEN
-         IF (w_zones == 0) THEN
-            w_zones = lev ! Casper: should this be zon?
-            theZones(zon)%z_pc_wet = surf / (zone_heights(zon) - zone_heights(zon-1))
+         IF (.NOT. w_zones) THEN
+            w_zones = .TRUE.
+            IF ( zon > 1 ) THEN
+               theZones(zon)%z_pc_wet = surf / (zone_heights(zon) - zone_heights(zon-1))
+            ELSE
+               theZones(zon)%z_pc_wet = surf / zone_heights(zon)
+            ENDIF
          ENDIF
       ELSE
          TheZones(zon)%z_pc_wet = 1.0
@@ -253,6 +263,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
    INTEGER  :: zon, lev, a_zones
    AED_REAL :: surf
    INTEGER  :: zcount(n_zones)
+   LOGICAL  :: w_zones
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -264,7 +275,7 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
 
    a_zones = 1
    zcount = 0
-   w_zones = 0
+   w_zones = .FALSE.
    zon = 1
    DO lev=1,wlev
       IF ( lev > 1 .AND. zz(lev) > zone_heights(zon) ) THEN
@@ -322,19 +333,19 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
    ELSE
       theZones%zdepth = surf
       theZones(1)%zdz = surf
-      w_zones = 1
+      w_zones = .TRUE.
    ENDIF
 
    DO zon=2,a_zones
       theZones(zon)%z_sed_zones = zon
-      IF ( w_zones == 0 ) THEN
+      IF ( .NOT. w_zones ) THEN
           IF ( surf > zone_heights(zon) ) THEN
              theZones(zon)%zdepth = zone_heights(zon)
              theZones(zon)%zdz =  zone_heights(zon) - zone_heights(zon-1)
           ELSE
              theZones(zon)%zdepth = surf
              theZones(zon)%zdz = surf - zone_heights(zon-1)
-             w_zones = zon
+             w_zones = .TRUE.
           ENDIF
       ELSE
          theZones(zon)%zdepth = surf

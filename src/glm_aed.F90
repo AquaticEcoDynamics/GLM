@@ -905,7 +905,7 @@ SUBROUTINE check_states(column, wlev)
       ELSE
          print*,"NaNs detected in CC unidentified var"
       ENDIF
-      STOP
+!     STOP
    ENDIF
 #endif
 END SUBROUTINE check_states
@@ -930,12 +930,15 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    TYPE (aed_column_t) :: column(n_aed_vars)
    TYPE (aed_column_t) :: column_sed(n_aed_vars)
    AED_REAL,TARGET :: flux_ben(n_vars+n_vars_ben), flux_atm(n_vars+n_vars_ben)
-   AED_REAL,TARGET :: flux_pel(wlev, n_vars+n_vars_ben)
+!  AED_REAL,TARGET :: flux_pel(wlev, n_vars+n_vars_ben)
+   AED_REAL,TARGET,ALLOCATABLE :: flux_pel(:, :)
    AED_REAL,TARGET :: flux_zon(n_zones, n_vars+n_vars_ben)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
    lIce = pIce
+
+   ALLOCATE(flux_pel(MAX(wlev,n_zones),n_vars+n_vars_ben))
 
    surf = z(wlev)
    !# re-compute the layer heights and depths
@@ -1060,6 +1063,7 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 
       CALL check_states(column, wlev)
    ENDDO
+   DEALLOCATE(flux_pel)
 
 
   ! IF ( display_minmax ) THEN
@@ -1232,7 +1236,8 @@ CONTAINS
       INTEGER :: lev,zon,v_start,v_end,av,sv,sd
       INTEGER, ALLOCATABLE :: layer_map(:)
       AED_REAL :: scale
-      AED_REAL, DIMENSION(wlev, n_vars+n_vars_ben)    :: flux_pel_pre
+!     AED_REAL, DIMENSION(wlev, n_vars+n_vars_ben)    :: flux_pel_pre
+      AED_REAL, DIMENSION(:, :),ALLOCATABLE  :: flux_pel_pre
       AED_REAL, DIMENSION(n_zones, n_vars+n_vars_ben) :: flux_pel_z
       AED_REAL :: localrainl, localshade, localdrag
       LOGICAL :: splitZone
@@ -1245,6 +1250,7 @@ CONTAINS
    flux_zon = zero_
    flux_pel_z = zero_
 
+   ALLOCATE(flux_pel_pre(MAX(wlev, n_zones), n_vars+n_vars_ben))
    !# Start with updating column diagnostics (currently only used for light)
 
    !# (1) WATER COLUMN UPDATING
@@ -1417,7 +1423,8 @@ CONTAINS
    DO lev=1,wlev
       CALL aed_calculate(column, lev)
    ENDDO
-   
+
+   DEALLOCATE(flux_pel_pre)
    END SUBROUTINE calculate_fluxes
    !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

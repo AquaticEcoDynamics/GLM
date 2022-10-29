@@ -214,7 +214,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     set_nc_attributes(ncid, time_id,   time_str,        NULL        PARAM_FILLVALUE);
 
     nc_put_att(ncid, NS_id, "long_name", NC_CHAR, 16, "Number of Layers");
-    nc_put_att(ncid, SL_id, "long_name", NC_CHAR, 16, "Surface Layer");
+    nc_put_att(ncid, SL_id, "long_name", NC_CHAR, 13, "Surface Layer");
 
     set_nc_attributes(ncid, HICE_id,   "meters",  "Height of Ice"   PARAM_FILLVALUE);
     set_nc_attributes(ncid, HSNOW_id,  "meters",  "Height of Snow"  PARAM_FILLVALUE);

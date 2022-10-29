@@ -392,7 +392,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                         (f_sw_wl2 * exp(-attn_ice_blue_wl2  * SurfData.delzBlueIce)));
 
     //# PAR flux entering the layer below the surface layer
-    Lake[surfLayer-1].Light = Lake[surfLayer].Light *
+    if (surfLayer > 0)
+        Lake[surfLayer-1].Light = Lake[surfLayer].Light *
                      exp(-Lake[surfLayer].ExtcCoefSW*LayerThickness[surfLayer]);
 
     //# NIR/UV flux (Not using Q_shortwave as it hasnt been through ice)
@@ -401,6 +402,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                   exp(-2.*Lake[surfLayer].ExtcCoefSW*LayerThickness[surfLayer]);
 
     //# Heating of the surface layer due to PAR & NIR/UV:
+if (surfLayer > 0) {
     flankArea = Lake[surfLayer].LayerArea - Lake[surfLayer-1].LayerArea;
     //  1. PAR amount in "deep water" area
     heat[surfLayer] = Lake[surfLayer-1].LayerArea * (Lake[surfLayer].Light - Lake[surfLayer-1].Light);
@@ -409,6 +411,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
           - (flankArea * (1.-MAX(1.,sed_reflectivity[0])) * Lake[surfLayer-1].Light);
     //  3. NIR/UV amount in "deep water" area
     heat[surfLayer] = heat[surfLayer] + Lake[surfLayer-1].LayerArea * (NotPARLight_s - NotPARLight_sm1);
+}
     //  4. NIR/UV amount in "littoral water" area
     heat[surfLayer] = heat[surfLayer] + (flankArea * NotPARLight_s)
           - (flankArea * (1.-MAX(1.,sed_reflectivity[0])) * NotPARLight_sm1);
