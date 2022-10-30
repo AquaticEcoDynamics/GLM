@@ -791,9 +791,12 @@ AED_REAL do_inflows()
                 //# Initial plunge point (Eq. x in GLM manual)
                 Inflow_Height_t0 = pow(Inflows[iRiver].FlowRate * Inflows[iRiver].Factor / SecsPerDay, 0.4)/
                                    pow(Inflow_gprime_t0, 0.2);
-            else //#inflow density < surface inflow thickness so plunge to depth of surface layer
+            else { //#inflow density < surface inflow thickness so plunge to depth of surface layer
                 if (surfLayer > 0)
                     Inflow_Height_t0 = Lake[surfLayer].Height-Lake[surfLayer-1].Height;
+                else
+                    Inflow_Height_t0 = Lake[surfLayer].Height;
+            }
 
             if (Inflow_Height_t0 > Lake[surfLayer].Height) //#Minimum limit = depth of the surface layer
                 Inflow_Height_t0 = Lake[surfLayer].Height;

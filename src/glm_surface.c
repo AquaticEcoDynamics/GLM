@@ -411,6 +411,12 @@ if (surfLayer > 0) {
           - (flankArea * (1.-MAX(1.,sed_reflectivity[0])) * Lake[surfLayer-1].Light);
     //  3. NIR/UV amount in "deep water" area
     heat[surfLayer] = heat[surfLayer] + Lake[surfLayer-1].LayerArea * (NotPARLight_s - NotPARLight_sm1);
+} else {
+    flankArea = Lake[surfLayer].LayerArea;
+    //  1. PAR amount in "deep water" area
+    heat[surfLayer] = Lake[surfLayer].Light;
+    //  2. PAR amount in "littoral water" area
+    heat[surfLayer] = heat[surfLayer] + (flankArea * Lake[surfLayer].Light);
 }
     //  4. NIR/UV amount in "littoral water" area
     heat[surfLayer] = heat[surfLayer] + (flankArea * NotPARLight_s)
