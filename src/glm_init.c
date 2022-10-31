@@ -693,6 +693,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         csv_point_nvars = tn;
     }
     configure_csv(csv_point_nlevs, csv_point_at, csv_point_fname, csv_point_frombot, csv_point_nvars, csv_lake_fname);
+    free(csv_point_frombot);
 
     if ( wq_calc ) {
         for (i = 0; i < csv_outlet_nvars; i++)
@@ -1027,6 +1028,7 @@ for (i = 0; i < n_zones; i++) {
             if (outflow_fl[i] != NULL) open_outflow_file(i, outflow_fl[i], timefmt_o);
 
         }
+        free(outlet_type);
     }
     if ( outlet_crit != NULL ) { // only relevant if we have defined it.
         if ((crit_O2 < 0) || (crit_O2_dep < base_elev) || (crit_O2_days < 1)) {
@@ -1636,9 +1638,8 @@ void initialise_lake(int namlst)
         u0 = restart_variables[15];
         u_avg = restart_variables[16];
 
-//      free(restart_variables);
+        free(restart_variables);
     }
-
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

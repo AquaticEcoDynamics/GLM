@@ -338,6 +338,7 @@ void do_model(int jstart, int nsave)
             MetData.LongWave =    (MetOld.LongWave + MetNew.LongWave) / 2.0;
             MetData.ShortWave =   (MetOld.ShortWave + MetNew.ShortWave) / 2.0;
             MetData.AirTemp =     (MetOld.AirTemp + MetNew.AirTemp) / 2.0;
+            MetData.AirPres =     (MetOld.AirPres + MetNew.AirPres) / 2.0;
             MetData.WindSpeed =   (MetOld.WindSpeed + MetNew.WindSpeed) / 2.0;
             MetData.Snow =        (MetOld.Snow + MetNew.Snow) / 2.0;
             MetData.RainConcPO4 = (MetOld.RainConcPO4 + MetNew.RainConcPO4) / 2.0;
@@ -680,6 +681,7 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
     noSecs = timestep;
     coef_wind_drag = CD;
     part_day_per_step = timestep / SecsPerDay;
+    MetData.AirPres = atm_pressure_sl;
 
     /**************************************************************************
      *  Loop for each second in a day (86400 = #seconds in a day)             *
@@ -698,16 +700,22 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
     Benthic_Light_pcArea = 0.;
     while (iclock < stoptime) { //# iclock = seconds counter
         if ( subdaily ) {
+//fprintf(stderr, "1 MetData.AirPres %f\n", MetData.AirPres);
             read_sub_daily_met(jday, iclock, &MetData);
             SWnew = MetData.ShortWave;
         }
+//fprintf(stderr, "2 MetData.AirPres %f\n", MetData.AirPres);
 
         stepnum++;
         _dbg_time(jday, iclock);
 
+//fprintf(stderr, "Lake[surfLayer].Height = %f\n", Lake[surfLayer].Height);
+
         //# Thermal transfers are done by do_surface_thermodynamics
         do_surface_thermodynamics(jday, iclock, lw_ind, Latitude, SWold, SWnew);
 
+//fprintf(stderr, "Lake[surfLayer].Height = %f\n", Lake[surfLayer].Height);
+//exit(0);
         //# Save surface light to use at end of sub-daily time loop
         Light_Surface = Lake[surfLayer].Light/0.45;
 

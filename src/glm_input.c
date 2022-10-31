@@ -218,8 +218,10 @@ void read_daily_met(int julian, MetDataType *met)
     csv = metf;
     find_day(csv, time_idx, julian);
 
-    for (i = 0; i < n_steps; i++)
+    for (i = 0; i < n_steps; i++) {
         memset(&submet[i], 0, sizeof(MetDataType));
+        submet[i].AirPres = atm_pressure_sl;
+    }
 
     i = 0;
     while ( (t_val = get_csv_val_r(csv, time_idx)) < tomorrow) {

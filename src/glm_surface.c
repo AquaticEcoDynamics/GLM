@@ -329,7 +329,9 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     // get altitude
     altitude = Base + Lake[surfLayer].Height + 5.;
     // update air pressure at altitude
+//MetData.AirPres = atm_pressure_sl;
     p_atm = ((100.*MetData.AirPres) * pow((1 - 2.25577e-5*altitude),5.25588))/100.; //> hPa
+//fprintf(stderr, "MetData.AirPres %f p_atm %f altitude %f\n", MetData.AirPres, p_atm, altitude);
     // gte the saturation vapour pressure at the water surface
     SatVap_surface = saturated_vapour(Lake[surfLayer].Temp); //> hPa
     // calculate gas constant for moist air
