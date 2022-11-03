@@ -298,7 +298,7 @@ void do_model(int jstart, int nsave)
 //      read_daily_gw(jday, gw_mode, GWFlNew);
         //# Averaging of flows
         //# To get daily outflow (i.e. m3/day) times by the seconds in the current day
-        //# (stoptime - startTOD) allow for partial dates at the the beginning and end of 
+        //# (stoptime - startTOD) allow for partial dates at the the beginning and end of
         //# simulation
         for (i = 0; i < NumInf; i++) {
             Inflows[i].FlowRate = (FlowOld[i] + FlowNew[i]) / 2.0 * (stoptime - startTOD) ;
@@ -316,7 +316,7 @@ void do_model(int jstart, int nsave)
 
         read_daily_withdraw_temp(jday, &WithdrTempNew);
         WithdrawalTemp = (WithdrTempOld + WithdrTempNew) / 2.0;
-        
+
         //# Read & set today's outflow properties
         SurfData.dailyInflow = do_inflows(); //# Do inflow for all streams
 
@@ -349,7 +349,7 @@ void do_model(int jstart, int nsave)
             MetData.RainConcSi =  (MetOld.RainConcSi + MetNew.RainConcSi) / 2.0;
         }
         SWnew = MetNew.ShortWave;
-        
+
         //# Now enter into sub-daily calculations            ------>
 
         stepnum = do_subdaily_loop(stepnum, jday, stoptime, nsave, SWold, SWnew);
@@ -449,6 +449,7 @@ void do_model_non_avg(int jstart, int nsave)
             Inflows[i].FlowRate = FlowNew[i] * (stoptime - startTOD) ;
             Inflows[i].TemInf   = TempNew[i];
             Inflows[i].SalInf   = SaltNew[i];
+            Inflows[i].SubmElev = Elev[i];
             for (j = 0; j < Num_WQ_Vars; j++) {
                 Inflows[i].WQInf[j] = WQ_INF_(WQNew, i, j);
             }
@@ -457,14 +458,14 @@ void do_model_non_avg(int jstart, int nsave)
         //# Read & set today's outflow properties
         read_daily_outflow(jday, NumOut, DrawNew);
         //# To get daily outflow (i.e. m3/day) times by the seconds in the current day
-        //# (stoptime - startTOD) allow for partial dates at the the beginning and end of 
+        //# (stoptime - startTOD) allow for partial dates at the the beginning and end of
         //# simulation
         for (i = 0; i < NumOut; i++)
             Outflows[i].Draw = DrawNew[i] * (stoptime - startTOD) ;
 
         read_daily_withdraw_temp(jday, &WithdrTempNew);
         WithdrawalTemp = WithdrTempNew;
-        
+
         //# Insert inflows for all streams
         SurfData.dailyInflow = do_inflows();
 
@@ -572,7 +573,7 @@ void do_model_coupled(int step_start, int step_end,
     //  read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, WQNew);
         //# Set to today's inflow
         //# To get daily outflow (i.e. m3/day) times by the seconds in the current day
-        //# (stoptime - startTOD) allow for partial dates at the the beginning and end of 
+        //# (stoptime - startTOD) allow for partial dates at the the beginning and end of
         //# simulation
         for (i = 0; i < NumInf; i++) {
             Inflows[i].FlowRate = FlowNew[i] * (stoptime - startTOD);
@@ -589,7 +590,7 @@ void do_model_coupled(int step_start, int step_end,
 
     //  read_daily_withdraw_temp(jday, &WithdrTempNew);
     //  WithdrawalTemp = WithdrTempNew;
-    
+
         SurfData.dailyInflow = do_inflows(); //# Do inflow for all streams
 
         if (Lake[surfLayer].Vol1 > zero) {
