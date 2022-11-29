@@ -59,7 +59,7 @@
 //#define dbgprt(...) fprintf(stderr, __VA_ARGS__)
 #define dbgprt(...) /* __VA_ARGS__ */
 
-extern int *WQ_VarsIdx;
+// extern int *WQ_VarsIdx;
 
 static AED_REAL   base_elev;
 static AED_REAL   crest_elev;
@@ -843,7 +843,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
             zone_heights[n_zones++] = (max_elev-base_elev)+1;
         }
         theZones = calloc(n_zones, sizeof(ZoneType));
-        printf("     Sediment zones being set at %7.1f %7.1f %7.1f ... \n",zone_heights[0],zone_heights[1],zone_heights[2]);
+//      printf("     Sediment zones being set at %7.1f %7.1f %7.1f ... \n",zone_heights[0],zone_heights[1],zone_heights[2]);
         for (i = 0; i < n_zones; i++) theZones[i].zheight = zone_heights[i];
     }
 
@@ -942,7 +942,7 @@ for (i = 0; i < n_zones; i++) {
             Inflows[i].DragCoeff = strmbd_drag[i];
             Inflows[i].Factor = inflow_factor[i];
 
-            open_inflow_file(i, inflow_fl[i], inflow_varnum, (const char**)inflow_vars, timefmt_i);
+            open_inflow_file(i, inflow_fl[i], timefmt_i);
         }
     }
     einff = coef_inf_entrain;
@@ -1110,23 +1110,25 @@ for (i = 0; i < n_zones; i++) {
 
     // This is where we could map inflow, met and csv_output vars to wq vars
 
-    if ( ! WQ_VarsIdx ) {
-        WQ_VarsIdx = calloc(inflow_varnum, sizeof(int));
-    }
+//  if ( ! WQ_VarsIdx ) {
+//      WQ_VarsIdx = calloc(inflow_varnum, sizeof(int));
+//  }
     if ( wq_calc ) {
         if ( inflow_vars == NULL && inflow_varnum > 3 ) {
             fprintf(stderr, "ERROR: %d inflow vars requested, but none provided\n", inflow_varnum);
             exit(1);
         }
         /* The first 3 vars are flow, temp and salt */
-        for (j = 3; j < inflow_varnum; j++) {
-            if ( inflow_vars[j] == NULL ) {
-                fprintf(stderr, "ERROR: %d inflow vars requested, but only %d provided\n", inflow_varnum, j-3);
-                exit(1);
-            }
-            size_t k =  strlen(inflow_vars[j]);
-            WQ_VarsIdx[j-3] = wq_var_index_c(inflow_vars[j], &k);
-        }
+//      for (j = 3; j < inflow_varnum; j++) {
+//          if ( inflow_vars[j] == NULL ) {
+//              fprintf(stderr, "ERROR: %d inflow vars requested, but only %d provided\n", inflow_varnum, j-3);
+//              exit(1);
+//          }
+//          size_t k =  strlen(inflow_vars[j]);
+//          WQ_VarsIdx[j-3] = wq_var_index_c(inflow_vars[j], &k);
+//      }
+        for (j = 0; j < NumInf; j++)
+            index_inflow_file(j, inflow_varnum, (const char **)inflow_vars);
 
         if ( benthic_mode > 1 ) {
             if ( (n_zones <= 0 || zone_heights == NULL) ) {

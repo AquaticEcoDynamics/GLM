@@ -261,9 +261,9 @@ extern AED_REAL *sed_reflectivity;
 extern AED_REAL *sed_roughness;
 
 /*----------------------------------------------------------------------------*/
-// GROUNDWATER 
+// GROUNDWATER
 extern int   gw_mode;    //# mode
-extern char *gw_file;    //# name of gw file 
+extern char *gw_file;    //# name of gw file
 extern AED_REAL *K_gw;   //# turn off evaporation
 extern AED_REAL *L_gw;   //# turn off evaporation
 

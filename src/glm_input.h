@@ -31,8 +31,8 @@
 #define _GLM_INPUT_H_
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-void open_inflow_file(int inf_id, const char *fname,
-                            int nvars, const char *vars[], const char *timefmt);
+void open_inflow_file(int inf_id, const char *fname, const char *timefmt);
+void index_inflow_file(int inf_id, int nvars, const char *vars[]);
 void read_daily_inflow(int julian, int NumInf, AED_REAL *flow,
                                                AED_REAL *temp, AED_REAL *salt,
                                                   AED_REAL *elev, AED_REAL *wq);

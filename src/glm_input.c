@@ -43,6 +43,7 @@
 #include "glm_util.h"
 #include "aed_csv.h"
 #include "glm_bird.h"
+#include "glm_wqual.h"
 #include "glm_input.h"
 
 
@@ -51,12 +52,13 @@
 
 typedef struct _inf_data_ {
     int inf;  /* Inflow Number */
-    int n_vars;   /* number of vars in this file */
+    int n_vars, n_wqvs;   /* number of vars in this file */
     int flow_idx;
     int temp_idx;
     int salt_idx;
     int elev_idx;
     int in_vars[MaxVars];
+    int wq_vars[MaxVars];
 } InflowDataT;
 
 typedef struct _out_data_ {
@@ -99,7 +101,6 @@ AED_REAL rh_factor   = 1.0;
 AED_REAL rain_factor = 1.0;
 
 
-int *WQ_VarsIdx = NULL;
 
 /******************************************************************************
  *                                                                            *
@@ -125,7 +126,9 @@ void read_daily_inflow(int julian, int NumInf, AED_REAL *flow,
             elev[i] = Inflows[i].SubmElev;
 
         for (j = 0; j < n_invars; j++) {
-            if (WQ_VarsIdx[j] < 0) k = j; else k = WQ_VarsIdx[j];
+            if (inf[i].wq_vars[j] < 0) k = j;
+            else                       k = inf[i].wq_vars[j];
+
             if (inf[i].in_vars[k] == -1 )
                 WQ_INF_(wq, i, k) = 0.;
             else
@@ -552,11 +555,8 @@ void read_daily_kw(int julian, AED_REAL *kwout)
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-void open_inflow_file(int idx, const char *fname,
-                             int nvars, const char *vars[], const char *timefmt)
+void open_inflow_file(int idx, const char *fname, const char *timefmt)
 {
-    int j,k,l;
-
     if ( (inf[idx].inf = open_csv_input(fname, timefmt)) < 0 ) {
         fprintf(stderr, "Failed to open '%s'\n", fname);
         exit(1) ;
@@ -571,18 +571,46 @@ void open_inflow_file(int idx, const char *fname,
     else
         inf[idx].elev_idx = -1;
     Inflows[idx].SubmElevDynamic = (inf[idx].elev_idx >= 0);
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/*+--------------------------------------------------------------------------+*/
+void index_inflow_file(int idx, int nvars, const char *vars[])
+{
+    int j,k,l;
+    size_t sl = 0;
+    const char *nm;
 
     l = 0;
-    for (j = 0; j < nvars; j++) {
-        k = find_csv_var(inf[idx].inf, vars[j]);
-        if (k == -1)
-            fprintf(stderr, "No match for '%s' in file '%s'\n", vars[j], fname);
-        else {
+    if ( vars == NULL ) {
+        k = 0;
+        while ( (nm = get_csv_colname(inf[idx].inf, k)) != NULL ) {
             if ( k != inf[idx].flow_idx && k != inf[idx].temp_idx &&
-                 k != inf[idx].salt_idx && k != inf[idx].elev_idx )
+                 k != inf[idx].salt_idx && k != inf[idx].elev_idx ) {
+                sl = strlen(nm);
+                inf[idx].wq_vars[l] = wq_var_index_c(nm, &sl);
                 inf[idx].in_vars[l++] = k;
+            }
+            k++;
+        }
+    } else {
+        for (j = 0; j < nvars; j++) {
+            k = find_csv_var(inf[idx].inf, vars[j]);
+            if (k == -1)
+                fprintf(stderr, "No match for '%s' in file\n", vars[j]);
+            else {
+                nm = vars[j];
+                if ( k != inf[idx].flow_idx && k != inf[idx].temp_idx &&
+                     k != inf[idx].salt_idx && k != inf[idx].elev_idx ) {
+                    sl = strlen(nm);
+                    inf[idx].wq_vars[l] = wq_var_index_c(nm, &sl);
+                    inf[idx].in_vars[l++] = k;
+                }
+            }
         }
     }
+    inf[idx].n_wqvs = l;
     inf[idx].n_vars = l;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

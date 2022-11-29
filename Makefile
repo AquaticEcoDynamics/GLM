@@ -40,6 +40,9 @@ endif
 
 BUILDDATE=$(shell date -u +%Y%m%d-%H%MUTC)
 
+ifeq ($(MDEBUG),true)
+  DEBUG=true
+endif
 ifeq ($(WITH_PLOTS),)
   WITH_PLOTS=true
   ifeq ($(WITH_XPLOTS),)
@@ -104,10 +107,16 @@ else ifeq ($(OSTYPE),FreeBSD)
   FINCLUDES+=-I/usr/local/include
   CINCLUDES+=-I/usr/local/include
   LIBS+=-L../ancillary/freebsd/lib -lflang_extra -L/usr/local/lib
+  ifeq ($(MDEBUG),true)
+    DBG_LIBS=-fsanitize=address -static-libsan
+  endif
 else
   CINCLUDES+=-I/usr/local/include
   EXTRALINKFLAGS=-Wl,--export-dynamic
-  SHARED=-shared
+  ifeq ($(MDEBUG),true)
+  DBG_LIBS=-fsanitize=address -static-libasan
+    SHARED=-shared
+  endif
   so_ext=so
 endif
 
@@ -252,8 +261,7 @@ endif
 
 ifeq ($(DEBUG),true)
   ifeq ($(OSTYPE),FreeBSD)
-    DEBUG_CFLAGS=-g -fsanitize=address -DDEBUG=1
-    LIBS+=-fsanitize=address -static-libsan
+    DEBUG_CFLAGS=-g -DDEBUG=1
   else
     DEBUG_CFLAGS=-g -fbounds-check -DDEBUG=1
   endif
@@ -299,6 +307,10 @@ ifeq ($(WITH_PLOTS),true)
 endif
 ifeq ($(FENCE),true)
   LIBS+=-lefence
+endif
+ifeq ($(MDEBUG),true)
+  DEBUG_CFLAGS+=-fsanitize=address
+  LIBS+=$(DBG_LIBS)
 endif
 
 CFLAGS=-Wall -I$(UTILDIR) -I$(PLOTDIR) $(CINCLUDES) $(DEFINES) $(DEBUG_CFLAGS) $(OPT_CFLAGS)
