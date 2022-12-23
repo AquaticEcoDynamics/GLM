@@ -44,6 +44,9 @@ void open_outflow_file(int i, const char *fname, const char *timefmt);
 void read_daily_outflow(int julian, int NumOut, AED_REAL *drw);
 
 void open_withdrtemp_file(const char *fname, const char *timefmt);
+void open_evap_file(const char *fname, const char *timefmt);
+void read_daily_evap(int julian, AED_REAL *evap);
+
 void read_daily_withdraw_temp(int julian, AED_REAL *withdrTemp);
 
 void open_met_file(const char *fname, int snow_sw, int rain_sw,
@@ -55,6 +58,7 @@ void read_daily_kw(int julian, AED_REAL *kwout);
 AED_REAL get_fetch(AED_REAL windDir);
 void read_sub_daily_met(int julian,int iclock, MetDataType *met);
 
+void close_evap_files(void);
 void close_kw_files(void);
 void close_met_files(void);
 void close_inflow_files(void);

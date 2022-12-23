@@ -414,6 +414,19 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
+    char           *evap_file = NULL;
+    char           *timefmt_e = NULL;
+    AED_REAL        timezone_e;
+    //==========================================================================
+    NAMELIST evaporation[] = {
+          { "evaporation",       TYPE_START,            NULL                  },
+          { "evap_file",         TYPE_STR,              &evap_file            },
+          { "time_fmt",          TYPE_STR,              &timefmt_e            },
+          { "timezone",          TYPE_DOUBLE,           &timezone_e           },
+          { NULL,                TYPE_END,              NULL                  }
+    };
+    /*-- %%END NAMELIST ------------------------------------------------------*/
+
     /*-- %%NAMELIST mass_balance ---------------------------------------------*/
     char           *balance_fname   = NULL;
     int             balance_varnum;
@@ -747,6 +760,16 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( Kw_file != NULL ) open_kw_file(Kw_file, timefmt_m);
 
     for (i = 0; i < MaxLayers; i++) Lake[i].ExtcCoefSW = Kw;
+
+    //-------------------------------------------------
+    if ( get_namelist(namlst, evaporation) ) {
+        fprintf(stderr,"\n     ERROR reading the 'evaporation' namelist from %s\n", glm_nml_file);
+        exit(1);
+    }
+    if ( evap_file != NULL ) {
+        evap_from_file = TRUE;
+        open_evap_file(evap_file, timefmt_e);
+    }
 
     //--------------------------------------------------------------------------
     // snowice

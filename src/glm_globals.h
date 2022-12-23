@@ -127,6 +127,9 @@ extern AED_REAL crest_factor;
 extern CLOGICAL single_layer_draw;
 extern AED_REAL outflow_thick_limit;
 
+extern CLOGICAL evap_from_file;
+extern AED_REAL f_evap_ts_prop;
+
 /*----------------------------------------------------------------------------*/
 //
 extern int NumDif;

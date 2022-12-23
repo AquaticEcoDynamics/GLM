@@ -237,7 +237,7 @@ void do_model(int jstart, int nsave)
     AED_REAL FlowOld[MaxInf], DrawOld[MaxOut], WithdrTempOld;
 
     MetDataType MetOld, MetNew;
-    AED_REAL    SWold, SWnew, DailyKw;
+    AED_REAL    SWold, SWnew, DailyKw, DailyEvap;
 
    /***************************************************************************
     *CAB Note: these WQ arrays should be sized to Num_WQ_Vars not MaxVars,    *
@@ -296,6 +296,8 @@ void do_model(int jstart, int nsave)
 
         read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, Elev, WQNew);
 //      read_daily_gw(jday, gw_mode, GWFlNew);
+        read_daily_evap(jday, &DailyEvap);
+        f_evap_ts_prop = DailyEvap / (noSecs * Lake[surfLayer].LayerArea);
         //# Averaging of flows
         //# To get daily outflow (i.e. m3/day) times by the seconds in the current day
         //# (stoptime - startTOD) allow for partial dates at the the beginning and end of
@@ -398,7 +400,7 @@ void do_model(int jstart, int nsave)
 void do_model_non_avg(int jstart, int nsave)
 {
     AED_REAL FlowNew[MaxInf], DrawNew[MaxOut], WithdrTempNew;
-    AED_REAL SWold, SWnew, DailyKw;
+    AED_REAL SWold, SWnew, DailyKw, DailyEvap;
     int jday, ntot, stepnum, stoptime;
     int i, j;
 
@@ -442,7 +444,8 @@ void do_model_non_avg(int jstart, int nsave)
         //# Read & set today's inflow properties
         read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, Elev, WQNew);
 //      read_daily_gw(jday, gw_mode, GWFlNew);
-
+        read_daily_evap(jday, &DailyEvap);
+        f_evap_ts_prop = DailyEvap / (noSecs * Lake[surfLayer].LayerArea);
 
         //# To get daily inflow (i.e. m3/day) times by SecsPerDay
         for (i = 0; i < NumInf; i++) {

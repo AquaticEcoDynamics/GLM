@@ -93,6 +93,9 @@ AED_REAL crest_factor = 0.61;
 CLOGICAL single_layer_draw = FALSE;
 AED_REAL outflow_thick_limit = 100.0;
 
+CLOGICAL evap_from_file = FALSE;   // do we have evap values coming from a file
+AED_REAL f_evap_ts_prop = 0.0;     // proportional value for daily evap for this timestep
+
 //------------------------------------------------------------------------------
 
 int NumDif;

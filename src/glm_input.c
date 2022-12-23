@@ -75,12 +75,12 @@ static InflowDataT inf[MaxInf];
 static OutflowDataT outf[MaxOut];
 static WithdrawalTempDataT withdrTempf = { -1, -1 };
 
-static int metf = -1, kwf = -1;
+static int metf = -1, kwf = -1, evapf = -1;
 static int rain_idx = -1, hum_idx  = -1, lwav_idx = -1, sw_idx   = -1,
            atmp_idx = -1, wind_idx = -1, snow_idx = -1, rpo4_idx = -1,
            rtp_idx  = -1, rno3_idx = -1, rnh4_idx = -1, rtn_idx  = -1,
            rsi_idx  = -1, wdir_idx = -1, kw_idx   = -1, time_idx = -1,
-           apres_idx = -1;
+           apres_idx = -1, evap_idx = -1;
 
 int lw_ind = 0;
 static int have_snow = FALSE, have_rain_conc = FALSE;
@@ -166,6 +166,36 @@ void read_daily_gw(int julian, int NumInf, AED_REAL *flow)
         }
 #endif
     }
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
+void read_daily_evap(int julian, AED_REAL *evap)
+{
+    int csv;
+    if ( (csv = evapf) > -1 ) {
+        find_day(csv, time_idx, julian);
+        *evap = get_csv_val_r(csv, evap_idx);
+    } else
+        *evap = -1.;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
+void read_daily_kw(int julian, AED_REAL *kwout)
+{
+    int csv;
+    if ( (csv = kwf) > -1 ) {
+        find_day(csv, time_idx, julian);
+        *kwout = get_csv_val_r(csv, kw_idx);
+    } else
+        *kwout = Kw; //just use the Kw supplied in the file
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -540,14 +570,17 @@ void open_kw_file(const char *fname, const char *timefmt)
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-void read_daily_kw(int julian, AED_REAL *kwout)
+void open_evap_file(const char *fname, const char *timefmt)
 {
-    int csv;
-    if ( (csv = kwf) > -1 ) {
-        find_day(csv, time_idx, julian);
-        *kwout = get_csv_val_r(csv, kw_idx);
-    } else
-        *kwout = Kw; //just use the Kw supplied in the file
+    if ( (kwf = open_csv_input(fname, timefmt)) < 0 ) {
+        fprintf(stderr, "Failed to open '%s'\n", fname);
+        exit(1);
+    }
+    locate_time_column(kwf, "Kd", fname);
+    if ( (evap_idx = find_csv_var(kwf, "Evap")) < 0 ) {
+        fprintf(stderr,"Error in Evap file, Evap not found!\n");
+        exit(1);
+    }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -689,6 +722,9 @@ void open_withdrtemp_file(const char *fname, const char *timefmt)
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
+void close_evap_files()
+{ if ( evapf >= 0 ) close_csv_input(evapf); }
+/*----------------------------------------------------------------------------*/
 void close_kw_files()
 { if ( kwf >= 0 ) close_csv_input(kwf); }
 /*----------------------------------------------------------------------------*/

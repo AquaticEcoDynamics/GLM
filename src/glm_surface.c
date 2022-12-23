@@ -404,22 +404,22 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                   exp(-2.*Lake[surfLayer].ExtcCoefSW*LayerThickness[surfLayer]);
 
     //# Heating of the surface layer due to PAR & NIR/UV:
-if (surfLayer > 0) {
-    flankArea = Lake[surfLayer].LayerArea - Lake[surfLayer-1].LayerArea;
-    //  1. PAR amount in "deep water" area
-    heat[surfLayer] = Lake[surfLayer-1].LayerArea * (Lake[surfLayer].Light - Lake[surfLayer-1].Light);
-    //  2. PAR amount in "littoral water" area
-    heat[surfLayer] = heat[surfLayer] + (flankArea * Lake[surfLayer].Light)
-          - (flankArea * (1.-MAX(1.,sed_reflectivity[0])) * Lake[surfLayer-1].Light);
-    //  3. NIR/UV amount in "deep water" area
-    heat[surfLayer] = heat[surfLayer] + Lake[surfLayer-1].LayerArea * (NotPARLight_s - NotPARLight_sm1);
-} else {
-    flankArea = Lake[surfLayer].LayerArea;
-    //  1. PAR amount in "deep water" area
-    heat[surfLayer] = Lake[surfLayer].Light;
-    //  2. PAR amount in "littoral water" area
-    heat[surfLayer] = heat[surfLayer] + (flankArea * Lake[surfLayer].Light);
-}
+    if (surfLayer > 0) {
+        flankArea = Lake[surfLayer].LayerArea - Lake[surfLayer-1].LayerArea;
+        //  1. PAR amount in "deep water" area
+        heat[surfLayer] = Lake[surfLayer-1].LayerArea * (Lake[surfLayer].Light - Lake[surfLayer-1].Light);
+        //  2. PAR amount in "littoral water" area
+        heat[surfLayer] = heat[surfLayer] + (flankArea * Lake[surfLayer].Light)
+              - (flankArea * (1.-MAX(1.,sed_reflectivity[0])) * Lake[surfLayer-1].Light);
+        //  3. NIR/UV amount in "deep water" area
+        heat[surfLayer] = heat[surfLayer] + Lake[surfLayer-1].LayerArea * (NotPARLight_s - NotPARLight_sm1);
+    } else {
+        flankArea = Lake[surfLayer].LayerArea;
+        //  1. PAR amount in "deep water" area
+        heat[surfLayer] = Lake[surfLayer].Light;
+        //  2. PAR amount in "littoral water" area
+        heat[surfLayer] = heat[surfLayer] + (flankArea * Lake[surfLayer].Light);
+    }
     //  4. NIR/UV amount in "littoral water" area
     heat[surfLayer] = heat[surfLayer] + (flankArea * NotPARLight_s)
           - (flankArea * (1.-MAX(1.,sed_reflectivity[0])) * NotPARLight_sm1);
@@ -450,34 +450,34 @@ if (surfLayer > 0) {
 
 
     // ---- MH TEST SOLPOND IN PROGRESS ---- //
-    if(light_mode == 2){
+    if (light_mode == 2){
 
-      Lake[surfLayer].Light = Q_shortwave;
+        Lake[surfLayer].Light = Q_shortwave;
 
-      //# Advanced option - compute the light penetration suing the integral of light adsorption
-      depth = Lake[surfLayer].Height;
-      rb = 0.3;
-      anglei = 10;
-      hdir = Q_shortwave * 0.9;
-      hdif = Q_shortwave * 0.1;
-      npoint = NumLayers+1;
-      memset(gx, 0, sizeof(AED_REAL)*MaxLayers);
+        //# Advanced option - compute the light penetration suing the integral of light adsorption
+        depth = Lake[surfLayer].Height;
+        rb = 0.3;
+        anglei = 10;
+        hdir = Q_shortwave * 0.9;
+        hdif = Q_shortwave * 0.1;
+        npoint = NumLayers+1;
+        memset(gx, 0, sizeof(AED_REAL)*MaxLayers);
 
-      //  printf(">solpond = %10.1f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",energy_frac[0],energy_frac[1],energy_frac[2],energy_frac[3],light_extc[0],light_extc[1],light_extc[2],light_extc[3]);
+        //  printf(">solpond = %10.1f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",energy_frac[0],energy_frac[1],energy_frac[2],energy_frac[3],light_extc[0],light_extc[1],light_extc[2],light_extc[3]);
 
-      //solpond(n_bands, npoint, depth, rb, hdir, anglei, hdif, energy, absorb, gx);
+        //solpond(n_bands, npoint, depth, rb, hdir, anglei, hdif, energy, absorb, gx);
 
-      solpond(n_bands, npoint, depth, LayerThickness, rb, hdir, anglei, hdif, energy_frac, light_extc, gx);
+        solpond(n_bands, npoint, depth, LayerThickness, rb, hdir, anglei, hdif, energy_frac, light_extc, gx);
 
-      printf(">solpond = %10.1f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",
+        printf(">solpond = %10.1f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",
                            gx[0],gx[1],gx[2],gx[3],gx[4],gx[5],gx[6],gx[7],gx[8]);
 
 
         printf("0light  = %10.1f\n", Lake[surfLayer].Light);
-      for (i = surfLayer-1; i >= botmLayer; i-- ){
-        Lake[i].Light = Lake[i+1].Light - (gx[i]-gx[i+1])*LayerThickness[i+1]  ;
-        printf(">light  = %10.1f %6.2f \n",Lake[i].Light,LayerThickness[i+1]);
-      }
+        for (i = surfLayer-1; i >= botmLayer; i-- ) {
+            Lake[i].Light = Lake[i+1].Light - (gx[i]-gx[i+1])*LayerThickness[i+1];
+            printf(">light  = %10.1f %6.2f \n",Lake[i].Light,LayerThickness[i+1]);
+        }
     }
     // MH
 
@@ -487,10 +487,9 @@ if (surfLayer > 0) {
      * and check ice buoyancy for crackign and white ice formation
      *********************************************************************/
     if (iclock == 0 && ice) {
-        AED_REAL BuoyantPotential ;
+        AED_REAL BuoyantPotential;
 
         if (SurfData.delzSnow > 0.0) {
-
           // Snow cover as well as ice cover
           if (MetData.Snow > 0.0 && MetData.Rain >= 0.0) {
                 // Snowfall on snow
@@ -691,8 +690,12 @@ if (surfLayer > 0) {
         //# Compute evaporative mass flux, in m/s, based on heat flux
         if ( no_evap )
             SurfData.Evap = 0.0;
-        else
-            SurfData.Evap = Q_latentheat / (latent_heat_vap * Lake[surfLayer].Density);
+        else {
+            if (evap_from_file)
+                SurfData.Evap = f_evap_ts_prop;
+            else
+                SurfData.Evap = Q_latentheat / (latent_heat_vap * Lake[surfLayer].Density);
+        }
 
         //# Longwave emission (ie. longwave out), affecting only the top layer
         Q_lw_out = -Stefan_Boltzman * eps_water * pow((Kelvin+Lake[surfLayer].Temp), 4.0);
@@ -837,7 +840,10 @@ if (surfLayer > 0) {
         T01_OLD = -50.0;
 
         //# Evaporation in water equivalents (so use rho0)
-        SurfData.Evap = Q_latentheat / Latent_Heat_Evap / rho0;
+        if ( evap_from_file )
+            SurfData.Evap = f_evap_ts_prop;
+        else
+            SurfData.Evap = Q_latentheat / Latent_Heat_Evap / rho0;
 
         //# Increment daily summaries
         SurfData.dailyEvap += (SurfData.Evap * noSecs * Lake[surfLayer].LayerArea);
@@ -893,7 +899,7 @@ if (surfLayer > 0) {
             //-----------------------------------------------------------------+
 
             if (SurfData.delzSnow > 0.0) {
-            //if (SurfData.delzSnow != 0.0) { //!MH Getting -ve Snow Height in lake.csv
+            //if (SurfData.delzSnow != 0.0)  //!MH Getting -ve Snow Height in lake.csv
 
                 // If there is snow, melt that first
                 if (rho_snow == 0.0) rho_snow = snow_rho_max;
@@ -1620,15 +1626,14 @@ int atmos_stability(      AED_REAL *Q_latentheat,
     if (fabs(Ldenom) < 1e-5) {
         zL = SIGN(zL_MAX,dT);
         L = HUMIDITY_HEIGHT/zL;
-      }
-    else {
+    } else {
         L = -(rho_air*Ux*Ux*Ux*T_virt) / Ldenom;
         zL = HUMIDITY_HEIGHT/L;
-      }
+    }
 
-      printf("U_sensM = %10.5f\n",U_sensM);
-      printf("L = %10.5f\n",L);
-      printf("zL = %10.5f\n",zL);
+    printf("U_sensM = %10.5f\n",U_sensM);
+    printf("L = %10.5f\n",L);
+    printf("zL = %10.5f\n",zL);
 
     //# Start iterative sequence for heat flux calculations
     atmos_count = 1;
@@ -1724,7 +1729,6 @@ int atmos_stability(      AED_REAL *Q_latentheat,
         *Q_latentheat = Q_latentheat_still;
 
     return atmos_status;
-
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
