@@ -762,13 +762,11 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     for (i = 0; i < MaxLayers; i++) Lake[i].ExtcCoefSW = Kw;
 
     //-------------------------------------------------
-    if ( get_namelist(namlst, evaporation) ) {
-        fprintf(stderr,"\n     ERROR reading the 'evaporation' namelist from %s\n", glm_nml_file);
-        exit(1);
-    }
-    if ( evap_file != NULL ) {
-        evap_from_file = TRUE;
-        open_evap_file(evap_file, timefmt_e);
+    if ( ! get_namelist(namlst, evaporation) ) {
+        if ( evap_file != NULL ) {
+            evap_from_file = TRUE;
+            open_evap_file(evap_file, timefmt_e);
+        }
     }
 
     //--------------------------------------------------------------------------
