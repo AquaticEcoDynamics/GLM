@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2022 -  The University of Western Australia               *
+ * Copyright 2013 - 2023 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -280,7 +280,7 @@ void insert(AED_REAL q, AED_REAL di, AED_REAL bsl, AED_REAL temp, AED_REAL salt,
     AED_REAL ALSQ;
     AED_REAL BL;
     AED_REAL B0;
-    AED_REAL DBB,DELT,DELB;
+    AED_REAL DBB, DELT, DELB;
     AED_REAL DHLE;
     AED_REAL DT;
 
@@ -296,14 +296,14 @@ void insert(AED_REAL q, AED_REAL di, AED_REAL bsl, AED_REAL temp, AED_REAL salt,
     AED_REAL Viscosity;
     AED_REAL XN;
     AED_REAL XNSQ;
-    AED_REAL ZP,ZT,ZB;
+    AED_REAL ZP, ZT, ZB;
 
     int wqidx;
-    int i,j,k;
+    int i, j, k;
     int iz;
-    int JB,JT;
-    int KX,KY;
-    int BotLayerIndex;  //
+    int JB, JT;
+    int KX, KY;
+    int BotLayerIndex;
     int TopLayerIndex;
 
 /*----------------------------------------------------------------------------*/
@@ -326,7 +326,7 @@ void insert(AED_REAL q, AED_REAL di, AED_REAL bsl, AED_REAL temp, AED_REAL salt,
         i = surfLayer;
         *ll = i;
         if (surfLayer > 0)
-            B0 = (Lake[surfLayer].Height-Lake[surfLayer-1].Height) / 2.0;
+            B0 = (Lake[surfLayer].Height - Lake[surfLayer-1].Height) / 2.0;
         else
             B0 = Lake[surfLayer].Height / 2.0;
         LenAtInsert = LenAtCrest;

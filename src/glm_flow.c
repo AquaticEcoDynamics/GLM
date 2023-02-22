@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2022 -  The University of Western Australia               *
+ * Copyright 2013 - 2023 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -516,7 +516,7 @@ AED_REAL do_overflow(int jday)
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-static int insert_inflow(int k, //#Inflow parcel counter
+static int insert_inflow(int k, //# Inflow parcel counter
     int iRiver,                 //# River inflow number
     AED_REAL Height_t0,         //# Height of lake before inflows [m]
     AED_REAL Alpha,             //# Stream half angle [radians]
@@ -604,7 +604,7 @@ static int insert_inflow(int k, //#Inflow parcel counter
 
     //# Otherwise keep moving the parcel down into the lake
     //# Calculate the height and velocity of the inflow and then the entrainment
-    while(1) {
+    while (1) {
         //# Reduced gravity of downflow (Eq. x in GLM manual)
         Inflow_gprime = g*(Inflow_Density-Lake[Layer].Density)/Lake[Layer].Density;
 
@@ -612,8 +612,8 @@ static int insert_inflow(int k, //#Inflow parcel counter
         Inflow_height_prev = pow((2.0*Ri*pow((Inflow_Flowrate/SecsPerDay*cos(Alpha)/sin(Alpha)), 2) / Inflow_gprime), 0.2);
 
         //# Distance travelled by inflow aliquot (Eq. x in GLM manual)
-        if (Layer == botmLayer) Inflow_dx = Downflow_Depth/sin(Phi);
-        else                    Inflow_dx = (Downflow_Depth-Lake[Layer-1].Height)/sin(Phi);
+        if (Layer == botmLayer) Inflow_dx = Downflow_Depth / sin(Phi);
+        else                    Inflow_dx = (Downflow_Depth - Lake[Layer-1].Height) / sin(Phi);
 
         //# New inflow thickness due to entrainment (Eq. x in GLM manual)
         Inflow_height = 1.2 * EntrainmentCoeff * Inflow_dx  +  Inflow_height_prev;
@@ -647,8 +647,10 @@ static int insert_inflow(int k, //#Inflow parcel counter
 
         //# Determine physical properties of the inflow aliquot once water
         //  from adjacent layer has been entrained
-        Inflow_Salinity = combine(Inflow_Salinity, Inflow_Flowrate, Inflow_Density, Lake[Layer].Salinity, Delta_Q, Lake[Layer].Density);
-        Inflow_Temp = combine(Inflow_Temp, Inflow_Flowrate, Inflow_Density, Lake[Layer].Temp, Delta_Q, Lake[Layer].Density);
+        Inflow_Salinity = combine(Inflow_Salinity, Inflow_Flowrate,
+                             Inflow_Density, Lake[Layer].Salinity, Delta_Q, Lake[Layer].Density);
+        Inflow_Temp = combine(Inflow_Temp,
+                             Inflow_Flowrate, Inflow_Density, Lake[Layer].Temp, Delta_Q, Lake[Layer].Density);
         Inflow_Density = calculate_density(Inflow_Temp, Inflow_Salinity);
 
         //# Add entrained water to inflow aliquot and take from adjacent layer
@@ -717,7 +719,7 @@ static int insert_inflow(int k, //#Inflow parcel counter
             for (kk = Layer+1; kk <= surfLayer; kk++)
                  Lake[kk].Vol1 = Lake[kk-1].Vol1 + Lake[kk].LayerVol;
 
-            return TRUE;;
+            return TRUE;
         }
         Layer--;
     }
@@ -745,15 +747,13 @@ AED_REAL do_inflows()
     AED_REAL Inflow_Height_t0;  //# Initial inflow plunge point [m]
     AED_REAL Inflow_gprime_t0;  //# Reduced gravity (gprime) given surface and inflow densities
 
-    int j, k, ll;
-    int iRiv;
-    int jk;
+    int j, k, ll, jk;
     int iRiver;
     int Layer_subm;             //# Layer number to insert submerged inflow
 
     int wqidx;
 
-    AED_REAL Inflow_width;    //# Width of inflow [m]
+    AED_REAL Inflow_width;      //# Width of inflow [m]
     AED_REAL VolSum = Lake[surfLayer].Vol1; //# Total lake volume before inflows
 
 /*----------------------------------------------------------------------------*/
@@ -834,7 +834,7 @@ AED_REAL do_inflows()
 
     einff = zero; //# At the start of the day initialise the deltaPE to zero
     iRiver = 0;   //# Start with first inflow
-    while(1) {
+    while (1) {
        /**************************************************************************
         * Work through each element in the downflow stacks and calculate the     *
         * travel distance and entrainment for the present day, and whether or    *
@@ -864,7 +864,7 @@ AED_REAL do_inflows()
                                            Alpha, Phi, EntrainmentCoeff, Ri));
             }
             iRiver++;
-         }
+        }
 
         /**********************************************************************
          * Insert all of the parcels which reached their level of NB on this  *
@@ -873,7 +873,7 @@ AED_REAL do_inflows()
 
         Inflow_width = 0.0;
         for (iRiver = 0; iRiver < NumInf; iRiver++) {
-            if  (Inflows[iRiver].SubmFlag) {
+            if (Inflows[iRiver].SubmFlag) {
                 //# Submerged inflows have no momentum, simply insert at specified level and
                 //# adjust layer properties including water quality variables
                 //# Get layer number at submerged inflow level
@@ -900,33 +900,30 @@ AED_REAL do_inflows()
                         Lake[j].Vol1 = Lake[j-1].Vol1 + Lake[j].LayerVol;
                 }
             } else {
-                Phi = Inflows[iRiver].Phi;
-                iRiv = iRiver;
-
                 for (j = 0; j < Inflows[iRiver].NoIns; j++) {
                     for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
-                        WQ_VarsTmp[iRiv][j][wqidx] = Inflows[iRiv].WQIns[j][wqidx];
+                        WQ_VarsTmp[iRiver][j][wqidx] = Inflows[iRiver].WQIns[j][wqidx];
 
-                    insert(Inflows[iRiv].QIns[j], Inflows[iRiv].DIIns[j], Phi,
-                              Inflows[iRiv].TIns[j], Inflows[iRiv].SIns[j],
-                                         WQ_VarsTmp[iRiv][j], SecsPerDay, &Inflow_width, &ll);
+                    insert(Inflows[iRiver].QIns[j], Inflows[iRiver].DIIns[j], Inflows[iRiver].Phi,
+                              Inflows[iRiver].TIns[j], Inflows[iRiver].SIns[j],
+                                         WQ_VarsTmp[iRiver][j], SecsPerDay, &Inflow_width, &ll);
 
-                    for (jk = Inflows[iRiv].InPar[j]-1; jk < Inflows[iRiv].iCnt-1; jk++) {
-                        Inflows[iRiv].QDown[jk] = Inflows[iRiv].QDown[jk+1];
-                        Inflows[iRiv].TDown[jk] = Inflows[iRiv].TDown[jk+1];
-                        Inflows[iRiv].SDown[jk] = Inflows[iRiv].SDown[jk+1];
+                    for (jk = Inflows[iRiver].InPar[j]-1; jk < Inflows[iRiver].iCnt-1; jk++) {
+                        Inflows[iRiver].QDown[jk] = Inflows[iRiver].QDown[jk+1];
+                        Inflows[iRiver].TDown[jk] = Inflows[iRiver].TDown[jk+1];
+                        Inflows[iRiver].SDown[jk] = Inflows[iRiver].SDown[jk+1];
 
                         for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
-                            Inflows[iRiv].WQDown[jk][wqidx] = Inflows[iRiv].WQDown[jk+1][wqidx];
+                            Inflows[iRiver].WQDown[jk][wqidx] = Inflows[iRiver].WQDown[jk+1][wqidx];
 
-                        Inflows[iRiv].DDown[jk] = Inflows[iRiv].DDown[jk+1];
-                        Inflows[iRiv].DOld[jk] = Inflows[iRiv].DOld[jk+1];
+                        Inflows[iRiver].DDown[jk] = Inflows[iRiver].DDown[jk+1];
+                        Inflows[iRiver].DOld[jk] = Inflows[iRiver].DOld[jk+1];
                     }
-                    Inflows[iRiv].TotIn -= Inflows[iRiv].QIns[j];
-                    Inflows[iRiv].iCnt--;
-                    if (Inflows[iRiv].iCnt == 0) {
-                        Inflows[iRiv].TotIn = zero;
-                        Inflows[iRiv].Dlwst = MISVAL;
+                    Inflows[iRiver].TotIn -= Inflows[iRiver].QIns[j];
+                    Inflows[iRiver].iCnt--;
+                    if (Inflows[iRiver].iCnt == 0) {
+                        Inflows[iRiver].TotIn = zero;
+                        Inflows[iRiver].Dlwst = MISVAL;
                     }
                     for (k = j; k < Inflows[iRiver].NoIns; k++)
                         Inflows[iRiver].InPar[k]--;
@@ -934,12 +931,11 @@ AED_REAL do_inflows()
             }
         }
 
-
-        //# Reset the number of insertions per river to be zero.
-        for (k = 0; k < NumInf; k++) Inflows[k].NoIns = 0;
-
-        //# Calculate the front of the downflow for each river.
         for (iRiver = 0; iRiver < NumInf; iRiver++) {
+            //# Reset the number of insertions per river to be zero.
+            Inflows[iRiver].NoIns = 0;
+
+            //# Calculate the front of the downflow for each river.
             Inflows[iRiver].Dlwst = MISVAL;
             for (j = 0; j < Inflows[iRiver].iCnt; j++) {
                 if (Inflows[iRiver].DDown[j] < Inflows[iRiver].Dlwst)
@@ -947,19 +943,16 @@ AED_REAL do_inflows()
             }
         }
 
-        iRiv = -1;
-
+        iRiver = -1;
         /**********************************************************************
          * If a flow fit error has occured, go back and reroute first inflow  *
-         * for the river of concern - iRiv.                                   *
+         * for the river of concern - iRiver.                                   *
          **********************************************************************/
-        if ( new_storage(&iRiv) ) break;
-
-        iRiver = iRiv;
+        if ( new_storage(&iRiver) ) break;
     }
 
     //# Make adjustments to update the layer heights, based on these vol changes
-    resize_internals(2,botmLayer);
+    resize_internals(2, botmLayer);
     check_layer_thickness();
 
     return Lake[surfLayer].Vol1 - VolSum;

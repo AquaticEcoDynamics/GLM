@@ -8,4 +8,3 @@ EXPORTS
     wq_write_glm @6
     wq_var_index_c @7
     wq_set_flags @8
-    wq_set_glm_zones @9

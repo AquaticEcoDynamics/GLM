@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2022 -  The University of Western Australia               *
+ * Copyright 2013 - 2023 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -182,37 +182,43 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     char           *out_fn  = NULL;
 //  LOGICAL         out_lkn;
 //  int             nsave;
-    int             csv_point_nlevs  = 0;
+    int             csv_point_nlevs   = 0;
     LOGICAL        *csv_point_frombot = NULL;
-    char           *csv_point_fname  = NULL;
-    AED_REAL       *csv_point_at     = NULL;
-    int             csv_point_nvars  = 0;
-    char          **csv_point_vars   = NULL;
-    char           *csv_lake_fname   = NULL;
+    char           *csv_point_fname   = NULL;
+    AED_REAL       *csv_point_at      = NULL;
+    int             csv_point_nvars   = 0;
+    char          **csv_point_vars    = NULL;
+    LOGICAL        *csv_point_depth_avg = NULL;
+    AED_REAL       *csv_point_zone_upper = NULL;
+    AED_REAL       *csv_point_zone_lower = NULL;
+    char           *csv_lake_fname    = NULL;
     LOGICAL         csv_outlet_allinone = FALSE;
-    char           *csv_outlet_fname = NULL;
-    int             csv_outlet_nvars = 0;
-    char          **csv_outlet_vars  = NULL;
-    char           *csv_ovrflw_fname = NULL;
+    char           *csv_outlet_fname  = NULL;
+    int             csv_outlet_nvars  = 0;
+    char          **csv_outlet_vars   = NULL;
+    char           *csv_ovrflw_fname  = NULL;
     //==========================================================================
     NAMELIST output[] = {
-          { "output",            TYPE_START,            NULL                  },
-          { "out_dir",           TYPE_STR,              &out_dir              },
-          { "out_fn",            TYPE_STR,              &out_fn               },
-          { "nsave",             TYPE_INT,               nsave                },
-          { "csv_point_nlevs",   TYPE_INT,              &csv_point_nlevs      },
-          { "csv_point_fname",   TYPE_STR,              &csv_point_fname      },
-          { "csv_point_frombot", TYPE_BOOL|MASK_LIST,   &csv_point_frombot    },
-          { "csv_point_at",      TYPE_DOUBLE|MASK_LIST, &csv_point_at         },
-          { "csv_point_nvars",   TYPE_INT,              &csv_point_nvars      },
-          { "csv_point_vars",    TYPE_STR|MASK_LIST,    &csv_point_vars       },
-          { "csv_lake_fname",    TYPE_STR,              &csv_lake_fname       },
-          { "csv_outlet_allinone", TYPE_BOOL,           &csv_outlet_allinone  },
-          { "csv_outlet_fname",  TYPE_STR,              &csv_outlet_fname     },
-          { "csv_outlet_nvars",  TYPE_INT,              &csv_outlet_nvars     },
-          { "csv_outlet_vars",   TYPE_STR|MASK_LIST,    &csv_outlet_vars      },
-          { "csv_ovrflw_fname",  TYPE_STR,              &csv_ovrflw_fname     },
-          { NULL,                TYPE_END,              NULL                  }
+         { "output",              TYPE_START,             NULL                },
+         { "out_dir",             TYPE_STR,              &out_dir             },
+         { "out_fn",              TYPE_STR,              &out_fn              },
+         { "nsave",               TYPE_INT,               nsave               },
+         { "csv_point_nlevs",     TYPE_INT,              &csv_point_nlevs     },
+         { "csv_point_fname",     TYPE_STR,              &csv_point_fname     },
+         { "csv_point_frombot",   TYPE_BOOL|MASK_LIST,   &csv_point_frombot   },
+         { "csv_point_at",        TYPE_DOUBLE|MASK_LIST, &csv_point_at        },
+         { "csv_point_nvars",     TYPE_INT,              &csv_point_nvars     },
+         { "csv_point_vars",      TYPE_STR|MASK_LIST,    &csv_point_vars      },
+         { "csv_point_depth_avg", TYPE_STR|MASK_LIST,    &csv_point_depth_avg },
+         { "csv_point_zone_upper",TYPE_DOUBLE|MASK_LIST, &csv_point_zone_upper},
+         { "csv_point_zone_lower",TYPE_DOUBLE|MASK_LIST, &csv_point_zone_lower},
+         { "csv_lake_fname",      TYPE_STR,              &csv_lake_fname      },
+         { "csv_outlet_allinone", TYPE_BOOL,             &csv_outlet_allinone },
+         { "csv_outlet_fname",    TYPE_STR,              &csv_outlet_fname    },
+         { "csv_outlet_nvars",    TYPE_INT,              &csv_outlet_nvars    },
+         { "csv_outlet_vars",     TYPE_STR|MASK_LIST,    &csv_outlet_vars     },
+         { "csv_ovrflw_fname",    TYPE_STR,              &csv_ovrflw_fname    },
+         { NULL,                  TYPE_END,               NULL                }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
@@ -1155,10 +1161,8 @@ for (i = 0; i < n_zones; i++) {
             if ( (n_zones <= 0 || zone_heights == NULL) ) {
                 fprintf(stderr, "     benthic_mode %d must define zones\n", benthic_mode);
                 exit(1);
-#if defined(AED) || defined(AED2)
             } else {
                 wq_set_glm_zones(theZones, &n_zones, &Num_WQ_Vars, &Num_WQ_Ben);
-#endif
             }
         }
 
@@ -1175,10 +1179,8 @@ for (i = 0; i < n_zones; i++) {
             }
         }
 
-#if defined(AED) || defined(AED2)
         wq_set_glm_data(Lake, &MaxLayers, &MetData, &SurfData, &dt,
                                    rain_factor, sw_factor, biodrag);
-#endif
     }
 
 

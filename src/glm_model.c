@@ -13,7 +13,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2022 -  The University of Western Australia               *
+ * Copyright 2013 - 2023 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -309,6 +309,8 @@ void do_model(int jstart, int nsave)
             Inflows[i].SubmElev = Elev[i];
             for (j = 0; j < Num_WQ_Vars; j++)
                 Inflows[i].WQInf[j] = (WQ_INF_(WQOld,i, j) + WQ_INF_(WQNew, i, j)) / 2.0;
+
+            wq_inflow_update(Inflows[i].WQInf, &Num_WQ_Vars, &Inflows[i].TemInf, &Inflows[i].SalInf);
         }
 
         read_daily_outflow(jday, NumOut, DrawNew);
@@ -438,7 +440,7 @@ void do_model_non_avg(int jstart, int nsave)
         SurfData.dailyQh      = 0.; SurfData.dailyQlw      = 0.;
         SurfData.dailyInflow  = 0.; SurfData.dailySnow     = 0.;
         SurfData.dailyOutflow = 0.; SurfData.dailyOverflow = 0.;
-        SurfData.dailyzonL    = 0.; SurfData.dailyRunoff  = 0.;
+        SurfData.dailyzonL    = 0.; SurfData.dailyRunoff   = 0.;
         SurfData.albedo       = 1.;
 
         //# Read & set today's inflow properties
@@ -456,6 +458,7 @@ void do_model_non_avg(int jstart, int nsave)
             for (j = 0; j < Num_WQ_Vars; j++) {
                 Inflows[i].WQInf[j] = WQ_INF_(WQNew, i, j);
             }
+            wq_inflow_update(Inflows[i].WQInf, &Num_WQ_Vars, &Inflows[i].TemInf, &Inflows[i].SalInf);
         }
 
         //# Read & set today's outflow properties
@@ -584,6 +587,8 @@ void do_model_coupled(int step_start, int step_end,
 //          Inflows[i].SalInf   = SaltNew[i];
             for (j = 0; j < Num_WQ_Vars; j++)
                 Inflows[i].WQInf[j] = WQ_INF_(WQNew, i, j);
+
+            wq_inflow_update(Inflows[i].WQInf, &Num_WQ_Vars, &Inflows[i].TemInf, &Inflows[i].SalInf);
         }
 
     //  read_daily_outflow(jday, NumOut, DrawNew);

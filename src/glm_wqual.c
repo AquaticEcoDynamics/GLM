@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2022 -  The University of Western Australia               *
+ * Copyright 2013 - 2023 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -65,6 +65,7 @@ wq_set_flags_t       p_wq_set_flags       = NULL;
 wq_is_var_t          p_wq_is_var          = NULL;
 wq_set_glm_zones_t   p_wq_set_glm_zones   = NULL;
 wq_ZSoilTemp_t       p_wq_ZSoilTemp       = NULL;
+wq_inflow_update_t   p_wq_inflow_update   = NULL;
 
 
 int ode_method = 1, split_factor = 1;

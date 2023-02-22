@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2013 - 2022 -  The University of Western Australia                #
+!# Copyright 2013 - 2023 -  The University of Western Australia                #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -84,6 +84,7 @@ MODULE glm_aed
 # define _WQ_VAR_INDEX_C     "wq_var_index_c"
 # define _WQ_SET_FLAGS       "wq_set_flags"
 # define _WQ_IS_VAR          "wq_is_var"
+# define _WQ_INFLOW_UPDATE   "wq_inflow_update"
 #else
 # define _WQ_INIT_GLM        "aed_init_glm"
 # define _WQ_SET_GLM_DATA    "aed_set_glm_data"
@@ -94,6 +95,7 @@ MODULE glm_aed
 # define _WQ_VAR_INDEX_C     "aed_var_index_c"
 # define _WQ_SET_FLAGS       "aed_set_flags"
 # define _WQ_IS_VAR          "aed_is_var"
+# define _WQ_INFLOW_UPDATE   "aed_update_inflow_wq"
 #endif
 !
 !-------------------------------------------------------------------------------
@@ -954,8 +956,8 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    IF ( benthic_mode .GT. 1 ) THEN
       j = 1
       DO i=1,wlev
-        !print *,'j',i,j
-        !print *,'zone_heights',z(i),zone_heights(j),theZones(1)%zheight,theZones(2)%zheight
+!        print *,'j',i,j
+!        print *,'zone_heights',z(i),zone_heights(j),theZones(1)%zheight,theZones(2)%zheight
          IF (z(i) .GT. zone_heights(j)) THEN
             sed_zones(i) = j * area(i)
             j = j+1
@@ -1680,6 +1682,22 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
       ENDIF
    ENDDO
 END SUBROUTINE aed_write_glm
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE wq_inflow_update(wqinf, nwqVars, temp, salt) BIND(C, name=_WQ_INFLOW_UPDATE)
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   TYPE(C_PTR),VALUE :: wqinf
+   CINTEGER,INTENT(in) :: nwqVars
+   AED_REAL,INTENT(inout) :: temp, salt
+!LOCALS
+   AED_REAL,DIMENSION(:),POINTER :: wqInfF
+!BEGIN
+   CALL C_F_POINTER(wqinf, wqInfF, [nwqVars])
+   CALL aed_inflow_update(wqInfF, temp, salt)
+END SUBROUTINE wq_inflow_update
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
