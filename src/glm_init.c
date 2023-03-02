@@ -690,9 +690,23 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( csv_outlet_nvars > MaxCSVOutVars ) { fprintf(stderr, "csv_outlet_nvars must be < %d\n", MaxCSVOutVars); exit(1); }
 
     if ( csv_point_frombot == NULL && csv_point_nlevs > 0) {
-        // CAB this is a potential source of a memory leak.
         csv_point_frombot = calloc(csv_point_nlevs, sizeof(LOGICAL));
         for (i = 0; i < csv_point_nlevs; i++) csv_point_frombot[i] = TRUE;
+    }
+    if ( csv_point_depth_avg != NULL && csv_point_nlevs > 0) {
+        if ( csv_point_zone_upper == NULL ) {
+            csv_point_zone_upper = calloc(csv_point_nlevs, sizeof(AED_REAL));
+            for (i = 0; i < csv_point_nlevs; i++) csv_point_zone_upper[i] = NaN;
+        }
+        if ( csv_point_zone_lower == NULL ) {
+            csv_point_zone_lower = calloc(csv_point_nlevs, sizeof(AED_REAL));
+            for (i = 0; i < csv_point_nlevs; i++) csv_point_zone_lower[i] = NaN;
+        }
+
+    }
+    if ( csv_point_depth_avg == NULL && csv_point_nlevs > 0) {
+        csv_point_depth_avg = calloc(csv_point_nlevs, sizeof(LOGICAL));
+        for (i = 0; i < csv_point_nlevs; i++) csv_point_depth_avg[i] = FALSE;
     }
 
     if ( wq_calc ) {
@@ -711,8 +725,14 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         }
         csv_point_nvars = tn;
     }
-    configure_csv(csv_point_nlevs, csv_point_at, csv_point_fname, csv_point_frombot, csv_point_nvars, csv_lake_fname);
+    configure_csv(csv_point_nlevs, csv_point_at, csv_point_fname,
+                  csv_point_frombot, csv_point_nvars, csv_point_depth_avg,
+                  csv_point_zone_upper, csv_point_zone_lower, csv_lake_fname);
+
     free(csv_point_frombot);
+    free(csv_point_depth_avg);
+    free(csv_point_zone_upper);
+    free(csv_point_zone_lower);
 
     if ( wq_calc ) {
         for (i = 0; i < csv_outlet_nvars; i++)

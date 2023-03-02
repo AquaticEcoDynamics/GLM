@@ -47,11 +47,15 @@ typedef char FILNAME[80];
 /*----------------------------------------------------------------------------*/
 
 int csv_point_nlevs = 0;
+int csv_point_nvars = 0;
 static int csv_points[MaxPointCSV];
 AED_REAL csv_point_at[MaxPointCSV+1];
 static char * csv_point_fname = NULL;
 int csv_point_frombot[MaxPointCSV+1];
-int csv_point_nvars = 0;
+int csv_point_depth_avg[MaxPointCSV+1];
+int csv_point_depth_run[MaxPointCSV+1];
+AED_REAL csv_point_zone_upper[MaxPointCSV+1];
+AED_REAL csv_point_zone_lower[MaxPointCSV+1];
 static VARNAME csv_point_vars[MaxCSVOutVars];
 
 static char * csv_lake_fname = NULL;
@@ -74,13 +78,19 @@ int ofl_wq_idx[MaxCSVOutVars];
  *                                                                            *
  ******************************************************************************/
 void configure_csv(int point_nlevs, AED_REAL *point_at, const char *point_fname,
-                    int *point_frombot, int point_nvars, const char *lake_fname)
+                    int *point_frombot, int point_nvars, int *point_depth_avg,
+                    AED_REAL *point_zone_upper, AED_REAL *point_zone_lower,
+                    const char *lake_fname)
 {
     int i;
     csv_point_nlevs = point_nlevs;
     for (i = 0; i < csv_point_nlevs; i++) {
-        csv_point_at[i] = point_at[i];
-        csv_point_frombot[i] = point_frombot[i];
+        csv_point_at[i] =         point_at[i];
+        csv_point_frombot[i] =    point_frombot[i];
+        csv_point_depth_avg[i] =  point_depth_avg[i];
+        csv_point_zone_upper[i] = point_zone_upper[i];
+        csv_point_zone_lower[i] = point_zone_lower[i];
+        csv_point_depth_run[i] =  FALSE;
     }
     if ( point_fname != NULL ) csv_point_fname = strdup(point_fname);
     csv_point_nvars = point_nvars;
@@ -233,9 +243,48 @@ void init_csv_output(const char *out_dir)
  ******************************************************************************/
 void write_csv_lake(const char *name, AED_REAL val, const char *cval, int last)
 { write_csv_var(csv_lake_file, name, val, cval, last); }
+
 /*----------------------------------------------------------------------------*/
 void write_csv_point(int p, const char *name, AED_REAL val, const char *cval, int last)
-{ write_csv_var(csv_points[p], name, val, cval, last); }
+{
+    if ( ! csv_point_depth_avg[p] )
+        write_csv_var(csv_points[p], name, val, cval, last);
+}
+
+/*----------------------------------------------------------------------------*/
+void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
+                                                     const char *cval, int last)
+{
+    int i, top = 0, bot = 0;
+    AED_REAL tot, val;
+
+    if ( csv_point_depth_avg[p] ) {
+        // if no scalars, init first...
+//      if ( !csv_point_depth_run[p] ) {
+//          csv_point_depth_run[p] = TRUE;
+            // run through all levels to find the first and last in the range
+            // for this point_at set first % and last % to include
+
+            for (i = 0; i < NumLayers; i++) {
+                if (Lake[i].Height < csv_point_zone_upper[p]) top = i;
+                if (Lake[i].Height > csv_point_zone_lower[p]) bot = i;
+            }
+//      }
+        // now change val to be the average over the range for this var
+        // run through levels from first and last included
+        tot = 0.0;
+        for (i = bot; i < top; i++) {
+            tot += vals[i];
+        }
+        val = tot / (Lake[top].Height - Lake[bot].Height);
+
+        write_csv_var(csv_points[p], name, val, cval, last);
+//      if ( last ) { // reset scalers
+//          csv_point_depth_run[p] = FALSE;
+//      }
+    }
+}
+
 /*----------------------------------------------------------------------------*/
 void write_csv_outfl(int ofl, const char *name, AED_REAL val, const char *cval, int last)
 { write_csv_var(csv_outfls[ofl], name, val, cval, last); }
@@ -288,6 +337,17 @@ void write_csv_point_(int *f, const char *name, int *len, AED_REAL *val,
     char *n = make_c_string(name, *len);
     char *v = make_c_string(cval, *vlen);
     write_csv_var(csv_points[*f-1], n, *val, v, *last);
+    free(n); free(v);
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+/******************************************************************************/
+void write_csv_point_avg_(int *f, const char *name, int *len, AED_REAL *vals,
+                                         const char *cval, int *vlen, int *last)
+{
+    char *n = make_c_string(name, *len);
+    char *v = make_c_string(cval, *vlen);
+    write_csv_point_avg(csv_points[*f-1], n, vals, v, *last);
     free(n); free(v);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

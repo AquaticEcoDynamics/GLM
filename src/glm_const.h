@@ -67,6 +67,7 @@ extern const AED_REAL c_gas;            //# Gas constant  J/kg/K
 extern const AED_REAL Stefan_Boltzman;  //# Stefan-Boltzman constant
 extern const AED_REAL mwrw2a;
 extern const AED_REAL zero;
+extern const AED_REAL NaN;
 
 extern const AED_REAL atm_pressure_sl;
 extern const AED_REAL cp_air;

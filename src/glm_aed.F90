@@ -1639,6 +1639,7 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                   IF (lvl(j) .GE. 0) THEN ; val_out = cc_diag(lvl(j)+1, d)
                   ELSE                    ; val_out = missing     ; ENDIF
                   CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
+                  CALL write_csv_point_avg(j, tv%name, len_trim(tv%name), cc_diag(:, d), NULCSTR, 0, last=last)
                ENDDO
             ENDIF
          ELSE IF ( .NOT. tv%extern ) THEN  ! not diag
@@ -1676,6 +1677,7 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                   IF (lvl(j) .GE. 0) THEN ; val_out = cc(lvl(j)+1, v)
                   ELSE                    ; val_out = missing     ; ENDIF
                   CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
+                  CALL write_csv_point_avg(j, tv%name, len_trim(tv%name), cc(:, v), NULCSTR, 0, last=last)
                ENDDO
             ENDIF
          ENDIF

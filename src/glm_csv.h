@@ -51,6 +51,20 @@
         CLOGICAL,INTENT(in)   :: last
      END SUBROUTINE write_csv_point
 
+     SUBROUTINE write_csv_point_avg(f, name, len, vals, cval, vlen, last) BIND(C, name="write_csv_point_avg_")
+        USE ISO_C_BINDING
+#       if defined( _WIN32 ) && USE_DL_LOADER
+        !DEC$ ATTRIBUTES DLLIMPORT :: write_csv_point_
+#       endif
+        CINTEGER,INTENT(in)   :: f
+        CCHARACTER,INTENT(in) :: name(*)
+        CINTEGER,INTENT(in)   :: len
+        AED_REAL,INTENT(in)   :: vals(*)
+        CCHARACTER,INTENT(in) :: cval(*)
+        CINTEGER,INTENT(in)   :: vlen
+        CLOGICAL,INTENT(in)   :: last
+     END SUBROUTINE write_csv_point_avg
+
      SUBROUTINE write_csv_lake(name,len,val,cval,vlen,last) BIND(C,name="write_csv_lake_")
         USE ISO_C_BINDING
         CCHARACTER,INTENT(in) :: name(*)
@@ -85,8 +99,14 @@ void write_csv_lake_(const char *name, int *len, AED_REAL *val, const char *cval
 void glm_close_csv_output(void);
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
+/*
 void configure_csv(int point_nlevs, AED_REAL *point_at, const char *point_fname,
                              int *point_frombot, int point_nvars, const char *lake_fname);
+*/
+void configure_csv(int point_nlevs, AED_REAL *point_at, const char *point_fname,
+                    int *point_frombot, int point_nvars, int *point_depth_avg,
+                    AED_REAL *point_zone_upper, AED_REAL *point_zone_lower,
+                    const char *lake_fname);
 
 void set_csv_point_varname(int which, const char *point_varnam);
 
