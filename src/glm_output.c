@@ -212,6 +212,7 @@ int intern_is_var(int id, const char *v)
 void write_output(int jday, int iclock, int nsave, int stepnum)
 {
     int i, n, lvl[MaxPointCSV];
+    extern CLOGICAL csv_point_depth_avg[];
     char ts[20];
 
     if ( csv_point_nlevs > 0 ) {
@@ -243,9 +244,15 @@ void write_output(int jday, int iclock, int nsave, int stepnum)
                 }
             }
 
-            write_csv_point(i, "temp", Lake[lvl[i]].Temp,     NULL, FALSE);
-            write_csv_point(i, "salt", Lake[lvl[i]].Salinity, NULL, FALSE);
-            write_csv_point(i, "dens", Lake[lvl[i]].Density,  NULL, FALSE);
+            if ( csv_point_depth_avg[i] ) {
+                write_csv_point_avg(i, "temp", NULL, NULL, FALSE);
+                write_csv_point_avg(i, "salt", NULL, NULL, FALSE);
+                write_csv_point_avg(i, "dens", NULL, NULL, FALSE);
+            } else {
+                write_csv_point(i, "temp", Lake[lvl[i]].Temp,     NULL, FALSE);
+                write_csv_point(i, "salt", Lake[lvl[i]].Salinity, NULL, FALSE);
+                write_csv_point(i, "dens", Lake[lvl[i]].Density,  NULL, FALSE);
+            }
         }
     }
 

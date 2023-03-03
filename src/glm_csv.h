@@ -94,6 +94,8 @@ extern int csv_lake_file;
 void init_csv_output(const char *out_dir);
 void write_csv_point(int f, const char *name, AED_REAL val, const char *cval, int last);
 void write_csv_point_(int *f, const char *name, int *len, AED_REAL *val, const char *cval, int *vlen, int *last);
+void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
+                                                    const char *cval, int last);
 void write_csv_lake(const char *name, AED_REAL val, const char *cval, int last);
 void write_csv_lake_(const char *name, int *len, AED_REAL *val, const char *cval, int *vlen, int *last);
 void glm_close_csv_output(void);

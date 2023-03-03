@@ -260,10 +260,10 @@ void write_csv_point(int p, const char *name, AED_REAL val, const char *cval, in
 
 /*----------------------------------------------------------------------------*/
 void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
-                                                     const char *cval, int last)
+                                                    const char *cval, int last)
 {
     int i;
-    AED_REAL totl, val, tvol, h1, h2;
+    AED_REAL totl, val, tvol, h1, h2, vh = 0., vl = 0.;
 
     if ( csv_point_depth_avg[p] ) {
         // if no scalars, init first...
@@ -311,8 +311,44 @@ void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
         }
 
         totl = 0.0;
-        for (i = csv_point_depth_bot[p]; i < csv_point_depth_top[p]; i++)
-            totl += (Lake[i].LayerVol * vals[i]);
+        if ( vals != NULL ) {
+            for (i = csv_point_depth_bot[p]+1; i < csv_point_depth_top[p]-1; i++)
+                totl += (Lake[i].LayerVol * vals[i]);
+        } else {
+            for (i = csv_point_depth_bot[p]+1; i < csv_point_depth_top[p]-1; i++) {
+                if ( strcmp(name, "temp") == 0 ) {
+                    totl += (Lake[i].LayerVol * Lake[i].Temp);
+                } else if ( strcmp(name, "salt") == 0 ) {
+                    totl += (Lake[i].LayerVol * Lake[i].Salinity);
+                } else if ( strcmp(name, "dens") == 0 ) {
+                    totl += (Lake[i].LayerVol * Lake[i].Density);
+                }
+            }
+        }
+
+        if ( vals != NULL ) {
+            vh = vals[csv_point_depth_top[p]];
+            vl = vals[csv_point_depth_bot[p]];
+        } else {
+            if ( strcmp(name, "temp") == 0 ) {
+                vh = Lake[csv_point_depth_top[p]].Temp;
+                vl = Lake[csv_point_depth_bot[p]].Temp;
+            } else if ( strcmp(name, "salt") == 0 ) {
+                vh = Lake[csv_point_depth_top[p]].Salinity;
+                vl = Lake[csv_point_depth_bot[p]].Salinity;
+            } else if ( strcmp(name, "dens") == 0 ) {
+                vh = Lake[csv_point_depth_top[p]].Density;
+                vl = Lake[csv_point_depth_bot[p]].Density;
+            }
+        }
+
+        h1 = Lake[csv_point_depth_top[p]].Height - Lake[csv_point_depth_top[p]-1].Height;
+        h2 = csv_point_zone_upper[p] - Lake[csv_point_depth_top[p]-1].Height;
+        totl += vh * (Lake[csv_point_depth_bot[p]].LayerVol * ((h1 - h2) / h1));
+
+        h1 = Lake[csv_point_depth_bot[p]].Height - Lake[csv_point_depth_bot[p]-1].Height;
+        h2 = Lake[csv_point_depth_bot[p]].Height - csv_point_zone_lower[p];
+        totl += vl * (Lake[csv_point_depth_bot[p]].LayerVol * ((h1 - h2) / h1));
 
         val = (totl / csv_point_depth_tvol[p]) *
                                          Lake[csv_point_depth_cur[p]].LayerVol;
