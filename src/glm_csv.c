@@ -51,12 +51,17 @@ int csv_point_nvars = 0;
 static int csv_points[MaxPointCSV];
 AED_REAL csv_point_at[MaxPointCSV+1];
 static char * csv_point_fname = NULL;
-int csv_point_frombot[MaxPointCSV+1];
-int csv_point_depth_avg[MaxPointCSV+1];
-int csv_point_depth_run[MaxPointCSV+1];
+CLOGICAL csv_point_frombot[MaxPointCSV+1];
+CLOGICAL csv_point_depth_avg[MaxPointCSV+1];
 AED_REAL csv_point_zone_upper[MaxPointCSV+1];
 AED_REAL csv_point_zone_lower[MaxPointCSV+1];
 static VARNAME csv_point_vars[MaxCSVOutVars];
+
+static CLOGICAL csv_point_depth_run[MaxPointCSV+1];
+static int csv_point_depth_top[MaxPointCSV+1];
+static int csv_point_depth_bot[MaxPointCSV+1];
+static int csv_point_depth_cur[MaxPointCSV+1];
+static AED_REAL csv_point_depth_tvol[MaxPointCSV+1];
 
 static char * csv_lake_fname = NULL;
 int csv_lake_file = -1;
@@ -96,6 +101,7 @@ void configure_csv(int point_nlevs, AED_REAL *point_at, const char *point_fname,
     csv_point_nvars = point_nvars;
     if ( lake_fname != NULL ) csv_lake_fname = strdup(lake_fname);
 }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
 /******************************************************************************
@@ -109,6 +115,7 @@ void configure_outfl_csv(int outlet_allinone, const char *outfl_fname,
     csv_outfl_nvars = outfl_nvars;
     if ( ovrfl_fname != NULL ) csv_ovrfl_fname = strdup(ovrfl_fname);
 }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
 /******************************************************************************
@@ -255,33 +262,65 @@ void write_csv_point(int p, const char *name, AED_REAL val, const char *cval, in
 void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
                                                      const char *cval, int last)
 {
-    int i, top = 0, bot = 0;
-    AED_REAL tot, val;
+    int i;
+    AED_REAL totl, val, tvol, h1, h2;
 
     if ( csv_point_depth_avg[p] ) {
         // if no scalars, init first...
-//      if ( !csv_point_depth_run[p] ) {
-//          csv_point_depth_run[p] = TRUE;
-            // run through all levels to find the first and last in the range
-            // for this point_at set first % and last % to include
+        if ( !csv_point_depth_run[p] ) {
+            csv_point_depth_run[p] = TRUE;
+
+            csv_point_depth_top[p] = -1;
+            csv_point_depth_bot[p] = -1;
+            csv_point_depth_cur[p] = -1;
 
             for (i = 0; i < NumLayers; i++) {
-                if (Lake[i].Height < csv_point_zone_upper[p]) top = i;
-                if (Lake[i].Height > csv_point_zone_lower[p]) bot = i;
+                if ( csv_point_at[p] < Lake[i].Height &&
+                     csv_point_at[p] > Lake[i-1].Height ) {
+                    csv_point_depth_cur[p] = i;
+                }
+
+                if ( csv_point_zone_upper[p] < Lake[i].Height &&
+                     csv_point_zone_upper[p] > Lake[i-1].Height ) {
+                    csv_point_depth_top[p] = i;
+                }
+
+                if ( csv_point_zone_lower[p] < Lake[i].Height &&
+                     csv_point_zone_lower[p] > Lake[i-1].Height ) {
+                    csv_point_depth_bot[p] = i;
+                }
             }
-//      }
-        // now change val to be the average over the range for this var
-        // run through levels from first and last included
-        tot = 0.0;
-        for (i = bot; i < top; i++) {
-            tot += vals[i];
+
+            // now change val to be the average over the range for this var
+            // run through levels from first and last included
+
+            tvol = 0.0;
+            for (i = csv_point_depth_bot[p]+1; i < csv_point_depth_top[p]-1; i++) {
+                tvol +=  Lake[i].LayerVol;
+            }
+
+            h1 = Lake[csv_point_depth_top[p]].Height - Lake[csv_point_depth_top[p]-1].Height;
+            h2 = csv_point_zone_upper[p] - Lake[csv_point_depth_top[p]-1].Height;
+            tvol += Lake[csv_point_depth_bot[p]].LayerVol * ((h1 - h2) / h1);
+
+            h1 = Lake[csv_point_depth_bot[p]].Height - Lake[csv_point_depth_bot[p]-1].Height;
+            h2 = Lake[csv_point_depth_bot[p]].Height - csv_point_zone_lower[p];
+            tvol += Lake[csv_point_depth_bot[p]].LayerVol * ((h1 - h2) / h1);
+
+            csv_point_depth_tvol[p] = tvol;
         }
-        val = tot / (Lake[top].Height - Lake[bot].Height);
+
+        totl = 0.0;
+        for (i = csv_point_depth_bot[p]; i < csv_point_depth_top[p]; i++)
+            totl += (Lake[i].LayerVol * vals[i]);
+
+        val = (totl / csv_point_depth_tvol[p]) *
+                                         Lake[csv_point_depth_cur[p]].LayerVol;
 
         write_csv_var(csv_points[p], name, val, cval, last);
-//      if ( last ) { // reset scalers
-//          csv_point_depth_run[p] = FALSE;
-//      }
+        if ( last ) { // reset scalers
+            csv_point_depth_run[p] = FALSE;
+        }
     }
 }
 
@@ -330,6 +369,7 @@ static char *make_c_string(const char *in, int len)
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
+
 /******************************************************************************/
 void write_csv_point_(int *f, const char *name, int *len, AED_REAL *val,
                               const char *cval, int *vlen, int *last)
@@ -340,6 +380,7 @@ void write_csv_point_(int *f, const char *name, int *len, AED_REAL *val,
     free(n); free(v);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
 
 /******************************************************************************/
 void write_csv_point_avg_(int *f, const char *name, int *len, AED_REAL *vals,
