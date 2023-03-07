@@ -279,7 +279,7 @@ void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
     AED_REAL totl, val, tvol, h1, h2, vh = 0., vl = 0.;
 
     if ( csv_point_depth_avg[p] ) {
-        // if no scalars, init first...
+        // if no scales, init first...
         if ( !csv_point_depth_run[p] ) {
             csv_point_depth_run[p] = TRUE;
 
@@ -306,19 +306,23 @@ void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
 
             // now change val to be the average over the range for this var
             // run through levels from first and last included
-
             tvol = 0.0;
-            for (i = csv_point_depth_bot[p]+1; i < csv_point_depth_top[p]-1; i++) {
+
+            // top and bottom layers will only be a proportion of the volume
+            i = csv_point_depth_bot[p];
+            h1 = Lake[i].Height - Lake[i-1].Height;
+            h2 = Lake[i].Height - csv_point_zone_lower[p];
+            tvol += Lake[i].LayerVol * ((h1 - h2) / h1);
+
+            for (i = csv_point_depth_bot[p]+1; i < csv_point_depth_top[p]; i++) {
                 tvol +=  Lake[i].LayerVol;
             }
 
-            h1 = Lake[csv_point_depth_top[p]].Height - Lake[csv_point_depth_top[p]-1].Height;
-            h2 = csv_point_zone_upper[p] - Lake[csv_point_depth_top[p]-1].Height;
-            tvol += Lake[csv_point_depth_bot[p]].LayerVol * ((h1 - h2) / h1);
-
-            h1 = Lake[csv_point_depth_bot[p]].Height - Lake[csv_point_depth_bot[p]-1].Height;
-            h2 = Lake[csv_point_depth_bot[p]].Height - csv_point_zone_lower[p];
-            tvol += Lake[csv_point_depth_bot[p]].LayerVol * ((h1 - h2) / h1);
+            // top and bottom layers will only be a proportion of the volume
+            i = csv_point_depth_top[p];
+            h1 = Lake[i].Height - Lake[i-1].Height;
+            h2 = csv_point_zone_upper[p] - Lake[i-1].Height;
+            tvol += Lake[i].LayerVol * ((h1 - h2) / h1);
 
             csv_point_depth_tvol[p] = tvol;
         }
@@ -328,7 +332,7 @@ void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
             for (i = csv_point_depth_bot[p]+1; i < csv_point_depth_top[p]-1; i++)
                 totl += (Lake[i].LayerVol * vals[i]);
         } else {
-            for (i = csv_point_depth_bot[p]+1; i < csv_point_depth_top[p]-1; i++) {
+            for (i = csv_point_depth_bot[p]+1; i < csv_point_depth_top[p]; i++) {
                 if ( strcmp(name, "temp") == 0 ) {
                     totl += (Lake[i].LayerVol * Lake[i].Temp);
                 } else if ( strcmp(name, "salt") == 0 ) {
@@ -365,8 +369,7 @@ void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
         h2 = Lake[csv_point_depth_bot[p]].Height - csv_point_zone_lower[p];
         totl += vl * (Lake[csv_point_depth_bot[p]].LayerVol * ((h1 - h2) / h1));
 
-        val = (totl / csv_point_depth_tvol[p]) *
-                                          Lake[csv_point_depth_cur[p]].LayerVol;
+        val = (totl / csv_point_depth_tvol[p]) ;
 
         write_csv_var(csv_points[p], name, val, cval, last);
 
