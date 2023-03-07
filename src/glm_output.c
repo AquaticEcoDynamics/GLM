@@ -221,7 +221,10 @@ void write_output(int jday, int iclock, int nsave, int stepnum)
         //# Output at end of time step so add noSecs to time string
         write_time_string(ts, jday, iclock + noSecs);
         for (i = 0; i < csv_point_nlevs; i++) {
-            write_csv_point(i, "time", 0.0, ts, FALSE);
+            if ( csv_point_depth_avg[i] )
+                write_csv_point_avg(i, "time", NULL, ts, FALSE);
+            else
+                write_csv_point(i, "time", 0.0, ts, FALSE);
 
             //# find which level csv_at is in
             if (csv_point_frombot[i]) { //Measure as height from bottom layer

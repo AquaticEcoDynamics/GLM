@@ -355,21 +355,22 @@ void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
             }
         }
 
-        h1 = Lake[csv_point_depth_top[p]].Height - Lake[csv_point_depth_top[p]-1].Height;
+        h1 = Lake[csv_point_depth_top[p]].Height -
+                                          Lake[csv_point_depth_top[p]-1].Height;
         h2 = csv_point_zone_upper[p] - Lake[csv_point_depth_top[p]-1].Height;
         totl += vh * (Lake[csv_point_depth_bot[p]].LayerVol * ((h1 - h2) / h1));
 
-        h1 = Lake[csv_point_depth_bot[p]].Height - Lake[csv_point_depth_bot[p]-1].Height;
+        h1 = Lake[csv_point_depth_bot[p]].Height -
+                                          Lake[csv_point_depth_bot[p]-1].Height;
         h2 = Lake[csv_point_depth_bot[p]].Height - csv_point_zone_lower[p];
         totl += vl * (Lake[csv_point_depth_bot[p]].LayerVol * ((h1 - h2) / h1));
 
         val = (totl / csv_point_depth_tvol[p]) *
-                                         Lake[csv_point_depth_cur[p]].LayerVol;
+                                          Lake[csv_point_depth_cur[p]].LayerVol;
 
         write_csv_var(csv_points[p], name, val, cval, last);
-        if ( last ) { // reset scalers
-            csv_point_depth_run[p] = FALSE;
-        }
+
+        if ( last ) csv_point_depth_run[p] = FALSE; // reset scales
     }
 }
 
