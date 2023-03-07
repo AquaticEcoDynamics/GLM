@@ -267,8 +267,12 @@ void write_output(int jday, int iclock, int nsave, int stepnum)
         wq_write_glm(ncid, NumLayers, MaxLayers, lvl, csv_point_nlevs);
 
     if (csv_point_nlevs > 0) {
-        for (i = 0; i < csv_point_nlevs; i++)
-            write_csv_point(i, "", 0.0, NULL, TRUE);
+        for (i = 0; i < csv_point_nlevs; i++) {
+            if ( csv_point_depth_avg[i] )
+                write_csv_point_avg(i, "", NULL, NULL, TRUE);
+            else
+                write_csv_point(i, "", 0.0, NULL, TRUE);
+        }
     }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

@@ -693,6 +693,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         csv_point_frombot = calloc(csv_point_nlevs, sizeof(LOGICAL));
         for (i = 0; i < csv_point_nlevs; i++) csv_point_frombot[i] = TRUE;
     }
+
     if ( csv_point_depth_avg != NULL && csv_point_nlevs > 0) {
         if ( csv_point_zone_upper == NULL ) {
             csv_point_zone_upper = calloc(csv_point_nlevs, sizeof(AED_REAL));
@@ -702,7 +703,6 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
             csv_point_zone_lower = calloc(csv_point_nlevs, sizeof(AED_REAL));
             for (i = 0; i < csv_point_nlevs; i++) csv_point_zone_lower[i] = NaN;
         }
-
     }
     if ( csv_point_depth_avg == NULL && csv_point_nlevs > 0) {
         csv_point_depth_avg = calloc(csv_point_nlevs, sizeof(LOGICAL));
@@ -883,7 +883,19 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         if ( zone_heights[n_zones-1] <= (max_elev-base_elev) ) {
             fprintf(stderr, "     WARNING last zone height is less than maximum depth\n");
             fprintf(stderr, "        ... adding an extra zone to compensate\n");
+/*
+ *  The realloc was a problem for namelist reader because realloc
+ *  may free the memory originally allocated if there was not enough to fill
+ *  the request for extended memory. So instead we copy the original to
+ *  a newly allocated memory block and free that ourselves when done.
             zone_heights = realloc(zone_heights, (n_zones+2)*sizeof(AED_REAL));
+ */
+            {   AED_REAL *t = malloc((n_zones+2)*sizeof(AED_REAL));
+                *t = 0;
+                if ( t != NULL ) memcpy(t, zone_heights, n_zones*sizeof(AED_REAL));
+                zone_heights = t;
+            }
+
             if ( zone_heights == NULL) {
                 fprintf(stderr, "     Memory ERROR ...\n"); exit(1);
             }

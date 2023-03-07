@@ -34,6 +34,7 @@
 
 #include "glm.h"
 #include "glm_globals.h"
+#include "glm_const.h"
 #include "glm_csv.h"
 #include "aed_csv.h"
 #include "aed_time.h"
@@ -92,9 +93,21 @@ void configure_csv(int point_nlevs, AED_REAL *point_at, const char *point_fname,
     for (i = 0; i < csv_point_nlevs; i++) {
         csv_point_at[i] =         point_at[i];
         csv_point_frombot[i] =    point_frombot[i];
-        csv_point_depth_avg[i] =  point_depth_avg[i];
-        csv_point_zone_upper[i] = point_zone_upper[i];
-        csv_point_zone_lower[i] = point_zone_lower[i];
+        if ( point_depth_avg == NULL )
+            csv_point_depth_avg[i] =  FALSE;
+        else
+            csv_point_depth_avg[i] =  point_depth_avg[i];
+
+        if ( point_zone_upper == NULL )
+            csv_point_zone_upper[i] = NaN;
+        else
+            csv_point_zone_upper[i] = point_zone_upper[i];
+
+        if ( point_zone_lower == NULL )
+            csv_point_zone_lower[i] = NaN;
+        else
+            csv_point_zone_lower[i] = point_zone_lower[i];
+
         csv_point_depth_run[i] =  FALSE;
     }
     if ( point_fname != NULL ) csv_point_fname = strdup(point_fname);
@@ -362,10 +375,16 @@ void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
 
 /*----------------------------------------------------------------------------*/
 void write_csv_outfl(int ofl, const char *name, AED_REAL val, const char *cval, int last)
-{ write_csv_var(csv_outfls[ofl], name, val, cval, last); }
+{
+    if (csv_outfls[ofl] >= 0)
+        write_csv_var(csv_outfls[ofl], name, val, cval, last);
+}
 /*----------------------------------------------------------------------------*/
 void write_csv_outfl_idx(int ofl, int var, AED_REAL val, const char *cval, int last)
-{ write_csv_var(csv_outfls[ofl], csv_outfl_vars[var], val, cval, last); }
+{
+    if (csv_outfls[ofl] >= 0)
+        write_csv_var(csv_outfls[ofl], csv_outfl_vars[var], val, cval, last);
+}
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 

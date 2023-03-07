@@ -496,7 +496,6 @@ AED_REAL do_overflow(int jday)
     VolSum = Lake[surfLayer].Vol1;
     // Water above the crest, which will overflow based on a weir equation
     if (VolSum > VolAtCrest){
-
         AED_REAL ovfl_Q, ovfl_dz;
 
         ovfl_dz = MAX( Lake[surfLayer].Height - CrestHeight, zero );
