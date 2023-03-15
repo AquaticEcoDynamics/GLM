@@ -1,4 +1,4 @@
-glm (3.3.1a6-0) UNRELEASED; urgency=low
+glm (3.3.1a7-0) UNRELEASED; urgency=low
 
   * new version 3.2.0a1
   * new version 3.2.0a8
@@ -18,8 +18,9 @@ glm (3.3.1a6-0) UNRELEASED; urgency=low
   * new version 3.3.1a4
   * new version 3.3.1a5
   * new version 3.3.1a6
+  * new version 3.3.1a7
 
- -- Casper Boon <hydro@AED.UWA>  Wed, 22 Feb 2023 10:30:28 +0800
+ -- Casper Boon <casper@oldmail.local.ambinet.com.au>  Wed, 15 Mar 2023 11:59:18 +0800
 
 glm (3.1.0-0) UNRELEASED; urgency=low
 

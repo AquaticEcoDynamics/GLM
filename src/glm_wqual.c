@@ -92,6 +92,9 @@ void dummyZSoilTemp(ZoneType *zone)
 {
 }
 #endif
+static void dummy_inflow_update(AED_REAL *wqinf, int *nwqVars, AED_REAL *temp, AED_REAL *salt)
+{
+}
 
 /******************************************************************************
  *                                                                            *
@@ -138,6 +141,7 @@ int prime_wq(const char *which)
     p_wq_set_glm_zones   =   (wq_set_glm_zones_t) find_entry(glm_wq_handle, "wq_set_glm_zones");
     p_wq_ZSoilTemp       =       (wq_ZSoilTemp_t) find_entry(glm_wq_handle, "zZSoilTemp");
     if ( p_wq_ZSoilTemp == NULL ) p_wq_ZSoilTemp = (wq_ZSoilTemp_t) dummyZSoilTemp;
+    p_wq_inflow_update   =   (wq_inflow_update_t) find_entry(glm_wq_handle, "wq_inflow_update");
 #ifdef _WIN32
     p_set_funcs          =          (set_funcs_t) find_entry(glm_wq_handle, "set_funcs");
 
@@ -193,6 +197,7 @@ int prime_wq(const char *which)
         p_wq_var_index_c     =     (wq_var_index_c_t) aed_var_index_c;
         p_wq_set_flags       =       (wq_set_flags_t) aed_set_flags;
         p_wq_is_var          =          (wq_is_var_t) aed_is_var;
+        p_wq_inflow_update   =   (wq_inflow_update_t) aed_update_inflow_wq;
 #else
         fprintf(stderr, "AED not supported in this build\n");
         exit(1);
@@ -201,6 +206,7 @@ int prime_wq(const char *which)
         p_wq_ZSoilTemp       =       (wq_ZSoilTemp_t) zZSoilTemp;
     }
 #endif
+    if ( p_wq_inflow_update == NULL ) p_wq_inflow_update = (wq_inflow_update_t) dummy_inflow_update;
 
     // This is weird. Comment out the debug fprintf below and the flags come out wrong, leave the debug in and
     // they are OK ....
