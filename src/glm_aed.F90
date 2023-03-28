@@ -1235,7 +1235,7 @@ CONTAINS
       INTEGER, INTENT(in) :: wlev
    !
    !LOCALS
-      INTEGER :: lev,zon,v_start,v_end,av,sv,sd
+      INTEGER :: lev,zon,v,v_start,v_end,av,sv,sd
       INTEGER, ALLOCATABLE :: layer_map(:)
       AED_REAL :: scale
 !     AED_REAL, DIMENSION(wlev, n_vars+n_vars_ben)    :: flux_pel_pre
@@ -1376,7 +1376,9 @@ CONTAINS
       !# scaled to proportion of area that is "bottom"
       DO lev=1,wlev
          if(lev>1)flux_pel(lev, :) = flux_pel(lev, :) * (area(lev)-area(lev-1))/area(lev)
-         flux_pel(lev, :) = max(-1.0 * cc(lev, :), flux_pel(lev, :)/dz(lev))
+         DO v=v_start,v_end
+           IF ( cc(1, v) .GE. 0.0 ) flux_pel(lev, v) = max(-1.0 * cc(lev, v), flux_pel(lev, v)/dz(lev))
+         END DO
       ENDDO
    ELSE
       !# Sediment zones are not simulated and therefore just operate on the bottom-most
@@ -1389,9 +1391,13 @@ CONTAINS
       CALL aed_calculate_benthic(column, 1)
 
       !# Limit flux out of bottom layers to concentration of that layer
-      !# i.e. don't flux out more than is there
-      !# & distribute bottom flux into pelagic over bottom box (i.e., divide by layer height).
-      flux_pel(1, :) = max(-1.0 * cc(1, :), flux_pel(1, :)/dz(1))
+      !# i.e. don't flux out more than is there is. Then
+      !# distribute bottom flux into pelagic over bottom box (i.e., divide by layer height)
+      !# Skip -ve values, as GEO_ubalchg is -ve and doesnt not comply with this logic
+      v_start = 1 ; v_end = n_vars
+      DO v=v_start,v_end
+        IF ( cc(1, v) .GE. 0.0 ) flux_pel(1, v) = max(-1.0 * cc(1, v), flux_pel(1, v)/dz(1))
+      END DO
 
       IF ( benthic_mode .EQ. 1 ) THEN
 !$OMP DO
@@ -1403,7 +1409,9 @@ CONTAINS
             !# i.e. don't flux out more than is there
             !# & distribute bottom flux into pelagic over bottom box (i.e., divide by layer height).
             !# scaled to proportion of area that is "bottom"
-            flux_pel(lev, :) = max(-1.0 * cc(lev, :), flux_pel(lev, :)/dz(lev))
+            DO v=v_start,v_end
+              IF ( cc(1, v) .GE. 0.0 ) flux_pel(lev, v) = max(-1.0 * cc(lev, v), flux_pel(lev, v)/dz(lev))
+            END DO
             flux_pel(lev, :) = flux_pel(lev, :) * (area(lev)-area(lev-1))/area(lev)
          ENDDO
 !$OMP END DO
