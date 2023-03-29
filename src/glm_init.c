@@ -209,7 +209,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
          { "csv_point_at",        TYPE_DOUBLE|MASK_LIST, &csv_point_at        },
          { "csv_point_nvars",     TYPE_INT,              &csv_point_nvars     },
          { "csv_point_vars",      TYPE_STR|MASK_LIST,    &csv_point_vars      },
-         { "csv_point_depth_avg", TYPE_STR|MASK_LIST,    &csv_point_depth_avg },
+         { "csv_point_depth_avg", TYPE_BOOL|MASK_LIST,   &csv_point_depth_avg },
          { "csv_point_zone_upper",TYPE_DOUBLE|MASK_LIST, &csv_point_zone_upper},
          { "csv_point_zone_lower",TYPE_DOUBLE|MASK_LIST, &csv_point_zone_lower},
          { "csv_lake_fname",      TYPE_STR,              &csv_lake_fname      },

@@ -11,7 +11,7 @@
 #                                                                             #
 #      http://aquatic.science.uwa.edu.au/                                     #
 #                                                                             #
-#  Copyright 2013 - 2022 -  The University of Western Australia               #
+#  Copyright 2013 - 2023 -  The University of Western Australia               #
 #                                                                             #
 #   GLM is free software: you can redistribute it and/or modify               #
 #   it under the terms of the GNU General Public License as published by      #
@@ -229,18 +229,6 @@ else ifeq ($(F90),flang)
   FLIBS+=-L/usr/local/flang/lib
   FLIBS+=-lexecinfo -lpgmath -lomp
   FLIBS+=-lflang -lflangrti -lflangADT -lflangArgParser
-else ifeq ($(F90),pgfortran)
-  LINK=$(CC)
-  DEBUG_FFLAGS=-g -DDEBUG=1
-  OPT_FFLAGS=-O3
-  FFLAGS=-module ${moddir} $(DEFINES) $(FINCLUDES)
-  ifeq ($(WITH_CHECKS),true)
-    FFLAGS+=-Mbounds
-  endif
-  FFLAGS+=-r8
-  FLIBS+=-L/opt/pgi/linux86-64/18.10/lib
-  FLIBS+=-lpgf90rtl -lpgf90 -lpgf90_rpm1 -lpgf902
-  FLIBS+=-lpgftnrtl -lpgmp -lnuma -lpgmath -lpgc
 else
   LINK=$(FC)
   DEBUG_FFLAGS=-g -fbacktrace -DDEBUG=1
@@ -291,7 +279,6 @@ endif
 RES=
 RESP=
 ifeq ($(WITH_PLOTS),true)
-  #LIBS+=-L$(PLOTDIR)/lib -lplot -lgd -lpng -ljpeg -lm
   LIBS+=-L$(PLOTDIR)/lib -lplot -lgd -ljpeg -lm
   ifeq ($(WITH_XPLOTS),true)
     ifeq ($(OSTYPE),Darwin)
