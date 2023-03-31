@@ -63,6 +63,8 @@ static int csv_point_depth_top[MaxPointCSV+1];
 static int csv_point_depth_bot[MaxPointCSV+1];
 static int csv_point_depth_cur[MaxPointCSV+1];
 static AED_REAL csv_point_depth_tvol[MaxPointCSV+1];
+static AED_REAL csv_point_top_scaler[MaxPointCSV+1];
+static AED_REAL csv_point_bot_scaler[MaxPointCSV+1];
 
 static char * csv_lake_fname = NULL;
 int csv_lake_file = -1;
@@ -108,7 +110,7 @@ void configure_csv(int point_nlevs, AED_REAL *point_at, const char *point_fname,
         else
             csv_point_zone_lower[i] = point_zone_lower[i];
 
-        csv_point_depth_run[i] =  FALSE;
+        csv_point_depth_run[i] = FALSE;
     }
     if ( point_fname != NULL ) csv_point_fname = strdup(point_fname);
     csv_point_nvars = point_nvars;
@@ -283,24 +285,42 @@ void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
         if ( !csv_point_depth_run[p] ) {
             csv_point_depth_run[p] = TRUE;
 
-            csv_point_depth_top[p] = -1;
-            csv_point_depth_bot[p] = -1;
+            // Find which layer "point_at" is in
             csv_point_depth_cur[p] = -1;
-
-            for (i = 0; i < NumLayers; i++) {
-                if ( csv_point_at[p] < Lake[i].Height &&
-                     csv_point_at[p] > Lake[i-1].Height ) {
-                    csv_point_depth_cur[p] = i;
+            if ( csv_point_at[p] <= Lake[0].Height ) {
+                csv_point_depth_cur[p] = 0;
+            } else {
+                for (i = 1; i < NumLayers; i++) {
+                    if ( csv_point_at[p] <= Lake[i].Height &&
+                         csv_point_at[p] > Lake[i-1].Height ) {
+                        csv_point_depth_cur[p] = i;
+                    }
                 }
+            }
 
-                if ( csv_point_zone_upper[p] < Lake[i].Height &&
-                     csv_point_zone_upper[p] > Lake[i-1].Height ) {
-                    csv_point_depth_top[p] = i;
+            // Find which layer "upper" is in
+            csv_point_depth_top[p] = -1;
+            if ( csv_point_zone_upper[p] <= Lake[0].Height ) {
+                csv_point_depth_top[p] = 0;
+            } else {
+                for (i = 1; i < NumLayers; i++) {
+                    if ( csv_point_zone_upper[p] <= Lake[i].Height &&
+                         csv_point_zone_upper[p] > Lake[i-1].Height ) {
+                        csv_point_depth_top[p] = i;
+                    }
                 }
+            }
 
-                if ( csv_point_zone_lower[p] < Lake[i].Height &&
-                     csv_point_zone_lower[p] > Lake[i-1].Height ) {
-                    csv_point_depth_bot[p] = i;
+            // Find which layer "lower" is in
+            csv_point_depth_bot[p] = -1;
+            if ( csv_point_zone_lower[p] <= Lake[0].Height ) {
+                csv_point_depth_bot[p] = 0;
+            } else {
+                for (i = 1; i < NumLayers; i++) {
+                    if ( csv_point_zone_lower[p] <= Lake[i].Height &&
+                         csv_point_zone_lower[p] > Lake[i-1].Height ) {
+                        csv_point_depth_bot[p] = i;
+                    }
                 }
             }
 
@@ -310,27 +330,39 @@ void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
 
             // top and bottom layers will only be a proportion of the volume
             i = csv_point_depth_bot[p];
-            h1 = Lake[i].Height - Lake[i-1].Height;
-            h2 = Lake[i].Height - csv_point_zone_lower[p];
-            tvol += Lake[i].LayerVol * ((h1 - h2) / h1);
+            h1 = Lake[i].Height;
+            h2 = csv_point_zone_lower[p];
+            if ( i > 0 ) {
+                h1 -= Lake[i-1].Height;
+                h2 -= Lake[i-1].Height;
+            }
+            csv_point_bot_scaler[p] = Lake[i].LayerVol * ((h1 - h2) / h1);
+            tvol += csv_point_bot_scaler[p];
 
+            // other layers will be full volume contributions
             for (i = csv_point_depth_bot[p]+1; i < csv_point_depth_top[p]; i++) {
                 tvol +=  Lake[i].LayerVol;
             }
 
             // top and bottom layers will only be a proportion of the volume
             i = csv_point_depth_top[p];
-            h1 = Lake[i].Height - Lake[i-1].Height;
-            h2 = csv_point_zone_upper[p] - Lake[i-1].Height;
-            tvol += Lake[i].LayerVol * ((h1 - h2) / h1);
+            h1 = Lake[i].Height;
+            h2 = csv_point_zone_upper[p];
+            if ( i > 0 ) {
+                h1 -= Lake[i-1].Height;
+                h2 -= Lake[i-1].Height;
+            }
+            csv_point_top_scaler[p] = Lake[i].LayerVol * (h2 / h1);
+            tvol += csv_point_top_scaler[p];
 
             csv_point_depth_tvol[p] = tvol;
         }
 
         totl = 0.0;
         if ( vals != NULL ) {
-            for (i = csv_point_depth_bot[p]+1; i < csv_point_depth_top[p]-1; i++)
+            for (i = csv_point_depth_bot[p]+1; i < csv_point_depth_top[p]; i++) {
                 totl += (Lake[i].LayerVol * vals[i]);
+            }
         } else {
             for (i = csv_point_depth_bot[p]+1; i < csv_point_depth_top[p]; i++) {
                 if ( strcmp(name, "temp") == 0 ) {
@@ -359,15 +391,8 @@ void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
             }
         }
 
-        h1 = Lake[csv_point_depth_top[p]].Height -
-                                          Lake[csv_point_depth_top[p]-1].Height;
-        h2 = csv_point_zone_upper[p] - Lake[csv_point_depth_top[p]-1].Height;
-        totl += vh * (Lake[csv_point_depth_bot[p]].LayerVol * ((h1 - h2) / h1));
-
-        h1 = Lake[csv_point_depth_bot[p]].Height -
-                                          Lake[csv_point_depth_bot[p]-1].Height;
-        h2 = Lake[csv_point_depth_bot[p]].Height - csv_point_zone_lower[p];
-        totl += vl * (Lake[csv_point_depth_bot[p]].LayerVol * ((h1 - h2) / h1));
+        totl += vh * csv_point_top_scaler[p];
+        totl += vl * csv_point_bot_scaler[p];
 
         val = (totl / csv_point_depth_tvol[p]) ;
 
