@@ -53,6 +53,7 @@ set_funcs_t          p_set_funcs          = NULL;
 
 static void *glm_wq_handle = NULL;
 #endif
+static void dummy_inflow_update(AED_REAL *wqinf, int *nwqVars, AED_REAL *temp, AED_REAL *salt);
 
 wq_init_glm_t        p_wq_init_glm        = NULL;
 wq_set_glm_data_t    p_wq_set_glm_data    = NULL;
@@ -65,7 +66,7 @@ wq_set_flags_t       p_wq_set_flags       = NULL;
 wq_is_var_t          p_wq_is_var          = NULL;
 wq_set_glm_zones_t   p_wq_set_glm_zones   = NULL;
 wq_ZSoilTemp_t       p_wq_ZSoilTemp       = NULL;
-wq_inflow_update_t   p_wq_inflow_update   = NULL;
+wq_inflow_update_t   p_wq_inflow_update   = (wq_inflow_update_t)dummy_inflow_update;
 
 
 int ode_method = 1, split_factor = 1;
