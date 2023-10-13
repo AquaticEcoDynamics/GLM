@@ -48,6 +48,10 @@ while [ $# -gt 0 ] ; do
     --flang)
       export FC=flang
       ;;
+    --no-gui)
+      export WITH_PLOTS=false
+      export WITH_XPLOTS=false
+      ;;
     *)
       ;;
   esac
@@ -106,10 +110,8 @@ if [ "$FC" = "ifort" ] ; then
      . /opt/intel/setvars.sh
   elif [ -d /opt/intel/oneapi ] ; then
      . /opt/intel/oneapi/setvars.sh
-  else
-    if [ -d /opt/intel/bin ] ; then
-       . /opt/intel/bin/compilervars.sh intel64
-    fi
+  elif [ -d /opt/intel/bin ] ; then
+     . /opt/intel/bin/compilervars.sh intel64
   fi
   which ifort > /dev/null 2>&1
   if [ $? != 0 ] ; then
@@ -166,12 +168,12 @@ if [ "$FABM" = "true" ] ; then
 fi
 
 if [ "${AED2}" = "true" ] ; then
-  cd ${AED2DIR}
+  cd "${AED2DIR}"
   ${MAKE} || exit 1
   cd ..
   if [ "${AED2PLS}" != "" ] ; then
-    if [ -d ${AED2PLS} ] ; then
-      cd ${AED2PLS}
+    if [ -d "${AED2PLS}" ] ; then
+      cd "${AED2PLS}"
       ${MAKE} || exit 1
       cd ..
     fi
@@ -179,72 +181,78 @@ if [ "${AED2}" = "true" ] ; then
 fi
 
 if [ "${AED}" = "true" ] ; then
-  cd  ${CURDIR}/../libaed-water
+  cd "${CURDIR}/../libaed-water"
   ${MAKE} || exit 1
   DAEDWATDIR=`pwd`
-  if [ -d ${CURDIR}/../libaed-benthic ] ; then
+  if [ -d "${CURDIR}/../libaed-benthic" ] ; then
     echo build libaed-benthic
-    cd  ${CURDIR}/../libaed-benthic
+    cd "${CURDIR}/../libaed-benthic"
     ${MAKE} || exit 1
     DAEDBENDIR=`pwd`
   fi
-  if [ -d ${CURDIR}/../libaed-demo ] ; then
+  if [ -d "${CURDIR}/../libaed-demo" ] ; then
     echo build libaed-demo
-    cd  ${CURDIR}/../libaed-demo
+    cd "${CURDIR}/../libaed-demo"
     ${MAKE} || exit 1
     DAEDDMODIR=`pwd`
   fi
-  if [ -d ${CURDIR}/../libaed-riparian ] ; then
+  if [ -d "${CURDIR}/../libaed-riparian" ] ; then
     echo build libaed-riparian
-    cd  ${CURDIR}/../libaed-riparian
+    cd "${CURDIR}/../libaed-riparian"
     ${MAKE} || exit 1
     DAEDRIPDIR=`pwd`
   fi
-  if [ -d ${CURDIR}/../libaed-light ] ; then
+  if [ -d "${CURDIR}/../libaed-light" ] ; then
     echo build libaed-light
-    cd  ${CURDIR}/../libaed-light
+    cd "${CURDIR}/../libaed-light"
     ${MAKE} || exit 1
     DAEDLGTDIR=`pwd`
   fi
-  if [ -d ${CURDIR}/../libaed-dev ] ; then
+  if [ -d "${CURDIR}/../libaed-dev" ] ; then
     echo build libaed-dev
-    cd  ${CURDIR}/../libaed-dev
+    cd "${CURDIR}/../libaed-dev"
     ${MAKE} || exit 1
     DAEDDEVDIR=`pwd`
   fi
 fi
 
 if [ "$WITH_PLOTS" = "true" ] ; then
-  cd ${PLOTDIR}
+  cd "${PLOTDIR}"
   ${MAKE} || exit 1
 fi
 
-cd ${UTILDIR}
+cd "${UTILDIR}"
 ${MAKE} || exit 1
 
-cd ${CURDIR}/..
+cd "${CURDIR}/.."
 if [ "$OSTYPE" = "FreeBSD" -a -d ancillary/freebsd ] ; then
   echo making flang extras
   cd ancillary/freebsd
   ${MAKE} || exit 1
+#elif [ "$OSTYPE" = "Msys" -a -d ancillary/windows ] ; then
+#  if [ ! -d ancillary/windows/msys ] ; then
+#    echo making windows ancillary extras
+#    cd ancillary/windows/Sources
+#    ./build_all.sh || exit 1
+# fi
 fi
 
-cd ${CURDIR}
+cd "${CURDIR}"
 if [ -f obj/aed_external.o ] ; then
   /bin/rm obj/aed_external.o
 fi
 
 # Update versions in resource files
 VERSION=`grep GLM_VERSION src/glm.h | cut -f2 -d\"`
-cd ${CURDIR}/win
+cd "${CURDIR}/win"
 ${CURDIR}/vers.sh $VERSION
 #cd ${CURDIR}/win-dll
 #${CURDIR}/vers.sh $VERSION
-cd ${CURDIR}
+cd "${CURDIR}"
 
 ${MAKE} AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR || exit 1
 if [ "${DAEDDEVDIR}" != "" ] ; then
-  if [ -d ${DAEDDEVDIR} ] ; then
+  if [ -d "${DAEDDEVDIR}" ] ; then
     echo now build plus version
     /bin/rm obj/aed_external.o
     ${MAKE} glm+ AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR AEDRIPDIR=$DAEDRIPDIR AEDLGTDIR=$DAEDLGTDIR AEDDEVDIR=$DAEDDEVDIR || exit 1
