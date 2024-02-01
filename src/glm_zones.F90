@@ -251,10 +251,12 @@ END SUBROUTINE copy_from_zone
 
 
 !###############################################################################
-SUBROUTINE copy_to_zone(x_cc, wlev)
+SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    AED_REAL,DIMENSION(:,:),INTENT(in) :: x_cc
+   AED_REAL,DIMENSION(:,:),INTENT(in) :: x_diag
+   AED_REAL,DIMENSION(:),INTENT(in) :: x_diag_hz
    INTEGER,INTENT(in) :: wlev
 !
 !LOCALS
@@ -266,6 +268,8 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
 !-------------------------------------------------------------------------------
 !BEGIN
    z_cc(:,1:nvars) = 0.
+   z_diag(:,:) = 0.
+   z_diag_hz(:,:) = 0.
    theZones%zrad = 0. ; theZones%zsalt = 0. ; theZones%ztemp = 0. ; theZones%zrho = 0.
    theZones%zextc_coef = 0. ; theZones%zlayer_stress = 0. ; theZones%ztss = 0.
    theZones%zpar = 0. ; theZones%znir = 0. ; theZones%zuva = 0. ; theZones%zuvb = 0.
@@ -288,6 +292,8 @@ SUBROUTINE copy_to_zone(x_cc, wlev)
       ! Ideally this average would be based on volume weighting
 
       z_cc(zon,1:nvars) = z_cc(zon,1:nvars) + x_cc(lev,1:nvars)
+      z_diag(zon,:)     = z_diag(zon,:) + x_diag(lev,:)
+      z_diag_hz(zon,:)  = z_diag_hz(zon,:) + x_diag_hz(:)
 
       theZones(zon)%ztemp         = theZones(zon)%ztemp + theLake(lev)%Temp
       theZones(zon)%zsalt         = theZones(zon)%zsalt + theLake(lev)%Salinity

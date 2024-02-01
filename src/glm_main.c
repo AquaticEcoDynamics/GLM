@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
         else {
             if (strcmp(*argv, "--version") == 0) {
                 show_vers = 1;
-            } else if (strcmp(*argv, "--help") != 0) {
+            } else if (strcmp(*argv, "--help") == 0) {
                 show_options = 1;
             } else {
                 fprintf(stderr, "Unknown flag %s\n", *argv);

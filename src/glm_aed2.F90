@@ -1212,7 +1212,7 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    DO split=1,split_factor
 
       IF (benthic_mode .GT. 1) THEN
-         CALL copy_to_zone(cc, wlev)
+         CALL copy_to_zone(cc, cc_diag, cc_diag_hz, wlev)
          CALL calc_zone_areas(area, wlev, z(wlev))
       ENDIF
 
