@@ -309,6 +309,8 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
 
    DO zon=1,a_zones
       z_cc(zon,1:nvars) = z_cc(zon,1:nvars)/zcount(zon)
+      z_diag(zon,:)     = z_diag(zon,:)/zcount(zon)
+      z_diag_hz(zon,:)  = z_diag_hz(zon,:)/zcount(zon)
    ENDDO
 
    WHERE (zcount /= 0)
