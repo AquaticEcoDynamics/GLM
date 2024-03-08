@@ -279,12 +279,12 @@ endif
 RES=
 RESP=
 ifeq ($(WITH_PLOTS),true)
-  LIBS+=-L$(PLOTDIR)/lib -lplot -lgd -ljpeg -lm
+  LIBS+=-L$(PLOTDIR)/lib -lplot -lgd
   ifeq ($(WITH_XPLOTS),true)
     ifeq ($(OSTYPE),Darwin)
       LIBS+=-framework Cocoa
     else ifeq ($(OSTYPE),Msys)
-      LIBS+=-lpng16 -lz -lcomdlg32 -lgdi32
+      LIBS+=-lgdi32
       RES=${objdir}/glm_rc.o
       RESP=${objdir}/glm+_rc.o
     else
@@ -365,10 +365,10 @@ ${moddir}:
 	@mkdir ${moddir}
 
 glm: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS) $(RES)
-	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(RES) $(LIBS) $(WQLIBS) $(FLIBS)
+	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(RES) $(WQLIBS) $(LIBS) $(FLIBS)
 
 glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS) $(RESP)
-	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(RESP) $(LIBS) $(WQLIBS) $(FLIBS)
+	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(RESP) $(WQLIBS) $(LIBS) $(FLIBS)
 
 clean: ${objdir} ${moddir}
 	@touch ${objdir}/1.o ${moddir}/1.mod 1.t 1__genmod.f90 glm 1.${so_ext} glm_test_bird macos/glm.app macos/glm+.app
