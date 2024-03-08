@@ -87,9 +87,9 @@ endif
 
 ifeq ($(OSTYPE),Darwin)
   ifeq ($(HOMEBREW),true)
-     FINCLUDES+=-I/usr/local/include
-     CINCLUDES+=-I/usr/local/include
-     LIBS+=-L/usr/local/lib
+     FINCLUDES+=-I/usr/local/include -I/opt/homebrew/include
+     CINCLUDES+=-I/usr/local/include -I/opt/homebrew/include
+     LIBS+=-L/usr/local/lib -L/opt/homebrew/lib
   else
      FINCLUDES+=-I/opt/local/include
      CINCLUDES+=-I/opt/local/include
