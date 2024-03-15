@@ -181,6 +181,7 @@ if [ "${AED2}" = "true" ] ; then
 fi
 
 if [ "${AED}" = "true" ] ; then
+  echo "build libaed-water"
   cd "${CURDIR}/../libaed-water"
   ${MAKE} || exit 1
   DAEDWATDIR=`pwd`
@@ -209,32 +210,40 @@ if [ "${AED}" = "true" ] ; then
     DAEDLGTDIR=`pwd`
   fi
   if [ -d "${CURDIR}/../libaed-dev" ] ; then
+    if [ -d "${CURDIR}/../phreeqcrm" ] ; then
+      PHREEQDIR="${CURDIR}/../phreeqcrm"
+    fi
     echo build libaed-dev
     cd "${CURDIR}/../libaed-dev"
-    ${MAKE} || exit 1
+    ${MAKE} PHREEQDIR=$PHREEQDIR || exit 1
     DAEDDEVDIR=`pwd`
   fi
 fi
 
-if [ "$WITH_PLOTS" = "true" ] ; then
-  cd "${PLOTDIR}"
+if [ -d "${UTILDIR}" ] ; then
+  echo "making libutil"
+  cd "${UTILDIR}"
   ${MAKE} || exit 1
+  cd "${CURDIR}/.."
 fi
 
-cd "${UTILDIR}"
-${MAKE} || exit 1
-
-cd "${CURDIR}/.."
-if [ "$OSTYPE" = "FreeBSD" -a -d ancillary/freebsd ] ; then
+if [ "$OSTYPE" = "FreeBSD" ] ; then
   echo making flang extras
   cd ancillary/freebsd
+  ./fetch.sh
   ${MAKE} || exit 1
-#elif [ "$OSTYPE" = "Msys" -a -d ancillary/windows ] ; then
-#  if [ ! -d ancillary/windows/msys ] ; then
-#    echo making windows ancillary extras
-#    cd ancillary/windows/Sources
-#    ./build_all.sh || exit 1
-# fi
+elif [ "$OSTYPE" = "Msys" ] ; then
+  if [ ! -d ancillary/windows/msys ] ; then
+    echo making windows ancillary extras
+    cd ancillary/windows/Sources
+    ./build_all.sh || exit 1
+  fi
+fi
+
+if [ "$WITH_PLOTS" = "true" ] ; then
+  echo "making libplot"
+  cd "${PLOTDIR}"
+  ${MAKE} || exit 1
 fi
 
 cd "${CURDIR}"
@@ -255,7 +264,7 @@ if [ "${DAEDDEVDIR}" != "" ] ; then
   if [ -d "${DAEDDEVDIR}" ] ; then
     echo now build plus version
     /bin/rm obj/aed_external.o
-    ${MAKE} glm+ AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR AEDRIPDIR=$DAEDRIPDIR AEDLGTDIR=$DAEDLGTDIR AEDDEVDIR=$DAEDDEVDIR || exit 1
+    ${MAKE} glm+ AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR AEDRIPDIR=$DAEDRIPDIR AEDLGTDIR=$DAEDLGTDIR AEDDEVDIR=$DAEDDEVDIR PHREEQDIR=$PHREEQDIR || exit 1
   fi
 fi
 

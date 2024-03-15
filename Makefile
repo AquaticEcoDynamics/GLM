@@ -168,6 +168,10 @@ ifeq ($(AED),true)
   endif
   ifdef AEDDEVDIR
     AEDLIBS+=-L$(AEDDEVDIR)/lib -laed-dev
+    ifdef PHREEQDIR
+       AEDLIBS+=-L$(PHREEQDIR)/build -lPhreeqcRM
+       FINCLUDES+=-I$(PHREEQDIR)/src
+    endif
   else
     EXTFFLAGS+=-DNO_DEV
   endif
