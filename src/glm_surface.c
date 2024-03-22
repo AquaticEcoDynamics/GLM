@@ -995,6 +995,24 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         Lake[onshoreLayer].Temp += dTemp;
     }
 
+      /**************************************************************************
+     * Check if the ice melted in code above
+     *************************************************************************/
+    if ((SurfData.delzBlueIce+SurfData.delzWhiteIce) < min_ice_thickness && ice) {
+      Lake[surfLayer].Height = Lake[surfLayer].Height
+      + SurfData.delzBlueIce  * (rho_ice_blue/Lake[surfLayer].Density)
+      + SurfData.delzWhiteIce * (rho_ice_white/Lake[surfLayer].Density)
+      + SurfData.delzSnow     * (rho_snow/Lake[surfLayer].Density);
+      
+      recalc_surface_salt();
+      
+      ice = FALSE;
+      SurfData.delzBlueIce  = 0.0;
+      SurfData.delzWhiteIce = 0.0;
+      SurfData.delzSnow    = 0.0;
+    }
+
+
     /***************************************************************************
      * ICE MELTING & FREEZING @ BOTTOM
      * The change in ice thickness at the bottom can now be determined
