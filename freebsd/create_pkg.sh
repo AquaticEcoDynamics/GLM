@@ -35,7 +35,7 @@ EOF
 
 cat >> ${STAGEDIR}/+MANIFEST <<EOF
 name: ${PKGNAME}
-version: "3.3.1a12"
+version: "3.3.1b1"
 origin: science/${PKGNAME}
 comment: "automates stuff"
 desc: "automates tasks which can also be undone later"
