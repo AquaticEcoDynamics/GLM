@@ -2,7 +2,7 @@
 !#                                                                             #
 !# glm_aed.F90                                                                 #
 !#                                                                             #
-!# The interface between glm and libaed-xxx                                    #
+!# The interface between glm and libaed-xxx  mel                               #
 !#                                                                             #
 !# Developed by :                                                              #
 !#     AquaticEcoDynamics (AED) Group                                          #
