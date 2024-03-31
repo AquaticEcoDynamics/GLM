@@ -240,6 +240,10 @@ char *      fetch_fws = NULL;
 CLOGICAL littoral_sw        = FALSE;
 
 //------------------------------------------------------------------------------
+// PARTICLE TRANSPORT MODEL
+ParticleDataType *Particle = NULL;
+
+//------------------------------------------------------------------------------
 
 AED_REAL timezone_r = 0.0, timezone_m = 0.0, timezone_i = 0.0, timezone_o = 0.0;
 

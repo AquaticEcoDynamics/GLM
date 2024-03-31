@@ -558,8 +558,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%NAMELIST groundwater ----------------------------------------------*/
 //  extern int   gw_mode; // = 0;       //# mode
 //  extern char *gw_file; // = NULL;    //# name of gw file
-//  extern AED_REAL *K_gw; // = NULL;   //# turn off evaporation
-//  extern AED_REAL *L_gw; // = NULL;   //# turn off evaporation
+//  extern AED_REAL *K_gw; // = NULL;   //# 
+//  extern AED_REAL *L_gw; // = NULL;   //#     
     //==========================================================================
     NAMELIST groundwater[] = {
           { "groundwater",       TYPE_START,            NULL                  },
@@ -570,6 +570,31 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { NULL,                TYPE_END,              NULL                  }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
+
+    /*-- %%NAMELIST particle model -------------------------------------------*/
+    extern CLOGICAL  ptm_sw;
+    extern int       num_particle_grp;
+    extern int       max_particle_num;
+    extern int       init_particle_num;
+    extern AED_REAL  init_depth_min;
+    extern AED_REAL  init_depth_max;
+    extern AED_REAL  ptm_time_step;
+    extern AED_REAL  ptm_diffusivity;
+    //==========================================================================
+    NAMELIST particles[] = {
+          { "particles",         TYPE_START,            NULL                  },
+          { "ptm_sw",            TYPE_BOOL,             &ptm_sw               },
+          { "num_particle_grp",  TYPE_INT,              &num_particle_grp     },
+          { "max_particle_num",  TYPE_INT,              &max_particle_num     },
+          { "init_particle_num", TYPE_INT,              &init_particle_num    },
+          { "init_depth_min",    TYPE_DOUBLE,           &init_depth_min       },
+          { "init_depth_max",    TYPE_DOUBLE,           &init_depth_max       },
+          { "ptm_time_step",     TYPE_DOUBLE,           &ptm_time_step        },
+          { "ptm_diffusivity",   TYPE_DOUBLE,           &ptm_diffusivity      },
+          { NULL,                TYPE_END,              NULL                  }
+    };
+    /*-- %%END NAMELIST ------------------------------------------------------*/
+
 
     /*-- %%NAMELIST debugging ------------------------------------------------*/
 //  extern CLOGICAL dbg_mix;   //# debug output from mixer
@@ -944,6 +969,25 @@ for (i = 0; i < n_zones; i++) {
     fprintf(stderr, "  sed_roughness[%d] = %e\n", i, sed_roughness[i]);
 }
 */
+
+    //--------------------------------------------------------------------------
+    // particles / ptm
+
+    if ( ptm_sw ) {
+
+        fprintf(stderr, "     PTM module active: initial particles = %d\n", init_particle_num);
+        ptm_init_glm();  //num_particle_grp, max_particle_num, init_particle_num,init_depth_min, init_depth_max, ptm_time_step, ptm_diffusivity 
+        if ( max_particle_num > 1000000 ) {
+            fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", 1000000);
+            exit(1);
+        }
+    }
+
+
+
+
+
+    //--------------------------------------------------------------------------
 
     open_met_file(meteo_fl, snow_sw, rain_sw, timefmt_m);
     config_bird(namlst);

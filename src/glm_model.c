@@ -767,6 +767,11 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
                       sqrt( (Lake[surfLayer].LayerArea)/Pi ) * 2 );
 
         /**********************************************************************
+         *## Start PTM calls                                                  *
+         **********************************************************************/
+        if (ptm_sw) do_ptm_update();
+
+        /**********************************************************************
          *## Start Water Quality calls                                        *
          **********************************************************************/
         if (wq_calc) wq_do_glm(&NumLayers, &ice);

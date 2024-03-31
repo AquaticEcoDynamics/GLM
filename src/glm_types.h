@@ -251,5 +251,16 @@ typedef char filname[80];
        SedLayerType *layers;
    } ZoneType;
 
+   /*===========================================================*/
+   // Structured type for Particle Transport Model (PTM)
+   typedef struct ParticleDataType {
+       int Status;          // indivdual particle status
+       AED_REAL Height;
+       AED_REAL Mass;
+       AED_REAL Diam;
+       AED_REAL Density;
+       AED_REAL Velocity;
+       AED_REAL vvel;
+   } ParticleDataType;
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif

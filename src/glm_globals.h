@@ -288,6 +288,10 @@ extern char     *fetch_fws;
 // LITTORAL
 extern CLOGICAL littoral_sw;
 
+//------------------------------------------------------------------------------
+// PARTICLE TRANSPORT MODEL
+extern ParticleDataType *Particle;
+
 /*----------------------------------------------------------------------------*/
 // TIME
 extern AED_REAL timezone_r, timezone_m, timezone_i, timezone_o;

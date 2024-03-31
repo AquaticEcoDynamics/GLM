@@ -1097,6 +1097,10 @@ void do_mixing()
                      WQ_VarsM[wqvidx] = _WQ_Vars(wqvidx, i) * Lake[i].LayerVol + WQ_VarsM[wqvidx];
                  WQ_VarsM[wqvidx] = WQ_VarsM[wqvidx] / Lake[surfLayer].Vol1;
             }
+
+            //# redistribute particles in the mixed layer
+            ptm_redistribute(Lake[surfLayer].Height, zero)
+
             /***** fall through ******/
 
          case MOMENTUM_CUT:
@@ -1126,6 +1130,9 @@ void do_mixing()
             for (wqvidx=0; wqvidx < Num_WQ_Vars; wqvidx++)
                 _WQ_Vars(wqvidx,Meta_topLayer+1) = WQ_VarsM[wqvidx];
 
+            //# redistribute particles in the mixed layer
+            ptm_redistribute(Lake[Meta_topLayer+1].Height, Lake[Meta_topLayer].Height)
+
             //# reset the layer volume, density and area for the surface layer
             Lake[Meta_topLayer+1].Vol1 = Lake[surfLayer].Vol1;
 
@@ -1140,6 +1147,7 @@ void do_mixing()
             Lake[Meta_topLayer+1].LayerArea = Lake[surfLayer].LayerArea;
 
             NumLayers = Meta_topLayer + 2; //# add 2 as count from 0 (ie bottom layer == 0)
+
 
             dbgprt("Time_count_sim = %10.5f\n",Time_count_sim);
             dbgprt("Time_start_shear = %10.5f\n",Time_start_shear);

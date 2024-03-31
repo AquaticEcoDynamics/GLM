@@ -164,6 +164,18 @@ MODULE glm_types
       TYPE(C_PTR) :: c_layers      !# array of sed layers
    END TYPE ZoneType
 
+   !#===========================================================#!
+   !# Structured type for Particle Transport Model (PTM)
+   TYPE,BIND(C) :: ParticleDataType 
+       INTEGER  :: Status         ! indivdual particle status
+       AED_REAL :: Height
+       AED_REAL :: Mass
+       AED_REAL :: Diam
+       AED_REAL :: Density
+       AED_REAL :: Velocity
+       AED_REAL :: vvel
+   END TYPE ParticleDataType
+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 CONTAINS
