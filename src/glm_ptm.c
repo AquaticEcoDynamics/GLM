@@ -148,6 +148,15 @@ void do_ptm_update()
           if (Particle[p].Status>0) {
             // Update particle position based on diffusivity and vert velocity
             random_walk(dt,Particle[p].Height, Lake[Particle[p].Layer].Epsilon,Particle[p].vvel)  
+
+            // Mary random walk equation in R:
+            // following Visser 1997 https://www.int-res.com/articles/meps/158/m158p275.pdf
+            // z_t1 <- z + K_prime_z * z * del_t + runif(1, min = -1,max = 1) * sqrt((2 * K_z * (z + 0.5 * K_prime_z * z * del_t) * del_t) / (1/3))
+            // z is depth (or elevation in this case)
+            // del_t is timestep of one minute in SECONDS
+            // K_z is vertical diffusivity at depth/elevation z; we are assuming constant K of 1x10e-6 for now I think?
+            // K_prime is delta K / delta z
+            
             // Check if status change due to hitting bed, or surface
             if(Particle[p].Height<0){
                 Particle[p].Status=BED ;                        // Maybe forming a bed layer
