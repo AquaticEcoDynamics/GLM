@@ -43,6 +43,7 @@
 #include "glm_util.h"
 #include "glm_layers.h"
 #include "glm_wqual.h"
+#include "glm_ptm.h"
 #include "glm_lnum.h"
 #include "glm_bird.h"
 #include "glm_ncdf.h"
@@ -676,6 +677,12 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         split_factor      = lsplit_factor;
     }
     if ( twq_lib != NULL ) strncpy(wq_lib, twq_lib, 128);
+
+    //-------------------------------------------------
+    ptm_sw   = FALSE;
+    if ( get_namelist(namlst, particles) ) {
+        // fprintf(stderr, "No PTM config\n");
+    }
 
     //-------------------------------------------------
     if ( get_namelist(namlst, time) ) {

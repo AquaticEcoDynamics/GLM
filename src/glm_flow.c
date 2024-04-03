@@ -55,6 +55,8 @@
 
 #include "glm_balance.h"
 
+#include "glm_ptm.h"
+
 #include "glm_debug.h"
 
 #define _WQ_VarsTmp(i,j,k)  WQ_VarsTmp[_IDX_3d(Num_WQ_Vars,NumInf,MaxPar,i,j,k)]
@@ -899,9 +901,9 @@ AED_REAL do_inflows()
                 
                 // insert particles ---
                 upper_height = Lake[Layer_subm].Height;
-                lower_height = 0.0; if (Layer_subm>botmLayer) Lake[Layer_subm-1].Height;
-                new_particles = Inflows[iRiver].ParticleConc * (Inflows[iRiver].FlowRate*Inflows[iRiver].Factor)
-                ptm_addparticles(new_particles, upper_height, lower_height)
+                lower_height = 0.0; if (Layer_subm>botmLayer) lower_height = Lake[Layer_subm-1].Height;
+                new_particles = Inflows[iRiver].ParticleConc * (Inflows[iRiver].FlowRate*Inflows[iRiver].Factor);
+                ptm_addparticles(new_particles, upper_height, lower_height);
                 // insert particles ---
 
                 Lake[botmLayer].Vol1 = Lake[botmLayer].LayerVol;
@@ -966,8 +968,10 @@ AED_REAL do_inflows()
     check_layer_thickness();
 
     //# Update particle vertical position due to inflow insertion
-    height_shift = Lake[surfLayer].Height - height_start
-    ptm_layershift(0.0, height_shift)   // !!!! ASSUMING SHIFT IS ALL LAYERS
+//  height_shift = Lake[surfLayer].Height - height_start;
+//  ptm_layershift(0.0, height_shift);  // !!!! ASSUMING SHIFT IS ALL LAYERS
+// CAB
+    ptm_layershift(0.0, Lake[surfLayer].Height - height_start);  // !!!! ASSUMING SHIFT IS ALL LAYERS
 
     return Lake[surfLayer].Vol1 - VolSum;
 }

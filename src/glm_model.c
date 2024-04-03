@@ -59,6 +59,7 @@
 #include "glm_init.h"
 #include "glm_lnum.h"
 #include "glm_wqual.h"
+#include "glm_ptm.h"
 #include "glm_stress.h"
 #include "glm_balance.h"
 #if PLOTS

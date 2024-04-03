@@ -48,6 +48,7 @@
 #include "glm_const.h"
 #include "glm_globals.h"
 #include "glm_mixu.h"
+#include "glm_ptm.h"
 #include "glm_util.h"
 
 #include "aed_time.h"
@@ -1099,7 +1100,7 @@ void do_mixing()
             }
 
             //# redistribute particles in the mixed layer
-            ptm_redistribute(Lake[surfLayer].Height, zero)
+            ptm_redistribute(Lake[surfLayer].Height, zero);
 
             /***** fall through ******/
 
@@ -1131,7 +1132,7 @@ void do_mixing()
                 _WQ_Vars(wqvidx,Meta_topLayer+1) = WQ_VarsM[wqvidx];
 
             //# redistribute particles in the mixed layer
-            ptm_redistribute(Lake[Meta_topLayer+1].Height, Lake[Meta_topLayer].Height)
+            ptm_redistribute(Lake[Meta_topLayer+1].Height, Lake[Meta_topLayer].Height);
 
             //# reset the layer volume, density and area for the surface layer
             Lake[Meta_topLayer+1].Vol1 = Lake[surfLayer].Vol1;

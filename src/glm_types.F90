@@ -78,6 +78,8 @@ MODULE glm_types
       AED_REAL :: Umean            !# Mean velocity
       AED_REAL :: Uorb             !# Orbital velocity
       AED_REAL :: LayerStress      !# Layer Stress
+
+      AED_REAL :: ParticleConc     !# particle concentration
    END TYPE LakeDataType
 
    !#===========================================================#!
@@ -174,6 +176,7 @@ MODULE glm_types
        AED_REAL :: Density
        AED_REAL :: Velocity
        AED_REAL :: vvel
+       CINTEGER :: Layer
    END TYPE ParticleDataType
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

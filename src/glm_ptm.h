@@ -29,6 +29,21 @@
 
 #include "glm.h"
 
+//void ptm_init_glm(char *fname, size_t *len, int *kk, int *NumWQVars, int *NumWQBen, AED_REAL *pKw);
+void ptm_init_glm(void);
 AED_REAL do_particle_tracking(void);
+void ptm_init_glm_output(int *ncid, int *time_dim);
+//void ptm_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
+void ptm_write_glm(void);
+
+void do_ptm_update(void);
+
+void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height);
+void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_height);
+void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount);
+void ptm_update_layerid(void);
+
+extern int ptm_sw;
+
 
 #endif

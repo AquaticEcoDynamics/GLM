@@ -127,6 +127,8 @@ typedef char filname[80];
        LOGICAL  SubmFlag;        // Is this a submerged inflow
        AED_REAL SubmElev;        // elevation of inflow
        LOGICAL  SubmElevDynamic; // Is this dynamic elevation
+
+       AED_REAL ParticleConc;    // particle concentration
    } InflowDataType;
 
    /*===========================================================*/
@@ -261,6 +263,7 @@ typedef char filname[80];
        AED_REAL Density;
        AED_REAL Velocity;
        AED_REAL vvel;
+       int      Layer;
    } ParticleDataType;
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif

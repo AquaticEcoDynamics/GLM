@@ -36,19 +36,36 @@
 #include "glm_const.h"
 #include "glm_globals.h"
 
+#include "glm_ptm.h"
+
 #include "glm_util.h"
 
+
+            // Maybe forming a bed layer
+#define BED    1
+            // Maybe forming a scum layer
+#define SCUM   2
+
+
+AED_REAL settling_velocity(void);
+void random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel);
+
 /*============================================================================*/
-// MODULE VARIABLES
 
-extern int last_particle;
+//CONSTANTS
+int max_particle_num=1000000;  // replace these from namelist
+int num_particle_grp=1;
+int init_particle_num=10;
+AED_REAL init_depth_min=0.0;
+AED_REAL init_depth_max=2.0;
+AED_REAL ptm_time_step=1/60;
+AED_REAL ptm_diffusivity=1e-6;
 
-static void ptm_init_glm( ... );
-static void do_ptm_update( ... );
-static void ptm_update_layerid( ... );
-static void ptm_addparticles( ... );
-static void ptm_redistribute( ... );
-static void ptm_layershift( ... );
+// VARIABLES
+int ptm_sw = FALSE;
+
+int last_particle = 0;
+int num_particles = 0;
 
 /*============================================================================*/
 
@@ -66,18 +83,10 @@ static void ptm_layershift( ... );
  ******************************************************************************/
 void ptm_init_glm()
 {
-//CONSTANTS
-    int max_particle_num=1000000;  // replace these from namelist
-    int num_particle_grp=1;
-    int init_particle_num=10;
-    AED_REAL init_depth_min=0.0;
-    AED_REAL init_depth_max=2.0;
-    AED_REAL ptm_time_step=1/60;
-    AED_REAL ptm_diffusivity=1e-6;
-
 //LOCALS
-    int i, j;
-    int flag;
+//  int i, j;
+    int p;
+//  int flag;
 
     AED_REAL upper_height;
     AED_REAL lower_height;
@@ -106,13 +115,11 @@ void ptm_init_glm()
     upper_height = Lake[surfLayer].Height - init_depth_min;
     lower_height = Lake[surfLayer].Height - init_depth_max;
     
-    ptm_addparticles(init_particle_num,upper_height,lower_height)
+    ptm_addparticles(init_particle_num,upper_height,lower_height);
 
-    ptm_update_layerid()      // assign layers to active particles
-    
+    ptm_update_layerid();     // assign layers to active particles
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
 
 
 /******************************************************************************
@@ -124,11 +131,11 @@ void ptm_init_glm()
 void do_ptm_update()
 {
 //LOCALS
-    int p, i, tt;
+    int p, tt;
     int sub_steps;
 
-    AED_REAL upper_height;
-    AED_REAL lower_height;
+//  AED_REAL upper_height;
+//  AED_REAL lower_height;
     AED_REAL dt;
 
 /*----------------------------------------------------------------------------*/
@@ -137,7 +144,7 @@ void do_ptm_update()
    
     // Update settling/migration velocity  ! Will overwrite AED
     for (p = 0; p < num_particles; p++) { 
-      Particle[p].vvel = settling_velocity{}
+      Particle[p].vvel = settling_velocity();
     }
     
     // Loop through sub-timesteps, incrementing position
@@ -147,7 +154,7 @@ void do_ptm_update()
         for (p = 0; p < num_particles; p++) { 
           if (Particle[p].Status>0) {
             // Update particle position based on diffusivity and vert velocity
-            random_walk(dt,Particle[p].Height, Lake[Particle[p].Layer].Epsilon,Particle[p].vvel)  
+            random_walk(dt,Particle[p].Height, Lake[Particle[p].Layer].Epsilon,Particle[p].vvel);
 
             // Mary random walk equation in R:
             // following Visser 1997 https://www.int-res.com/articles/meps/158/m158p275.pdf
@@ -162,19 +169,17 @@ void do_ptm_update()
                 Particle[p].Status=BED ;                        // Maybe forming a bed layer
                 Particle[p].Height=0.0 ; 
             }
-            if(Particle[p].Height>Lake[surfLayer.Height]){
+            if(Particle[p].Height>Lake[surfLayer].Height){
                 Particle[p].Status=SCUM  ;                      // Maybe forming a scum layer
-                Particle[p].Height=Lake[surfLayer.Height] ;
+                Particle[p].Height=Lake[surfLayer].Height;
             }
           }
         }
     }
 
-    ptm_update_layerid()      // assign layers to active particles
-
+    ptm_update_layerid();     // assign layers to active particles
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
 
 
 /******************************************************************************
@@ -187,7 +192,7 @@ void do_ptm_update()
 void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
 {
 //LOCALS
-    int p, i, j;
+    int p;
 
     AED_REAL rand;
     AED_REAL height_range;
@@ -203,18 +208,16 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
         if (Particle[p].Status>0) {
           if (Particle[p].Height>lower_height && Particle[p].Height<upper_height ) {
             // Particle is in the mixing zone, so re-position
-            rand = random {}                            // random draw from unit distribution
+            rand = random();                            // random draw from unit distribution
             rand = rand * height_range;                 // scale unit random to requested range
             Particle[p].Height = lower_height + rand;   // reset particle height
           }
         }
     }
 
-    ptm_update_layerid()      // assign layers to active particles
-    
+    ptm_update_layerid();     // assign layers to active particles
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
 
 
 /******************************************************************************
@@ -227,7 +230,7 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
 void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_height)
 {
 //LOCALS
-    int p, i, j;
+    int p;
 
     AED_REAL rand;
     AED_REAL height_range;
@@ -247,16 +250,14 @@ void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_h
         Particle[p].vvel = 0.0;
 
         // Assign particles initial height
-        rand = random {}                            // random draw from unit distribution
+        rand = random();                            // random draw from unit distribution
         rand = rand * height_range;                 // scale unit random to requested range
         Particle[p].Height = lower_height + rand;   // set particle height
     }
     
     last_particle = last_particle + new_particles;  // updates the last index number of active particle set
-    
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
 
 
 /******************************************************************************
@@ -273,6 +274,7 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
 
     AED_REAL upper_height;
     AED_REAL lower_height;
+//  AED_REAL height_range;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
@@ -280,7 +282,7 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
     // Get vertical range in the water column that is impacted by the shift
     lower_height = shift_height;
     upper_height = shift_height + shift_amount;
-    height_range = upper_height - lower_height;
+//  height_range = upper_height - lower_height;
 
     // Check for active particles in the impacted height range
     for (p = 0; p < last_particle; p++) { 
@@ -292,11 +294,9 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
         }
     }
 
-    ptm_update_layerid()      // assign layers to active particles
-    
+    ptm_update_layerid();     // assign layers to active particles
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
 
 
 /******************************************************************************
@@ -311,7 +311,6 @@ void ptm_update_layerid()
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
-
 
     for (p = 0; p < num_particles; p++) { 
         if (Particle[p].Status>0) {
@@ -328,6 +327,23 @@ void ptm_update_layerid()
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
+void random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel)
+{
+}
 
+//void ptm_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs)
+void ptm_write_glm()
+{
+}
 
+void ptm_init_glm_output(int *ncid, int *time_dim)
+{
+}
 
+AED_REAL settling_velocity()
+{
+    return 0.01;
+}
