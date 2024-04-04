@@ -43,6 +43,8 @@ void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_h
 void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount);
 void ptm_update_layerid(void);
 
+// void ptm_destroyparticles()
+// void ptm_restart()
 extern int ptm_sw;
 
 
