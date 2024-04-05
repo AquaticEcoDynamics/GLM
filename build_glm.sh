@@ -228,10 +228,10 @@ if [ -d "${UTILDIR}" ] ; then
 fi
 
 if [ "$OSTYPE" = "FreeBSD" ] ; then
-  echo making flang extras
-  cd ancillary/freebsd
-  ./fetch.sh
-  ${MAKE} || exit 1
+  echo not making flang extras
+  # cd ancillary/freebsd
+  # ./fetch.sh
+  # ${MAKE} || exit 1
 elif [ "$OSTYPE" = "Msys" ] ; then
   if [ ! -d ancillary/windows/msys ] ; then
     echo making windows ancillary extras
