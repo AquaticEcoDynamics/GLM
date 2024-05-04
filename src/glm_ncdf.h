@@ -36,6 +36,8 @@
 #ifdef _FORTRAN_SOURCE_
 !-------------------------------------------------------------------------------
 
+# if 1
+
   INTERFACE
 
      CINTEGER FUNCTION init_glm_ncdf(fn,title,lat,lon,nlev,start_time) BIND(C, name="init_glm_ncdf_")
@@ -103,8 +105,11 @@
      END SUBROUTINE store_nc_array
 
   END INTERFACE
+# endif
 
 #else
+
+# include <netcdf.h>
 
   int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
                                   AED_REAL lon, int nlev, const char *start_time);
@@ -120,6 +125,7 @@
   void store_nc_integer(int ncid, int id, int var_shape, int iscalar);
   void store_nc_scalar(int ncid, int id, int var_shape, AED_REAL scalar);
   void store_nc_array(int ncid, int id, int var_shape, int nvals, int maxvals, AED_REAL *array);
+  void check_nc_error(int err);
 
   extern int ncid, x_dim, y_dim, z_dim, zone_dim, time_dim;
 

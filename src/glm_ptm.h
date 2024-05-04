@@ -6,7 +6,7 @@
  *                                                                            *
  * Developed by :                                                             *
  *                                                                            *
- * Copyright 2024 - 2024 -  The University of Western Australia               *
+ * Copyright 2024 - The University of Western Australia                       *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -32,9 +32,9 @@
 //void ptm_init_glm(char *fname, size_t *len, int *kk, int *NumWQVars, int *NumWQBen, AED_REAL *pKw);
 void ptm_init_glm(void);
 AED_REAL do_particle_tracking(void);
-void ptm_init_glm_output(int *ncid, int *time_dim);
+void ptm_init_glm_output(int ncid, int time_dim);
 //void ptm_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
-void ptm_write_glm(void);
+void ptm_write_glm(int ncid, int nlev);
 
 void do_ptm_update(void);
 

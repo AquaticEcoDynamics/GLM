@@ -6,7 +6,7 @@
  *                                                                            *
  * Developed by :                                                             *
  *                                                                            *
- * Copyright 2024 - 2024 -  The University of Western Australia               *
+ * Copyright 2024 - The University of Western Australia                       *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -39,6 +39,7 @@
 #include "glm_ptm.h"
 
 #include "glm_util.h"
+#include "glm_ncdf.h"
 
 
             // Maybe forming a bed layer
@@ -84,9 +85,7 @@ int num_particles = 0;
 void ptm_init_glm()
 {
 //LOCALS
-//  int i, j;
     int p;
-//  int flag;
 
     AED_REAL upper_height;
     AED_REAL lower_height;
@@ -134,13 +133,10 @@ void do_ptm_update()
     int p, tt;
     int sub_steps;
 
-//  AED_REAL upper_height;
-//  AED_REAL lower_height;
     AED_REAL dt;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
-
    
     // Update settling/migration velocity  ! Will overwrite AED
     for (p = 0; p < num_particles; p++) { 
@@ -187,7 +183,6 @@ void do_ptm_update()
  *    This routine redistributes any particles within the provided depth      *
  *    range, used to capture the effect of layer mixing                       *
  *                                                                            *
- *                                                                            *
  ******************************************************************************/
 void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
 {
@@ -199,7 +194,6 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
-
     // Get vertical range in the water column that mixed
     height_range = upper_height - lower_height;
 
@@ -237,7 +231,6 @@ void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_h
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
-
     // Get vertical range in the water column that mixed
     height_range = upper_height - lower_height;
 
@@ -315,7 +308,6 @@ void ptm_update_layerid()
     for (p = 0; p < num_particles; p++) { 
         if (Particle[p].Status>0) {
             for (i = botmLayer; i < NumLayers; i++) {
-          
                 if (Particle[p].Height<Lake[i].Height) {
                     Particle[p].Layer = i; 
                     break; // get out of layer loop
@@ -333,17 +325,86 @@ void ptm_update_layerid()
 void random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel)
 {
 }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
+
+static int h_id, m_id, d_id, dn_id, v_id, vv_id;
+static size_t start[4],edges[4];
+static int set_no = 1;
+
+#if 1
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
 //void ptm_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs)
-void ptm_write_glm()
+void ptm_write_glm(int ncid, int nlev)
 {
-}
+//LOCALS
+    int p;
+    int *heights;
 
-void ptm_init_glm_output(int *ncid, int *time_dim)
+/*----------------------------------------------------------------------------*/
+//BEGIN
+
+    start[0] = set_no; edges[0] = 1;
+    start[1] = 0;      edges[1] = nlev;
+    heights   = malloc(nlev*sizeof(AED_REAL));
+
+    for (p = 0; p < num_particles; p++) { 
+        if (Particle[p].Status>0) {
+            nc_put_vara(ncid, h_id, start, edges, heights);
+        }
+    }
+
+    free(heights);
+    check_nc_error(nc_sync(ncid));
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
+void ptm_init_glm_output(int ncid, int time_dim)
 {
-}
+   int dims[4];
+//
+//------------------------------------------------------------------------------
+//BEGIN
+   define_mode_on(&ncid);   // Put NetCDF library in define mode.
 
+   dims[1] = z_dim;
+   dims[0] = time_dim;
+
+   check_nc_error(nc_def_var(ncid, "Particle_Height", NC_REALTYPE, 2, dims, &h_id));
+   set_nc_attributes(ncid, h_id, "meters", "Height of Particle" PARAM_FILLVALUE);
+
+   check_nc_error(nc_def_var(ncid, "Particle_Mass", NC_REALTYPE, 2, dims, &m_id));
+   set_nc_attributes(ncid, m_id, "grams", "Mass of Particle" PARAM_FILLVALUE);
+
+   check_nc_error(nc_def_var(ncid, "Particle_Diameter", NC_REALTYPE, 2, dims, &d_id));
+   set_nc_attributes(ncid, d_id, "meters", "Diameter of Particle" PARAM_FILLVALUE);
+
+   check_nc_error(nc_def_var(ncid, "Particle_Density", NC_REALTYPE, 2, dims, &dn_id));
+   set_nc_attributes(ncid, dn_id, "g/m3", "Density of Particle" PARAM_FILLVALUE);
+
+   check_nc_error(nc_def_var(ncid, "Particle_Velocity", NC_REALTYPE, 2, dims, &v_id));
+   set_nc_attributes(ncid, v_id, "m/s", "Height of Particle" PARAM_FILLVALUE);
+
+   check_nc_error(nc_def_var(ncid, "Particle_vvel", NC_REALTYPE, 2, dims, &vv_id));
+   set_nc_attributes(ncid, vv_id, "m/s", "Settling Velocity of Particle" PARAM_FILLVALUE);
+
+   define_mode_off(&ncid);
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+#endif
+
+
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
 AED_REAL settling_velocity()
 {
     return 0.01;
 }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

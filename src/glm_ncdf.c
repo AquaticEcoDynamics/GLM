@@ -75,7 +75,7 @@ static int LkNum_id, maxdtz_id, CD_id, CHE_id, zL_id;
 #endif
 
 /*============================================================================*/
-static void check_nc_error(int err);
+void check_nc_error(int err);
 static void check_nc_error_x(int err, int ncid, int id);
 static void xyt_store_nc_scalar(int ncid, int id, AED_REAL scalar);
 

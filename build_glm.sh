@@ -252,7 +252,11 @@ if [ -f obj/aed_external.o ] ; then
 fi
 
 # Update versions in resource files
-VERSION=`grep GLM_VERSION src/glm.h | cut -f2 -d\"`
+if [ -f src/glm.h ] ; then
+  VERSION=`grep GLM_VERSION src/glm.h | cut -f2 -d\"`
+else
+  VERSION=`grep GLM_VERSION include/glm.h | cut -f2 -d\"`
+fi
 cd "${CURDIR}/win"
 ${CURDIR}/vers.sh $VERSION
 #cd ${CURDIR}/win-dll

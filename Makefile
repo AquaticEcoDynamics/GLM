@@ -66,14 +66,15 @@ ifeq ($(WITH_CHECKS),)
 endif
 
 srcdir=src
+#incdir=include
 incdir=src
 objdir=obj
 moddir=mod
 
 TARGETS=glm
 DEFINES=
-FINCLUDES=-I$(UTILDIR)/include
-CINCLUDES=-I$(UTILDIR)/include
+FINCLUDES=-I${incdir} -I$(UTILDIR)/include
+CINCLUDES=-I${incdir} -I$(UTILDIR)/include
 LIBS=-L$(UTILDIR)/lib -lutil
 GLM_DEPS=$(UTILDIR)/lib/libutil.a
 ifeq ($(WITH_PLOTS),true)
@@ -428,4 +429,4 @@ ${objdir}/aed_external.o: ../libaed-water/src/aed_external.F90
 
 ${objdir}/glm_globals.o: ${srcdir}/glm_globals.c ${incdir}/glm_globals.h ${incdir}/glm.h
 ${objdir}/glm_plugin.o: ${srcdir}/glm_plugin.c ${incdir}/glm_plugin.h ${incdir}/glm.h
-${objdir}/glm_mixer.o: ${srcdir}/glm_mixer.c ${incdir}/glm_mixer.h ${incdir}/glm.h ${srcdir}/glm_debug.h
+${objdir}/glm_mixer.o: ${srcdir}/glm_mixer.c ${incdir}/glm_mixer.h ${incdir}/glm.h ${incdir}/glm_debug.h

@@ -108,7 +108,7 @@ void init_output(int jstart, const char *out_dir, const char *out_fn,
     if (wq_calc) wq_init_glm_output(&ncid, &x_dim, &y_dim, &z_dim, &zone_dim, &time_dim);
 
     //# Initialize PTM output (creates PTM NetCDF variables)
-    if (ptm_sw) ptm_init_glm_output(&ncid, &time_dim);
+    if (ptm_sw) ptm_init_glm_output(ncid, time_dim);
 
 
 #ifdef PLOTS
@@ -276,7 +276,7 @@ void write_output(int jday, int iclock, int nsave, int stepnum)
 
     //# outputs PTM to NetCDF
     if (ptm_sw) 
-        ptm_write_glm();
+        ptm_write_glm(ncid, NumLayers);
 
 
     if (csv_point_nlevs > 0) {
