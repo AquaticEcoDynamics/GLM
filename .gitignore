@@ -40,3 +40,5 @@ Examples/extra/wetland/lake.csv
 Examples/extra/wetland/outlet_00.csv
 Examples/extra/wetland/output.nc
 Examples/extra/wetland/overflow.csv
+.Rproj.user
+GLM.Rproj

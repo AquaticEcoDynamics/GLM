@@ -341,17 +341,19 @@ void ptm_write_glm(int ncid, int nlev)
 {
 //LOCALS
     int p;
-    int *heights;
+    AED_REAL *heights;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
     start[0] = set_no; edges[0] = 1;
-    start[1] = 0;      edges[1] = nlev;
-    heights   = malloc(nlev*sizeof(AED_REAL));
+    start[1] = 0;      edges[1] = max_particle_num;
+    heights   = malloc(max_particle_num*sizeof(AED_REAL));
 
-    for (p = 0; p < num_particles; p++) { 
+    for (p = 0; p < max_particle_num; p++) { 
+        heights[p] = -1.0;
         if (Particle[p].Status>0) {
+            heights[p] = Particle[p].Height;
             nc_put_vara(ncid, h_id, start, edges, heights);
         }
     }
@@ -373,7 +375,7 @@ void ptm_init_glm_output(int ncid, int time_dim)
 //BEGIN
    define_mode_on(&ncid);   // Put NetCDF library in define mode.
 
-   dims[1] = z_dim;
+   dims[1] = ptm_dim;
    dims[0] = time_dim;
 
    check_nc_error(nc_def_var(ncid, "Particle_Height", NC_REALTYPE, 2, dims, &h_id));
