@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>       /* time */
 
 #include "glm.h"
 
@@ -113,6 +114,9 @@ void ptm_init_glm()
     // Set initial active particle height within the water column
     upper_height = Lake[surfLayer].Height - init_depth_min;
     lower_height = Lake[surfLayer].Height - init_depth_max;
+    fprintf(stderr, "  ptm_init_glm(): Particle[1].vvel Lake[surfLayer].Height   = %f %f\n", Particle[1].vvel, Lake[surfLayer].Height);
+
+
     
     ptm_addparticles(init_particle_num,upper_height,lower_height);
 
@@ -189,25 +193,38 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
 //LOCALS
     int p;
 
-    AED_REAL rand;
+    int rand_int;
     AED_REAL height_range;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
     // Get vertical range in the water column that mixed
     height_range = upper_height - lower_height;
+    srand (time(NULL));
+
+    fprintf(stderr, "  ptm_redistribute(): upper %f lower %f range %f\n", upper_height, lower_height, height_range);
+
 
     // Check for active particles in the height range
     for (p = 0; p < last_particle; p++) { 
+            fprintf(stderr, "  ptm_redistribute(): Particle[p].Status   = %d\n", Particle[p].Status);
+
         if (Particle[p].Status>0) {
           if (Particle[p].Height>lower_height && Particle[p].Height<upper_height ) {
             // Particle is in the mixing zone, so re-position
-            rand = random();                            // random draw from unit distribution
-            rand = rand * height_range;                 // scale unit random to requested range
-            Particle[p].Height = lower_height + rand;   // reset particle height
+            rand_int = rand() % 100 + 1;                            // random draw from unit distribution
+            double random_double = (double)rand_int / 100;
+            random_double = random_double * height_range;                 // scale unit random to requested range
+            Particle[p].Height = lower_height + random_double;
+            fprintf(stderr, "  ptm_redistribute(): rand_int random_double   = %d %f\n", rand_int, random_double);
+            fprintf(stderr, "  ptm_redistribute(): Particle[p].Height   = %f\n", Particle[p].Height);
+
+
           }
         }
     }
+
+
 
     ptm_update_layerid();     // assign layers to active particles
 }
@@ -226,13 +243,14 @@ void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_h
 //LOCALS
     int p;
 
-    AED_REAL rand;
+    int rand_int;
     AED_REAL height_range;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
     // Get vertical range in the water column that mixed
     height_range = upper_height - lower_height;
+    srand (time(NULL));
 
     // For each new particle, initialise their properties and height
     for (p = last_particle ; p < last_particle+new_particles; p++) { 
@@ -243,9 +261,13 @@ void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_h
         Particle[p].vvel = 0.0;
 
         // Assign particles initial height
-        rand = random();                            // random draw from unit distribution
-        rand = rand * height_range;                 // scale unit random to requested range
-        Particle[p].Height = lower_height + rand;   // set particle height
+        rand_int = rand() % 100 + 1;                            // random draw from unit distribution
+        double random_double = (double)rand_int / 100;
+        fprintf(stderr, "  ptm_addparticles(): rand_int and random_double   = %d %f\n", rand_int, random_double);
+        random_double = random_double * height_range;                 // scale unit random to requested range
+        Particle[p].Height = lower_height + random_double;   // set particle height
+        fprintf(stderr, "  ptm_addparticles(): Particle[p].Height   = %f %f %f \n", Particle[p].Height, lower_height, height_range);
+
     }
     
     last_particle = last_particle + new_particles;  // updates the last index number of active particle set
