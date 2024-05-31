@@ -518,7 +518,7 @@ void check_layer_stability()
     while (surfLayer != botmLayer) {
         //# find an unstable layer configuration (instability)
         for (k = surfLayer; k >= (botmLayer+1); k--)
-            if (Lake[k].Density > Lake[k-1].Density) break;
+            if ((Lake[k].Density - Lake[k-1].Density) >  1e-4) break;
 
         if (k < (botmLayer+1)) return ;
 
