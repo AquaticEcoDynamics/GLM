@@ -108,7 +108,7 @@ void check_layer_thickness(void)
                  DELDP = Lake[i].Height;
             else
                  DELDP = Lake[i].Height - Lake[i-1].Height;
-            if ((VMin - Lake[i].LayerVol) > 1e-4 && (DMin - DELDP) > 1e-4) break;
+            if ((VMin - Lake[i].LayerVol) > 1e-7 && (DMin - DELDP) > 1e-7) break;
         }
 
         if (i > surfLayer) break;
@@ -190,7 +190,7 @@ void check_layer_thickness(void)
 
             if (i == surfLayer) VSUMCHK = TRUE;
 
-             if ((Lake[i].LayerVol-VMax) > 1e-4 || (DELDP - DMax) > 1e-4) break;
+             if ((Lake[i].LayerVol-VMax) > 1e-7 || (DELDP - DMax) > 1e-7) break;
         }
 
         // return to calling program when all layers have been checked

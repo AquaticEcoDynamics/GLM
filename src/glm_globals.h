@@ -226,6 +226,9 @@ extern AED_REAL FSUM;
 extern AED_REAL u_f;
 extern AED_REAL u0;
 extern AED_REAL u_avg;
+extern int Mixer_Count;
+
+
 
 /*----------------------------------------------------------------------------*/
 // SNOWICE
