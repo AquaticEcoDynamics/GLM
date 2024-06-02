@@ -191,7 +191,7 @@ static int convective_overturn(int *_Epi_botmLayer, int *_Meta_topLayer,
             ZeroMom  = ZeroMom  + tRho;
             FirstMom = FirstMom + tRho * Lake[Epi_botmLayer].MeanHeight;
 
-            if (Dens_Epil < Lake[Epi_botmLayer-1].Density+1e-4) break;
+            if (Dens_Epil < Lake[Epi_botmLayer-1].Density+1e-7) break;
         } else {
             AED_REAL tRho = (Lake[botmLayer].Density - rho0) * Lake[botmLayer].Height;
             ZeroMom  = ZeroMom  + tRho;
@@ -570,12 +570,9 @@ static int shear_production(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_top
     
     // return 0; //CAB DEBUG
     //# Momentum update
-    if (u0 < 1E-7){
-     u0 = zero;
-     }
-    if (Slope < 1E-7){ 
-    Slope = zero;
-    }
+    if (u0 < 1E-7) u0 = zero;
+    if (Slope < 1E-7) Slope = zero;
+    
     u_f = u0 + Slope * Time_end_shear * SecsPerHr;
 
     u_avgSQ = (u_f*u_f + u_f*u0 + u0*u0) / 3.0;

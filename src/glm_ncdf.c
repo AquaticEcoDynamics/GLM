@@ -349,7 +349,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
 
     //# Restart variables
     /*------------------------------------------------------------------------*/
-    restart_variables   = malloc(18*sizeof(AED_REAL));
+    restart_variables   = malloc(17*sizeof(AED_REAL));
     restart_variables[0] = DepMX;
     restart_variables[1] = PrevThick;
     restart_variables[2] = gPrimeTwoLayer;
@@ -367,7 +367,6 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     restart_variables[14] = u_f;
     restart_variables[15] = u0;
     restart_variables[16] = u_avg;
-    restart_variables[17] = Mixer_Count;
     
 
     start_r[0] = 0; edges_r[0] = restart_len;
