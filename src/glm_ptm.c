@@ -66,7 +66,7 @@ AED_REAL ptm_diffusivity=1e-6;
 int ptm_sw = FALSE;
 
 int last_particle = 0;
-int num_particles = 0;
+//int num_particles = 0;
 
 /*============================================================================*/
 
@@ -109,6 +109,8 @@ void ptm_init_glm()
         Particle[p].Density = 1000.0;
         Particle[p].vvel = 0.0;
     }
+    
+    num_particles = init_particle_num;
 
     // Set initial active particle height within the water column
     upper_height = Lake[surfLayer].Height - init_depth_min;
@@ -328,35 +330,64 @@ void random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel)
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-static int h_id, m_id, d_id, dn_id, v_id, vv_id;
-static size_t start[4],edges[4];
-static int set_no = 1;
+static int h_id, m_id, d_id, dn_id, vv_id, stat_id;
+static int set_no_p = -1;
+int ptm_dim;
+static size_t start[2],edges[2];
+
 
 #if 1
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
 //void ptm_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs)
-void ptm_write_glm(int ncid, int nlev)
+void ptm_write_glm(int ncid, int num_particles)
 {
 //LOCALS
     int p;
-    int *heights;
+    AED_REAL *p_height, *mass, *diam, *density, *vvel;
+    int *status;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
-    start[0] = set_no; edges[0] = 1;
-    start[1] = 0;      edges[1] = nlev;
-    heights   = malloc(nlev*sizeof(AED_REAL));
 
+    set_no_p++;
+
+    start[1] = 0;             edges[1] = num_particles;
+    start[0] = set_no_p;      edges[0] = 1;
+    
+    p_height  = malloc(num_particles*sizeof(AED_REAL));
+    mass  = malloc(num_particles*sizeof(AED_REAL));
+    diam  = malloc(num_particles*sizeof(AED_REAL));
+    density  = malloc(num_particles*sizeof(AED_REAL));
+    vvel  = malloc(num_particles*sizeof(AED_REAL));
+    
+    status  = malloc(num_particles*sizeof(int));
+    
     for (p = 0; p < num_particles; p++) { 
-        if (Particle[p].Status>0) {
-            nc_put_vara(ncid, h_id, start, edges, heights);
-        }
-    }
-
-    free(heights);
+		p_height[p] = Particle[p].Height;
+        mass[p] = Particle[p].Mass;
+        diam[p] = Particle[p].Diam;
+        density[p] = Particle[p].Density;
+        vvel[p] = Particle[p].vvel;
+        status[p] = Particle[p].Status;
+    } 
+    
+     nc_put_vara(ncid, h_id, start, edges, p_height);
+     nc_put_vara(ncid, m_id, start, edges, mass);
+     nc_put_vara(ncid, d_id, start, edges, diam);
+     nc_put_vara(ncid, dn_id, start, edges, density);
+     nc_put_vara(ncid, vv_id, start, edges, vvel);
+     nc_put_vara(ncid, stat_id, start, edges, status);
+     
+    free(p_height); 
+    free(mass);
+    free(diam);
+    free(density);
+    free(vvel);
+    free(status);
+    
     check_nc_error(nc_sync(ncid));
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -367,32 +398,35 @@ void ptm_write_glm(int ncid, int nlev)
  ******************************************************************************/
 void ptm_init_glm_output(int ncid, int time_dim)
 {
-   int dims[4];
+   int dims[2];
+
 //
 //------------------------------------------------------------------------------
 //BEGIN
    define_mode_on(&ncid);   // Put NetCDF library in define mode.
+   
+   check_nc_error(nc_def_dim(ncid, "particles", num_particles, &ptm_dim));
 
-   dims[1] = z_dim;
+   dims[1] = ptm_dim;
    dims[0] = time_dim;
-
-   check_nc_error(nc_def_var(ncid, "Particle_Height", NC_REALTYPE, 2, dims, &h_id));
+   
+   check_nc_error(nc_def_var(ncid, "particle_height", NC_REALTYPE, 2, dims, &h_id));
    set_nc_attributes(ncid, h_id, "meters", "Height of Particle" PARAM_FILLVALUE);
 
-   check_nc_error(nc_def_var(ncid, "Particle_Mass", NC_REALTYPE, 2, dims, &m_id));
+   check_nc_error(nc_def_var(ncid, "particle_mass", NC_REALTYPE, 2, dims, &m_id));
    set_nc_attributes(ncid, m_id, "grams", "Mass of Particle" PARAM_FILLVALUE);
 
-   check_nc_error(nc_def_var(ncid, "Particle_Diameter", NC_REALTYPE, 2, dims, &d_id));
+   check_nc_error(nc_def_var(ncid, "particle_diameter", NC_REALTYPE, 2, dims, &d_id));
    set_nc_attributes(ncid, d_id, "meters", "Diameter of Particle" PARAM_FILLVALUE);
 
-   check_nc_error(nc_def_var(ncid, "Particle_Density", NC_REALTYPE, 2, dims, &dn_id));
+   check_nc_error(nc_def_var(ncid, "particle_density", NC_REALTYPE, 2, dims, &dn_id));
    set_nc_attributes(ncid, dn_id, "g/m3", "Density of Particle" PARAM_FILLVALUE);
 
-   check_nc_error(nc_def_var(ncid, "Particle_Velocity", NC_REALTYPE, 2, dims, &v_id));
-   set_nc_attributes(ncid, v_id, "m/s", "Height of Particle" PARAM_FILLVALUE);
-
-   check_nc_error(nc_def_var(ncid, "Particle_vvel", NC_REALTYPE, 2, dims, &vv_id));
+   check_nc_error(nc_def_var(ncid, "particle_vvel", NC_REALTYPE, 2, dims, &vv_id));
    set_nc_attributes(ncid, vv_id, "m/s", "Settling Velocity of Particle" PARAM_FILLVALUE);
+   
+   check_nc_error(nc_def_var(ncid, "particle_status", NC_INT, 2, dims, &stat_id));
+   nc_put_att(ncid, stat_id, "long_name", NC_CHAR, 18, "Status of Particle");
 
    define_mode_off(&ncid);
 }

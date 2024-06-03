@@ -71,6 +71,7 @@ extern AED_REAL AvgSurfTemp;
 /*----------------------------------------------------------------------------*/
 extern int MaxLayers;   //# Maximum number of layers in this sim
 extern int NumLayers;   //# current number of layers
+extern int num_particles;   //# current number of particles
 extern LakeDataType *Lake;
 
 
