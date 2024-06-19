@@ -40,6 +40,7 @@
 
 int MaxLayers;   //# Maximum number of layers in this sim
 int NumLayers;   //# current number of layers
+int num_particles;  //# current number of particles
 LakeDataType *Lake = NULL;
 
 
