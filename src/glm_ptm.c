@@ -246,9 +246,6 @@ void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_h
 //BEGIN
     // Get vertical range in the water column that mixed
     height_range = upper_height - lower_height;
-    // Set random number seed
-    srand ((unsigned)time(NULL));
-    fprintf(stderr, "  ptm_addparticles():  rand()%100   = %f\n", rand()%100);
 
     // For each new particle, initialise their properties and height
     for (p = last_particle ; p < last_particle+new_particles; p++) { 
