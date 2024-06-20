@@ -116,7 +116,7 @@ void ptm_init_glm()
     // Set initial active particle height within the water column
     upper_height = Lake[surfLayer].Height - init_depth_min;
     lower_height = Lake[surfLayer].Height - init_depth_max;
-    
+
     ptm_addparticles(init_particle_num,upper_height,lower_height);
 
     ptm_update_layerid();     // assign layers to active particles
@@ -199,7 +199,6 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
 //BEGIN
     // Get vertical range in the water column that mixed
     height_range = upper_height - lower_height;
-    srand (time(NULL));
 
     // Check for active particles in the height range
     for (p = 0; p < last_particle; p++) { 
@@ -211,13 +210,17 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
             random_double = random_double * height_range;                 // scale unit random to requested range
             Particle[p].Height = lower_height + random_double;
             // fprintf(stderr, "  ptm_redistribute(): Particle[p].Height   = %f\n", Particle[p].Height);
+            fprintf(stderr, "  ptm_redistribute(): random_double   = %f\n", random_double);
+            fprintf(stderr, "  ptm_redistribute(): upper_height   = %f\n", upper_height);
+            fprintf(stderr, "  ptm_redistribute(): lower_height   = %f\n", lower_height);
+
+
 
 
           }
         }
     }
-
-
+fprintf(stderr, "  ptm_redistribute(): Particle[1].Height   = %f\n", Particle[1].Height);
 
     ptm_update_layerid();     // assign layers to active particles
 }
@@ -243,7 +246,9 @@ void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_h
 //BEGIN
     // Get vertical range in the water column that mixed
     height_range = upper_height - lower_height;
-    srand (time(NULL));
+    // Set random number seed
+    srand ((unsigned)time(NULL));
+    fprintf(stderr, "  ptm_addparticles():  rand()%100   = %f\n", rand()%100);
 
     // For each new particle, initialise their properties and height
     for (p = last_particle ; p < last_particle+new_particles; p++) { 
