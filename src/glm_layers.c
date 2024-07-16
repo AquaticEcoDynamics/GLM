@@ -100,12 +100,6 @@ void check_layer_thickness(void)
     dbgprt(" CHKLAY 01 lake[44].depth = %20.15f\n", Lake[44].Height);
 
 
-
- //fprintf(stdout, "check_layer_thickness #1\n");
- //   for (i = botmLayer; i <= surfLayer; i++) {
-  //     fprintf(stdout, "layer %d %f %f %f\n", i, Lake[i].Temp, Lake[i].LayerVol, Lake[i].LayerArea);
- //   }
-       
     //# Check against vmin
     KLAST=botmLayer;
     // while (1) { //
@@ -136,8 +130,7 @@ void check_layer_thickness(void)
 
         j = i;
         
-       if((Vup - Vdown) > 1e-4) j = i-1;
-    //if (Vup > Vdown) j = i-1;
+       if (Vup > Vdown) j = i-1;
 
         Lake[j].Salinity = combine(Lake[j].Salinity,   Lake[j].LayerVol,   Lake[j].Density,
                                    Lake[j+1].Salinity, Lake[j+1].LayerVol, Lake[j+1].Density);
@@ -177,12 +170,6 @@ void check_layer_thickness(void)
         NumLayers--;
     }
     
- //fprintf(stdout, "check_layer_thickness #2\n");
- //   for (i = botmLayer; i <= surfLayer; i++) {
-  //     fprintf(stdout, "layer %d %f %f %f\n", i, Lake[i].Temp, Lake[i].LayerVol, Lake[i].LayerArea);
-  //  }
-       
-
     // here when all layers have been checked for VMin, DMin
     if (surfLayer != botmLayer) {
         for (i = botmLayer+1; i <= surfLayer; i++)

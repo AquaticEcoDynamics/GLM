@@ -191,7 +191,7 @@ static int convective_overturn(int *_Epi_botmLayer, int *_Meta_topLayer,
             ZeroMom  = ZeroMom  + tRho;
             FirstMom = FirstMom + tRho * Lake[Epi_botmLayer].MeanHeight;
 
-            if (Dens_Epil < Lake[Epi_botmLayer-1].Density+1e-4) break;
+            if (Dens_Epil < Lake[Epi_botmLayer-1].Density+1e-7) break;
         } else {
             AED_REAL tRho = (Lake[botmLayer].Density - rho0) * Lake[botmLayer].Height;
             ZeroMom  = ZeroMom  + tRho;

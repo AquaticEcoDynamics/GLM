@@ -491,15 +491,13 @@ AED_REAL do_overflow(int jday)
     // Too much water for the entire lake domain, remove this first
     
     
-    if ((VolSum - MaxVol) > 1e-4){
-    //if (VolSum > MaxVol){
+    if (VolSum > MaxVol){
       do_single_outflow((CrestHeight+(MaxHeight-CrestHeight)*0.9), (VolSum - MaxVol), NULL);
       overflow = VolSum - Lake[surfLayer].Vol1;
     }
     VolSum = Lake[surfLayer].Vol1;
     // Water above the crest, which will overflow based on a weir equation
-    if ((VolSum - VolAtCrest) > 1e-4){
-    //if (VolSum > VolAtCrest){
+    if (VolSum > VolAtCrest){
         AED_REAL ovfl_Q, ovfl_dz;
 
         ovfl_dz = MAX( Lake[surfLayer].Height - CrestHeight, zero );

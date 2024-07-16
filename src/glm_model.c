@@ -378,7 +378,6 @@ void do_model(int jstart, int nsave)
         // # after including the inflow and outflows.
         // # Output is not written on the last time step in a daily in the subdaily loop
         if ( stepnum == write_step){
-                    printf("writing daily at stepnum %d jday %d \n",stepnum, jday);
        
 #if PLOTS
             today = jday;
@@ -535,7 +534,6 @@ void do_model_non_avg(int jstart, int nsave)
         // # after including the inflow and outflows.
         // # Output is not written on the last time step in a daily in the subdaily loop
         if ( stepnum == write_step){
-                    printf("writing daily at stepnum %d jday %d \n",stepnum, jday);
        
 #if PLOTS
             today = jday;
@@ -679,7 +677,6 @@ void do_model_coupled(int step_start, int step_end,
         // # after including the inflow and outflows.
         // # Output is not written on the last time step in a daily in the subdaily loop
         if ( stepnum == write_step){
-                    printf("writing daily at stepnum %d jday %d \n",stepnum, jday);
        
 #if PLOTS
             today = jday;
@@ -753,7 +750,6 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
 {
     int iclock;  //# The seconds counter during a day
     AED_REAL Light_Surface; //# Light at the surface of the lake after do_surface
-    //int write_step, last_step;
     AED_REAL part_day_per_step;
 
     yearday = day_of_year(jday);
@@ -788,16 +784,6 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
         stepnum++;
         _dbg_time(jday, iclock);
         
-        
-        fprintf(stdout, "iclock %d\n", iclock);
-
-
-//fprintf(stderr, "Lake[surfLayer].Height = %f\n", Lake[surfLayer].Height);
-
-
-        //fprintf(stdout, "#1 %f %f %f\n", Lake[5].Temp, Lake[5].LayerVol, Lake[5].LayerArea);
-
-
         //# Thermal transfers are done by do_surface_thermodynamics
         do_surface_thermodynamics(jday, iclock, lw_ind, Latitude, SWold, SWnew);
         
@@ -851,12 +837,15 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
          **********************************************************************/
         if (wq_calc) wq_do_glm(&NumLayers, &ice);
         
+        //# If an output write is requested for the last time step of the day
+        //# then do not output in the subdaily.  Output writing is moved to the
+        //# daily loop so it occurs after the inflow and output calculations.
+        
         if ( stepnum == write_step & (iclock +  noSecs) != SecsPerDay) {
         
 #if PLOTS
             today = jday;
 #endif
-            printf("writing subdaily at stepnum %d jday %d iclock %d \n",stepnum, jday, iclock);
             write_output(jday, iclock, nsave, stepnum);
             write_step += nsave;
             if ( write_step > last_step ) write_step = last_step;

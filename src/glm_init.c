@@ -1373,9 +1373,6 @@ void create_lake(int namlst)
     LenAtCrest = bsn_len;
     WidAtCrest = bsn_wid;
     
-    
-    fprintf(stdout, "crest_elev %f Base %f CrestHeight%f max_elev %f MaxHeight %f\n", crest_elev, Base, CrestHeight, max_elev, MaxHeight);
-
     alpha_b = calloc(MaxLayers, sizeof(AED_REAL));
     beta_b = calloc(MaxLayers, sizeof(AED_REAL));
 
@@ -1682,12 +1679,6 @@ void initialise_lake(int namlst)
         ice = TRUE;
     }
     
-    //if (deep_mixing == 1) {      //constant diffusivity over whole water column
-        for (i = 0; i < NumLayers; i++)
-          Lake[i].Epsilon = coef_mix_hyp;
-    //}
-    
-
     AvgSurfTemp = avg_surf_temp;
 
     if (restart_variables != NULL) {
