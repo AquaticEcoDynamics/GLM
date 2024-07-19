@@ -286,6 +286,7 @@ void do_model(int jstart, int nsave)
 
         //# If it is the last day, adjust the stop time for the day if necessary
         if (ntot == nDates) stoptime = stopTOD;
+        if(stoptime == 0) break;
 
         //# Initialise daily values for volume and heat balance output
         SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
@@ -463,6 +464,7 @@ void do_model_non_avg(int jstart, int nsave)
 
         //# If it is the last day, adjust the stop time for the day if necessary
         if(ntot == nDates) stoptime = stopTOD;
+        if(stoptime == 0) break;
 
         //# Initialise daily values for volume & heat balance reporting (lake.csv)
         SurfData.dailyRain    = 0.; SurfData.dailyEvap     = 0.;
@@ -613,6 +615,7 @@ void do_model_coupled(int step_start, int step_end,
 
         //# If it is the last day, adjust the stop time for the day if necessary
         if(ntot == nDates) stoptime = stopTOD;
+        if(stoptime == 0) break;
 
         //# Initialise daily values for volume and heat balance output
         SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
