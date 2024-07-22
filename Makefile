@@ -104,10 +104,9 @@ else ifeq ($(OSTYPE),Msys)
   CINCLUDES+=-I../ancillary/windows/msys/include
   LIBS+=-L../ancillary/windows/msys/lib
 else ifeq ($(OSTYPE),FreeBSD)
-  FINCLUDES+=-I../ancillary/freebsd/mod
-  FINCLUDES+=-I/usr/local/include
+  FINCLUDES+=-I/usr/local/flang/include -I/usr/local/include
   CINCLUDES+=-I/usr/local/include
-  LIBS+=-L../ancillary/freebsd/lib -lflang_extra -L/usr/local/lib -lm
+  LIBS+=-L/usr/local/flang/lib -L/usr/local/lib -lm
   ifeq ($(MDEBUG),true)
     DBG_LIBS=-fsanitize=address -static-libsan
   endif

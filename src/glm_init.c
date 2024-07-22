@@ -1563,6 +1563,8 @@ void initialise_lake(int namlst)
     AED_REAL        blue_ice_thickness = 0.0;
     AED_REAL        avg_surf_temp = 6.0;
     AED_REAL       *restart_variables = NULL;
+    int			   restart_mixer_count;
+    
 
     //==========================================================================
     NAMELIST init_profiles[] = {
@@ -1582,6 +1584,7 @@ void initialise_lake(int namlst)
           { "blue_ice_thickness",  TYPE_DOUBLE,           &blue_ice_thickness },
           { "avg_surf_temp",       TYPE_DOUBLE,           &avg_surf_temp      },
           { "restart_variables",   TYPE_DOUBLE|MASK_LIST, &restart_variables  },
+          { "restart_mixer_count",  TYPE_INT		, &restart_mixer_count},
           { NULL,                  TYPE_END,              NULL                }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
@@ -1615,7 +1618,7 @@ void initialise_lake(int namlst)
             Lake[i].Salinity = the_sals[i];
         }
 
-        if (the_heights[num_depths-1] > CrestHeight) {
+        if (the_heights[num_heights-1] > CrestHeight) {
             fprintf(stderr, "     ERROR: maximum height is greater than crest level\n");
             exit(1);
         }
@@ -1724,6 +1727,12 @@ void initialise_lake(int namlst)
     if (SurfData.delzBlueIce > 0.0 || SurfData.delzWhiteIce > 0.0) {
         ice = TRUE;
     }
+    
+    if (deep_mixing == 1) {      //constant diffusivity over whole water column
+        for (i = 0; i < NumLayers; i++)
+          Lake[i].Epsilon = coef_mix_hyp;
+    }
+    
 
     AvgSurfTemp = avg_surf_temp;
 
@@ -1745,9 +1754,12 @@ void initialise_lake(int namlst)
         u_f = restart_variables[14];
         u0 = restart_variables[15];
         u_avg = restart_variables[16];
+        
+        Mixer_Count = restart_mixer_count;
 
         free(restart_variables);
     }
+    
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
