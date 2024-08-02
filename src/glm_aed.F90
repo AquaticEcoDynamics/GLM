@@ -140,7 +140,7 @@ MODULE glm_aed
    AED_REAL,POINTER,DIMENSION(:) :: extc_coef, layer_stress, vel
    AED_REAL,POINTER :: precip, evap, bottom_stress, air_temp, rel_hum
    AED_REAL,POINTER :: I_0, wnd, air_pres
-   AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: depth,layer_area
+   AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: depth
 
    AED_REAL,POINTER :: lon, lat
    AED_REAL,POINTER :: yeardayP, timestepP
@@ -625,7 +625,6 @@ SUBROUTINE aed_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_,           &
 
    IF (benthic_mode .GT. 1) zz => z
    ALLOCATE(depth(MaxLayers))
-   ALLOCATE(layer_area(MaxLayers))
    ALLOCATE(sed_zones(MaxLayers))
    sed_zones = 0.
 
@@ -814,7 +813,7 @@ SUBROUTINE define_column(column, top, cc, cc_diag, flux_pel, flux_atm, flux_ben)
             CASE ( 'par_sf' )      ; column(av)%cell_sheet => I_0
             CASE ( 'taub' )        ; column(av)%cell_sheet => bottom_stress
             CASE ( 'col_depth' )   ; column(av)%cell_sheet => depth(1)
-            CASE ( 'layer_area' )  ; column(av)%cell => layer_area(:)
+            CASE ( 'layer_area' )  ; column(av)%cell => area(:)
             CASE ( 'rain' )        ; column(av)%cell_sheet => precip
             CASE ( 'air_temp' )    ; column(av)%cell_sheet => air_temp
             CASE ( 'air_pres' )    ; column(av)%cell_sheet => air_pres
@@ -946,11 +945,9 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    !# re-compute the layer heights and depths
    dz(1) = z(1)
    depth(1) = surf - z(1)
-   layer_area(1) = 1
    DO i=2,wlev
       dz(i) = z(i) - z(i-1)
       depth(i) = surf - z(i)
-      layer_area(i) = (area(i)-area(i-1))/area(i)
    ENDDO
 
    IF ( benthic_mode .GT. 1 ) THEN
