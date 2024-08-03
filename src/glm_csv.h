@@ -82,12 +82,13 @@
      END SUBROUTINE close_csv_lake_output
 
   END INTERFACE
+
 #else
 
 /*############################################################################*/
 
 extern AED_REAL csv_point_at[];
-extern int csv_point_frombot[];
+extern LOGICAL csv_point_frombot[];
 extern int csv_point_nlevs;
 extern int csv_lake_file;
 
@@ -101,12 +102,8 @@ void write_csv_lake_(const char *name, int *len, AED_REAL *val, const char *cval
 void glm_close_csv_output(void);
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
-/*
 void configure_csv(int point_nlevs, AED_REAL *point_at, const char *point_fname,
-                             int *point_frombot, int point_nvars, const char *lake_fname);
-*/
-void configure_csv(int point_nlevs, AED_REAL *point_at, const char *point_fname,
-                    int *point_frombot, int point_nvars, int *point_depth_avg,
+                  LOGICAL *point_frombot, int point_nvars, int *point_depth_avg,
                     AED_REAL *point_zone_upper, AED_REAL *point_zone_lower,
                     const char *lake_fname);
 

@@ -124,8 +124,8 @@ typedef char filname[80];
        int  NoIns;
        int  InPar[MaxPar];
 
-       LOGICAL  SubmFlag;        // Is this a submerged inflow
        AED_REAL SubmElev;        // elevation of inflow
+       LOGICAL  SubmFlag;        // Is this a submerged inflow
        LOGICAL  SubmElevDynamic; // Is this dynamic elevation
    } InflowDataType;
 
@@ -143,7 +143,7 @@ typedef char filname[80];
        AED_REAL OWid;            // basin width at the outlet
        AED_REAL Draw;            // outflow volumes
        AED_REAL Factor;          // scaling factor for outflow
-       LOGICAL  FloatOff;        // Is this a floating offtake
+       LOGICAL FloatOff;         // Is this a floating offtake
    } OutflowDataType;
 
    /*===========================================================*/
@@ -233,7 +233,7 @@ typedef char filname[80];
        AED_REAL ztemp;
        AED_REAL zrho;
        AED_REAL zarea;
-       AED_REAL zextc_coef;
+       AED_REAL zextc;
        AED_REAL zlayer_stress;
        AED_REAL ztss;
        AED_REAL zdz;
@@ -247,7 +247,7 @@ typedef char filname[80];
        AED_REAL z_sed_zones;
        AED_REAL z_pc_wet;
        AED_REAL heatflux;
-       int n_sedLayers;      // number of sediment layers
+       int n_sed_layers;      // number of sediment layers
        SedLayerType *layers;
    } ZoneType;
 

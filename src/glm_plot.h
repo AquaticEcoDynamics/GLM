@@ -83,7 +83,7 @@
 #ifdef XPLOTS
     extern int xdisp;
 #endif
-    extern CLOGICAL do_plots, saveall;
+    extern LOGICAL saveall;
     extern int today, plotstep;
     extern AED_REAL psubday;
 

@@ -62,17 +62,17 @@ wq_clean_glm_t       p_wq_clean_glm       = NULL;
 wq_init_glm_output_t p_wq_init_glm_output = NULL;
 wq_write_glm_t       p_wq_write_glm       = NULL;
 wq_var_index_c_t     p_wq_var_index_c     = NULL;
-wq_set_flags_t       p_wq_set_flags       = NULL;
 wq_is_var_t          p_wq_is_var          = NULL;
 wq_set_glm_zones_t   p_wq_set_glm_zones   = NULL;
 wq_ZSoilTemp_t       p_wq_ZSoilTemp       = NULL;
 wq_inflow_update_t   p_wq_inflow_update   = (wq_inflow_update_t)dummy_inflow_update;
 
 
-int ode_method = 1, split_factor = 1;
-int benthic_mode = 0;
-CLOGICAL bioshade_feedback = TRUE, repair_state = TRUE;
-CLOGICAL mobility_off = FALSE;     //  !# flag to turn mobility off
+// int ode_method = 1, split_factor = 1;
+// int benthic_mode = 0;
+// CLOGICAL bioshade_feedback = TRUE
+// CLOGICAL repair_state = TRUE;
+// CLOGICAL mobility_off = FALSE;     //  !# flag to turn mobility off
 
 
 #if USE_DL_LOADER
@@ -137,7 +137,6 @@ int prime_wq(const char *which)
     p_wq_init_glm_output = (wq_init_glm_output_t) find_entry(glm_wq_handle, "wq_init_glm_output");
     p_wq_write_glm       =       (wq_write_glm_t) find_entry(glm_wq_handle, "wq_write_glm");
     p_wq_var_index_c     =     (wq_var_index_c_t) find_entry(glm_wq_handle, "wq_var_index_c");
-    p_wq_set_flags       =       (wq_set_flags_t) find_entry(glm_wq_handle, "wq_set_flags");
     p_wq_is_var          =          (wq_is_var_t) find_entry(glm_wq_handle, "wq_is_var");
     p_wq_set_glm_zones   =   (wq_set_glm_zones_t) find_entry(glm_wq_handle, "wq_set_glm_zones");
     p_wq_ZSoilTemp       =       (wq_ZSoilTemp_t) find_entry(glm_wq_handle, "zZSoilTemp");
@@ -164,7 +163,6 @@ int prime_wq(const char *which)
         p_wq_init_glm_output = (wq_init_glm_output_t) fabm_init_glm_output;
         p_wq_write_glm       =       (wq_write_glm_t) fabm_write_glm;
         p_wq_var_index_c     =     (wq_var_index_c_t) fabm_var_index_c;
-        p_wq_set_flags       =       (wq_set_flags_t) fabm_set_flags;
         p_wq_is_var          =          (wq_is_var_t) fabm_is_var;
 #else
         fprintf(stderr, "FABM not supported in this build\n");
@@ -179,7 +177,6 @@ int prime_wq(const char *which)
         p_wq_init_glm_output = (wq_init_glm_output_t) aed2_init_glm_output;
         p_wq_write_glm       =       (wq_write_glm_t) aed2_write_glm;
         p_wq_var_index_c     =     (wq_var_index_c_t) aed2_var_index_c;
-        p_wq_set_flags       =       (wq_set_flags_t) aed2_set_flags;
         p_wq_is_var          =          (wq_is_var_t) aed2_is_var;
 #else
         fprintf(stderr, "AED2 not supported in this build\n");
@@ -187,7 +184,7 @@ int prime_wq(const char *which)
 #endif
 
         p_wq_ZSoilTemp       =       (wq_ZSoilTemp_t) ZSoilTemp;
-    } else {
+    } else if ( strcmp(which, "aed") == 0 ) {
 #ifdef AED
         p_wq_init_glm        =        (wq_init_glm_t) aed_init_glm;
         p_wq_set_glm_data    =    (wq_set_glm_data_t) aed_set_glm_data;
@@ -196,7 +193,6 @@ int prime_wq(const char *which)
         p_wq_init_glm_output = (wq_init_glm_output_t) aed_init_glm_output;
         p_wq_write_glm       =       (wq_write_glm_t) aed_write_glm;
         p_wq_var_index_c     =     (wq_var_index_c_t) aed_var_index_c;
-        p_wq_set_flags       =       (wq_set_flags_t) aed_set_flags;
         p_wq_is_var          =          (wq_is_var_t) aed_is_var;
         p_wq_inflow_update   =   (wq_inflow_update_t) aed_update_inflow_wq;
 #else
@@ -205,23 +201,41 @@ int prime_wq(const char *which)
 #endif
 
         p_wq_ZSoilTemp       =       (wq_ZSoilTemp_t) zZSoilTemp;
+    } else if ( strcmp(which, "api") == 0 ) {
+#ifdef API
+        p_wq_init_glm        =        (wq_init_glm_t) api_init_glm;
+        p_wq_set_glm_data    =    (wq_set_glm_data_t) api_set_glm_data;
+        p_wq_do_glm          =          (wq_do_glm_t) api_do_glm;
+        p_wq_clean_glm       =       (wq_clean_glm_t) api_clean_glm;
+        p_wq_init_glm_output = (wq_init_glm_output_t) api_init_glm_output;
+        p_wq_write_glm       =       (wq_write_glm_t) api_write_glm;
+        p_wq_var_index_c     =     (wq_var_index_c_t) api_var_index_c;
+        p_wq_is_var          =          (wq_is_var_t) api_is_var;
+        p_wq_inflow_update   =   (wq_inflow_update_t) api_update_inflow_wq;
+#else
+        fprintf(stderr, "API not supported in this build\n");
+        exit(1);
+#endif
+
+        p_wq_ZSoilTemp       =       (wq_ZSoilTemp_t) zZSoilTemp;
+    } else if ( *which != 0 ) {
+        fprintf(stderr, "\"%s\" not a water quality module supported in this build\n", which);
+        exit(1);
     }
 #endif
     if ( p_wq_inflow_update == NULL ) p_wq_inflow_update = (wq_inflow_update_t) dummy_inflow_update;
 
     // This is weird. Comment out the debug fprintf below and the flags come out wrong, leave the debug in and
     // they are OK ....
-    fprintf(stderr,
-        "     'wq_setup': split_factor %d mobility_off %d bioshade_feedback %d repair_state %d ode_method %d benthic_mode %d do_plots %d\n",
-                    split_factor, mobility_off, bioshade_feedback,repair_state, ode_method, benthic_mode, do_plots);
-
-    (*p_wq_set_flags)(&split_factor, &mobility_off, &bioshade_feedback,
-                                     &repair_state, &ode_method, &benthic_mode, &do_plots,
-                                     &link_rain_loss, &link_solar_shade, &link_bottom_drag);
+//  fprintf(stderr,
+//      "     'wq_setup': split_factor %d mobility_off %d bioshade_feedback %d repair_state %d ode_method %d benthic_mode %d do_plots %d\n",
+//                  split_factor, mobility_off, bioshade_feedback,repair_state, ode_method, benthic_mode, do_plots);
 
 #ifdef AED
-    if ( strcmp(which, "aed") == 0 )
-        aed_set_glm_where(&Longitude, &Latitude, &yearday, &timestep);
+//  if ( strcmp(which, "aed") == 0 )
+//      aed_set_glm_where(&Longitude, &Latitude, &yearday, &timestep);
+//  else if ( strcmp(which, "api") == 0 )
+//      api_set_glm_where(&Longitude, &Latitude, &yearday, &timestep);
 #endif
 
     return 0;

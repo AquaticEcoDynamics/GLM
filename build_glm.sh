@@ -158,11 +158,11 @@ if [ "$FABM" = "true" ] ; then
     mkdir build
   fi
   cd build
-  export FFLAGS+=-fPIC
+  export FFLAGS="$FFLAGS -fPIC"
   if [ "${USE_DL}" = "true" ] ; then
-    cmake ${FABMDIR}/src -DBUILD_SHARED_LIBS=1 || exit 1
+    cmake ${FABMDIR} -DBUILD_SHARED_LIBS=1 || exit 1
   else
-    cmake ${FABMDIR}/src || exit 1
+    cmake ${FABMDIR} || exit 1
   fi
   ${MAKE} || exit 1
 fi
@@ -185,6 +185,12 @@ if [ "${AED}" = "true" ] ; then
   cd "${CURDIR}/../libaed-water"
   ${MAKE} || exit 1
   DAEDWATDIR=`pwd`
+  if [ -d "${CURDIR}/../libaed-api" ] ; then
+    echo build libaed-api
+    cd "${CURDIR}/../libaed-api"
+    ${MAKE} || exit 1
+    DAEDAPIDIR=`pwd`
+  fi
   if [ -d "${CURDIR}/../libaed-benthic" ] ; then
     echo build libaed-benthic
     cd "${CURDIR}/../libaed-benthic"
@@ -212,10 +218,24 @@ if [ "${AED}" = "true" ] ; then
   if [ -d "${CURDIR}/../libaed-dev" ] ; then
     if [ -d "${CURDIR}/../phreeqcrm" ] ; then
       PHREEQDIR="${CURDIR}/../phreeqcrm"
+      cd "${CURDIR}/../phreeqcrm"
+      mkdir build
+      sed -i -e 's/option(PHREEQCRM_FORTRAN_TESTING "Build Fortran test" OFF)/option(PHREEQCRM_FORTRAN_TESTING "Build Fortran test" ON)/' CMakeLists.txt
+      cd build
+      cmake ..
+      ${MAKE}
+      if [ ! -f libPhreeqcRM.a ] ; then
+        echo building libPhreeqcRM.a failed
+        unset PHREEQDIR
+      fi
     fi
     echo build libaed-dev
     cd "${CURDIR}/../libaed-dev"
-    ${MAKE} PHREEQDIR=$PHREEQDIR || exit 1
+    if [ "$PHREEQDIR" != "" ] ; then
+      ${MAKE} PHREEQDIR=$PHREEQDIR || exit 1
+    else
+      ${MAKE} || exit 1
+    fi
     DAEDDEVDIR=`pwd`
   fi
 fi
@@ -252,7 +272,11 @@ if [ -f obj/aed_external.o ] ; then
 fi
 
 # Update versions in resource files
-VERSION=`grep GLM_VERSION src/glm.h | cut -f2 -d\"`
+if [ -f src/glm.h ] ; then
+  VERSION=`grep GLM_VERSION src/glm.h | cut -f2 -d\"`
+else
+  VERSION=`grep GLM_VERSION include/glm.h | cut -f2 -d\"`
+fi
 cd "${CURDIR}/win"
 ${CURDIR}/vers.sh $VERSION
 #cd ${CURDIR}/win-dll

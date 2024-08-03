@@ -92,8 +92,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     AED_REAL        min_layer_thick = 0.1;
     AED_REAL        max_layer_thick = 0.1;
 //  extern int      density_model;
-//  extern CLOGICAL littoral_sw;
-//  extern CLOGICAL non_avg;
+//  extern LOGICAL  littoral_sw;
+//  extern LOGICAL  non_avg;
     //==========================================================================
     NAMELIST glm_setup[] = {
           { "glm_setup",         TYPE_START,            NULL                  },
@@ -140,8 +140,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     char           *wq_nml_file = DEFAULT_WQ_NML;
     int             lode_method = -1;
     int             lsplit_factor = 1;
-//  LOGICAL         bioshade_feedback;
-//  LOGICAL         repair_state;
+    int             bsf = 0, rs = 0, mo = 0;
+//  CLOGICAL        bioshade_feedback;
+//  CLOGICAL        repair_state;
 //  CLOGICAL        mobility_off;
     //==========================================================================
     NAMELIST wq_setup[] = {
@@ -150,9 +151,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "wq_nml_file",       TYPE_STR,              &wq_nml_file          },
           { "ode_method",        TYPE_INT,              &lode_method          },
           { "split_factor",      TYPE_INT,              &lsplit_factor        },
-          { "bioshade_feedback", TYPE_BOOL,             &bioshade_feedback    },
-          { "repair_state",      TYPE_BOOL,             &repair_state         },
-          { "mobility_off",      TYPE_BOOL,             &mobility_off         },
+          { "bioshade_feedback", TYPE_BOOL,             &bsf                  },
+          { "repair_state",      TYPE_BOOL,             &rs                   },
+          { "mobility_off",      TYPE_BOOL,             &mo                   },
           { NULL,                TYPE_END,              NULL                  }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
@@ -372,7 +373,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     AED_REAL        min_lake_temp  = 0.0;
     LOGICAL         mix_withdraw   = FALSE;
     extern AED_REAL outflow_thick_limit;
-    extern LOGICAL  single_layer_draw;
+//  extern LOGICAL  single_layer_draw;
     LOGICAL         coupl_oxy_sw   = FALSE;
     extern AED_REAL fac_range_upper;
     extern AED_REAL fac_range_lower;
@@ -526,7 +527,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 //  int              benthic_mode;
 //  int              n_zones;
     AED_REAL        *zone_heights = NULL;
-    extern CLOGICAL  sed_heat_sw;
+    extern LOGICAL   sed_heat_sw;
     extern int       sed_heat_model;
     extern AED_REAL  sed_heat_Ksoil;
     extern AED_REAL  sed_temp_depth;
@@ -572,8 +573,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- %%NAMELIST debugging ------------------------------------------------*/
-//  extern CLOGICAL dbg_mix;   //# debug output from mixer
-//  extern CLOGICAL no_evap;   //# turn off evaporation
+//  extern LOGICAL dbg_mix;   //# debug output from mixer
+//  extern LOGICAL no_evap;   //# turn off evaporation
     //==========================================================================
     NAMELIST debugging[] = {
           { "debugging",         TYPE_START,            NULL                  },
@@ -645,10 +646,14 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         split_factor      = 1;
         bioshade_feedback = TRUE;
         repair_state      = FALSE;
+        mobility_off      = FALSE;
         n_zones           = 0;
     } else {
         ode_method        = lode_method;
         split_factor      = lsplit_factor;
+        bioshade_feedback = (bsf != 0);
+        repair_state      = (rs != 0);
+        mobility_off      = (mo != 0);
     }
     if ( twq_lib != NULL ) strncpy(wq_lib, twq_lib, 128);
 
@@ -1149,12 +1154,26 @@ for (i = 0; i < n_zones; i++) {
         size_t l = strlen(wq_nml_file);
 
         prime_wq(wq_lib);
-        wq_init_glm(wq_nml_file, &l, &MaxLayers, &Num_WQ_Vars, &Num_WQ_Ben, &Kw); // Reads WQ namelist file
-        fprintf(stderr, "     WQ plugin active: included Num_WQ_Vars = %d\n", Num_WQ_Vars);
+        wq_init_glm(wq_nml_file, &l, &Num_WQ_Vars, &Num_WQ_Ben); // Reads WQ namelist file
+        fprintf(stdout, "     WQ plugin active: included Num_WQ_Vars = %d\n", Num_WQ_Vars);
         if ( Num_WQ_Vars > MaxVars ) {
             fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", MaxVars);
             exit(1);
         }
+
+        if ( benthic_mode > 1 ) {
+            if ( (n_zones <= 0 || zone_heights == NULL) ) {
+                fprintf(stderr, "     benthic_mode %d must define zones\n", benthic_mode);
+                exit(1);
+            } else {
+                if ( strcmp(wq_lib, "api") == 0 )
+                    api_set_glm_zones(&Num_WQ_Vars, &Num_WQ_Ben);
+                else
+                    wq_set_glm_zones(&Num_WQ_Vars, &Num_WQ_Ben);
+            }
+        }
+
+        wq_set_glm_data();
     }
     NumDif += Num_WQ_Vars;
 
@@ -1169,34 +1188,13 @@ for (i = 0; i < n_zones; i++) {
 
     // This is where we could map inflow, met and csv_output vars to wq vars
 
-//  if ( ! WQ_VarsIdx ) {
-//      WQ_VarsIdx = calloc(inflow_varnum, sizeof(int));
-//  }
     if ( wq_calc ) {
         if ( inflow_vars == NULL && inflow_varnum > 3 ) {
             fprintf(stderr, "ERROR: %d inflow vars requested, but none provided\n", inflow_varnum);
             exit(1);
         }
-        /* The first 3 vars are flow, temp and salt */
-//      for (j = 3; j < inflow_varnum; j++) {
-//          if ( inflow_vars[j] == NULL ) {
-//              fprintf(stderr, "ERROR: %d inflow vars requested, but only %d provided\n", inflow_varnum, j-3);
-//              exit(1);
-//          }
-//          size_t k =  strlen(inflow_vars[j]);
-//          WQ_VarsIdx[j-3] = wq_var_index_c(inflow_vars[j], &k);
-//      }
         for (j = 0; j < NumInf; j++)
             index_inflow_file(j, inflow_varnum, (const char **)inflow_vars);
-
-        if ( benthic_mode > 1 ) {
-            if ( (n_zones <= 0 || zone_heights == NULL) ) {
-                fprintf(stderr, "     benthic_mode %d must define zones\n", benthic_mode);
-                exit(1);
-            } else {
-                wq_set_glm_zones(theZones, &n_zones, &Num_WQ_Vars, &Num_WQ_Ben);
-            }
-        }
 
         for (j = 0; j < NumOut; j++) {
             if ( O2name != NULL ) {
@@ -1210,11 +1208,7 @@ for (i = 0; i < n_zones; i++) {
                 }
             }
         }
-
-        wq_set_glm_data(Lake, &MaxLayers, &MetData, &SurfData, &dt,
-                                   rain_factor, sw_factor, biodrag);
     }
-
 
     get_namelist(namlst, debugging);
 

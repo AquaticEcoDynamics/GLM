@@ -35,7 +35,8 @@
 #endif
 #define USE_FILLVALUE 1
 
-#define GLM_VERSION  "3.3.1"
+/* Actually pre-alpha V4.0.0 */
+#define GLM_VERSION  "3.4.0"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -87,6 +88,9 @@
 //------------------------------------------------------------------------------
   // C Version of header
 
+# include <stdint.h>
+
+
   #define surfLayer (NumLayers-1)
   #define botmLayer 0
 
@@ -102,9 +106,9 @@
   #define NC_REALTYPE NC_DOUBLE
   #define NC_FILLER NC_FILL_DOUBLE
   typedef double DOUBLETYPE;
-// Although this should be an unsigned char, that appears to cause addressing issues so back to int for now
-//  typedef unsigned char CLOGICAL;
-  typedef int CLOGICAL;
+  typedef _Bool CLOGICAL;
+  typedef int32_t CINTEGER;
+  typedef int8_t  CCHARACTER;
 
   #define TRUE  1
   #define FALSE 0

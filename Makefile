@@ -111,7 +111,7 @@ else ifeq ($(OSTYPE),FreeBSD)
   endif
 else
   CINCLUDES+=-I/usr/local/include
-  EXTRALINKFLAGS=-Wl,--export-dynamic
+  EXTRALINKFLAGS=-Wl,-z,relro,--export-dynamic
   ifeq ($(MDEBUG),true)
   DBG_LIBS=-fsanitize=address -static-libasan
     SHARED=-shared
@@ -140,11 +140,14 @@ endif
 
 EXTFFLAGS=
 ifeq ($(AED),true)
-  DEFINES+=-DAED
+  DEFINES+=-DAED -DAPI
 
   AEDWATDIR=../libaed-water
+  AEDAPIDIR=../libaed-api
   FINCLUDES+=-I$(AEDWATDIR)/include -I$(AEDWATDIR)/mod
+  FINCLUDES+=-I$(AEDAPIDIR)/include -I$(AEDAPIDIR)/mod
   AEDLIBS=-L$(AEDWATDIR)/lib -laed-water
+  AEDLIBS+=-L$(AEDAPIDIR)/lib -laed-api
   ifdef AEDBENDIR
     AEDLIBS+=-L$(AEDBENDIR)/lib -laed-benthic
   else
@@ -243,8 +246,11 @@ else
   FFLAGS+=-fdefault-real-8 -fdefault-double-8
   OMPFLAG=-fopenmp
   FLIBS+=-lgfortran -lgomp
-  EXTFFLAGS+=-Wno-unused-dummy-argument
+  EXTFFLAGS+=-Wno-unused-dummy-argument -Wno-unused-value
 endif
+
+#FFLAGS+=-fPIC
+FFLAGS+=-fPIE
 
 ifneq ($(USE_DL),true)
   WQLIBS=$(AEDLIBS) $(FABMLIBS) $(AED2LIBS)
@@ -347,11 +353,12 @@ else
     OBJS+=${objdir}/glm_aed2.o
   endif
   ifeq ($(AED),true)
-    OBJS+=${objdir}/glm_aed.o \
+    OBJS+=${objdir}/glm_api_zones.o \
+          ${objdir}/glm_api_aed.o   \
+          ${objdir}/glm_aed.o       \
           ${objdir}/aed_external.o
   endif
   ifeq ($(FABM),true)
-  # OBJS+=${objdir}/glm_fabm.o ${objdir}/ode_solvers.o
     OBJS+=${objdir}/ode_solvers.o ${objdir}/glm_fabm.o
   endif
 endif
@@ -388,10 +395,10 @@ distclean: clean
 	@/bin/rm -rf ${objdir} ${moddir} glm glm+ macos/glm.app macos/glm+.app
 
 ${objdir}/%.o: ${srcdir}/%.F90 ${incdir}/glm.h
-	$(FC) -fPIC $(FFLAGS) $(EXTRA_FFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
+	$(FC) $(FFLAGS) $(EXTFFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
 
 ${objdir}/glm_main.o: ${srcdir}/glm_main.c ${incdir}/glm.h
-	$(CC) -fPIC -DBUILDDATE=\"${BUILDDATE}\" $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
+	$(CC) -DBUILDDATE=\"${BUILDDATE}\" $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
 
 ${objdir}/glm_rc.o: win/glm.rc
 	windres $< -o $@
@@ -422,8 +429,8 @@ libglm_wq_fabm.${so_ext}: ${objdir}/glm_zones.o ${objdir}/glm_fabm.o ${objdir}/o
 # special needs dependancies
 
 ${objdir}/aed_external.o: ../libaed-water/src/aed_external.F90
-	$(FC) -fPIC $(FFLAGS) $(EXTFFLAGS) -D_FORTRAN_SOURCE_ $(OMPFLAG) -c $< -o $@
+	$(FC) $(FFLAGS) $(EXTFFLAGS) -D_FORTRAN_SOURCE_ $(OMPFLAG) -c $< -o $@
 
 ${objdir}/glm_globals.o: ${srcdir}/glm_globals.c ${incdir}/glm_globals.h ${incdir}/glm.h
 ${objdir}/glm_plugin.o: ${srcdir}/glm_plugin.c ${incdir}/glm_plugin.h ${incdir}/glm.h
-${objdir}/glm_mixer.o: ${srcdir}/glm_mixer.c ${incdir}/glm_mixer.h ${incdir}/glm.h ${srcdir}/glm_debug.h
+${objdir}/glm_mixer.o: ${srcdir}/glm_mixer.c ${incdir}/glm_mixer.h ${incdir}/glm.h ${incdir}/glm_debug.h

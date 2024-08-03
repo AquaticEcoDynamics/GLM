@@ -37,11 +37,11 @@
 #include "glm_globals.h"
 #include "aed_csv.h"
 
+#define DEBUG_GLOBS 0
 
-int MaxLayers;   //# Maximum number of layers in this sim
+//int MaxLayers;   //# Maximum number of layers in this sim
 int NumLayers;   //# current number of layers
 LakeDataType *Lake = NULL;
-
 
 AED_REAL Latitude, Longitude;
 
@@ -81,8 +81,8 @@ OutflowDataType Outflows[MaxOut];  //# Array of Outflows
 int O2crit;
 int O2critdep;
 int O2critdays;
-CLOGICAL MIXwithdraw = FALSE;
-CLOGICAL COUPLoxy = FALSE;
+LOGICAL MIXwithdraw = FALSE;
+LOGICAL COUPLoxy = FALSE;
 AED_REAL WithdrawalTemp;
 AED_REAL fac_range_upper = -1, fac_range_lower = -1;
 AED_REAL MINlaketemp;
@@ -90,10 +90,10 @@ AED_REAL MINlaketemp;
 AED_REAL crest_width = 6.0;
 AED_REAL crest_factor = 0.61;
 
-CLOGICAL single_layer_draw = FALSE;
+LOGICAL single_layer_draw = FALSE;
 AED_REAL outflow_thick_limit = 100.0;
 
-CLOGICAL evap_from_file = FALSE;   // do we have evap values coming from a file
+LOGICAL evap_from_file = FALSE;   // do we have evap values coming from a file
 AED_REAL f_evap_ts_prop = 0.0;     // proportional value for daily evap for this timestep
 
 //------------------------------------------------------------------------------
@@ -110,8 +110,10 @@ AED_REAL CH = 0.0013;
 
 //------------------------------------------------------------------------------
 
-MetDataType MetData;         //# Meteorological data
-SurfaceDataType SurfData;    //# Surface Data
+MetDataType MetData;                    //# Meteorological data
+MetDataType* pMetData = &MetData;       //# pointer to Meteorological data
+SurfaceDataType SurfData;               //# Surface Data
+SurfaceDataType* pSurfData = &SurfData; //# pointer to Surface Data
 
 int subdaily = FALSE;
 
@@ -143,12 +145,12 @@ AED_REAL coef_wind_stir = 0.23; //# wind stirring
 AED_REAL coef_mix_hyp = 0.5;    //# efficiency of hypolimnetic mixing
 AED_REAL coef_mix_shreq = 1.0;  //# unsteady effects
 
-CLOGICAL non_avg = FALSE;
+LOGICAL non_avg = FALSE;
 int deep_mixing = 2;
 int surface_mixing = 1;
 
 //
-CLOGICAL catchrain = FALSE;
+LOGICAL catchrain = FALSE;
 AED_REAL rain_threshold = 0.04;
 AED_REAL runoff_coef = 0.3;
 
@@ -160,10 +162,17 @@ int       n_bands = 2;
 AED_REAL  *light_extc = NULL;
 AED_REAL  *energy_frac = NULL;
 
-LOGICAL link_solar_shade = FALSE;
-LOGICAL link_rain_loss   = FALSE;
-LOGICAL link_bottom_drag = FALSE;
+//CLOGICAL mobility_off      = FALSE;
+//CLOGICAL bioshade_feedback = FALSE;
+//CLOGICAL repair_state      = FALSE;
+//CLOGICAL do_plots          = FALSE;
+//CLOGICAL link_rain_loss    = FALSE;
+//CLOGICAL link_solar_shade  = FALSE;
+//CLOGICAL link_bottom_drag  = FALSE;
+//CLOGICAL ice               = FALSE;
+
 LOGICAL use_met_atm_pres = TRUE;
+
 AED_REAL biodrag = 0.0;
 
 AED_REAL salt_fall = 0.0;
@@ -201,7 +210,7 @@ AED_REAL avg_surf_temp_thres = 0.0;   //# average surface temperature threshold 
 
 //------------------------------------------------------------------------------
 // SEDIMENT
-CLOGICAL sed_heat_sw        = FALSE;
+LOGICAL  sed_heat_sw        = FALSE;
 int      sed_heat_model     = 0;
 //AED_REAL sed_temp_mean        = 9.7;
 //AED_REAL sed_temp_amplitude   = 2.7;
@@ -237,7 +246,7 @@ char *      fetch_fws = NULL;
 
 //------------------------------------------------------------------------------
 // LITTORAL
-CLOGICAL littoral_sw        = FALSE;
+LOGICAL littoral_sw        = FALSE;
 
 //------------------------------------------------------------------------------
 
@@ -261,8 +270,8 @@ ZoneType *theZones = NULL;
 //------------------------------------------------------------------------------
 //  These for debugging
 //------------------------------------------------------------------------------
-CLOGICAL dbg_mix = FALSE;   //# debug output from mixer
-CLOGICAL no_evap = FALSE;   //# turn off evaporation
+LOGICAL dbg_mix = FALSE;   //# debug output from mixer
+LOGICAL no_evap = FALSE;   //# turn off evaporation
 int      quiet   = 0;       //# turn down output messages
 
 void set_c_wqvars_ptr(AED_REAL *iwqv) { WQ_Vars = iwqv; }
@@ -286,25 +295,22 @@ void allocate_storage()
 #if DEBUG
 /******************************************************************************/
 void _debug_print_lake(FILE *of) {
+#if DEBUG_GLOBS
     int i;
 
-/*
-    fprintf(of, "----------DEPTH----------------TEMP-----------------SALT-----------------DENS-----------------LVol------\n");
-    for (i = 0; i < NumLayers; i++)
-        fprintf(of, "%3d %16.11f %20.11f %20.11f %20.11f %20.11f %16.10f\n",
-                    i, Lake[i].Height, Lake[i].Temp, Lake[i].Salinity, Lake[i].Density, Lake[i].LayerVol,Lake[i].Vol1);
-*/
     fprintf(of, "MaxLayers %d NumLayers %d\n", MaxLayers, NumLayers);
     fprintf(of, "----------DEPTH----------------TEMP-----------------SALT-----------------DENS-----------------LVol--------------LArea----\n");
     for (i = 0; i < NumLayers; i++)
         fprintf(of, "%3d %16.11f %20.11f %20.11f %20.11f %20.11f %16.10f\n",
                     i, Lake[i].Height, Lake[i].Temp, Lake[i].Salinity, Lake[i].Density, Lake[i].LayerVol, Lake[i].LayerArea);
     fprintf(of, "-------------------------------------------------------------------------------------------------------------------------\n\n");
+#endif
 }
 void debug_print_lake() { _debug_print_lake(stderr); }
 
 /******************************************************************************/
 void debug_initialisation(int which) {
+#if DEBUG_GLOBS
     int i ;
     FILE *of = stderr;
 
@@ -327,8 +333,7 @@ void debug_initialisation(int which) {
     fprintf(of, "NumInf %d NumOut %d NumDif %d\n", NumInf, NumOut, NumDif);
 
     if (which) fprintf(of, "FORTRAN\n"); else fprintf(of, "C-----\n");
-
-//exit(0);
+#endif
 }
 void debug_initialisation_(int *which) { debug_initialisation(*which); }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

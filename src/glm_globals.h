@@ -31,8 +31,9 @@
 #define _GLM_GLOBALS_H_
 
 #ifdef _FORTRAN_SOURCE_
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-INTERFACE
+ INTERFACE
 
      SUBROUTINE set_c_wqvars_ptr(iwqvars) BIND(C, name="set_c_wqvars_ptr")
         USE ISO_C_BINDING
@@ -52,8 +53,7 @@ INTERFACE
      END SUBROUTINE debug_initialisation
 # endif
 
-
-END INTERFACE
+ END INTERFACE
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #else
@@ -66,7 +66,6 @@ END INTERFACE
 extern int ncid;
 
 /* from glm_surf.F90 */
-extern int ice;
 extern AED_REAL AvgSurfTemp;
 /*----------------------------------------------------------------------------*/
 extern int MaxLayers;   //# Maximum number of layers in this sim
@@ -115,8 +114,8 @@ extern OutflowDataType Outflows[]; //# Array of Outflows
 extern int O2crit;
 extern int O2critdep;
 extern int O2critdays;
-extern CLOGICAL MIXwithdraw;
-extern CLOGICAL COUPLoxy;
+extern LOGICAL MIXwithdraw;
+extern LOGICAL COUPLoxy;
 extern AED_REAL WithdrawalTemp;
 extern AED_REAL fac_range_upper, fac_range_lower;
 extern AED_REAL MINlaketemp;
@@ -124,10 +123,10 @@ extern AED_REAL MINlaketemp;
 extern AED_REAL crest_width;
 extern AED_REAL crest_factor;
 
-extern CLOGICAL single_layer_draw;
+extern LOGICAL single_layer_draw;
 extern AED_REAL outflow_thick_limit;
 
-extern CLOGICAL evap_from_file;
+extern LOGICAL evap_from_file;
 extern AED_REAL f_evap_ts_prop;
 
 /*----------------------------------------------------------------------------*/
@@ -141,7 +140,7 @@ extern SurfaceDataType SurfData; //# Surface Data
 extern MetDataType MetData;      //# Meteorological data
 extern AED_REAL runoff_coef;
 extern AED_REAL rain_threshold;
-extern CLOGICAL catchrain;
+extern LOGICAL catchrain;
 extern int atm_stab;         //# Account for non-neutral atmospheric stability
 extern AED_REAL coef_wind_drag;   //# = 0.0013;
 extern AED_REAL coef_wind_chwn;   //# = 0.0013;
@@ -157,9 +156,15 @@ extern int      n_bands;
 extern AED_REAL *light_extc;
 extern AED_REAL *energy_frac;
 
-extern LOGICAL  link_solar_shade;
-extern LOGICAL  link_rain_loss;
-extern LOGICAL  link_bottom_drag;
+extern CLOGICAL mobility_off;
+extern CLOGICAL bioshade_feedback;
+extern CLOGICAL repair_state;
+extern CLOGICAL do_plots;
+extern CLOGICAL link_rain_loss;
+extern CLOGICAL link_solar_shade;
+extern CLOGICAL link_bottom_drag;
+extern CLOGICAL ice;
+
 extern LOGICAL  use_met_atm_pres;
 extern AED_REAL biodrag;
 
@@ -190,8 +195,7 @@ extern AED_REAL coef_wind_stir; //# wind stirring
 extern AED_REAL coef_mix_hyp;   //# efficiency of hypolimnetic mixing
 extern AED_REAL coef_mix_shreq; //# unsteady effects
 
-extern CLOGICAL mobility_off;
-extern CLOGICAL non_avg;
+extern LOGICAL  non_avg;
 extern int      deep_mixing;          //# = 0 => off > 0 => on
 extern int      surface_mixing;
 
@@ -256,7 +260,7 @@ extern AED_REAL avg_surf_temp_thres;
 
 /*----------------------------------------------------------------------------*/
 // SEDIMENT
-extern CLOGICAL sed_heat_sw;
+extern LOGICAL sed_heat_sw;
 extern int      sed_heat_model;
 extern AED_REAL sed_heat_Ksoil;
 extern AED_REAL sed_temp_depth;
@@ -289,7 +293,7 @@ extern char     *fetch_fws;
 
 /*----------------------------------------------------------------------------*/
 // LITTORAL
-extern CLOGICAL littoral_sw;
+extern LOGICAL littoral_sw;
 
 /*----------------------------------------------------------------------------*/
 // TIME
@@ -301,8 +305,8 @@ extern AED_REAL yearday;   //# day of year
 
 /*----------------------------------------------------------------------------*/
 // DEBUGGING
-extern CLOGICAL dbg_mix;   //# debug output from mixer
-extern CLOGICAL no_evap;   //# turn off evaporation
+extern LOGICAL dbg_mix;   //# debug output from mixer
+extern LOGICAL no_evap;   //# turn off evaporation
 extern int      quiet;     //# turn down output messages
 
 
@@ -314,6 +318,8 @@ void debug_initialisation(int which);
 void debug_initialisation_(int *which);
 
 #define _WQ_Vars(var,lyr) WQ_Vars[_IDX_2d(MaxLayers,Num_WQ_Vars,lyr,var)]
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif
 
 /*============================================================================*/

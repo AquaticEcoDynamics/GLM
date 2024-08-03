@@ -146,7 +146,7 @@ MODULE glm_types
       AED_REAL :: ztemp
       AED_REAL :: zrho
       AED_REAL :: zarea
-      AED_REAL :: zextc_coef
+      AED_REAL :: zextc
       AED_REAL :: zlayer_stress
       AED_REAL :: ztss
       AED_REAL :: zdz
@@ -160,11 +160,47 @@ MODULE glm_types
       AED_REAL :: z_sed_zones
       AED_REAL :: z_pc_wet
       AED_REAL :: heatflux
-      CINTEGER :: n_sedLayers;     !# number of sediment layers
+      CINTEGER :: n_sed_layers;     !# number of sediment layers
       TYPE(C_PTR) :: c_layers      !# array of sed layers
    END TYPE ZoneType
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+   !================================================================
+   !# variables in C code of GLM
+   !----------------------------------------------------------------
+   TYPE(CINTEGER),BIND(C, name="MaxLayers") :: MaxLayers
+   TYPE(C_PTR),BIND(C, name="Lake")         :: cLake
+   TYPE(CINTEGER),BIND(C, name="n_zones")   :: n_zones
+   TYPE(C_PTR),BIND(C, name="theZones")     :: cZones 
+
+   TYPE(C_PTR),BIND(C, name="pMetData")     :: cMetData
+   TYPE(C_PTR),BIND(C, name="pSurfData")    :: cSurfData
+
+   TYPE(CLOGICAL),BIND(C, name="mobility_off")     :: mobility_off
+   TYPE(CLOGICAL),BIND(C, name="bioshade_feedback"):: bioshade_feedback
+   TYPE(CLOGICAL),BIND(C, name="repair_state")     :: repair_state
+   TYPE(CLOGICAL),BIND(C, name="do_plots")         :: do_plots
+   TYPE(CLOGICAL),BIND(C, name="link_rain_loss")   :: link_rain_loss
+   TYPE(CLOGICAL),BIND(C, name="link_solar_shade") :: link_solar_shade
+   TYPE(CLOGICAL),BIND(C, name="link_bottom_drag") :: link_bottom_drag
+   TYPE(CLOGICAL),BIND(C, name="ice")              :: ice
+
+   TYPE(CINTEGER),BIND(C, name="split_factor")     :: split_factor
+   TYPE(CINTEGER),BIND(C, name="ode_method")       :: ode_method
+   TYPE(CINTEGER),BIND(C, name="benthic_mode")     :: benthic_mode
+
+   TYPE(AED_REAL),BIND(C, name="rain_factor") :: rain_factor
+   TYPE(AED_REAL),BIND(C, name="sw_factor")   :: sw_factor
+   TYPE(AED_REAL),BIND(C, name="friction")    :: friction
+
+   TYPE(AED_REAL),BIND(C, name="Kw") :: Kw
+   TYPE(AED_REAL),BIND(C, name="dt") :: dt
+
+   TYPE(AED_REAL),TARGET,BIND(C, name="yearday")   :: yearday
+   TYPE(AED_REAL),TARGET,BIND(C, name="timestep")  :: timestep
+   TYPE(AED_REAL),TARGET,BIND(C, name="Longitude") :: longitude
+   TYPE(AED_REAL),TARGET,BIND(C, name="Latitude")  :: latitude
 
 CONTAINS
 

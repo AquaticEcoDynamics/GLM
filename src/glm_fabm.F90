@@ -72,16 +72,16 @@ MODULE glm_fabm
 
    USE fabm
    USE fabm_types
-   USE ode_solvers
+!  USE ode_solvers
 
    USE glm_types
    USE glm_zones
+   USE aed_util
 
    IMPLICIT NONE
 
    PRIVATE ! By default, make everything private
 !
-#include "glm_globals.h"
 #include "glm_plot.h"
 #include "glm_ncdf.h"
 #include "glm_csv.h"
@@ -113,14 +113,10 @@ MODULE glm_fabm
 !
 !MODULE DATA
 
-   AED_REAL :: lKw    !# background light attenuation (m**-1)
-   LOGICAL  :: lIce = .FALSE.
-
-   !# Namelist variables
-   INTEGER :: ode_method = 1, split_factor = 1, benthic_mode = 0
-   LOGICAL :: bioshade_feedback = .TRUE., repair_state = .TRUE.
-   LOGICAL :: mobility_off = .FALSE.  !# flag to turn mobility off
-   LOGICAL :: do_plots = .TRUE.
+   TYPE(LakeDataType),DIMENSION(:),POINTER  :: theLake
+!  TYPE(ZoneType),DIMENSION(:),POINTER      :: theZones
+   TYPE(MetDataType),POINTER     :: MetData  !# Meteorological data
+   TYPE(SurfaceDataType),POINTER :: SurfData !# Surface Data
 
    !# Model
    TYPE (type_model),POINTER :: model
@@ -129,7 +125,6 @@ MODULE glm_fabm
    AED_REAL,ALLOCATABLE,DIMENSION(:,:) :: cc !# water quality array: nlayers, nvars
    AED_REAL,ALLOCATABLE,DIMENSION(:,:) :: cc_diag
    AED_REAL,ALLOCATABLE,DIMENSION(:)   :: cc_diag_hz
-!  AED_REAL,ALLOCATABLE,TARGET,DIMENSION(:) :: sed_zones
 
    !# Arrays for work, vertical movement, and cross-boundary fluxes
    AED_REAL,ALLOCATABLE,DIMENSION(:,:) :: rhs_flux
@@ -141,15 +136,14 @@ MODULE glm_fabm
    AED_REAL,ALLOCATABLE,DIMENSION(:) :: par,pres,tss
 
    !# External variables
-   AED_REAL :: dt, dt_eff   ! External and internal time steps
-!  INTEGER  :: w_adv_ctr    ! Scheme for vertical advection (0 IF not used)
+   AED_REAL :: dt_eff   ! External and internal time steps
    INTEGER  :: n_vars, n_vars_ben
    AED_REAL,POINTER,DIMENSION(:) :: rad, z, salt, temp, rho, area
    AED_REAL,POINTER,DIMENSION(:) :: extc_coef, layer_stress
    AED_REAL,POINTER              :: precip, evap, bottom_stress
 
    CHARACTER(len=48),ALLOCATABLE :: names(:)
-#if PLOTS
+#ifdef PLOTS
    INTEGER,ALLOCATABLE,DIMENSION(:) :: plot_id_v, plot_id_sv, plot_id_d, plot_id_sd
 #endif
 
@@ -158,78 +152,15 @@ MODULE glm_fabm
 CONTAINS
 
 
-
 !###############################################################################
-FUNCTION MYTRIM(str) RESULT(res)
-!-------------------------------------------------------------------------------
-! Useful for passing string arguments to C functions
-!-------------------------------------------------------------------------------
-   CHARACTER(*),TARGET :: str
-   CHARACTER(:),POINTER :: res
-   INTEGER :: len
-
-   len = LEN_TRIM(str)+1
-   str(len:len) = achar(0)
-   res => str
-END FUNCTION MYTRIM
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-!###############################################################################
-INTEGER FUNCTION f_get_lun()
-!-------------------------------------------------------------------------------
-! Find the first free logical unit number
-!-------------------------------------------------------------------------------
-!ARGUMENTS
-   INTEGER :: lun
-   LOGICAL :: opened
-!
-!-------------------------------------------------------------------------------
-!BEGIN
-   DO lun = 10,99
-      inquire(unit=lun, opened=opened)
-      IF ( .not. opened ) THEN
-         f_get_lun = lun
-         RETURN
-      ENDIF
-   ENDDO
-   f_get_lun = -1
-END FUNCTION f_get_lun
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-!###############################################################################
-SUBROUTINE fabm_set_flags(c_split_factor, c_mobility, c_bioshade,              &
-                  c_repair_state, c_ode, c_benthic_mode, c_do_plots) BIND(C, name=_WQ_SET_FLAGS)
-!-------------------------------------------------------------------------------
-!ARGUMENTS
-   CLOGICAL,INTENT(in) :: c_mobility, c_bioshade, c_repair_state, c_do_plots
-   CINTEGER,INTENT(in) :: c_split_factor, c_ode, c_benthic_mode
-!
-!-------------------------------------------------------------------------------
-!BEGIN
-   split_factor = c_split_factor
-   mobility_off = c_mobility
-   bioshade_feedback = c_bioshade
-   ode_method = c_ode
-   repair_state = c_repair_state
-   benthic_mode = c_benthic_mode
-   do_plots = c_do_plots
-END SUBROUTINE fabm_set_flags
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-!###############################################################################
-SUBROUTINE fabm_init_glm(i_fname,len,MaxLayers,NumWQVars,NumWQBen,pKw) BIND(C, name=_WQ_INIT_GLM)
+SUBROUTINE fabm_init_glm(i_fname,len,NumWQVars,NumWQBen) BIND(C, name=_WQ_INIT_GLM)
 !-------------------------------------------------------------------------------
 ! Initialize the GLM-FABM driver by reading settings from fabm.nml.
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    CCHARACTER,INTENT(in) :: i_fname(*)
    CSIZET,INTENT(in)     :: len
-   CINTEGER,INTENT(in)   :: MaxLayers
    CINTEGER,INTENT(out)  :: NumWQVars, NumWQBen
-   AED_REAL,INTENT(in)   :: pKw
 !
 !LOCALS
    INTEGER :: i,rc,namlst
@@ -240,15 +171,13 @@ SUBROUTINE fabm_init_glm(i_fname,len,MaxLayers,NumWQVars,NumWQBen,pKw) BIND(C, n
 !BEGIN
    CALL make_string(fname, i_fname, len)
 
-   lKw = pKw
-
 #ifdef __INTEL_COMPILER
    print *,'glm_fabm built using intel fortran version ', __INTEL_COMPILER
 #else
    print *,'glm_fabm built using gfortran version ', __GNUC__, '.', __GNUC_MINOR__, '.', __GNUC_PATCHLEVEL__
 #endif
    print *,'init_glm_fabm from ', TRIM(fname)
-   namlst = f_get_lun()
+   namlst = find_free_lun()
 
    !# Create model tree
    model => fabm_create_model_from_file(namlst,fname)
@@ -293,9 +222,6 @@ SUBROUTINE fabm_init_glm(i_fname,len,MaxLayers,NumWQVars,NumWQBen,pKw) BIND(C, n
              trim(model%info%diagnostic_variables_hz(i)%long_name)
    ENDDO
 
-#if 0
-   init_solver(ode_method,ode_solver)
-#else
    !# Report type of solver
    print *, "Using Eulerian solver"
    SELECT CASE (ode_method)
@@ -326,7 +252,6 @@ SUBROUTINE fabm_init_glm(i_fname,len,MaxLayers,NumWQVars,NumWQBen,pKw) BIND(C, n
       CASE DEFAULT
          STOP 'init_glm_fabm: no valid ode_method specified in fabm.nml!'
    END SELECT
-#endif
 
    NumWQVars = ubound(model%info%state_variables,1)
    NumWQBen  = ubound(model%info%state_variables_ben,1)
@@ -353,7 +278,7 @@ SUBROUTINE fabm_init_glm(i_fname,len,MaxLayers,NumWQVars,NumWQBen,pKw) BIND(C, n
    DO i=1,ubound(model%info%state_variables_ben,1)
       names(ubound(model%info%state_variables,1)+i) = trim(model%info%state_variables_ben(i)%name)
    ENDDO
-#if PLOTS
+#ifdef PLOTS
    ALLOCATE(plot_id_v(ubound(model%info%state_variables,1)))
    ALLOCATE(plot_id_sv(ubound(model%info%state_variables_ben,1)))
    ALLOCATE(plot_id_d(ubound(model%info%diagnostic_variables,1)))
@@ -504,21 +429,17 @@ END FUNCTION fabm_is_var
 
 
 !###############################################################################
-SUBROUTINE fabm_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_) &
-                                                 BIND(C, name=_WQ_SET_GLM_DATA)
+SUBROUTINE fabm_set_glm_data() BIND(C, name=_WQ_SET_GLM_DATA)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
-   CINTEGER, INTENT(in) :: MaxLayers
-   TYPE(C_PTR),VALUE :: Lake
-   TYPE(MetDataType),TARGET     :: MetData  !# Meteorological data
-   TYPE(SurfaceDataType),TARGET :: SurfData !# Surface Data
-   AED_REAL,INTENT(in)  :: dt_
 !
 !LOCALS
-   INTEGER i
+!
 !-------------------------------------------------------------------------------
 !BEGIN
-   CALL C_F_POINTER(Lake, theLake, [MaxLayers])
+!  CALL C_F_POINTER(cLake, theLake, [MaxLayers])
+   CALL C_F_POINTER(cMetData, MetData)
+   CALL C_F_POINTER(cSurfData, SurfData)
 
    !# Save pointers to external dynamic variables that we need later (in do_glm_fabm)
    z => theLake%Height
@@ -530,20 +451,11 @@ SUBROUTINE fabm_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_) &
    extc_coef => theLake%ExtcCoefSW
    layer_stress => theLake%LayerStress
 
-   IF (benthic_mode .GT. 1) zz => z
-
-   !# At this point we have z_cc allocated, so now we can copy the initial values
-   !# from cc benthic vars to it
-   DO i=1,n_zones
-      z_cc(i, n_vars+1:n_vars+n_vars_ben) = cc(1, n_vars+1:n_vars+n_vars_ben)
-   ENDDO
-
    precip => MetData%Rain
    evap   => SurfData%Evap
    bottom_stress => layer_stress(1)
 
    !# Copy scalars that will not change during simulation, and are needed in do_glm_fabm)
-   dt = dt_
 
    !# Provide pointers to arrays with environmental variables to FABM.
    CALL fabm_link_bulk_data(model,varname_temp,     temp)
@@ -571,6 +483,7 @@ SUBROUTINE fabm_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 !                           wlev is the number of levels used;
 !                           nlev is the total num levels in the array
 !-------------------------------------------------------------------------------
+   USE ode_solvers, ONLY : ode_solver
 !ARGUMENTS
    CINTEGER,INTENT(in) :: wlev
    CLOGICAL,INTENT(in) :: pIce
@@ -584,7 +497,6 @@ SUBROUTINE fabm_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   lIce = pIce
    CALL model%set_surface_index(wlev)
 
    !# re-compute the layer heights
@@ -617,7 +529,7 @@ SUBROUTINE fabm_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
       DO i=1,ubound(model%info%state_variables,1)
          IF (model%info%state_variables(i)%vertical_movement .NE. _ZERO_) THEN
             min_C = model%info%state_variables(i)%minimum
-            CALL Mobility(wlev, dt, dz, area, ws(:, i), min_C, cc(:, i))
+            CALL doMobility(wlev, dt, dz, area, ws(:, i), min_C, cc(:, i))
          ENDIF
       ENDDO
    ENDIF
@@ -627,7 +539,7 @@ SUBROUTINE fabm_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 
    DO split=1,split_factor
       IF (benthic_mode .GT. 1) THEN
-         CALL copy_to_zone(cc, wlev)
+         CALL copy_to_zone(cc, cc_diag, cc_diag_hz, wlev)
          CALL calc_zone_areas(area, wlev, z(wlev))
       ENDIF
 
@@ -664,9 +576,6 @@ SUBROUTINE fabm_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    ENDDO
 
    IF ( benthic_mode .GT. 1 ) CALL copy_from_zone(cc, cc_diag, cc_diag_hz, wlev)
- ! n_vars     = ubound(model%info%state_variables,1)
- ! n_vars_ben = ubound(model%info%state_variables_ben,1)
- ! IF ( benthic_mode .GT. 1 ) CALL copy_from_zone(cc(:,n_vars+1:n_vars+n_vars_ben), wlev)
 END SUBROUTINE fabm_do_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -741,7 +650,7 @@ SUBROUTINE right_hand_side_rhs(first,numc,nlev,cc,rhs)
 
    !# (1) surface exchange
    !# Calculate temporal derivatives due to air water exchange.
-   IF (.NOT. lIce) THEN !# no surface exchange under ice cover
+   IF (.NOT. ice) THEN !# no surface exchange under ice cover
       CALL fabm_get_surface_exchange(model,rhs_flux(nlev,:))
       !# Distribute surface flux into pelagic surface layer volume (i.e., divide by layer height).
       rhs(nlev,:) = rhs(nlev,:) + rhs_flux(nlev,:)/dz(nlev)
@@ -862,7 +771,7 @@ SUBROUTINE update_light(nlev, bioshade_feedback)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    INTEGER,INTENT(in) :: nlev
-   LOGICAL,INTENT(in) :: bioshade_feedback
+   CLOGICAL,INTENT(in) :: bioshade_feedback
 !
 !LOCALS
    INTEGER :: i
@@ -883,13 +792,13 @@ SUBROUTINE update_light(nlev, bioshade_feedback)
       zz = zz + 0.5*dz(i)
 
       IF (i .EQ. nlev) THEN
-         par(i) = 0.45 * rad(i) * EXP( -(lKw + localext) * zz )
+         par(i) = 0.45 * rad(i) * EXP( -(Kw + localext) * zz )
       ELSE
-         par(i) = par(i+1) * EXP( -(lKw + localext) * zz )
+         par(i) = par(i+1) * EXP( -(Kw + localext) * zz )
       ENDIF
       zz = zz + 0.5*dz(i)
 
-      IF (bioshade_feedback) extc_coef(i) = lKw + localext
+      IF (bioshade_feedback) extc_coef(i) = Kw + localext
    ENDDO
 END SUBROUTINE update_light
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

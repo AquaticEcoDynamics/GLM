@@ -49,54 +49,71 @@ MODULE glm_zones
 
    PRIVATE ! By default, make everything private
 
-   AED_REAL,ALLOCATABLE,DIMENSION(:,:),TARGET :: z_cc   !(nsed_zones, nsed_vars)
-   AED_REAL,ALLOCATABLE,DIMENSION(:,:),TARGET :: z_diag    !(nsed_zones, n_vars)
-   AED_REAL,ALLOCATABLE,DIMENSION(:,:),TARGET :: z_diag_hz !(nsed_zones, n_vars)
+   AED_REAL,DIMENSION(:,:,:),ALLOCATABLE,TARGET :: z_cc      ! (n_zones, n_levs, n_vars)
+   AED_REAL,DIMENSION(:,:),ALLOCATABLE,  TARGET :: z_cc_hz   ! (n_zones, n_vars)
+   AED_REAL,DIMENSION(:,:,:),ALLOCATABLE,TARGET :: z_diag    ! (n_zones, n_levs, n_vars)
+   AED_REAL,DIMENSION(:,:),ALLOCATABLE,  TARGET :: z_diag_hz ! (n_zones, n_vars)
 
    AED_REAL,DIMENSION(:),POINTER :: zz
 
-   INTEGER :: n_zones
-
+   TYPE(LakeDataType),DIMENSION(:),POINTER :: theLake
    TYPE(ZoneType),DIMENSION(:),POINTER :: theZones
 
    AED_REAL,DIMENSION(:),POINTER :: zone_heights
-   INTEGER :: nvars, nbenv
+   INTEGER :: n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
+   INTEGER :: zone_var = 0
 
-   TYPE(LakeDataType),DIMENSION(:),POINTER :: theLake
+   PUBLIC zone_heights, zz
+   PUBLIC copy_from_zone, copy_to_zone, calc_zone_areas
 
-   PUBLIC n_zones, zone_heights, zz, z_cc, theLake
-   PUBLIC wq_set_glm_zones, copy_from_zone, copy_to_zone, calc_zone_areas
-
-   PUBLIC z_diag, z_diag_hz, theZones
+   PUBLIC wq_set_glm_zones, z_cc, z_diag, z_cc_hz, z_diag_hz, theZones, theLake
+   PUBLIC n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet, zone_var
 
 CONTAINS
 
 !###############################################################################
-SUBROUTINE wq_set_glm_zones(Zones, numZones, numVars, numBenV) BIND(C, name="wq_set_glm_zones")
+SUBROUTINE wq_set_glm_zones(numVars, numBenV)   BIND(C, name="wq_set_glm_zones")
 !-------------------------------------------------------------------------------
 !ARGUMENTS
-   TYPE(C_PTR),VALUE :: Zones
-   CINTEGER,INTENT(in) :: numZones, numVars, numBenV
+   CINTEGER,INTENT(in) :: numVars, numBenV
 !
 !LOCALS
-   INTEGER :: i
-   INTEGER :: n_sed_layers = 20
-   TYPE(SedLayerType),DIMENSION(:),POINTER :: layers
+!  INTEGER :: i
+!  TYPE(SedLayerType),DIMENSION(:),POINTER :: layers
+   AED_REAL,PARAMETER :: zero_ = 0.
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   n_zones = numZones
-   nvars = numVars
-   nbenv = numBenV
-   CALL C_F_POINTER(Zones, theZones, [numZones]);
+   CALL C_F_POINTER(cZones, theZones, [n_zones]);
+   CALL C_F_POINTER(cLake, theLake, [MaxLayers]);
 
+   zz => theLake%Height
    zone_heights => theZones%zheight
 
-   DO i=1,n_zones
-      CALL C_F_POINTER(theZones(i)%c_layers, layers, [n_sed_layers]);
-   ENDDO
-   ALLOCATE(z_cc(n_zones, numVars+numBenV))
-   z_cc = 900.!   !MH if i initialise this in init then nothing happens so doing it here.
+!# - seems pointless
+!  DO i=1,n_zones
+!     CALL C_F_POINTER(theZones(i)%c_layers, layers, [theZones(i)%n_sed_layers]);
+!  ENDDO
+
+!  print*,"##### aed_set_glm_data api - ALLOCATING ZONE data for n_zones =",n_zones," and n_vars_diag = ",n_vars_diag
+
+   ALLOCATE(z_cc(n_zones, 1, n_vars+n_vars_ben))     ; z_cc = zero_
+   ALLOCATE(z_cc_hz(n_zones+1, n_vars+n_vars_ben))   ; z_cc_hz = zero_
+
+!  print*,"alloced : z_cc(",size(z_cc, 1),",",size(z_cc,2),",",size(z_cc,3),")"
+
+   ALLOCATE(z_diag(n_zones, 1, n_vars_diag))         ; z_diag = zero_
+   ALLOCATE(z_diag_hz(n_zones+1, n_vars_diag_sheet)) ; z_diag_hz = zero_
+
+!  print*,"##### aed_set_glm_data api - ALLOCATING ZONE data for n_zones =",n_zones, &
+!                                   " and n_vars = ",n_vars," with n_vars_ben",n_vars_ben
+
+   !# Copy the initial values from cc benthic vars to z_cc
+   !# actually no point - it gets over-written by copy_to_zones before being used
+ ! DO i=1,n_zones
+ !    z_cc(i, 1, n_vars+1:n_vars+n_vars_ben) = cc(1, n_vars+1:n_vars+n_vars_ben)
+!!    z_diag(i,:) = 999.999
+ ! ENDDO
 
    theZones%zarea = 0.
 END SUBROUTINE wq_set_glm_zones
@@ -203,7 +220,7 @@ SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   v_start = nvars+1 ; v_end = nvars+nbenv
+   v_start = n_vars+1 ; v_end = n_vars+n_vars_ben
 
    zon = n_zones
    DO lev=wlev,1,-1
@@ -217,6 +234,7 @@ SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
          splitZone = .FALSE.
       ENDIF
 
+! print*,'from lev = ',lev, 'zon = ',zon,'x_diag_hz(1) = ',x_diag_hz(1),' z_diag_hz(zon,1) = ',z_diag_hz(zon,1)
       IF (splitZone) THEN
          IF (lev .GT. 1) THEN
             scale = (zone_heights(zon-1) - zz(lev-1)) / (zz(lev) - zz(lev-1))
@@ -224,20 +242,20 @@ SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
             scale = (zone_heights(zon-1) - 0.0) / (zz(lev) - 0.0)
          ENDIF
 
-         WHERE(z_diag(zon,:) /= 0.) &
-            x_diag(lev,:) = z_diag(zon,:) * scale
-         x_cc(lev,v_start:v_end) = z_cc(zon,v_start:v_end) * scale
+         WHERE(z_diag(zon,1,:) /= 0.) &
+            x_diag(lev,:) = z_diag(zon,1,:) * scale
+         x_cc(lev,v_start:v_end) = z_cc(zon,1,v_start:v_end) * scale
 
          zon = zon - 1
 
-         WHERE(z_diag(zon,:) /= 0.) &
-            x_diag(lev,:) = x_diag(lev,:) + (z_diag(zon,:) * (1.0 - scale))
+         WHERE(z_diag(zon,1,:) /= 0.) &
+            x_diag(lev,:) = x_diag(lev,:) + (z_diag(zon,1,:) * (1.0 - scale))
          x_cc(lev,v_start:v_end) = x_cc(lev,v_start:v_end) + &
-                                   z_cc(zon,v_start:v_end) * (1.0 - scale)
+                                   z_cc(zon,1,v_start:v_end) * (1.0 - scale)
       ELSE
-         WHERE(z_diag(zon,:) /= 0.) &
-            x_diag(lev,:) = z_diag(zon,:)
-         x_cc(lev,v_start:v_end) = z_cc(zon,v_start:v_end)
+         WHERE(z_diag(zon,1,:) /= 0.) &
+            x_diag(lev,:) = z_diag(zon,1,:)
+         x_cc(lev,v_start:v_end) = z_cc(zon,1,v_start:v_end)
       ENDIF
    ENDDO
    ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
@@ -267,11 +285,11 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   z_cc(:,1:nvars) = 0.
-   z_diag(:,:) = 0.
+   z_cc(:,:,1:n_vars) = 0.
+   z_diag(:,:,:) = 0.
    z_diag_hz(:,:) = 0.
    theZones%zrad = 0. ; theZones%zsalt = 0. ; theZones%ztemp = 0. ; theZones%zrho = 0.
-   theZones%zextc_coef = 0. ; theZones%zlayer_stress = 0. ; theZones%ztss = 0.
+   theZones%zextc = 0. ; theZones%zlayer_stress = 0. ; theZones%ztss = 0.
    theZones%zpar = 0. ; theZones%znir = 0. ; theZones%zuva = 0. ; theZones%zuvb = 0.
    theZones%z_sed_zones = 1. ; theZones%zvel = 0.
 
@@ -291,26 +309,27 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
       ! introduce errors in z_cc (split layers)
       ! Ideally this average would be based on volume weighting
 
-      z_cc(zon,1:nvars) = z_cc(zon,1:nvars) + x_cc(lev,1:nvars)
-      z_diag(zon,:)     = z_diag(zon,:) + x_diag(lev,:)
-      z_diag_hz(zon,:)  = z_diag_hz(zon,:) + x_diag_hz(:)
+      z_cc(zon,1,1:n_vars) = z_cc(zon,1,1:n_vars) + x_cc(lev,1:n_vars)
+      z_diag(zon,1,:)     = z_diag(zon,1,:) + x_diag(lev,:)
+      z_diag_hz(zon,:)    = z_diag_hz(zon,:) + x_diag_hz(:)
 
       theZones(zon)%ztemp         = theZones(zon)%ztemp + theLake(lev)%Temp
       theZones(zon)%zsalt         = theZones(zon)%zsalt + theLake(lev)%Salinity
       theZones(zon)%zrho          = theZones(zon)%zrho  + theLake(lev)%Density
       theZones(zon)%zrad          = theZones(zon)%zrad  + theLake(lev)%Light
       theZones(zon)%zvel          = theZones(zon)%zvel  + theLake(lev)%Umean
-      theZones(zon)%zextc_coef    = theZones(zon)%zextc_coef + theLake(lev)%ExtcCoefSW
+      theZones(zon)%zextc         = theZones(zon)%zextc + theLake(lev)%ExtcCoefSW
       theZones(zon)%zlayer_stress = theZones(zon)%zlayer_stress + theLake(lev)%LayerStress
 
+! print*,'to   lev = ',lev, 'zon = ',zon,'x_diag_hz(1) = ',x_diag_hz(1),' z_diag_hz(zon,1) = ',z_diag_hz(zon,1)
       zcount(zon) = zcount(zon) + 1
    ENDDO
    a_zones = zon
 
    DO zon=1,a_zones
-      z_cc(zon,1:nvars) = z_cc(zon,1:nvars)/zcount(zon)
-      z_diag(zon,:)     = z_diag(zon,:)/zcount(zon)
-      z_diag_hz(zon,:)  = z_diag_hz(zon,:)/zcount(zon)
+      z_cc(zon,1,1:n_vars) = z_cc(zon,1,1:n_vars)/zcount(zon)
+      z_diag(zon,1,:)     = z_diag(zon,1,:)/zcount(zon)
+      z_diag_hz(zon,:)    = z_diag_hz(zon,:)/zcount(zon)
    ENDDO
 
    WHERE (zcount /= 0)
@@ -319,7 +338,7 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
       theZones%zrho          = theZones%zrho  / zcount
       theZones%zrad          = theZones%zrad  / zcount
       theZones%zvel          = theZones%zvel  / zcount
-      theZones%zextc_coef    = theZones%zextc_coef / zcount
+      theZones%zextc         = theZones%zextc / zcount
       theZones%zlayer_stress = theZones%zlayer_stress / zcount
    ELSEWHERE
       theZones%ztemp         = 0.
@@ -327,7 +346,7 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
       theZones%zrho          = 0.
       theZones%zrad          = 0.
       theZones%zvel          = 0.
-      theZones%zextc_coef    = 0.
+      theZones%zextc         = 0.
       theZones%zlayer_stress = 0.
    ENDWHERE
 
@@ -398,8 +417,8 @@ SUBROUTINE ZSoilTemp(izone) BIND(C, name="zZSoilTemp")
 !-------------------------------------------------------------------------------
 !BEGIN
    CALL C_F_POINTER(izone, zone);
-   CALL C_F_POINTER(zone%c_layers, layers, [zone%n_sedLayers]);
-   CALL SoilTemp(zone%n_sedLayers, layers%depth, layers%vwc, zone%ztemp, layers%temp, zone%heatflux)
+   CALL C_F_POINTER(zone%c_layers, layers, [zone%n_sed_layers]);
+   CALL SoilTemp(zone%n_sed_layers, layers%depth, layers%vwc, zone%ztemp, layers%temp, zone%heatflux)
 END SUBROUTINE ZSoilTemp
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
