@@ -203,7 +203,7 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
     // Check for active particles in the height range
     for (p = 0; p < last_particle; p++) { 
         if (Particle[p].Status>0) {
-          if (Particle[p].Height>lower_height && Particle[p].Height<upper_height ) {
+          if (Particle[p].Height>=lower_height && Particle[p].Height<=upper_height ) {
             // Particle is in the mixing zone, so re-position
             rand_int = rand() % 100 + 1;                            // random draw from unit distribution
             double random_double = (double)rand_int / 100;
@@ -451,6 +451,6 @@ void ptm_init_glm_output(int ncid, int time_dim)
  ******************************************************************************/
 AED_REAL settling_velocity()
 {
-    return 0.01;
+    return 0.0;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
