@@ -581,6 +581,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL  init_depth_max;
     extern AED_REAL  ptm_time_step;
     extern AED_REAL  ptm_diffusivity;
+    extern AED_REAL  settling_velocity;
     //==========================================================================
     NAMELIST particles[] = {
           { "particles",         TYPE_START,            NULL                  },
@@ -592,6 +593,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "init_depth_max",    TYPE_DOUBLE,           &init_depth_max       },
           { "ptm_time_step",     TYPE_DOUBLE,           &ptm_time_step        },
           { "ptm_diffusivity",   TYPE_DOUBLE,           &ptm_diffusivity      },
+          { "settling_velocity", TYPE_DOUBLE,           &settling_velocity    },
           { NULL,                TYPE_END,              NULL                  }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/

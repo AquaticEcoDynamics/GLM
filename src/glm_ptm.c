@@ -49,7 +49,7 @@
 #define SCUM   2
 
 
-AED_REAL settling_velocity(void);
+AED_REAL settling_velocity(AED_REAL settling_velocity);
 void random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel);
 
 /*============================================================================*/
@@ -137,13 +137,16 @@ void do_ptm_update()
     int sub_steps;
 
     AED_REAL dt;
+    AED_REAL settling_velocity;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
    
     // Update settling/migration velocity  ! Will overwrite AED
     for (p = 0; p < num_particles; p++) { 
-      Particle[p].vvel = settling_velocity();
+        if (Particle[p].Status>0) {
+           Particle[p].vvel = get_settling_velocity(settling_velocity);
+        }
     }
     
     // Loop through sub-timesteps, incrementing position
@@ -448,9 +451,12 @@ void ptm_init_glm_output(int ncid, int time_dim)
 
 /******************************************************************************
  *                                                                            *
+ *        This routine returns the settling velocity for a particle           *
+ *                                                                            *
  ******************************************************************************/
-AED_REAL settling_velocity()
+AED_REAL get_settling_velocity(AED_REAL settling_velocity)
 {
-    return 0.0;
+    return settling_velocity;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+

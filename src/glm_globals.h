@@ -292,6 +292,8 @@ extern CLOGICAL littoral_sw;
 //------------------------------------------------------------------------------
 // PARTICLE TRANSPORT MODEL
 extern ParticleDataType *Particle;
+extern AED_REAL settling_velocity;
+
 
 /*----------------------------------------------------------------------------*/
 // TIME
