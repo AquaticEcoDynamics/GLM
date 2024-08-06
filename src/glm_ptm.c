@@ -49,8 +49,8 @@
 #define SCUM   2
 
 
-AED_REAL settling_velocity(AED_REAL settling_velocity);
-void random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel);
+AED_REAL get_settling_velocity(AED_REAL settling_velocity);
+AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel);
 
 /*============================================================================*/
 
@@ -137,7 +137,6 @@ void do_ptm_update()
     int sub_steps;
 
     AED_REAL dt;
-    AED_REAL settling_velocity;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
@@ -156,7 +155,7 @@ void do_ptm_update()
         for (p = 0; p < num_particles; p++) { 
           if (Particle[p].Status>0) {
             // Update particle position based on diffusivity and vert velocity
-            random_walk(dt,Particle[p].Height, Lake[Particle[p].Layer].Epsilon,Particle[p].vvel);
+            Particle[p].Height = random_walk(dt,Particle[p].Height, Lake[Particle[p].Layer].Epsilon,Particle[p].vvel);
 
             // Mary random walk equation in R:
             // following Visser 1997 https://www.int-res.com/articles/meps/158/m158p275.pdf
@@ -339,8 +338,17 @@ void ptm_update_layerid()
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-void random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel)
+AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel)
 {
+//LOCALS
+
+    AED_REAL updated_height;
+
+/*----------------------------------------------------------------------------*/
+//BEGIN
+
+    updated_height = Height + vvel;
+    return updated_height;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
