@@ -156,14 +156,6 @@ void do_ptm_update()
           if (Particle[p].Status>0) {
             // Update particle position based on diffusivity and vert velocity
             Particle[p].Height = random_walk(dt,Particle[p].Height, Lake[Particle[p].Layer].Epsilon,Particle[p].vvel);
-
-            // Mary random walk equation in R:
-            // following Visser 1997 https://www.int-res.com/articles/meps/158/m158p275.pdf
-            // z_t1 <- z + K_prime_z * z * del_t + runif(1, min = -1,max = 1) * sqrt((2 * K_z * (z + 0.5 * K_prime_z * z * del_t) * del_t) / (1/3))
-            // z is depth (or elevation in this case)
-            // del_t is timestep of one minute in SECONDS
-            // K_z is vertical diffusivity at depth/elevation z; we are assuming constant K of 1x10e-6 for now I think?
-            // K_prime is delta K / delta z
             
             // Check if status change due to hitting bed, or surface
             if(Particle[p].Height<0){
@@ -343,12 +335,31 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vv
 //LOCALS
 
     AED_REAL updated_height;
+    //AED_REAL del_t;
+    //AED_REAL K_prime_z;
+    //int rand_int;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
     updated_height = Height + vvel;
     return updated_height;
+
+    //del_t = dt*60;
+    //K_prime_z = 0;
+
+    //rand_int = rand() % 100 + 1;                            // random draw from unit distribution
+    //double random_double = (double)rand_int / 100;
+    //random_double = random_double * height_range;  
+
+    //updated_height = Height + K_prime_z * Height * del_t;
+    // Mary random walk equation in R:
+            // following Visser 1997 https://www.int-res.com/articles/meps/158/m158p275.pdf
+            // z_t1 <- z + K_prime_z * z * del_t + runif(1, min = -1,max = 1) * sqrt((2 * K_z * (z + 0.5 * K_prime_z * z * del_t) * del_t) / (1/3))
+            // z is depth (or elevation in this case)
+            // del_t is timestep of one minute in SECONDS
+            // K_z is vertical diffusivity at depth/elevation z; we are assuming constant K of 1x10e-6 for now I think?
+            // K_prime is delta K / delta z
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
