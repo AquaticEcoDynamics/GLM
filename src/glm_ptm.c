@@ -203,14 +203,6 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
             double random_double = (double)rand_int / 100;
             random_double = random_double * height_range;                 // scale unit random to requested range
             Particle[p].Height = lower_height + random_double;
-            // fprintf(stderr, "  ptm_redistribute(): Particle[p].Height   = %f\n", Particle[p].Height);
-            fprintf(stderr, "  ptm_redistribute(): random_double   = %f\n", random_double);
-            fprintf(stderr, "  ptm_redistribute(): upper_height   = %f\n", upper_height);
-            fprintf(stderr, "  ptm_redistribute(): lower_height   = %f\n", lower_height);
-
-
-
-
           }
         }
     }
@@ -335,24 +327,27 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vv
 //LOCALS
 
     AED_REAL updated_height;
-    //AED_REAL del_t;
-    //AED_REAL K_prime_z;
-    //int rand_int;
+    AED_REAL del_t;
+    AED_REAL K;
+    AED_REAL K_prime_z;
+    float random_float;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
-    updated_height = Height + vvel;
+    del_t = dt*60;
+    K = 1E-6;
+    K_prime_z = 0.0;
+
+    random_float = -1+2*((float)rand())/RAND_MAX;            // random draw from uniform distribution [-1,1]
+
+    updated_height = Height + K_prime_z * Height * del_t + random_float * 
+    sqrt((2 * K * (Height + 0.5 * K_prime_z * Height * del_t) * del_t) / (1.0/3)); // random walk
+
+    updated_height = updated_height + vvel;                   // account for sinking/floating
+
     return updated_height;
 
-    //del_t = dt*60;
-    //K_prime_z = 0;
-
-    //rand_int = rand() % 100 + 1;                            // random draw from unit distribution
-    //double random_double = (double)rand_int / 100;
-    //random_double = random_double * height_range;  
-
-    //updated_height = Height + K_prime_z * Height * del_t;
     // Mary random walk equation in R:
             // following Visser 1997 https://www.int-res.com/articles/meps/158/m158p275.pdf
             // z_t1 <- z + K_prime_z * z * del_t + runif(1, min = -1,max = 1) * sqrt((2 * K_z * (z + 0.5 * K_prime_z * z * del_t) * del_t) / (1/3))
