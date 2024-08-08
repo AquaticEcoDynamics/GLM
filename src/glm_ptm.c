@@ -43,7 +43,7 @@
 #include "glm_ncdf.h"
 
 
-            // Maybe forming a bed layer
+            // Maybe forming a bed layer; set when hits bottom; turn off when resuspended
 #define BED    1
             // Maybe forming a scum layer
 #define SCUM   2
