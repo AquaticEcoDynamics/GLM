@@ -106,6 +106,8 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_dim(ncid, "lat", 1, &y_dim));
     check_nc_error(nc_def_dim(ncid, "z", nlev, &z_dim));
     check_nc_error(nc_def_dim(ncid, "restart", 17, &restart_dim));
+    check_nc_error(nc_def_dim(ncid, "particle", 1000000, &ptm_dim));
+
     if ( n_zones > 0 )
         check_nc_error(nc_def_dim(ncid, "nzones", n_zones+1, &zone_dim));
     check_nc_error(nc_def_dim(ncid, "time", NC_UNLIMITED, &time_dim));

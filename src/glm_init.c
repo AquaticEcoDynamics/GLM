@@ -581,6 +581,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL  init_depth_max;
     extern AED_REAL  ptm_time_step;
     extern AED_REAL  ptm_diffusivity;
+    extern AED_REAL  settling_velocity;
     //==========================================================================
     NAMELIST particles[] = {
           { "particles",         TYPE_START,            NULL                  },
@@ -592,6 +593,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "init_depth_max",    TYPE_DOUBLE,           &init_depth_max       },
           { "ptm_time_step",     TYPE_DOUBLE,           &ptm_time_step        },
           { "ptm_diffusivity",   TYPE_DOUBLE,           &ptm_diffusivity      },
+          { "settling_velocity", TYPE_DOUBLE,           &settling_velocity    },
           { NULL,                TYPE_END,              NULL                  }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
@@ -977,19 +979,6 @@ for (i = 0; i < n_zones; i++) {
 }
 */
 
-    //--------------------------------------------------------------------------
-    // particles / ptm
-
-    if ( ptm_sw ) {
-
-        fprintf(stderr, "     PTM module active: initial particles = %d\n", init_particle_num);
-        ptm_init_glm();  //num_particle_grp, max_particle_num, init_particle_num,init_depth_min, init_depth_max, ptm_time_step, ptm_diffusivity 
-        if ( max_particle_num > 1000000 ) {
-            fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", 1000000);
-            exit(1);
-        }
-    }
-
 
 
 
@@ -1217,6 +1206,20 @@ for (i = 0; i < n_zones; i++) {
         open_balance(out_dir, balance_fname, balance_varnum, (const char**)balance_vars, timefmt_b);
     }
     //--------------------------------------------------------------------------
+
+//--------------------------------------------------------------------------
+    // particles / ptm
+
+    if ( ptm_sw ) {
+
+        fprintf(stderr, "     PTM module active: initial particles = %d\n", init_particle_num);
+        ptm_init_glm();  //num_particle_grp, max_particle_num, init_particle_num,init_depth_min, init_depth_max, ptm_time_step, ptm_diffusivity 
+        if ( max_particle_num > 1000000 ) {
+            fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", 1000000);
+            exit(1);
+        }
+    }
+
 
     // This is where we could map inflow, met and csv_output vars to wq vars
 

@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>       /* time */
 
 #include "glm.h"
 
@@ -42,14 +43,14 @@
 #include "glm_ncdf.h"
 
 
-            // Maybe forming a bed layer
+            // Maybe forming a bed layer; set when hits bottom; turn off when resuspended
 #define BED    1
             // Maybe forming a scum layer
 #define SCUM   2
 
 
-AED_REAL settling_velocity(void);
-void random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel);
+AED_REAL get_settling_velocity(AED_REAL settling_velocity);
+AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel);
 
 /*============================================================================*/
 
@@ -115,7 +116,7 @@ void ptm_init_glm()
     // Set initial active particle height within the water column
     upper_height = Lake[surfLayer].Height - init_depth_min;
     lower_height = Lake[surfLayer].Height - init_depth_max;
-    
+
     ptm_addparticles(init_particle_num,upper_height,lower_height);
 
     ptm_update_layerid();     // assign layers to active particles
@@ -142,7 +143,9 @@ void do_ptm_update()
    
     // Update settling/migration velocity  ! Will overwrite AED
     for (p = 0; p < num_particles; p++) { 
-      Particle[p].vvel = settling_velocity();
+        if (Particle[p].Status>0) {
+           Particle[p].vvel = get_settling_velocity(settling_velocity);
+        }
     }
     
     // Loop through sub-timesteps, incrementing position
@@ -152,15 +155,7 @@ void do_ptm_update()
         for (p = 0; p < num_particles; p++) { 
           if (Particle[p].Status>0) {
             // Update particle position based on diffusivity and vert velocity
-            random_walk(dt,Particle[p].Height, Lake[Particle[p].Layer].Epsilon,Particle[p].vvel);
-
-            // Mary random walk equation in R:
-            // following Visser 1997 https://www.int-res.com/articles/meps/158/m158p275.pdf
-            // z_t1 <- z + K_prime_z * z * del_t + runif(1, min = -1,max = 1) * sqrt((2 * K_z * (z + 0.5 * K_prime_z * z * del_t) * del_t) / (1/3))
-            // z is depth (or elevation in this case)
-            // del_t is timestep of one minute in SECONDS
-            // K_z is vertical diffusivity at depth/elevation z; we are assuming constant K of 1x10e-6 for now I think?
-            // K_prime is delta K / delta z
+            Particle[p].Height = random_walk(dt,Particle[p].Height, Lake[Particle[p].Layer].Epsilon,Particle[p].vvel);
             
             // Check if status change due to hitting bed, or surface
             if(Particle[p].Height<0){
@@ -191,7 +186,7 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
 //LOCALS
     int p;
 
-    AED_REAL rand;
+    int rand_int;
     AED_REAL height_range;
 
 /*----------------------------------------------------------------------------*/
@@ -202,14 +197,16 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
     // Check for active particles in the height range
     for (p = 0; p < last_particle; p++) { 
         if (Particle[p].Status>0) {
-          if (Particle[p].Height>lower_height && Particle[p].Height<upper_height ) {
+          if (Particle[p].Height>=lower_height && Particle[p].Height<=upper_height ) {
             // Particle is in the mixing zone, so re-position
-            rand = random();                            // random draw from unit distribution
-            rand = rand * height_range;                 // scale unit random to requested range
-            Particle[p].Height = lower_height + rand;   // reset particle height
+            rand_int = rand() % 100 + 1;                            // random draw from unit distribution
+            double random_double = (double)rand_int / 100;
+            random_double = random_double * height_range;                 // scale unit random to requested range
+            Particle[p].Height = lower_height + random_double;
           }
         }
     }
+fprintf(stderr, "  ptm_redistribute(): Particle[1].Height   = %f\n", Particle[1].Height);
 
     ptm_update_layerid();     // assign layers to active particles
 }
@@ -228,7 +225,7 @@ void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_h
 //LOCALS
     int p;
 
-    AED_REAL rand;
+    int rand_int;
     AED_REAL height_range;
 
 /*----------------------------------------------------------------------------*/
@@ -245,9 +242,10 @@ void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_h
         Particle[p].vvel = 0.0;
 
         // Assign particles initial height
-        rand = random();                            // random draw from unit distribution
-        rand = rand * height_range;                 // scale unit random to requested range
-        Particle[p].Height = lower_height + rand;   // set particle height
+        rand_int = rand() % 100 + 1;                            // random draw from unit distribution
+        double random_double = (double)rand_int / 100;
+        random_double = random_double * height_range;                 // scale unit random to requested range
+        Particle[p].Height = lower_height + random_double;   // set particle height
     }
     
     last_particle = last_particle + new_particles;  // updates the last index number of active particle set
@@ -324,8 +322,39 @@ void ptm_update_layerid()
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-void random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel)
+AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel)
 {
+//LOCALS
+
+    AED_REAL updated_height;
+    AED_REAL del_t;
+    AED_REAL K;
+    AED_REAL K_prime_z;
+    float random_float;
+
+/*----------------------------------------------------------------------------*/
+//BEGIN
+
+    del_t = dt*60;
+    K = 1E-6;
+    K_prime_z = 0.0;
+
+    random_float = -1+2*((float)rand())/RAND_MAX;            // random draw from uniform distribution [-1,1]
+
+    updated_height = Height + K_prime_z * Height * del_t + random_float * 
+    sqrt((2 * K * (Height + 0.5 * K_prime_z * Height * del_t) * del_t) / (1.0/3)); // random walk
+
+    updated_height = updated_height + vvel;                   // account for sinking/floating
+
+    return updated_height;
+
+    // Mary random walk equation in R:
+            // following Visser 1997 https://www.int-res.com/articles/meps/158/m158p275.pdf
+            // z_t1 <- z + K_prime_z * z * del_t + runif(1, min = -1,max = 1) * sqrt((2 * K_z * (z + 0.5 * K_prime_z * z * del_t) * del_t) / (1/3))
+            // z is depth (or elevation in this case)
+            // del_t is timestep of one minute in SECONDS
+            // K_z is vertical diffusivity at depth/elevation z; we are assuming constant K of 1x10e-6 for now I think?
+            // K_prime is delta K / delta z
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -436,9 +465,12 @@ void ptm_init_glm_output(int ncid, int time_dim)
 
 /******************************************************************************
  *                                                                            *
+ *        This routine returns the settling velocity for a particle           *
+ *                                                                            *
  ******************************************************************************/
-AED_REAL settling_velocity()
+AED_REAL get_settling_velocity(AED_REAL settling_velocity)
 {
-    return 0.01;
+    return settling_velocity;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
