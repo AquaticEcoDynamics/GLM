@@ -255,9 +255,9 @@ AED_REAL timezone_r = 0.0, timezone_m = 0.0, timezone_i = 0.0, timezone_o = 0.0;
 //------------------------------------------------------------------------------
 
 int nDays;          //# number of days to simulate
-AED_REAL timestep;
 int noSecs;
-AED_REAL yearday;   //# day of year
+//AED_REAL timestep;
+//AED_REAL yearday;   //# day of year
 
 //------------------------------------------------------------------------------
 
@@ -293,6 +293,9 @@ void allocate_storage()
 
 
 #if DEBUG
+void _debug_print_lake(FILE *of) { }
+void debug_initialisation(int which) { }
+#else
 /******************************************************************************/
 void _debug_print_lake(FILE *of) {
 #if DEBUG_GLOBS

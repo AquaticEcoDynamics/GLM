@@ -56,9 +56,6 @@ MODULE glm_zones
 
    AED_REAL,DIMENSION(:),POINTER :: zz
 
-   TYPE(LakeDataType),DIMENSION(:),POINTER :: theLake
-   TYPE(ZoneType),DIMENSION(:),POINTER :: theZones
-
    AED_REAL,DIMENSION(:),POINTER :: zone_heights
    INTEGER :: n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
    INTEGER :: zone_var = 0
@@ -84,9 +81,6 @@ SUBROUTINE wq_set_glm_zones(numVars, numBenV)   BIND(C, name="wq_set_glm_zones")
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   CALL C_F_POINTER(cZones, theZones, [n_zones]);
-   CALL C_F_POINTER(cLake, theLake, [MaxLayers]);
-
    zz => theLake%Height
    zone_heights => theZones%zheight
 

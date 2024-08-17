@@ -177,6 +177,13 @@ MODULE glm_types
    TYPE(C_PTR),BIND(C, name="pMetData")     :: cMetData
    TYPE(C_PTR),BIND(C, name="pSurfData")    :: cSurfData
 
+   TYPE(LakeDataType),   DIMENSION(:),POINTER :: theLake
+   TYPE(MetDataType),                 POINTER :: MetData   !# Meteorological data
+   TYPE(MetDataType),    DIMENSION(:),POINTER :: aMetData  !# Meteorological data
+   TYPE(SurfaceDataType),             POINTER :: SurfData  !# Surface Data
+   TYPE(SurfaceDataType),DIMENSION(:),POINTER :: aSurfData !# Surface Data
+   TYPE(ZoneType),       DIMENSION(:),POINTER :: theZones
+
    TYPE(CLOGICAL),BIND(C, name="mobility_off")     :: mobility_off
    TYPE(CLOGICAL),BIND(C, name="bioshade_feedback"):: bioshade_feedback
    TYPE(CLOGICAL),BIND(C, name="repair_state")     :: repair_state
@@ -240,6 +247,21 @@ FUNCTION make_c_string(s1,s2) RESULT(len)
    ENDDO
    s1(len+1) = ACHAR(0)
 END FUNCTION make_c_string
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE glm_init_fortran_support() BIND(C, name="glm_init_fortran_support")
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   CALL C_F_POINTER(cLake, theLake, [MaxLayers]);
+   CALL C_F_POINTER(cMetData, aMetData, [1])
+   CALL C_F_POINTER(cMetData, MetData)
+   CALL C_F_POINTER(cSurfData, aSurfData, [1])
+   CALL C_F_POINTER(cSurfData, SurfData)
+   CALL C_F_POINTER(cZones, theZones, [n_zones]);
+END SUBROUTINE glm_init_fortran_support
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 END MODULE glm_types

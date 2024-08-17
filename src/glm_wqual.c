@@ -67,13 +67,7 @@ wq_set_glm_zones_t   p_wq_set_glm_zones   = NULL;
 wq_ZSoilTemp_t       p_wq_ZSoilTemp       = NULL;
 wq_inflow_update_t   p_wq_inflow_update   = (wq_inflow_update_t)dummy_inflow_update;
 
-
-// int ode_method = 1, split_factor = 1;
-// int benthic_mode = 0;
-// CLOGICAL bioshade_feedback = TRUE
-// CLOGICAL repair_state = TRUE;
-// CLOGICAL mobility_off = FALSE;     //  !# flag to turn mobility off
-
+void glm_init_fortran_support(void);
 
 #if USE_DL_LOADER
 /******************************************************************************
@@ -105,6 +99,7 @@ int prime_wq(const char *which)
 #ifndef PLOTS
     CLOGICAL do_plots = FALSE;
 #endif
+    glm_init_fortran_support();
 #if USE_DL_LOADER
     char dirname[1024];
     char *wq_name = NULL;
@@ -224,19 +219,6 @@ int prime_wq(const char *which)
     }
 #endif
     if ( p_wq_inflow_update == NULL ) p_wq_inflow_update = (wq_inflow_update_t) dummy_inflow_update;
-
-    // This is weird. Comment out the debug fprintf below and the flags come out wrong, leave the debug in and
-    // they are OK ....
-//  fprintf(stderr,
-//      "     'wq_setup': split_factor %d mobility_off %d bioshade_feedback %d repair_state %d ode_method %d benthic_mode %d do_plots %d\n",
-//                  split_factor, mobility_off, bioshade_feedback,repair_state, ode_method, benthic_mode, do_plots);
-
-#ifdef AED
-//  if ( strcmp(which, "aed") == 0 )
-//      aed_set_glm_where(&Longitude, &Latitude, &yearday, &timestep);
-//  else if ( strcmp(which, "api") == 0 )
-//      api_set_glm_where(&Longitude, &Latitude, &yearday, &timestep);
-#endif
 
     return 0;
 }

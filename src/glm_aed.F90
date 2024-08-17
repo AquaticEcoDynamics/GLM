@@ -135,8 +135,6 @@ MODULE glm_aed
 
    AED_REAL,POINTER :: lon
    AED_REAL,POINTER :: lat
-   AED_REAL,POINTER :: yeardayP
-   AED_REAL,POINTER :: timestepP
 
    CHARACTER(len=48),ALLOCATABLE :: names(:)
    CHARACTER(len=48),ALLOCATABLE :: bennames(:)
@@ -148,10 +146,6 @@ MODULE glm_aed
 #ifdef PLOTS
    INTEGER,DIMENSION(:),ALLOCATABLE :: plot_id_v, plot_id_sv, plot_id_d, plot_id_sd
 #endif
-
-!  TYPE(LakeDataType),DIMENSION(:),POINTER  :: theLake
-   TYPE(MetDataType),POINTER     :: MetData  !# Meteorological data
-   TYPE(SurfaceDataType),POINTER :: SurfData !# Surface Data
 
    LOGICAL :: reinited = .FALSE.
 
@@ -280,7 +274,7 @@ SUBROUTINE aed_init_glm(i_fname,len,NumWQ_Vars,NumWQ_Ben) BIND(C, name=_WQ_INIT_
    ENDDO
 #endif
 
-   print "(/,5X,'AED : n_aed_vars = ',I3,' ; MaxLayers         = ',I4)",n_aed_vars,MaxLayers
+   print "(/,5X,'AED : n_aed_vars  = ',I3,' ; MaxLayers         = ',I4)",n_aed_vars,MaxLayers
    print "(  5X,'AED : n_vars      = ',I3,' ; n_vars_ben        = ',I3)",n_vars,n_vars_ben
    print "(  5X,'AED : n_vars_diag = ',I3,' ; n_vars_diag_sheet = ',I3,/)",n_vars_diag,n_vars_diag_sheet
 
@@ -509,18 +503,15 @@ SUBROUTINE aed_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   CALL C_F_POINTER(cMetData, MetData)
-   CALL C_F_POINTER(cSurfData, SurfData)
-
    !# Save pointers to external dynamic variables that we need later (in do_glm_wq)
    height => theLake%Height
-   temp => theLake%Temp
-   salt => theLake%Salinity
-   rho  => theLake%Density
-   area => theLake%LayerArea
-   rad  => theLake%Light
-   vel  => theLake%Umean
-   extc => theLake%ExtcCoefSW
+   temp   => theLake%Temp
+   salt   => theLake%Salinity
+   rho    => theLake%Density
+   area   => theLake%LayerArea
+   rad    => theLake%Light
+   vel    => theLake%Umean
+   extc   => theLake%ExtcCoefSW
    layer_stress => theLake%LayerStress
 
    ALLOCATE(depth(MaxLayers))
@@ -528,12 +519,12 @@ SUBROUTINE aed_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
    ALLOCATE(sed_zones(MaxLayers))
    sed_zones = 0.
 
-   precip => MetData%Rain
+   precip   => MetData%Rain
    air_temp => MetData%AirTemp
-   rel_hum => MetData%RelHum
+   rel_hum  => MetData%RelHum
    air_pres => MetData%AirPres
 
-   evap   => SurfData%Evap
+   evap => SurfData%Evap
    bottom_stress => layer_stress(botmLayer)
 
    !# Provide pointers to arrays with environmental variables to aed.
@@ -679,8 +670,8 @@ SUBROUTINE define_column(column, top, flux_pel, flux_atm, flux_ben)
             CASE ( 'humidity' )    ; column(av)%cell_sheet => rel_hum
             CASE ( 'longitude' )   ; column(av)%cell_sheet => lon
             CASE ( 'latitude' )    ; column(av)%cell_sheet => lat
-            CASE ( 'yearday' )     ; column(av)%cell_sheet => yeardayP
-            CASE ( 'timestep' )    ; column(av)%cell_sheet => timestepP
+            CASE ( 'yearday' )     ; column(av)%cell_sheet => yearday
+            CASE ( 'timestep' )    ; column(av)%cell_sheet => timestep
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
@@ -818,7 +809,7 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 !        print *,'j',i,j
 !        print *,'zone_heights',height(i),zone_heights(j),theZones(1)%zheight,theZones(2)%zheight
          IF (height(i) .GT. zone_heights(j)) THEN
-            sed_zones(i) = j * area(i)
+            sed_zones(i) = j * layer_area(i)
             j = j+1
          ELSE
             sed_zones(i) = j
@@ -993,8 +984,8 @@ CONTAINS
             CASE ( 'humidity' )    ; column_sed(av)%cell_sheet => rel_hum
             CASE ( 'longitude' )   ; column_sed(av)%cell_sheet => lon
             CASE ( 'latitude' )    ; column_sed(av)%cell_sheet => lat
-            CASE ( 'yearday' )     ; column_sed(av)%cell_sheet => yeardayP
-            CASE ( 'timestep' )    ; column_sed(av)%cell_sheet => timestepP
+            CASE ( 'yearday' )     ; column_sed(av)%cell_sheet => yearday
+            CASE ( 'timestep' )    ; column_sed(av)%cell_sheet => timestep
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
@@ -1305,6 +1296,7 @@ SUBROUTINE aed_clean_glm() BIND(C, name=_WQ_CLEAN_GLM)
 ! Finish biogeochemical model
 !-------------------------------------------------------------------------------
 !BEGIN
+   CALL aed_delete()
    ! Deallocate internal arrays
    IF (ALLOCATED(cc_diag))    DEALLOCATE(cc_diag)
    IF (ALLOCATED(cc_diag_hz)) DEALLOCATE(cc_diag_hz)

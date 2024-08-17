@@ -150,10 +150,6 @@ MODULE glm_aed2
    INTEGER,ALLOCATABLE,DIMENSION(:) :: plot_id_v, plot_id_sv, plot_id_d, plot_id_sd
 #endif
 
-!  TYPE(LakeDataType),DIMENSION(:),POINTER  :: theLake
-   TYPE(MetDataType),POINTER     :: MetData  !# Meteorological data
-   TYPE(SurfaceDataType),POINTER :: SurfData !# Surface Data
-
    INTEGER :: n_aed2_vars
 
    CHARACTER(len=64) :: NULCSTR = ""
@@ -471,9 +467,6 @@ SUBROUTINE aed2_set_glm_data()                    BIND(C, name=_WQ_SET_GLM_DATA)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   CALL C_F_POINTER(cMetData, MetData)
-   CALL C_F_POINTER(cSurfData, SurfData)
-
    !# Save pointers to external dynamic variables that we need later (in do_glm_wq)
    z    => theLake%Height
    temp => theLake%Temp
