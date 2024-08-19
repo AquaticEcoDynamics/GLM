@@ -784,6 +784,7 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 !  AED_REAL,TARGET :: flux_pel(wlev, n_vars+n_vars_ben)
    AED_REAL,TARGET,ALLOCATABLE :: flux_pel(:, :)
    AED_REAL,TARGET :: flux_zon(n_zones, n_vars+n_vars_ben)
+   AED_REAL :: pa = 0.;
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -791,11 +792,9 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    !# re-compute the layer heights and depths
    dz(1) = height(1)
    depth(1) = surf - height(1)
-   layer_area(1) = 1
    DO i=2,wlev
       dz(i) = height(i) - height(i-1)
       depth(i) = surf - height(i)
-      layer_area(i) = (area(i)-area(i-1))/area(i)
    ENDDO
 
    !# Calculate local pressure
@@ -809,7 +808,8 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 !        print *,'j',i,j
 !        print *,'zone_heights',height(i),zone_heights(j),theZones(1)%zheight,theZones(2)%zheight
          IF (height(i) .GT. zone_heights(j)) THEN
-            sed_zones(i) = j * layer_area(i)
+            sed_zones(i) = j * ( area(i) - pa ) / area(i)
+            pa = area(i)
             j = j+1
          ELSE
             sed_zones(i) = j

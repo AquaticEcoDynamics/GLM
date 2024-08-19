@@ -106,6 +106,8 @@
 
 #else
 
+# include <netcdf.h>
+
   int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
                                   AED_REAL lon, int nlev, const char *start_time);
   void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep);
@@ -123,6 +125,13 @@
 
   extern int ncid, x_dim, y_dim, z_dim, zone_dim, time_dim;
 
+#endif
+
+#ifndef NC_FILL_DOUBLE
+#define NC_FILL_DOUBLE    (9.9692099683868690d+36)
+#endif
+#ifndef NC_FILL_FLOAT
+#define NC_FILL_FLOAT     (9.9692099683868690e+36)
 #endif
 
 #endif

@@ -193,10 +193,6 @@ SUBROUTINE aed_init_glm(i_fname,len,NumWQ_Vars,NumWQ_Ben)                      &
 !BEGIN
    CALL make_string(fname, i_fname, len)
 
-   height => theLake%Height
-   area   => theLake%LayerArea
-   layer_stress => theLake%LayerStress
-
    ALLOCATE(dz(MaxLayers),stat=status)
    dz = zero_
    ALLOCATE(pres(MaxLayers),stat=status)
@@ -255,8 +251,6 @@ SUBROUTINE aed_init_glm(i_fname,len,NumWQ_Vars,NumWQ_Ben)                      &
 
    NumWQ_Vars = n_vars
    NumWQ_Ben  = n_vars_ben
-
-!  IF (benthic_mode .GT. 1) zz => height
 
    ALLOCATE(plot_id_v(n_vars))
    ALLOCATE(plot_id_sv(n_vars_ben))

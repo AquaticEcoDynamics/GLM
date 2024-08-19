@@ -36,7 +36,7 @@
 #define USE_FILLVALUE 1
 
 /* Actually pre-alpha V4.0.0 */
-#define GLM_VERSION  "3.4.0"
+#define GLM_VERSION  "3.9.011"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -142,12 +142,6 @@
 
 
 #define MISVAL -9999.
-#ifndef NC_FILL_DOUBLE
-#define NC_FILL_DOUBLE    (9.9692099683868690d+36)
-#endif
-#ifndef NC_FILL_FLOAT
-#define NC_FILL_FLOAT     (9.9692099683868690e+36)
-#endif
 #ifndef _ZERO_
 #define _ZERO_ 0.
 #endif
