@@ -57,6 +57,7 @@
 #include "glm_csv.h"
 #include "glm_ncdf.h"
 #include "glm_wqual.h"
+#include "glm_ptm.h"
 #include "glm_plot.h"
 
 #ifdef PLOTS
@@ -84,7 +85,7 @@ void init_output(int jstart, const char *out_dir, const char *out_fn,
     extern int startTOD;
 
     if ( out_dir != NULL && stat(out_dir, &sb) ) {
-        fprintf(stderr, "Directory \"%s\" does not exist - attempting to create it\n", out_dir);
+        fprintf(stderr, "Directory \"%s\" does not exist - attempting to create it ...\n", out_dir);
         if ( mkdir(out_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) ) {
             fprintf(stderr, "mkdir failed\n");
             exit(1);
@@ -103,8 +104,12 @@ void init_output(int jstart, const char *out_dir, const char *out_fn,
 
     init_csv_output(out_dir);
 
-    //# Initialize WQ output (creates NetCDF variables)
+    //# Initialize WQ output (creates WQ NetCDF variables)
     if (wq_calc) wq_init_glm_output(&ncid, &x_dim, &y_dim, &z_dim, &zone_dim, &time_dim);
+
+    //# Initialize PTM output (creates PTM NetCDF variables)
+    if (ptm_sw) ptm_init_glm_output(ncid, time_dim);
+
 
 #ifdef PLOTS
     if ( do_plots ) {
@@ -268,6 +273,11 @@ void write_output(int jday, int iclock, int nsave, int stepnum)
     //# outputs WQ vars to NetCDF
     if (wq_calc)
         wq_write_glm(ncid, NumLayers, MaxLayers, lvl, csv_point_nlevs);
+
+    //# outputs PTM to NetCDF
+    if (ptm_sw) 
+        ptm_write_glm(ncid, num_particles);
+
 
     if (csv_point_nlevs > 0) {
         for (i = 0; i < csv_point_nlevs; i++) {

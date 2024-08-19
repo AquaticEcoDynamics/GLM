@@ -295,6 +295,14 @@ extern char     *fetch_fws;
 // LITTORAL
 extern LOGICAL littoral_sw;
 
+//------------------------------------------------------------------------------
+// PARTICLE TRANSPORT MODEL
+extern LOGICAL ptm_sw;
+extern int num_particles;   //# current number of particles
+extern ParticleDataType *Particle;
+extern AED_REAL settling_velocity;
+
+
 /*----------------------------------------------------------------------------*/
 // TIME
 extern AED_REAL timezone_r, timezone_m, timezone_i, timezone_o;

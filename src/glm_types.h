@@ -127,6 +127,8 @@ typedef char filname[80];
        AED_REAL SubmElev;        // elevation of inflow
        LOGICAL  SubmFlag;        // Is this a submerged inflow
        LOGICAL  SubmElevDynamic; // Is this dynamic elevation
+
+       AED_REAL ParticleConc;    // particle concentration
    } InflowDataType;
 
    /*===========================================================*/
@@ -251,5 +253,17 @@ typedef char filname[80];
        SedLayerType *layers;
    } ZoneType;
 
+   /*===========================================================*/
+   // Structured type for Particle Transport Model (PTM)
+   typedef struct ParticleDataType {
+       int Status;          // indivdual particle status
+       AED_REAL Height;
+       AED_REAL Mass;
+       AED_REAL Diam;
+       AED_REAL Density;
+       AED_REAL Velocity;
+       AED_REAL vvel;
+       int      Layer;
+   } ParticleDataType;
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif

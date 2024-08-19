@@ -2,8 +2,8 @@
 # These are settings used for building glm
 #
 
-# export FABM=true
-export AED2=true
+# export FABM=false
+# export AED2=false
 export AED=true
 export USE_DL=false
 export WITH_PLOTS=true

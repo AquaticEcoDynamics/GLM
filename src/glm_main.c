@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "glm.h"
 
@@ -61,6 +62,9 @@ int main(int argc, char *argv[])
 {
     char *nmlfile = NULL;
     int all_ok = 1, show_options = 0, show_vers = 0;
+
+    // Set random number seed
+    srand ((unsigned)time(NULL));
 
 #ifdef PLOTS
     saveall = 0;

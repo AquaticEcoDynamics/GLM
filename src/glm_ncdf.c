@@ -45,7 +45,7 @@ int ncid=-1;
 static int set_no = -1;
 
 //# dimension sizes
-int x_dim, y_dim, z_dim, zone_dim, time_dim, restart_dim;
+int x_dim, y_dim, z_dim, zone_dim, time_dim, restart_dim, ptm_dim;
 
 //# dimension lengths
 static int lon_len=1;
@@ -75,7 +75,7 @@ static int LkNum_id, maxdtz_id, CD_id, CHE_id, zL_id;
 #endif
 
 /*============================================================================*/
-static void check_nc_error(int err);
+void check_nc_error(int err);
 static void check_nc_error_x(int err, int ncid, int id);
 static void xyt_store_nc_scalar(int ncid, int id, AED_REAL scalar);
 
@@ -106,6 +106,8 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_dim(ncid, "lat", 1, &y_dim));
     check_nc_error(nc_def_dim(ncid, "z", nlev, &z_dim));
     check_nc_error(nc_def_dim(ncid, "restart", 17, &restart_dim));
+    check_nc_error(nc_def_dim(ncid, "particle", 1000000, &ptm_dim));
+
     if ( n_zones > 0 )
         check_nc_error(nc_def_dim(ncid, "nzones", n_zones+1, &zone_dim));
     check_nc_error(nc_def_dim(ncid, "time", NC_UNLIMITED, &time_dim));
@@ -203,6 +205,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_var(ncid, "umean", NC_REALTYPE, 4, dims, &umean_id));
     check_nc_error(nc_def_var(ncid, "uorb",  NC_REALTYPE, 4, dims, &uorb_id));
     check_nc_error(nc_def_var(ncid, "taub",  NC_REALTYPE, 4, dims, &Taub_id));
+    
 
     /**************************************************************************
      * assign attributes                                                      *

@@ -59,6 +59,7 @@
 #include "glm_init.h"
 #include "glm_lnum.h"
 #include "glm_wqual.h"
+#include "glm_ptm.h"
 #include "glm_stress.h"
 #include "glm_balance.h"
 #if PLOTS
@@ -765,6 +766,11 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
 
         calc_layer_stress(MetData.WindSpeed,
                       sqrt( (Lake[surfLayer].LayerArea)/Pi ) * 2 );
+
+        /**********************************************************************
+         *## Start PTM calls                                                  *
+         **********************************************************************/
+        if (ptm_sw) do_ptm_update();
 
         /**********************************************************************
          *## Start Water Quality calls                                        *

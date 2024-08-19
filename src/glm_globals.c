@@ -249,6 +249,14 @@ char *      fetch_fws = NULL;
 LOGICAL littoral_sw        = FALSE;
 
 //------------------------------------------------------------------------------
+// PARTICLE TRANSPORT MODEL
+LOGICAL ptm_sw = FALSE;
+int num_particles = 0;  //# current number of particles
+ParticleDataType *Particle = NULL;
+AED_REAL settling_velocity = 0.;
+
+
+//------------------------------------------------------------------------------
 
 AED_REAL timezone_r = 0.0, timezone_m = 0.0, timezone_i = 0.0, timezone_o = 0.0;
 

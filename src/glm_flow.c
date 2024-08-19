@@ -55,6 +55,8 @@
 
 #include "glm_balance.h"
 
+#include "glm_ptm.h"
+
 #include "glm_debug.h"
 
 #define _WQ_VarsTmp(i,j,k)  WQ_VarsTmp[_IDX_3d(Num_WQ_Vars,NumInf,MaxPar,i,j,k)]
@@ -490,8 +492,8 @@ AED_REAL do_overflow(int jday)
 
     // Too much water for the entire lake domain, remove this first
     if (VolSum > MaxVol){
-      do_single_outflow((CrestHeight+(MaxHeight-CrestHeight)*0.9), (VolSum - MaxVol), NULL);
-      overflow = VolSum - Lake[surfLayer].Vol1;
+        do_single_outflow((CrestHeight+(MaxHeight-CrestHeight)*0.9), (VolSum - MaxVol), NULL);
+        overflow = VolSum - Lake[surfLayer].Vol1;
     }
     VolSum = Lake[surfLayer].Vol1;
     // Water above the crest, which will overflow based on a weir equation
@@ -755,6 +757,10 @@ AED_REAL do_inflows()
     AED_REAL Inflow_width;      //# Width of inflow [m]
     AED_REAL VolSum = Lake[surfLayer].Vol1; //# Total lake volume before inflows
 
+    int new_particles; 
+    AED_REAL height_start = Lake[surfLayer].Height; //# Total lake height before inflows
+    AED_REAL  upper_height, lower_height;
+
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
@@ -892,6 +898,15 @@ AED_REAL do_inflows()
 
                 Lake[Layer_subm].Density = calculate_density(Lake[Layer_subm].Temp, Lake[Layer_subm].Salinity);
                 Lake[Layer_subm].LayerVol = Lake[Layer_subm].LayerVol+(Inflows[iRiver].FlowRate*Inflows[iRiver].Factor);
+                
+                if ( ptm_sw ) {
+                    // insert particles ---
+                    upper_height = Lake[Layer_subm].Height;
+                    lower_height = 0.0; if (Layer_subm>botmLayer) lower_height = Lake[Layer_subm-1].Height;
+                    new_particles = Inflows[iRiver].ParticleConc * (Inflows[iRiver].FlowRate*Inflows[iRiver].Factor);
+                    ptm_addparticles(new_particles, upper_height, lower_height);
+                    // insert particles ---
+                }
 
                 Lake[botmLayer].Vol1 = Lake[botmLayer].LayerVol;
                 if (surfLayer != botmLayer) {
@@ -953,6 +968,10 @@ AED_REAL do_inflows()
     //# Make adjustments to update the layer heights, based on these vol changes
     resize_internals(2, botmLayer);
     check_layer_thickness();
+
+    //# Update particle vertical position due to inflow insertion
+    if ( ptm_sw )
+        ptm_layershift(0.0, Lake[surfLayer].Height - height_start);  // !!!! ASSUMING SHIFT IS ALL LAYERS
 
     return Lake[surfLayer].Vol1 - VolSum;
 }

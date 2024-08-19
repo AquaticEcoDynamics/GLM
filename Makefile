@@ -66,14 +66,15 @@ ifeq ($(WITH_CHECKS),)
 endif
 
 srcdir=src
+#incdir=include
 incdir=src
 objdir=obj
 moddir=mod
 
 TARGETS=glm
 DEFINES=
-FINCLUDES=-I$(UTILDIR)/include
-CINCLUDES=-I$(UTILDIR)/include
+FINCLUDES=-I${incdir} -I$(UTILDIR)/include
+CINCLUDES=-I${incdir} -I$(UTILDIR)/include
 LIBS=-L$(UTILDIR)/lib -lutil
 GLM_DEPS=$(UTILDIR)/lib/libutil.a
 ifeq ($(WITH_PLOTS),true)
@@ -318,6 +319,7 @@ OBJS=${objdir}/glm_globals.o \
      ${objdir}/glm_mobl.o \
      ${objdir}/glm_mixu.o \
      ${objdir}/glm_wqual.o \
+     ${objdir}/glm_ptm.o \
      ${objdir}/glm_layers.o \
      ${objdir}/glm_surface.o \
      ${objdir}/glm_input.o \
