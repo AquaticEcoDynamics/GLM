@@ -78,8 +78,6 @@ MODULE glm_types
       AED_REAL :: Umean            !# Mean velocity
       AED_REAL :: Uorb             !# Orbital velocity
       AED_REAL :: LayerStress      !# Layer Stress
-
-      AED_REAL :: ParticleConc     !# particle concentration
    END TYPE LakeDataType
 
    !#===========================================================#!

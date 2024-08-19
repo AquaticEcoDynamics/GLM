@@ -1,6 +1,6 @@
 /******************************************************************************
  *                                                                            *
- * glm_ptm.h                                                                  *
+ * glm_ptm.c                                                                  *
  *                                                                            *
  * Contains Particle Tracking Model                                           *
  *                                                                            *
@@ -361,7 +361,6 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vv
 
 static int h_id, m_id, d_id, dn_id, vv_id, stat_id;
 static int set_no_p = -1;
-int ptm_dim;
 static size_t start[2],edges[2];
 
 
