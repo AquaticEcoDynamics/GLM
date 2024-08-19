@@ -756,9 +756,9 @@ AED_REAL do_inflows()
 
     AED_REAL Inflow_width;      //# Width of inflow [m]
     AED_REAL VolSum = Lake[surfLayer].Vol1; //# Total lake volume before inflows
-    AED_REAL height_start = Lake[surfLayer].Height; //# Total lake height before inflows
 
-    int new_particles; 
+    AED_REAL height_start = Lake[surfLayer].Height; //# Total lake height before inflows
+    int new_particles;
     AED_REAL  upper_height, lower_height;
 
 /*----------------------------------------------------------------------------*/
@@ -898,8 +898,8 @@ AED_REAL do_inflows()
 
                 Lake[Layer_subm].Density = calculate_density(Lake[Layer_subm].Temp, Lake[Layer_subm].Salinity);
                 Lake[Layer_subm].LayerVol = Lake[Layer_subm].LayerVol+(Inflows[iRiver].FlowRate*Inflows[iRiver].Factor);
-                
-                if ( ptm ) {
+
+                if ( ptm_sw ) {
                     // insert particles ---
                     upper_height = Lake[Layer_subm].Height;
                     lower_height = 0.0; if (Layer_subm>botmLayer) lower_height = Lake[Layer_subm-1].Height;
@@ -971,7 +971,7 @@ AED_REAL do_inflows()
 
     //# Update particle vertical position due to inflow insertion
     if ( ptm_sw )
-       ptm_layershift(0.0, Lake[surfLayer].Height - height_start);  // !!!! ASSUMING SHIFT IS ALL LAYERS
+        ptm_layershift(0.0, Lake[surfLayer].Height - height_start);  // !!!! ASSUMING SHIFT IS ALL LAYERS
 
     return Lake[surfLayer].Vol1 - VolSum;
 }

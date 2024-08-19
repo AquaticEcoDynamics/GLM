@@ -62,12 +62,10 @@ AED_REAL init_depth_min=0.0;
 AED_REAL init_depth_max=2.0;
 AED_REAL ptm_time_step=1/60;
 AED_REAL ptm_diffusivity=1e-6;
+AED_REAL settling_velocity=0.;
 
 // VARIABLES
-int ptm_sw = FALSE;
-
 int last_particle = 0;
-//int num_particles = 0;
 
 /*============================================================================*/
 
@@ -364,7 +362,6 @@ static int set_no_p = -1;
 static size_t start[2],edges[2];
 
 
-#if 1
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
@@ -459,7 +456,6 @@ void ptm_init_glm_output(int ncid, int time_dim)
    define_mode_off(&ncid);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-#endif
 
 
 /******************************************************************************

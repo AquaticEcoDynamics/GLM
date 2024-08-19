@@ -166,16 +166,16 @@ MODULE glm_types
 
    !#===========================================================#!
    !# Structured type for Particle Transport Model (PTM)
-   TYPE,BIND(C) :: ParticleDataType 
-       INTEGER  :: Status         ! indivdual particle status
-       AED_REAL :: Height
-       AED_REAL :: Mass
-       AED_REAL :: Diam
-       AED_REAL :: Density
-       AED_REAL :: Velocity
-       AED_REAL :: vvel
-       CINTEGER :: Layer
-   END TYPE ParticleDataType
+!  TYPE,BIND(C) :: ParticleDataType 
+!      INTEGER  :: Status         ! indivdual particle status
+!      AED_REAL :: Height
+!      AED_REAL :: Mass
+!      AED_REAL :: Diam
+!      AED_REAL :: Density
+!      AED_REAL :: Velocity
+!      AED_REAL :: vvel
+!      CINTEGER :: Layer
+!  END TYPE ParticleDataType
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

@@ -111,7 +111,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     if ( n_zones > 0 )
         check_nc_error(nc_def_dim(ncid, "nzones", n_zones+1, &zone_dim));
     check_nc_error(nc_def_dim(ncid, "time", NC_UNLIMITED, &time_dim));
-    
+
     //# define coordinates
     dims[0] = x_dim;
     check_nc_error(nc_def_var(ncid, "lon", NC_REALTYPE, 1, dims, &lon_id));
@@ -205,7 +205,6 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_var(ncid, "umean", NC_REALTYPE, 4, dims, &umean_id));
     check_nc_error(nc_def_var(ncid, "uorb",  NC_REALTYPE, 4, dims, &uorb_id));
     check_nc_error(nc_def_var(ncid, "taub",  NC_REALTYPE, 4, dims, &Taub_id));
-    
 
     /**************************************************************************
      * assign attributes                                                      *
@@ -446,12 +445,12 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     check_nc_error(nc_put_vara(ncid, umean_id, start, edges, u_mean));
     check_nc_error(nc_put_vara(ncid,  uorb_id, start, edges, u_orb));
     check_nc_error(nc_put_vara(ncid,  Taub_id, start, edges, taub));
-    
+
     free(heights); free(vols); free(salts);
     free(temps);  free(dens); free(qsw);
     free(extc_coef); free(u_mean); free(u_orb);
     free(taub); free(restart_variables);
-    
+
     check_nc_error(nc_sync(ncid));
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

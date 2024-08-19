@@ -71,7 +71,6 @@ extern AED_REAL AvgSurfTemp;
 /*----------------------------------------------------------------------------*/
 extern int MaxLayers;   //# Maximum number of layers in this sim
 extern int NumLayers;   //# current number of layers
-extern int num_particles;   //# current number of particles
 extern LakeDataType *Lake;
 
 
@@ -294,8 +293,9 @@ extern CLOGICAL littoral_sw;
 
 //------------------------------------------------------------------------------
 // PARTICLE TRANSPORT MODEL
+extern LOGICAL ptm_sw;
+extern int num_particles;   //# current number of particles
 extern ParticleDataType *Particle;
-extern AED_REAL settling_velocity;
 
 
 /*----------------------------------------------------------------------------*/

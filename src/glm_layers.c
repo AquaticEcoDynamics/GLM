@@ -201,7 +201,8 @@ void check_layer_thickness(void)
         while (1) {
             V = Lake[i].LayerVol/M;
             D = DELDP/M;
-            if (V <= VMax && D <= DMax) break;
+            if((VMax - V) > 1e-7 && (DMax - D) > 1e-7) break;
+            //if (V <= VMax && D <= DMax) break;
             if (Lake[surfLayer].Height<0.3) break;
             M++;
 

@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
     int all_ok = 1, show_options = 0, show_vers = 0;
 
     // Set random number seed
-    srand ((unsigned)time(NULL));
+    srand ((unsigned int)time(NULL));
 
 #ifdef PLOTS
     saveall = 0;

@@ -36,8 +36,6 @@
 #ifdef _FORTRAN_SOURCE_
 !-------------------------------------------------------------------------------
 
-# if 1
-
   INTERFACE
 
      CINTEGER FUNCTION init_glm_ncdf(fn,title,lat,lon,nlev,start_time) BIND(C, name="init_glm_ncdf_")
@@ -105,7 +103,6 @@
      END SUBROUTINE store_nc_array
 
   END INTERFACE
-# endif
 
 #else
 

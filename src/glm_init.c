@@ -373,7 +373,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     AED_REAL        min_lake_temp  = 0.0;
     LOGICAL         mix_withdraw   = FALSE;
     extern AED_REAL outflow_thick_limit;
-    extern LOGICAL  single_layer_draw;
+//  extern LOGICAL  single_layer_draw;
     LOGICAL         coupl_oxy_sw   = FALSE;
     extern AED_REAL fac_range_upper;
     extern AED_REAL fac_range_lower;
@@ -979,10 +979,6 @@ for (i = 0; i < n_zones; i++) {
 }
 */
 
-
-
-
-
     //--------------------------------------------------------------------------
 
     open_met_file(meteo_fl, snow_sw, rain_sw, timefmt_m);
@@ -1207,7 +1203,6 @@ for (i = 0; i < n_zones; i++) {
     }
     //--------------------------------------------------------------------------
 
-//--------------------------------------------------------------------------
     // particles / ptm
 
     if ( ptm_sw ) {
@@ -1730,12 +1725,11 @@ void initialise_lake(int namlst)
     if (SurfData.delzBlueIce > 0.0 || SurfData.delzWhiteIce > 0.0) {
         ice = TRUE;
     }
-    
+
     if (deep_mixing == 1) {      //constant diffusivity over whole water column
         for (i = 0; i < NumLayers; i++)
           Lake[i].Epsilon = coef_mix_hyp;
     }
-    
 
     AvgSurfTemp = avg_surf_temp;
 

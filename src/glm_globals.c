@@ -40,7 +40,6 @@
 
 int MaxLayers;   //# Maximum number of layers in this sim
 int NumLayers;   //# current number of layers
-int num_particles;  //# current number of particles
 LakeDataType *Lake = NULL;
 
 
@@ -238,12 +237,13 @@ char *      fetch_fws = NULL;
 
 //------------------------------------------------------------------------------
 // LITTORAL
-CLOGICAL littoral_sw        = FALSE;
+LOGICAL littoral_sw = FALSE;
 
 //------------------------------------------------------------------------------
 // PARTICLE TRANSPORT MODEL
+LOGICAL ptm_sw = FALSE;
+int num_particles = 0;  //# current number of particles
 ParticleDataType *Particle = NULL;
-AED_REAL settling_velocity = 0.;
 
 
 //------------------------------------------------------------------------------

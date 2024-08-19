@@ -52,13 +52,13 @@ int csv_point_nvars = 0;
 static int csv_points[MaxPointCSV];
 AED_REAL csv_point_at[MaxPointCSV+1];
 static char * csv_point_fname = NULL;
-CLOGICAL csv_point_frombot[MaxPointCSV+1];
-CLOGICAL csv_point_depth_avg[MaxPointCSV+1];
+LOGICAL csv_point_frombot[MaxPointCSV+1];
+LOGICAL csv_point_depth_avg[MaxPointCSV+1];
 AED_REAL csv_point_zone_upper[MaxPointCSV+1];
 AED_REAL csv_point_zone_lower[MaxPointCSV+1];
 static VARNAME csv_point_vars[MaxCSVOutVars];
 
-static CLOGICAL csv_point_depth_run[MaxPointCSV+1];
+static LOGICAL csv_point_depth_run[MaxPointCSV+1];
 static int csv_point_depth_top[MaxPointCSV+1];
 static int csv_point_depth_bot[MaxPointCSV+1];
 static int csv_point_depth_cur[MaxPointCSV+1];

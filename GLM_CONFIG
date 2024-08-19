@@ -3,7 +3,7 @@
 #
 
 # export FABM=false
-# export AED2=false
+export AED2=true
 export AED=true
 export USE_DL=false
 export WITH_PLOTS=true
