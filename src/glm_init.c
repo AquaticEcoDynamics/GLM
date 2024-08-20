@@ -1563,8 +1563,7 @@ void initialise_lake(int namlst)
     AED_REAL        blue_ice_thickness = 0.0;
     AED_REAL        avg_surf_temp = 6.0;
     AED_REAL       *restart_variables = NULL;
-    int			   restart_mixer_count;
-
+    int             restart_mixer_count;
 
     //==========================================================================
     NAMELIST init_profiles[] = {
@@ -1584,7 +1583,7 @@ void initialise_lake(int namlst)
           { "blue_ice_thickness",  TYPE_DOUBLE,           &blue_ice_thickness },
           { "avg_surf_temp",       TYPE_DOUBLE,           &avg_surf_temp      },
           { "restart_variables",   TYPE_DOUBLE|MASK_LIST, &restart_variables  },
-          { "restart_mixer_count",  TYPE_INT		, &restart_mixer_count},
+          { "restart_mixer_count", TYPE_INT,              &restart_mixer_count},
           { NULL,                  TYPE_END,              NULL                }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/

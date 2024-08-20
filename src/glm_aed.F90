@@ -371,7 +371,7 @@ SUBROUTINE aed_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C, 
    ENDDO
 #endif
 
-   print "(/,5X,'AED : n_aed_vars = ',I3,' ; MaxLayers         = ',I4)",n_aed_vars,MaxLayers
+   print "(/,5X,'AED : n_aed_vars  = ',I3,' ; MaxLayers         = ',I4)",n_aed_vars,MaxLayers
    print "(  5X,'AED : n_vars      = ',I3,' ; n_vars_ben        = ',I3)",n_vars,n_vars_ben
    print "(  5X,'AED : n_vars_diag = ',I3,' ; n_vars_diag_sheet = ',I3,/)",n_vars_diag,n_vars_diag_sheet
 
@@ -1447,6 +1447,7 @@ SUBROUTINE aed_clean_glm() BIND(C, name=_WQ_CLEAN_GLM)
 ! Finish biogeochemical model
 !-------------------------------------------------------------------------------
 !BEGIN
+   CALL aed_delete()
    ! Deallocate internal arrays
    IF (ALLOCATED(cc_diag))    DEALLOCATE(cc_diag)
    IF (ALLOCATED(cc_diag_hz)) DEALLOCATE(cc_diag_hz)
