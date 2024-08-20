@@ -128,7 +128,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_var(ncid, "surface_layer",       NC_INT,      1, dims, &SL_id));
     check_nc_error(nc_def_var(ncid, "avg_surf_temp",       NC_REALTYPE, 1, dims, &AvgSurfTemp_id));
     check_nc_error(nc_def_var(ncid, "Mixer_Count",    NC_INT,      1, dims, &Mixer_Count_id));
-    
+
     dims[0] = restart_dim;
     check_nc_error(nc_def_var(ncid, "restart_variables", NC_REALTYPE, 1, dims, &restart_id));
 
@@ -369,13 +369,13 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     restart_variables[14] = u_f;
     restart_variables[15] = u0;
     restart_variables[16] = u_avg;
-    
+
 
     start_r[0] = 0; edges_r[0] = restart_len;
 
     iret = nc_put_vara(ncid,  restart_id, start_r, edges_r, restart_variables);
     if ( iret != NC_NOERR ) check_nc_error_x(iret, ncid, restart_id);
-    
+
     store_nc_integer(ncid, Mixer_Count_id, T_SHAPE, Mixer_Count);
 
     //# Time varying profile data : z,t

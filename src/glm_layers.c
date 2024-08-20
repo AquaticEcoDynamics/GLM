@@ -99,6 +99,7 @@ void check_layer_thickness(void)
 /*----------------------------------------------------------------------------*/
     dbgprt(" CHKLAY 01 lake[44].depth = %20.15f\n", Lake[44].Height);
 
+
     //# Check against vmin
     KLAST=botmLayer;
     // while (1) { //
@@ -128,7 +129,8 @@ void check_layer_thickness(void)
         }
 
         j = i;
-        if (Vup > Vdown) j = i-1;
+
+       if (Vup > Vdown) j = i-1;
 
         Lake[j].Salinity = combine(Lake[j].Salinity,   Lake[j].LayerVol,   Lake[j].Density,
                                    Lake[j+1].Salinity, Lake[j+1].LayerVol, Lake[j+1].Density);
@@ -175,6 +177,8 @@ void check_layer_thickness(void)
     }
     Lake[botmLayer].MeanHeight = Lake[botmLayer].Height/ 2.0;
 
+
+
     // check layers for VMax
     //sgs Flag to prevent top layer splitting more than once
     VSUMCHK = FALSE;
@@ -190,7 +194,11 @@ void check_layer_thickness(void)
 
             if (i == surfLayer) VSUMCHK = TRUE;
 
-             if ((Lake[i].LayerVol-VMax) > 1e-7 || (DELDP - DMax) > 1e-7) break;
+             if ((Lake[i].LayerVol-VMax) > 1e-7 || (DELDP - DMax) > 1e-7){
+
+             break;
+
+             }
         }
 
         // return to calling program when all layers have been checked
@@ -256,12 +264,16 @@ void check_layer_thickness(void)
 
             Lake[k].Epsilon = Lake[i].Epsilon;
         }
+
         NumLayers += iadd;
 
         // get new depths for layers i thru surfLayer
         resize_internals(2,i);
 
     }
+
+
+
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

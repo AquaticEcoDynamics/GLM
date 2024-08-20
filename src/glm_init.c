@@ -559,8 +559,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%NAMELIST groundwater ----------------------------------------------*/
 //  extern int   gw_mode; // = 0;       //# mode
 //  extern char *gw_file; // = NULL;    //# name of gw file
-//  extern AED_REAL *K_gw; // = NULL;   //# 
-//  extern AED_REAL *L_gw; // = NULL;   //#     
+//  extern AED_REAL *K_gw; // = NULL;   //#
+//  extern AED_REAL *L_gw; // = NULL;   //#
     //==========================================================================
     NAMELIST groundwater[] = {
           { "groundwater",       TYPE_START,            NULL                  },
@@ -1208,7 +1208,7 @@ for (i = 0; i < n_zones; i++) {
     if ( ptm_sw ) {
 
         fprintf(stderr, "     PTM module active: initial particles = %d\n", init_particle_num);
-        ptm_init_glm();  //num_particle_grp, max_particle_num, init_particle_num,init_depth_min, init_depth_max, ptm_time_step, ptm_diffusivity 
+        ptm_init_glm();  //num_particle_grp, max_particle_num, init_particle_num,init_depth_min, init_depth_max, ptm_time_step, ptm_diffusivity
         if ( max_particle_num > 1000000 ) {
             fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", 1000000);
             exit(1);
@@ -1415,6 +1415,8 @@ void create_lake(int namlst)
 
     allocate_storage();
 
+
+
     CrestHeight = crest_elev - Base;
     MaxHeight = max_elev - Base;
     LenAtCrest = bsn_len;
@@ -1562,7 +1564,7 @@ void initialise_lake(int namlst)
     AED_REAL        avg_surf_temp = 6.0;
     AED_REAL       *restart_variables = NULL;
     int			   restart_mixer_count;
-    
+
 
     //==========================================================================
     NAMELIST init_profiles[] = {
@@ -1751,12 +1753,12 @@ void initialise_lake(int namlst)
         u_f = restart_variables[14];
         u0 = restart_variables[15];
         u_avg = restart_variables[16];
-        
+
         Mixer_Count = restart_mixer_count;
 
         free(restart_variables);
     }
-    
+
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

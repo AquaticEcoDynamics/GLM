@@ -2,7 +2,7 @@
    sim_name = 'FCR'
    max_layers = 500
    min_layer_vol = 0.025
-   min_layer_thick = 0.1 !0.2 originally 1 
+   min_layer_thick = 0.1 !0.2 originally 1
    max_layer_thick = 0.2 !originally 1.5, then 0.5
    non_avg = .true.
 !/
