@@ -95,6 +95,8 @@ AED_REAL u_f     = 0.;
 AED_REAL u0      = 0.;
 AED_REAL u_avg   = 0.;
 
+int Mixer_Count = 0;   //# Mixer model step counter
+
 //# Wind parameters
 static AED_REAL WindSpeedX;  //# Actual wind speed, accounting for wind factor or ice [m s-1]
 static AED_REAL U_star;      //# U*, wind induced surface water shear speed [m s-1]
@@ -190,7 +192,7 @@ static int convective_overturn(int *_Epi_botmLayer, int *_Meta_topLayer,
             ZeroMom  = ZeroMom  + tRho;
             FirstMom = FirstMom + tRho * Lake[Epi_botmLayer].MeanHeight;
 
-            if (Dens_Epil < Lake[Epi_botmLayer-1].Density+1e-6) break;
+            if (Dens_Epil < Lake[Epi_botmLayer-1].Density+1e-7) break;
         } else {
             AED_REAL tRho = (Lake[botmLayer].Density - rho0) * Lake[botmLayer].Height;
             ZeroMom  = ZeroMom  + tRho;
@@ -468,7 +470,7 @@ static int shear_production(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_top
      * Dens_Epi is the epilimnion density                                     *
      *                                                                        *
      **************************************************************************/
-
+     
     //# Calculate Kraus-Turner depth (change in SML depth over dt)
     zsml_tilda = MAX( DepMX - Lake[Meta_topLayer].Height, zero );
 
@@ -544,8 +546,9 @@ static int shear_production(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_top
     Slope = (accn-FO) + OldSlope;
     if (accn <= zero) Slope = zero;
     else if (fabs(Slope/accn) <= 1e-5) Slope = zero;
+    
     if (Slope < zero) Slope = zero;
-
+    
     /**************************************************************************
      * Check for momentum cutoff within current time step. Calculate time step*
      * for forcing, Time_end_shear, and reset parameters for next time step   *
@@ -556,18 +559,21 @@ static int shear_production(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_top
          //# Here if cutoff within current time step
          Time_end_shear = Time_count_end_shear - Time_count_sim + noSecs/SecsPerHr;
          OldSlope = accn - (FSUM / (Mixer_Count));
+         
          if (OldSlope < zero) OldSlope = zero;
     } else {
+
          //# Still shearing ...
          Time_end_shear = noSecs/SecsPerHr;
          OldSlope = Slope;
     }
     FO = accn;
-
+    
     // return 0; //CAB DEBUG
     //# Momentum update
     if (u0 < 1E-7) u0 = zero;
     if (Slope < 1E-7) Slope = zero;
+    
     u_f = u0 + Slope * Time_end_shear * SecsPerHr;
 
     u_avgSQ = (u_f*u_f + u_f*u0 + u0*u0) / 3.0;
@@ -637,6 +643,7 @@ static int shear_production(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_top
         Vol_Epi = Vol_Epi + Lake[Meta_topLayer+1].LayerVol;
         Epi_Thick = (Vol_Epi / (Lake[Meta_topLayer].LayerArea + Lake[surfLayer].LayerArea)) * 2.0;
         u_f = u_f * PrevThick / Epi_Thick;
+        
         u_avg = sqrt((u0_old*u0_old + u0_old*u_f + u_f*u_f)/3.0);
 
         del_u = u_avg - u_eff;
@@ -716,13 +723,14 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
     if (surfLayer <= botmLayer || bilshear > 10.0) return Dens;
 
     Delta_Mix = (coef_mix_KH*u_avg*u_avg)/(gPrimeTwoLayer*2.0*cosh(bilshear));
-
+    
     //# Limit the thickness of the mixing layer to less than either the hypolimnion or epilimnion
     HMIN = MIN(Epi_dz, Thermocline_Height);
     if (Delta_Mix > HMIN) Delta_Mix = HMIN;
     eTop = Thermocline_Height + Delta_Mix;
     eBot = Thermocline_Height - Delta_Mix;
     top = FALSE;
+
     if (eTop > Lake[surfLayer-1].Height) eTop = Lake[surfLayer-1].Height;
     if ((eTop-Thermocline_Height) < eps6/2.0) return Dens;
     if (eBot < Lake[botmLayer].Height) eBot = Lake[botmLayer].Height;
@@ -764,7 +772,7 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
             Lake[Meta_botmLayer].Height = eBot;
         }
     }
-
+    
     //# Here after position (ebot) of bottom of shear zone has been
     //# determined and extra layer added, if necessary
     T = fabs(eTop-eBot);
@@ -831,6 +839,7 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
             }
         }
     }
+    
 
     //# Here after bottom half of shear zone has at least three layers,
     //# divide top half of shear zone into nl layers
@@ -972,7 +981,7 @@ static int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count,
      **************************************************************************/
     if (ice) WindSpeedX = 1e-5;
     else     WindSpeedX = MetData.WindSpeed;
-
+    
     /**************************************************************************
      * Calculate shear velocity U*, U*^2 and U*^3                             *
      **************************************************************************/
@@ -1074,7 +1083,6 @@ void do_mixing()
     int Meta_topLayer;            //# Index for top layer of hypolimnion
     AED_REAL Dens_Epil;           //# Mean epilimnion density [kg/m3]
     AED_REAL Vol_Hypl;            //# Volume of hypolimnion [m^3]
-    static int Mixer_Count = 0;   //# Mixer model step counter
     int res = -1;
 
 /*----------------------------------------------------------------------------*/
@@ -1086,6 +1094,7 @@ void do_mixing()
 
     switch ( (res = mixed_layer_deepening(WQ_VarsM, Mixer_Count, &Meta_topLayer, &Dens_Epil)) ) {
         case DEEPENED_BOT:
+    
             //# Here if deepened to bottom
             OldSlope = zero; //# Old slope = zero as fully mixed
             Energy_AvailableMix = zero;   //# Total available energy to mix reset to zero as lake fully mixed
@@ -1105,6 +1114,7 @@ void do_mixing()
             /***** fall through ******/
 
          case MOMENTUM_CUT:
+
             //# Here if momentum cutoff
             Mixer_Count = 0;  //# Reset mixing model step count (note: not reset if case IS_MIXED)
             FSUM = zero;
@@ -1122,6 +1132,7 @@ void do_mixing()
             /***** fall through ******/
 
         case IS_MIXED:
+
             //# Meta_topLayer+1 becomes the surface layer == mixed epilimnion layers
             Lake[Meta_topLayer+1].Height = Lake[surfLayer].Height;
             Lake[Meta_topLayer+1].Temp = MeanTemp;
