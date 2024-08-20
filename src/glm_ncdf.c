@@ -127,7 +127,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_var(ncid, "white_ice_thickness", NC_REALTYPE, 1, dims, &HWICE_id));
     check_nc_error(nc_def_var(ncid, "surface_layer",       NC_INT,      1, dims, &SL_id));
     check_nc_error(nc_def_var(ncid, "avg_surf_temp",       NC_REALTYPE, 1, dims, &AvgSurfTemp_id));
-    check_nc_error(nc_def_var(ncid, "Mixer_Count",    NC_INT,      1, dims, &Mixer_Count_id));
+    check_nc_error(nc_def_var(ncid, "Mixer_Count",         NC_INT,      1, dims, &Mixer_Count_id));
 
     dims[0] = restart_dim;
     check_nc_error(nc_def_var(ncid, "restart_variables", NC_REALTYPE, 1, dims, &restart_id));
