@@ -1365,14 +1365,14 @@ void create_lake(int namlst)
     Nmorph = ( ( H[bsn_vals-1] * MphInc ) + 1.0 / 1000.0 ) + 10;
 
     allocate_storage();
-    
+
 
 
     CrestHeight = crest_elev - Base;
     MaxHeight = max_elev - Base;
     LenAtCrest = bsn_len;
     WidAtCrest = bsn_wid;
-    
+
     alpha_b = calloc(MaxLayers, sizeof(AED_REAL));
     beta_b = calloc(MaxLayers, sizeof(AED_REAL));
 
@@ -1514,8 +1514,8 @@ void initialise_lake(int namlst)
     AED_REAL        blue_ice_thickness = 0.0;
     AED_REAL        avg_surf_temp = 6.0;
     AED_REAL       *restart_variables = NULL;
-    int			   restart_mixer_count;
-    
+    int             restart_mixer_count;
+
 
     //==========================================================================
     NAMELIST init_profiles[] = {
@@ -1535,7 +1535,7 @@ void initialise_lake(int namlst)
           { "blue_ice_thickness",  TYPE_DOUBLE,           &blue_ice_thickness },
           { "avg_surf_temp",       TYPE_DOUBLE,           &avg_surf_temp      },
           { "restart_variables",   TYPE_DOUBLE|MASK_LIST, &restart_variables  },
-          { "restart_mixer_count",  TYPE_INT		, &restart_mixer_count},
+          { "restart_mixer_count", TYPE_INT,              &restart_mixer_count},
           { NULL,                  TYPE_END,              NULL                }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
@@ -1678,7 +1678,7 @@ void initialise_lake(int namlst)
     if (SurfData.delzBlueIce > 0.0 || SurfData.delzWhiteIce > 0.0) {
         ice = TRUE;
     }
-    
+
     AvgSurfTemp = avg_surf_temp;
 
     if (restart_variables != NULL) {
@@ -1699,12 +1699,12 @@ void initialise_lake(int namlst)
         u_f = restart_variables[14];
         u0 = restart_variables[15];
         u_avg = restart_variables[16];
-        
+
         Mixer_Count = restart_mixer_count;
 
         free(restart_variables);
     }
-    
+
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

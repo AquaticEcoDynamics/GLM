@@ -284,6 +284,9 @@ void allocate_storage()
 
 
 #if DEBUG
+void _debug_print_lake(FILE *of) { }
+void debug_initialisation(int which) { }
+#else
 /******************************************************************************/
 void _debug_print_lake(FILE *of) {
     int i;

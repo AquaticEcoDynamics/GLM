@@ -129,7 +129,7 @@ void check_layer_thickness(void)
         }
 
         j = i;
-        
+
        if (Vup > Vdown) j = i-1;
 
         Lake[j].Salinity = combine(Lake[j].Salinity,   Lake[j].LayerVol,   Lake[j].Density,
@@ -169,15 +169,15 @@ void check_layer_thickness(void)
         }
         NumLayers--;
     }
-    
+
     // here when all layers have been checked for VMin, DMin
     if (surfLayer != botmLayer) {
         for (i = botmLayer+1; i <= surfLayer; i++)
             Lake[i].MeanHeight=(Lake[i].Height+Lake[i-1].Height)/ 2.0;
     }
     Lake[botmLayer].MeanHeight = Lake[botmLayer].Height/ 2.0;
-    
-    
+
+
 
     // check layers for VMax
     //sgs Flag to prevent top layer splitting more than once
@@ -197,8 +197,8 @@ void check_layer_thickness(void)
              if ((Lake[i].LayerVol-VMax) > 1e-7 || (DELDP - DMax) > 1e-7){
 
              break;
-             
-             } 
+
+             }
         }
 
         // return to calling program when all layers have been checked
@@ -223,7 +223,7 @@ void check_layer_thickness(void)
                 exit(1);
             }
         }
-        
+
         // renumber layers above split. iadd is the number of added layers
         // j is the new layer number, jold is the old layer number
         // include water quality
@@ -246,7 +246,7 @@ void check_layer_thickness(void)
                 Lake[j].Epsilon = Lake[jold].Epsilon;
             }
         }
-        
+
         // process the added layers, include water quality
         for (k=i; k <= i+iadd; k++) {
             Lake[k].LayerVol = V;
@@ -264,15 +264,15 @@ void check_layer_thickness(void)
 
             Lake[k].Epsilon = Lake[i].Epsilon;
         }
-        
+
         NumLayers += iadd;
 
         // get new depths for layers i thru surfLayer
         resize_internals(2,i);
 
     }
-    
- 
+
+
 
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

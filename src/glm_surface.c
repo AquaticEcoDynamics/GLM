@@ -236,8 +236,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     ***********************************************************************/
 
     AED_REAL catch_runoff = zero;
-    
-    
+
+
     //fprintf(stdout, "###1 %f\n", Lake[5].Temp);
 
     if ( catchrain && MetData.Rain>rain_threshold ) {
@@ -280,7 +280,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
         SurfData.dailyRunoff += catch_runoff;
     }
-    
+
      //fprintf(stdout, "###2 %f\n", Lake[5].Temp);
 
     /**********************************************************************
@@ -493,7 +493,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
      * Assess surface mass fluxes of snow and rain on the ice
      * and check ice buoyancy for crackign and white ice formation
      *********************************************************************/
-     
+
       //fprintf(stdout, "###5 %f\n", Lake[5].Temp);
     if (iclock == 0 && ice) {
         AED_REAL BuoyantPotential;
@@ -843,7 +843,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                 break;  // start melting
             }
         } // end while
-        
+
          //fprintf(stdout, "###7 %f\n", Lake[5].Temp);
 
         //# Reset
@@ -1016,9 +1016,9 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
       + SurfData.delzBlueIce  * (rho_ice_blue/Lake[surfLayer].Density)
       + SurfData.delzWhiteIce * (rho_ice_white/Lake[surfLayer].Density)
       + SurfData.delzSnow     * (rho_snow/Lake[surfLayer].Density);
-      
+
       recalc_surface_salt();
-      
+
       ice = FALSE;
       SurfData.delzBlueIce  = 0.0;
       SurfData.delzWhiteIce = 0.0;
@@ -1171,8 +1171,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                }
             } else if ( sed_heat_model == 1 ){
               for (i = botmLayer+1; i <= surfLayer; i++) {
-              
-              
+
+
                                 if(i == 5){
                     //fprintf(stdout, "Lake[i].Temp %f soil_heat_flux, %f Lake[i].LayerArea, %f Lake[i-1].LayerArea, %f Lake[i].Density, %f Lake[i].LayerVol %f\n",  Lake[i].Temp, soil_heat_flux, Lake[i].LayerArea,Lake[i-1].LayerArea, Lake[i].Density, Lake[i].LayerVol);
                   }
@@ -1244,8 +1244,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
         recalc_surface_salt();
     }
-    
-    
+
+
      //fprintf(stdout, "###12 %f\n", Lake[5].Temp);
 
 
@@ -1292,7 +1292,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         SurfData.delzSnow    = 0.0;
     }
     SurfData.RhoSnow = rho_snow;
-    
+
      //fprintf(stdout, "###13 %f\n", Lake[5].Temp);
 
 
