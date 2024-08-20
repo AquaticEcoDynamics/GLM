@@ -574,6 +574,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     /*-- %%NAMELIST particle model -------------------------------------------*/
     extern CLOGICAL  ptm_sw;
+    extern CLOGICAL  sed_deactivation;
     extern int       num_particle_grp;
     extern int       max_particle_num;
     extern int       init_particle_num;
@@ -586,6 +587,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     NAMELIST particles[] = {
           { "particles",         TYPE_START,            NULL                  },
           { "ptm_sw",            TYPE_BOOL,             &ptm_sw               },
+          { "sed_deactivation",  TYPE_BOOL,             &sed_deactivation     },
           { "num_particle_grp",  TYPE_INT,              &num_particle_grp     },
           { "max_particle_num",  TYPE_INT,              &max_particle_num     },
           { "init_particle_num", TYPE_INT,              &init_particle_num    },

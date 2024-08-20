@@ -170,6 +170,7 @@ MODULE glm_types
    !# Structured type for Particle Transport Model (PTM)
    TYPE,BIND(C) :: ParticleDataType 
        INTEGER  :: Status         ! indivdual particle status
+       INTEGER  :: Flag           ! indivdual particle flag indicating if BED (1) or SCUM (2), or neither (0)
        AED_REAL :: Height
        AED_REAL :: Mass
        AED_REAL :: Diam

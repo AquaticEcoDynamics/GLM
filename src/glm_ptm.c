@@ -42,7 +42,8 @@
 #include "glm_util.h"
 #include "glm_ncdf.h"
 
-
+            // Cell suspended in water column
+#define WATER  0
             // Maybe forming a bed layer; set when hits bottom; turn off when resuspended
 #define BED    1
             // Maybe forming a scum layer
@@ -65,6 +66,7 @@ AED_REAL ptm_diffusivity=1e-6;
 
 // VARIABLES
 int ptm_sw = FALSE;
+int sed_deactivation = FALSE;
 
 int last_particle = 0;
 //int num_particles = 0;
@@ -105,6 +107,7 @@ void ptm_init_glm()
     // Set initial active particle status/properties (initial active particles)
     for (p = 0; p < init_particle_num; p++) { 
         Particle[p].Status = 1;
+        Particle[p].Flag = 0;
         Particle[p].Mass = 1.0;
         Particle[p].Diam = 1e-6;
         Particle[p].Density = 1000.0;
@@ -155,15 +158,23 @@ void do_ptm_update()
         for (p = 0; p < num_particles; p++) { 
           if (Particle[p].Status>0) {
             // Update particle position based on diffusivity and vert velocity
+            Particle[p].Flag= WATER;  
             Particle[p].Height = random_walk(dt,Particle[p].Height, Lake[Particle[p].Layer].Epsilon,Particle[p].vvel);
             
             // Check if status change due to hitting bed, or surface
-            if(Particle[p].Height<0){
-                Particle[p].Status=BED ;                        // Maybe forming a bed layer
-                Particle[p].Height=0.0 ; 
+            if(Particle[p].Height<0.02){
+                Particle[p].Flag= BED; 
+                if(Particle[p].Height<0.0){
+                    Particle[p].Height=0.0;
+                }                      
+                if(sed_deactivation){
+                    Particle[p].Status = 0;
+                    fprintf(stderr, "  height of bed-flagged particle   = %f\n", Particle[p].Height);
+                    fprintf(stderr, "  status of bed-flagged particle   = %d\n", Particle[p].Status);
+                }
             }
             if(Particle[p].Height>Lake[surfLayer].Height){
-                Particle[p].Status=SCUM  ;                      // Maybe forming a scum layer
+                Particle[p].Flag= SCUM;                      // Maybe forming a scum layer
                 Particle[p].Height=Lake[surfLayer].Height;
             }
           }
@@ -206,8 +217,6 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
           }
         }
     }
-fprintf(stderr, "  ptm_redistribute(): Particle[1].Height   = %f\n", Particle[1].Height);
-
     ptm_update_layerid();     // assign layers to active particles
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -359,7 +368,7 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vv
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-static int h_id, m_id, d_id, dn_id, vv_id, stat_id;
+static int h_id, m_id, d_id, dn_id, vv_id, stat_id, flag_id;
 static int set_no_p = -1;
 int ptm_dim;
 static size_t start[2],edges[2];
@@ -375,7 +384,7 @@ void ptm_write_glm(int ncid, int num_particles)
 //LOCALS
     int p;
     AED_REAL *p_height, *mass, *diam, *density, *vvel;
-    int *status;
+    int *status, *flag;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
@@ -393,6 +402,7 @@ void ptm_write_glm(int ncid, int num_particles)
     vvel  = malloc(num_particles*sizeof(AED_REAL));
     
     status  = malloc(num_particles*sizeof(int));
+    flag  = malloc(num_particles*sizeof(int));
     
     for (p = 0; p < num_particles; p++) { 
 		p_height[p] = Particle[p].Height;
@@ -401,6 +411,7 @@ void ptm_write_glm(int ncid, int num_particles)
         density[p] = Particle[p].Density;
         vvel[p] = Particle[p].vvel;
         status[p] = Particle[p].Status;
+        flag[p] = Particle[p].Flag;
     } 
     
      nc_put_vara(ncid, h_id, start, edges, p_height);
@@ -409,6 +420,7 @@ void ptm_write_glm(int ncid, int num_particles)
      nc_put_vara(ncid, dn_id, start, edges, density);
      nc_put_vara(ncid, vv_id, start, edges, vvel);
      nc_put_vara(ncid, stat_id, start, edges, status);
+     nc_put_vara(ncid, flag_id, start, edges, flag);
      
     free(p_height); 
     free(mass);
@@ -416,6 +428,7 @@ void ptm_write_glm(int ncid, int num_particles)
     free(density);
     free(vvel);
     free(status);
+    free(flag);
     
     check_nc_error(nc_sync(ncid));
 }
@@ -456,6 +469,9 @@ void ptm_init_glm_output(int ncid, int time_dim)
    
    check_nc_error(nc_def_var(ncid, "particle_status", NC_INT, 2, dims, &stat_id));
    nc_put_att(ncid, stat_id, "long_name", NC_CHAR, 18, "Status of Particle");
+
+   check_nc_error(nc_def_var(ncid, "particle_flag", NC_INT, 2, dims, &flag_id));
+   nc_put_att(ncid, flag_id, "long_name", NC_CHAR, 18, "Location Flag of Particle");
 
    define_mode_off(&ncid);
 }
