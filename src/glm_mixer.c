@@ -470,7 +470,7 @@ static int shear_production(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_top
      * Dens_Epi is the epilimnion density                                     *
      *                                                                        *
      **************************************************************************/
-     
+
     //# Calculate Kraus-Turner depth (change in SML depth over dt)
     zsml_tilda = MAX( DepMX - Lake[Meta_topLayer].Height, zero );
 
@@ -546,9 +546,9 @@ static int shear_production(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_top
     Slope = (accn-FO) + OldSlope;
     if (accn <= zero) Slope = zero;
     else if (fabs(Slope/accn) <= 1e-5) Slope = zero;
-    
+
     if (Slope < zero) Slope = zero;
-    
+
     /**************************************************************************
      * Check for momentum cutoff within current time step. Calculate time step*
      * for forcing, Time_end_shear, and reset parameters for next time step   *
@@ -559,7 +559,7 @@ static int shear_production(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_top
          //# Here if cutoff within current time step
          Time_end_shear = Time_count_end_shear - Time_count_sim + noSecs/SecsPerHr;
          OldSlope = accn - (FSUM / (Mixer_Count));
-         
+
          if (OldSlope < zero) OldSlope = zero;
     } else {
 
@@ -568,12 +568,12 @@ static int shear_production(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_top
          OldSlope = Slope;
     }
     FO = accn;
-    
+
     // return 0; //CAB DEBUG
     //# Momentum update
     if (u0 < 1E-7) u0 = zero;
     if (Slope < 1E-7) Slope = zero;
-    
+
     u_f = u0 + Slope * Time_end_shear * SecsPerHr;
 
     u_avgSQ = (u_f*u_f + u_f*u0 + u0*u0) / 3.0;
@@ -643,7 +643,7 @@ static int shear_production(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_top
         Vol_Epi = Vol_Epi + Lake[Meta_topLayer+1].LayerVol;
         Epi_Thick = (Vol_Epi / (Lake[Meta_topLayer].LayerArea + Lake[surfLayer].LayerArea)) * 2.0;
         u_f = u_f * PrevThick / Epi_Thick;
-        
+
         u_avg = sqrt((u0_old*u0_old + u0_old*u_f + u_f*u_f)/3.0);
 
         del_u = u_avg - u_eff;
@@ -723,7 +723,7 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
     if (surfLayer <= botmLayer || bilshear > 10.0) return Dens;
 
     Delta_Mix = (coef_mix_KH*u_avg*u_avg)/(gPrimeTwoLayer*2.0*cosh(bilshear));
-    
+
     //# Limit the thickness of the mixing layer to less than either the hypolimnion or epilimnion
     HMIN = MIN(Epi_dz, Thermocline_Height);
     if (Delta_Mix > HMIN) Delta_Mix = HMIN;
@@ -772,7 +772,7 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
             Lake[Meta_botmLayer].Height = eBot;
         }
     }
-    
+
     //# Here after position (ebot) of bottom of shear zone has been
     //# determined and extra layer added, if necessary
     T = fabs(eTop-eBot);
@@ -839,7 +839,7 @@ static AED_REAL kelvin_helmholtz(int *Meta_topLayer, int *Epi_botmLayer, AED_REA
             }
         }
     }
-    
+
 
     //# Here after bottom half of shear zone has at least three layers,
     //# divide top half of shear zone into nl layers
@@ -981,7 +981,7 @@ static int mixed_layer_deepening(AED_REAL *WQ_VarsM, int Mixer_Count,
      **************************************************************************/
     if (ice) WindSpeedX = 1e-5;
     else     WindSpeedX = MetData.WindSpeed;
-    
+
     /**************************************************************************
      * Calculate shear velocity U*, U*^2 and U*^3                             *
      **************************************************************************/
@@ -1094,7 +1094,7 @@ void do_mixing()
 
     switch ( (res = mixed_layer_deepening(WQ_VarsM, Mixer_Count, &Meta_topLayer, &Dens_Epil)) ) {
         case DEEPENED_BOT:
-    
+
             //# Here if deepened to bottom
             OldSlope = zero; //# Old slope = zero as fully mixed
             Energy_AvailableMix = zero;   //# Total available energy to mix reset to zero as lake fully mixed

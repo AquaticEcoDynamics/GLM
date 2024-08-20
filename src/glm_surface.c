@@ -1003,9 +1003,9 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
       + SurfData.delzBlueIce  * (rho_ice_blue/Lake[surfLayer].Density)
       + SurfData.delzWhiteIce * (rho_ice_white/Lake[surfLayer].Density)
       + SurfData.delzSnow     * (rho_snow/Lake[surfLayer].Density);
-      
+
       recalc_surface_salt();
-      
+
       ice = FALSE;
       SurfData.delzBlueIce  = 0.0;
       SurfData.delzWhiteIce = 0.0;

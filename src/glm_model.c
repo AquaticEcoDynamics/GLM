@@ -123,7 +123,7 @@ void run_model()
 
     begn = time(NULL);
     if (quiet < 10) printf("\n     Wall clock start time :  %s", ctime_r(&begn, buf));
-    
+
     if (non_avg)
         do_model_non_avg(jstart, nsave);
     else
@@ -498,7 +498,7 @@ void do_model_non_avg(int jstart, int nsave)
         //# Now enter into sub-daily calculations            ------>
 
         stepnum = do_subdaily_loop(stepnum, jday, stoptime, nsave, SWold, SWnew);
-        
+
         //# End of forcing-mixing-diffusion loop             ------>
 
 

@@ -185,7 +185,7 @@ MODULE glm_types
    TYPE(CINTEGER),BIND(C, name="MaxLayers") :: MaxLayers
    TYPE(C_PTR),BIND(C, name="Lake")         :: cLake
    TYPE(CINTEGER),BIND(C, name="n_zones")   :: n_zones
-   TYPE(C_PTR),BIND(C, name="theZones")     :: cZones 
+   TYPE(C_PTR),BIND(C, name="theZones")     :: cZones
 
    TYPE(C_PTR),BIND(C, name="pMetData")     :: cMetData
    TYPE(C_PTR),BIND(C, name="pSurfData")    :: cSurfData

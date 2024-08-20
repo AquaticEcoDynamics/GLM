@@ -1226,7 +1226,7 @@ for (i = 0; i < n_zones; i++) {
     // particles / ptm
     if ( ptm_sw ) {
         fprintf(stderr, "     PTM module active: initial particles = %d\n", init_particle_num);
-        ptm_init_glm();  //num_particle_grp, max_particle_num, init_particle_num,init_depth_min, init_depth_max, ptm_time_step, ptm_diffusivity 
+        ptm_init_glm();  //num_particle_grp, max_particle_num, init_particle_num,init_depth_min, init_depth_max, ptm_time_step, ptm_diffusivity
         if ( max_particle_num > 1000000 ) {
             fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", 1000000);
             exit(1);
@@ -1553,8 +1553,8 @@ void initialise_lake(int namlst)
     AED_REAL        blue_ice_thickness = 0.0;
     AED_REAL        avg_surf_temp = 6.0;
     AED_REAL       *restart_variables = NULL;
-    int			   restart_mixer_count;
-    
+    int             restart_mixer_count;
+
 
     //==========================================================================
     NAMELIST init_profiles[] = {
@@ -1574,7 +1574,7 @@ void initialise_lake(int namlst)
           { "blue_ice_thickness",  TYPE_DOUBLE,           &blue_ice_thickness },
           { "avg_surf_temp",       TYPE_DOUBLE,           &avg_surf_temp      },
           { "restart_variables",   TYPE_DOUBLE|MASK_LIST, &restart_variables  },
-          { "restart_mixer_count",  TYPE_INT		, &restart_mixer_count},
+          { "restart_mixer_count", TYPE_INT,              &restart_mixer_count},
           { NULL,                  TYPE_END,              NULL                }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
@@ -1717,12 +1717,12 @@ void initialise_lake(int namlst)
     if (SurfData.delzBlueIce > 0.0 || SurfData.delzWhiteIce > 0.0) {
         ice = TRUE;
     }
-    
+
     if (deep_mixing == 1) {      //constant diffusivity over whole water column
         for (i = 0; i < NumLayers; i++)
           Lake[i].Epsilon = coef_mix_hyp;
     }
-    
+
 
     AvgSurfTemp = avg_surf_temp;
 
@@ -1744,12 +1744,12 @@ void initialise_lake(int namlst)
         u_f = restart_variables[14];
         u0 = restart_variables[15];
         u_avg = restart_variables[16];
-        
+
         Mixer_Count = restart_mixer_count;
 
         free(restart_variables);
     }
-    
+
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

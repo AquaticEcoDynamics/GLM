@@ -321,7 +321,7 @@ SUBROUTINE api_set_glm_env()
 
    aed_env%longitude => longitude
    aed_env%latitude  => latitude
-   
+
    aed_env%temp          => temp
    aed_env%salt          => salt
    aed_env%rho           => rho

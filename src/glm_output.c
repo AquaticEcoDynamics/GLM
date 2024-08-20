@@ -275,7 +275,7 @@ void write_output(int jday, int iclock, int nsave, int stepnum)
         wq_write_glm(ncid, NumLayers, MaxLayers, lvl, csv_point_nlevs);
 
     //# outputs PTM to NetCDF
-    if (ptm_sw) 
+    if (ptm_sw)
         ptm_write_glm(ncid, num_particles);
 
 
