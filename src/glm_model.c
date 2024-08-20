@@ -844,7 +844,7 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
         //# then do not output in the subdaily.  Output writing is moved to the
         //# daily loop so it occurs after the inflow and output calculations.
 
-        if ( stepnum == write_step & (iclock +  noSecs) != SecsPerDay) {
+        if ( stepnum == write_step && (iclock +  noSecs) != SecsPerDay) {
 
 #if PLOTS
             today = jday;
