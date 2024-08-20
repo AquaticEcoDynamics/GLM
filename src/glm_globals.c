@@ -244,6 +244,8 @@ LOGICAL littoral_sw = FALSE;
 LOGICAL ptm_sw = FALSE;
 int num_particles = 0;  //# current number of particles
 ParticleDataType *Particle = NULL;
+AED_REAL settling_velocity = 0.;
+int init_particle_num = 10;
 
 
 //------------------------------------------------------------------------------

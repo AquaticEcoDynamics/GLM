@@ -296,7 +296,8 @@ extern CLOGICAL littoral_sw;
 extern LOGICAL ptm_sw;
 extern int num_particles;   //# current number of particles
 extern ParticleDataType *Particle;
-
+extern AED_REAL settling_velocity;
+extern int init_particle_num;
 
 /*----------------------------------------------------------------------------*/
 // TIME
