@@ -233,6 +233,30 @@ static AED_REAL calc_benthic_light()
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
+void calc_mass_temp(const char *msg)
+{
+    AED_REAL Lake_Mass; //# Total mass of lake [kg]
+    AED_REAL Lake_Temp; //# Mass averaged lake temperature [oC]
+    int i;
+
+    Lake_Mass = zero;
+    for (i = surfLayer; i >= botmLayer; i-- )
+        Lake_Mass += Lake[i].Density * Lake[i].LayerVol;
+
+    Lake_Temp = zero;
+    for (i = surfLayer; i >= botmLayer; i-- )
+        Lake_Temp += Lake[i].Temp * Lake[i].Density * Lake[i].LayerVol;
+    Lake_Temp = Lake_Temp / Lake_Mass;
+
+    if ( quiet < 5)
+        printf("     %s Lake_Mass = %10.5f\t, Lake_Temp = %10.5f\n", msg, Lake_Mass/1e6, Lake_Temp);
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ ******************************************************************************/
 void do_model(int jstart, int nsave)
 {
     AED_REAL FlowNew[MaxInf], DrawNew[MaxOut], WithdrTempNew;
@@ -248,20 +272,15 @@ void do_model(int jstart, int nsave)
     AED_REAL SaltNew[MaxInf], TempNew[MaxInf], WQNew[MaxInf * MaxVars];
     AED_REAL SaltOld[MaxInf], TempOld[MaxInf], WQOld[MaxInf * MaxVars];
     AED_REAL Elev[MaxInf];
-
     int jday, ntot, stepnum, stoptime;
-
     int i, j;
 
-/*----------------------------------------------------------------------------*/
+    /*------------------------------------------------------------------------*/
 
     memset(WQNew, 0, sizeof(AED_REAL)*MaxInf*MaxVars);
     memset(WQOld, 0, sizeof(AED_REAL)*MaxInf*MaxVars);
 
-    /*------------------------------------------------------------------------*
-     *  Start Simulation                                                      *
-     *------------------------------------------------------------------------*/
-
+    /**************************** Start Simulation ****************************/
     fputs("\n     Simulation begins...\n", stdout);
 
     ntot = 0;
@@ -277,32 +296,33 @@ void do_model(int jstart, int nsave)
     SWold = MetOld.ShortWave;
 
     jday = jstart - 1;
-    /*------------------------------------------------------------------------*
+    /**************************************************************************
      * Loop over all days                                                     *
-     *------------------------------------------------------------------------*/
+     **************************************************************************/
     while (ntot < nDates) {
         ntot++;
         jday++;
 
         //# If it is the last day, adjust the stop time for the day if necessary
         if (ntot == nDates) stoptime = stopTOD;
-        if(stoptime == 0) break;
+        if (stoptime == 0) break;
 
-        //# Initialise daily values for volume and heat balance output
+        //# Initialise daily values for volume & heat balance reporting (lake.csv)
         SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
         SurfData.dailyQsw = 0.; SurfData.dailyQe = 0.;
         SurfData.dailyQh = 0.; SurfData.dailyQlw = 0.;
         SurfData.dailyInflow = 0.; SurfData.dailySnow = 0.;
         SurfData.dailyOutflow = 0.; SurfData.dailyOverflow = 0.;
-        SurfData.albedo = 1.; SurfData.dailyzonL = 0.;
-        SurfData.dailyRunoff = 0.;
+        SurfData.dailyzonL = 0.; SurfData.dailyRunoff = 0.;
+        SurfData.albedo = 1.;
 
+        //# Read & set today's inflow properties
         read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, Elev, WQNew);
 //      read_daily_gw(jday, gw_mode, GWFlNew);
         read_daily_evap(jday, &DailyEvap);
         f_evap_ts_prop = DailyEvap / (noSecs * Lake[surfLayer].LayerArea);
         //# Averaging of flows
-        //# To get daily outflow (i.e. m3/day) times by the seconds in the current day
+        //# To get daily inflow (i.e. m3/day) times by SecsPerDay
         //# (stoptime - startTOD) allow for partial dates at the the beginning and end of
         //# simulation
         for (i = 0; i < NumInf; i++) {
@@ -310,34 +330,25 @@ void do_model(int jstart, int nsave)
             Inflows[i].TemInf   = (TempOld[i] + TempNew[i]) / 2.0;
             Inflows[i].SalInf   = (SaltOld[i] + SaltNew[i]) / 2.0;
             Inflows[i].SubmElev = Elev[i];
-            for (j = 0; j < Num_WQ_Vars; j++)
+            for (j = 0; j < Num_WQ_Vars; j++) {
                 Inflows[i].WQInf[j] = (WQ_INF_(WQOld,i, j) + WQ_INF_(WQNew, i, j)) / 2.0;
-
+            }
             wq_inflow_update(Inflows[i].WQInf, &Num_WQ_Vars, &Inflows[i].TemInf, &Inflows[i].SalInf);
         }
 
+        //# Read & set today's outflow properties
         read_daily_outflow(jday, NumOut, DrawNew);
-        //# To get daily inflow (i.e. m3/day) times by SecsPerDay
+        //# To get daily outflow (i.e. m3/day) times by the seconds in the current day
         for (i = 0; i < NumOut; i++)
             Outflows[i].Draw = (DrawOld[i] + DrawNew[i]) / 2.0 * (stoptime - startTOD) ;
 
         read_daily_withdraw_temp(jday, &WithdrTempNew);
         WithdrawalTemp = (WithdrTempOld + WithdrTempNew) / 2.0;
 
-        //# Read & set today's outflow properties
-        SurfData.dailyInflow = do_inflows(); //# Do inflow for all streams
-
-        //# Extract withdrawal from all offtakes
-        SurfData.dailyOutflow = do_outflows(jday);
-
-        //# Take care of any overflow
-        SurfData.dailyOverflow = do_overflow(jday);
-
-        check_layer_thickness();
-
         read_daily_kw(jday, &DailyKw);
         for (i = 0; i < MaxLayers; i++) Lake[i].ExtcCoefSW = DailyKw;
 
+        //# Read & set today's meteorological data
         if (jday != jstart) read_daily_met(jday, &MetNew);
         if ( !subdaily ) {
             MetData.Rain =        (MetOld.Rain + MetNew.Rain) / 2.0;
@@ -357,13 +368,13 @@ void do_model(int jstart, int nsave)
         }
         SWnew = MetNew.ShortWave;
 
-        //# Now enter into sub-daily calculations            ------>
+        //# Now enter into sub-daily calculations
 
         stepnum = do_subdaily_loop(stepnum, jday, stoptime, nsave, SWold, SWnew);
 
-        //# End of forcing-mixing-diffusion loop             ------>
+        //# End of forcing-mixing-diffusion loop
 
-        //# Read & set today's outflow properties
+        //# Insert inflows for all streams
         SurfData.dailyInflow = do_inflows(); //# Do inflow for all streams
 
         //# Extract withdrawal from all offtakes
@@ -393,9 +404,9 @@ void do_model(int jstart, int nsave)
 
         }
 
-        /*--------------------------------------------------------------------*
+        /**********************************************************************
          * End of daily calculations, Prepare for next day and return.        *
-         *--------------------------------------------------------------------*/
+         **********************************************************************/
         for (i = 0; i < NumInf; i++) {
             FlowOld[i] = FlowNew[i];
             TempOld[i] = TempNew[i];
@@ -447,14 +458,15 @@ void do_model_non_avg(int jstart, int nsave)
     /*------------------------------------------------------------------------*/
     memset(WQNew, 0, sizeof(AED_REAL)*MaxInf*MaxVars);
 
-
     /**************************** Start Simulation ****************************/
     fputs("\n     Simulation begins...\n", stdout);
 
-    ntot = 0; stepnum = 0; stoptime = iSecsPerDay; SWold = 0.;
+    ntot = 0;
+    stepnum = 0;
+    stoptime = iSecsPerDay;
+    SWold = 0.;
 
     jday = jstart - 1;
-
     /**************************************************************************
      * Loop over all days                                                     *
      **************************************************************************/
@@ -463,8 +475,8 @@ void do_model_non_avg(int jstart, int nsave)
         jday++;
 
         //# If it is the last day, adjust the stop time for the day if necessary
-        if(ntot == nDates) stoptime = stopTOD;
-        if(stoptime == 0) break;
+        if (ntot == nDates) stoptime = stopTOD;
+        if (stoptime == 0) break;
 
         //# Initialise daily values for volume & heat balance reporting (lake.csv)
         SurfData.dailyRain    = 0.; SurfData.dailyEvap     = 0.;
@@ -512,21 +524,21 @@ void do_model_non_avg(int jstart, int nsave)
         read_daily_met(jday, &MetData);
         SWnew = MetData.ShortWave;
 
-        //# Now enter into sub-daily calculations            ------>
+        //# Now enter into sub-daily calculations
 
         stepnum = do_subdaily_loop(stepnum, jday, stoptime, nsave, SWold, SWnew);
 
-        //# End of forcing-mixing-diffusion loop             ------>
+        //# End of forcing-mixing-diffusion loop
 
          //# Insert inflows for all streams
         SurfData.dailyInflow = do_inflows();
 
-        if(Lake[surfLayer].Vol1>zero) {
-          //# Extract withdrawal from all offtakes
-          SurfData.dailyOutflow = do_outflows(jday);
+        if (Lake[surfLayer].Vol1 > zero) {
+            //# Extract withdrawal from all offtakes
+            SurfData.dailyOutflow = do_outflows(jday);
 
-          //# Take care of any overflow
-          SurfData.dailyOverflow = do_overflow(jday);
+            //# Take care of any overflow
+            SurfData.dailyOverflow = do_overflow(jday);
         }
 
         //# Enforce layer limits
@@ -535,8 +547,7 @@ void do_model_non_avg(int jstart, int nsave)
         // # Write output on last time step within a day
         // # after including the inflow and outflows.
         // # Output is not written on the last time step in a daily in the subdaily loop
-        if ( stepnum == write_step){
-
+        if (stepnum == write_step) {
 #if PLOTS
             today = jday;
 #endif
@@ -547,11 +558,10 @@ void do_model_non_avg(int jstart, int nsave)
             plotstep++;
             today = -1;
 #endif
-
         }
 
-        /***********************************************************************
-         * End of daily calculations, Prepare for next day and return.         *
+        /**********************************************************************
+         * End of daily calculations, Prepare for next day and return.        *
          **********************************************************************/
         SWold = SWnew;
 
@@ -587,25 +597,22 @@ void do_model_coupled(int step_start, int step_end,
     *           look into that later ....                                     *
     ***************************************************************************/
     AED_REAL WQNew[MaxInf * MaxVars];
-
     int jday, ntot, stepnum, stoptime, cDays;
-
     int i, j;
 
-/*----------------------------------------------------------------------------*/
+    /*------------------------------------------------------------------------*/
     memset(WQNew, 0, sizeof(AED_REAL)*MaxInf*MaxVars);
 
     /**************************** Start Simulation ****************************/
-    fputs("     Simulation begins...\n", stdout);
+    fputs("\n     Simulation begins...\n", stdout);
 
     ntot = 0;
     stepnum = 0;
     stoptime = iSecsPerDay;
     SWold = 0.;
 
-    jday = step_start - 1;
     cDays = step_end - step_start + 1;
-
+    jday = step_start - 1;
     /**************************************************************************
      * Loop over all days                                                     *
      **************************************************************************/
@@ -614,18 +621,19 @@ void do_model_coupled(int step_start, int step_end,
         jday++;
 
         //# If it is the last day, adjust the stop time for the day if necessary
-        if(ntot == nDates) stoptime = stopTOD;
-        if(stoptime == 0) break;
+        if (ntot == nDates) stoptime = stopTOD;
+        if (stoptime == 0) break;
 
-        //# Initialise daily values for volume and heat balance output
+        //# Initialise daily values for volume & heat balance reporting (lake.csv)
         SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
         SurfData.dailyQsw = 0.; SurfData.dailyQe = 0.;
         SurfData.dailyQh = 0.; SurfData.dailyQlw = 0.;
         SurfData.dailyInflow = 0.; SurfData.dailySnow = 0.;
         SurfData.dailyOutflow = 0.; SurfData.dailyOverflow = 0.;
-        SurfData.albedo = 1.; SurfData.dailyzonL = 0.;
-        SurfData.dailyRunoff = 0.;
+        SurfData.dailyzonL = 0.; SurfData.dailyRunoff = 0.;
+        SurfData.albedo = 1.;
 
+        //# Read & set today's inflow properties
     //  read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, WQNew);
         //# Set to today's inflow
         //# To get daily outflow (i.e. m3/day) times by the seconds in the current day
@@ -635,9 +643,9 @@ void do_model_coupled(int step_start, int step_end,
             Inflows[i].FlowRate = FlowNew[i] * (stoptime - startTOD);
 //          Inflows[i].TemInf   = TempNew[i];
 //          Inflows[i].SalInf   = SaltNew[i];
-            for (j = 0; j < Num_WQ_Vars; j++)
+            for (j = 0; j < Num_WQ_Vars; j++) {
                 Inflows[i].WQInf[j] = WQ_INF_(WQNew, i, j);
-
+            }
             wq_inflow_update(Inflows[i].WQInf, &Num_WQ_Vars, &Inflows[i].TemInf, &Inflows[i].SalInf);
         }
 
@@ -649,15 +657,16 @@ void do_model_coupled(int step_start, int step_end,
     //  read_daily_withdraw_temp(jday, &WithdrTempNew);
     //  WithdrawalTemp = WithdrTempNew;
 
+        //# Read & set today's Kw (if it is being read in)
         read_daily_kw(jday, &DailyKw);
         for (i = 0; i < MaxLayers; i++) Lake[i].ExtcCoefSW = DailyKw;
 
+        //# Read & set today's meteorological data
         read_daily_met(jday, &MetData);
         SWnew = MetData.ShortWave;
 
-//#if DEBUG
-//        fprintf(stderr, "------- next day - do_model_coupled -------\n");
-//#endif
+        //# Now enter into sub-daily calculations
+
         stepnum = do_subdaily_loop(stepnum, jday, stoptime, nsave, SWold, SWnew);
 
         //# End of forcing-mixing-diffusion loop
@@ -665,12 +674,12 @@ void do_model_coupled(int step_start, int step_end,
          //# Insert inflows for all streams
         SurfData.dailyInflow = do_inflows();
 
-        if(Lake[surfLayer].Vol1>zero) {
-          //# Extract withdrawal from all offtakes
-          SurfData.dailyOutflow = do_outflows(jday);
+        if (Lake[surfLayer].Vol1 > zero) {
+            //# Extract withdrawal from all offtakes
+            SurfData.dailyOutflow = do_outflows(jday);
 
-          //# Take care of any overflow
-          SurfData.dailyOverflow = do_overflow(jday);
+            //# Take care of any overflow
+            SurfData.dailyOverflow = do_overflow(jday);
         }
 
         //# Enforce layer limits
@@ -679,8 +688,7 @@ void do_model_coupled(int step_start, int step_end,
         // # Write output on last time step within a day
         // # after including the inflow and outflows.
         // # Output is not written on the last time step in a daily in the subdaily loop
-        if ( stepnum == write_step){
-
+        if (stepnum == write_step) {
 #if PLOTS
             today = jday;
 #endif
@@ -691,10 +699,7 @@ void do_model_coupled(int step_start, int step_end,
             plotstep++;
             today = -1;
 #endif
-
         }
-
-
 
         /**********************************************************************
          * End of daily calculations, Prepare for next day and return.        *
@@ -718,30 +723,6 @@ void do_model_coupled(int step_start, int step_end,
     /*----------########### End of main daily loop ################-----------*/
 
     *elevation = Lake[surfLayer].Height;
-}
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
-
-/******************************************************************************
- *                                                                            *
- ******************************************************************************/
-void calc_mass_temp(const char *msg)
-{
-    AED_REAL Lake_Mass; //# Total mass of lake [kg]
-    AED_REAL Lake_Temp; //# Mass averaged lake temperature [oC]
-    int i;
-
-    Lake_Mass = zero;
-    for (i = surfLayer; i >= botmLayer; i-- )
-        Lake_Mass += Lake[i].Density * Lake[i].LayerVol;
-
-    Lake_Temp = zero;
-    for (i = surfLayer; i >= botmLayer; i-- )
-        Lake_Temp += Lake[i].Temp * Lake[i].Density * Lake[i].LayerVol;
-    Lake_Temp = Lake_Temp / Lake_Mass;
-
-    if ( quiet < 5)
-        printf("     %s Lake_Mass = %10.5f\t, Lake_Temp = %10.5f\n", msg, Lake_Mass/1e6, Lake_Temp);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -790,7 +771,6 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
         //# Thermal transfers are done by do_surface_thermodynamics
         do_surface_thermodynamics(jday, iclock, lw_ind, Latitude, SWold, SWnew);
 
-
         //# Save surface light to use at end of sub-daily time loop
         Light_Surface = Lake[surfLayer].Light/0.45;
 
@@ -804,7 +784,6 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
         check_layer_thickness();
 
         fix_radiation(Light_Surface);
-
 
         if ( surface_mixing > -1 ){
              check_layer_stability();
@@ -824,7 +803,6 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
 
             //# Check mixed layers for volume
             check_layer_thickness();
-
         }
         fix_radiation(Light_Surface);
 
