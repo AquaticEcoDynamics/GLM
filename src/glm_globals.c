@@ -244,6 +244,7 @@ CLOGICAL littoral_sw        = FALSE;
 // PARTICLE TRANSPORT MODEL
 ParticleDataType *Particle = NULL;
 AED_REAL settling_velocity = 0.;
+int init_particle_num = 10;
 
 
 //------------------------------------------------------------------------------

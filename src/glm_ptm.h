@@ -46,6 +46,7 @@ void ptm_update_layerid(void);
 // void ptm_destroyparticles()
 // void ptm_restart()
 extern int ptm_sw;
-
+extern AED_REAL settling_velocity;
+extern int init_particle_num;
 
 #endif
