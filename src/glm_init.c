@@ -1406,12 +1406,14 @@ void create_lake(int namlst)
     Nmorph = ( ( H[bsn_vals-1] * MphInc ) + 1.0 / 1000.0 ) + 10;
 
     allocate_storage();
+    
+
 
     CrestHeight = crest_elev - Base;
     MaxHeight = max_elev - Base;
     LenAtCrest = bsn_len;
     WidAtCrest = bsn_wid;
-
+    
     alpha_b = calloc(MaxLayers, sizeof(AED_REAL));
     beta_b = calloc(MaxLayers, sizeof(AED_REAL));
 
@@ -1722,7 +1724,6 @@ void initialise_lake(int namlst)
         for (i = 0; i < NumLayers; i++)
           Lake[i].Epsilon = coef_mix_hyp;
     }
-
 
     AvgSurfTemp = avg_surf_temp;
 

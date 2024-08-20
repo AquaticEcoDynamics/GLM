@@ -108,6 +108,8 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
 int startTOD = 0;
 int stopTOD = 0;
 int nDates = 1;
+int write_step;
+int last_step;
 
 
 /******************************************************************************
@@ -285,6 +287,7 @@ void do_model(int jstart, int nsave)
 
         //# If it is the last day, adjust the stop time for the day if necessary
         if (ntot == nDates) stoptime = stopTOD;
+        if(stoptime == 0) break;
 
         //# Initialise daily values for volume and heat balance output
         SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
@@ -361,7 +364,35 @@ void do_model(int jstart, int nsave)
 
         //# End of forcing-mixing-diffusion loop             ------>
 
+        //# Read & set today's outflow properties
+        SurfData.dailyInflow = do_inflows(); //# Do inflow for all streams
+
+        //# Extract withdrawal from all offtakes
+        SurfData.dailyOutflow = do_outflows(jday);
+
+        //# Take care of any overflow
+        SurfData.dailyOverflow = do_overflow(jday);
+        
+        //# Enforce layer limits
         check_layer_thickness();
+        
+        // # Write output on last time step within a day 
+        // # after including the inflow and outflows.
+        // # Output is not written on the last time step in a daily in the subdaily loop
+        if ( stepnum == write_step){
+       
+#if PLOTS
+            today = jday;
+#endif
+            write_output(jday, SecsPerDay, nsave, stepnum);
+            write_step += nsave;
+            if ( write_step > last_step ) write_step = last_step;
+#if PLOTS
+            plotstep++;
+            today = -1;
+#endif
+        
+        }
 
         /*--------------------------------------------------------------------*
          * End of daily calculations, Prepare for next day and return.        *
@@ -434,6 +465,7 @@ void do_model_non_avg(int jstart, int nsave)
 
         //# If it is the last day, adjust the stop time for the day if necessary
         if(ntot == nDates) stoptime = stopTOD;
+        if(stoptime == 0) break;
 
         //# Initialise daily values for volume & heat balance reporting (lake.csv)
         SurfData.dailyRain    = 0.; SurfData.dailyEvap     = 0.;
@@ -472,21 +504,7 @@ void do_model_non_avg(int jstart, int nsave)
 
         read_daily_withdraw_temp(jday, &WithdrTempNew);
         WithdrawalTemp = WithdrTempNew;
-
-        //# Insert inflows for all streams
-        SurfData.dailyInflow = do_inflows();
-
-        if(Lake[surfLayer].Vol1>zero) {
-          //# Extract withdrawal from all offtakes
-          SurfData.dailyOutflow = do_outflows(jday);
-
-          //# Take care of any overflow
-          SurfData.dailyOverflow = do_overflow(jday);
-        }
-
-        //# Enforce layer limits
-        check_layer_thickness();
-
+        
         //# Read & set today's Kw (if it is being read in)
         read_daily_kw(jday, &DailyKw);
         for (i = 0; i < MaxLayers; i++) Lake[i].ExtcCoefSW = DailyKw;
@@ -496,12 +514,43 @@ void do_model_non_avg(int jstart, int nsave)
         SWnew = MetData.ShortWave;
 
         //# Now enter into sub-daily calculations            ------>
-
+                
         stepnum = do_subdaily_loop(stepnum, jday, stoptime, nsave, SWold, SWnew);
 
         //# End of forcing-mixing-diffusion loop             ------>
+        
+         //# Insert inflows for all streams
+        SurfData.dailyInflow = do_inflows();
+        
+        if(Lake[surfLayer].Vol1>zero) {
+          //# Extract withdrawal from all offtakes
+          SurfData.dailyOutflow = do_outflows(jday);
 
-
+          //# Take care of any overflow
+          SurfData.dailyOverflow = do_overflow(jday);
+        }
+        
+        //# Enforce layer limits
+        check_layer_thickness();
+        
+        // # Write output on last time step within a day 
+        // # after including the inflow and outflows.
+        // # Output is not written on the last time step in a daily in the subdaily loop
+        if ( stepnum == write_step){
+       
+#if PLOTS
+            today = jday;
+#endif
+            write_output(jday, SecsPerDay, nsave, stepnum);
+            write_step += nsave;
+            if ( write_step > last_step ) write_step = last_step;
+#if PLOTS
+            plotstep++;
+            today = -1;
+#endif
+        
+        }
+                
         /***********************************************************************
          * End of daily calculations, Prepare for next day and return.         *
          **********************************************************************/
@@ -567,6 +616,7 @@ void do_model_coupled(int step_start, int step_end,
 
         //# If it is the last day, adjust the stop time for the day if necessary
         if(ntot == nDates) stoptime = stopTOD;
+        if(stoptime == 0) break;
 
         //# Initialise daily values for volume and heat balance output
         SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
@@ -600,18 +650,6 @@ void do_model_coupled(int step_start, int step_end,
     //  read_daily_withdraw_temp(jday, &WithdrTempNew);
     //  WithdrawalTemp = WithdrTempNew;
 
-        SurfData.dailyInflow = do_inflows(); //# Do inflow for all streams
-
-        if (Lake[surfLayer].Vol1 > zero) {
-            //# Do withdrawal for all offtakes
-            SurfData.dailyOutflow = do_outflows(jday);
-
-            //# Take care of any overflow
-            SurfData.dailyOverflow = do_overflow(jday);
-        }
-
-        check_layer_thickness();
-
         read_daily_kw(jday, &DailyKw);
         for (i = 0; i < MaxLayers; i++) Lake[i].ExtcCoefSW = DailyKw;
 
@@ -625,7 +663,39 @@ void do_model_coupled(int step_start, int step_end,
 
         //# End of forcing-mixing-diffusion loop
 
+         //# Insert inflows for all streams
+        SurfData.dailyInflow = do_inflows();
+        
+        if(Lake[surfLayer].Vol1>zero) {
+          //# Extract withdrawal from all offtakes
+          SurfData.dailyOutflow = do_outflows(jday);
+
+          //# Take care of any overflow
+          SurfData.dailyOverflow = do_overflow(jday);
+        }
+        
+        //# Enforce layer limits
         check_layer_thickness();
+        
+        // # Write output on last time step within a day 
+        // # after including the inflow and outflows.
+        // # Output is not written on the last time step in a daily in the subdaily loop
+        if ( stepnum == write_step){
+       
+#if PLOTS
+            today = jday;
+#endif
+            write_output(jday, SecsPerDay, nsave, stepnum);
+            write_step += nsave;
+            if ( write_step > last_step ) write_step = last_step;
+#if PLOTS
+            plotstep++;
+            today = -1;
+#endif
+        
+        }
+                
+        
 
         /**********************************************************************
          * End of daily calculations, Prepare for next day and return.        *
@@ -684,7 +754,6 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
 {
     int iclock;  //# The seconds counter during a day
     AED_REAL Light_Surface; //# Light at the surface of the lake after do_surface
-    int write_step, last_step;
     AED_REAL part_day_per_step;
 
     yearday = day_of_year(jday);
@@ -718,27 +787,26 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
 
         stepnum++;
         _dbg_time(jday, iclock);
-
-//fprintf(stderr, "Lake[surfLayer].Height = %f\n", Lake[surfLayer].Height);
-
+        
         //# Thermal transfers are done by do_surface_thermodynamics
         do_surface_thermodynamics(jday, iclock, lw_ind, Latitude, SWold, SWnew);
+        
 
-//fprintf(stderr, "Lake[surfLayer].Height = %f\n", Lake[surfLayer].Height);
-//exit(0);
         //# Save surface light to use at end of sub-daily time loop
         Light_Surface = Lake[surfLayer].Light/0.45;
 
         //# Mixing is done by do_mixing
         if ( surface_mixing > 0 )
             do_mixing();
-
+            
 //      calc_mass_temp("After do_mixing");
 
         //# Mix out instabilities, combine/split  layers
         check_layer_thickness();
+        
         fix_radiation(Light_Surface);
-
+        
+                
         if ( surface_mixing > -1 ){
              check_layer_stability();
              fix_radiation(Light_Surface);
@@ -754,19 +822,20 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
             //# Do deep mixing integrations
             //# If reservoir is mixed (NumLayers<3) then skip deep mixing
             if (NumLayers > 3) do_deep_mixing();
-
+            
             //# Check mixed layers for volume
             check_layer_thickness();
+            
         }
         fix_radiation(Light_Surface);
-
+        
         //# Calculate the percent benthic area where the light level is greater
         //# than the minimum level required for production
         Benthic_Light_pcArea += calc_benthic_light();
-
+        
         calc_layer_stress(MetData.WindSpeed,
                       sqrt( (Lake[surfLayer].LayerArea)/Pi ) * 2 );
-
+                      
         /**********************************************************************
          *## Start PTM calls                                                  *
          **********************************************************************/
@@ -776,12 +845,16 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
          *## Start Water Quality calls                                        *
          **********************************************************************/
         if (wq_calc) wq_do_glm(&NumLayers, &ice);
-
-        if ( stepnum == write_step ) {
+        
+        //# If an output write is requested for the last time step of the day
+        //# then do not output in the subdaily.  Output writing is moved to the
+        //# daily loop so it occurs after the inflow and output calculations.
+        
+        if ( stepnum == write_step & (iclock +  noSecs) != SecsPerDay) {
+        
 #if PLOTS
             today = jday;
 #endif
-//          printf("writing at stepnum %d\n",stepnum);
             write_output(jday, iclock, nsave, stepnum);
             write_step += nsave;
             if ( write_step > last_step ) write_step = last_step;
