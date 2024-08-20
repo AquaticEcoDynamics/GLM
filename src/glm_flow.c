@@ -491,8 +491,8 @@ AED_REAL do_overflow(int jday)
     AED_REAL overflow = 0.;
 
     // Too much water for the entire lake domain, remove this first
-    
-    
+
+
     if (VolSum > MaxVol){
         do_single_outflow((CrestHeight+(MaxHeight-CrestHeight)*0.9), (VolSum - MaxVol), NULL);
         overflow = VolSum - Lake[surfLayer].Vol1;
