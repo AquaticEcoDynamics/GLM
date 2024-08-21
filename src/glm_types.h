@@ -256,15 +256,15 @@ typedef char filname[80];
    /*===========================================================*/
    // Structured type for Particle Transport Model (PTM)
    typedef struct ParticleDataType {
-       int Status;          // indivdual particle status
+       int Status;          // indivdual particle status (0 = dead, 1 = alive)
        int Flag;            // indivdual particle flag indicating BED (1), SCUM (2), or neither (0)
-       AED_REAL Height;
-       AED_REAL Mass;
-       AED_REAL Diam;
-       AED_REAL Density;
-       AED_REAL Velocity;
-       AED_REAL vvel;
-       int      Layer;
+       AED_REAL Height;     // height of particle (m)
+       AED_REAL Mass;       // mass of particle
+       AED_REAL Diam;       // diameter of particle
+       AED_REAL Density;    // density of particle
+       AED_REAL Velocity;   // velocity of particle
+       AED_REAL vvel;       // vertical velocity of particle (m/day)
+       int      Layer;      // layer of particle
    } ParticleDataType;
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif

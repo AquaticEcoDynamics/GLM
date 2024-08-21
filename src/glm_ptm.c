@@ -63,7 +63,12 @@ AED_REAL init_depth_min=0.0;
 AED_REAL init_depth_max=2.0;
 AED_REAL ptm_time_step=1/60;
 AED_REAL ptm_diffusivity=1e-6;
+<<<<<<< HEAD
 AED_REAL settling_velocity=0.;
+=======
+AED_REAL settling_velocity;
+AED_REAL settling_efficiency;
+>>>>>>> settling on flanks and epsilon
 
 // VARIABLES
 int ptm_sw = FALSE;
@@ -136,10 +141,9 @@ void ptm_init_glm()
 void do_ptm_update()
 {
 //LOCALS
-    int p, tt;
-    int sub_steps;
-
+    int p, tt, z, ij1, ij2, sub_steps;
     AED_REAL dt;
+    float rand_float, prob, prev_height, x1, x2, y1, y2, a1, a2;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
@@ -157,18 +161,68 @@ void do_ptm_update()
     for (tt = 1; tt < sub_steps; tt++) {
         for (p = 0; p < num_particles; p++) {
           if (Particle[p].Status>0) {
+            // Capture current height of particle to calculate probability of settling below
+            prev_height = Particle[p].Height;
+
             // Update particle position based on diffusivity and vert velocity
             Particle[p].Flag= WATER;  
             Particle[p].Height = random_walk(dt,Particle[p].Height, Lake[Particle[p].Layer].Epsilon,Particle[p].vvel);
+            //fprintf(stderr, "  p   = %i\n", p);
+            //fprintf(stderr, "  Particle[p].Layer   = %i\n", Particle[p].Layer);
+            //fprintf(stderr, "  Lake[Particle[p].Layer].Epsilon   = %f\n", Lake[Particle[p].Layer].Epsilon);
 
-            // Check if status change due to hitting bed, or surface
-            if(Particle[p].Height<0){
-                Particle[p].Status=BED ;                        // Maybe forming a bed layer
-                Particle[p].Height=0.0 ; 
+
+            if(prev_height > Particle[p].Height){
+
+                // Get area at previous particle height
+                x1 = prev_height * 10.0;
+                y1 = x1 - (int)(x1 / 1.0) * 1.0;
+                ij1 = (int)(x1 - y1) - 1;
+                if(ij1 > Nmorph){
+                    y1 = y1 + (float)(ij1 - Nmorph);
+                    ij1 = Nmorph - 1;
+                }
+                a1 = MphLevelArea[ij1] + y1 * dMphLevelArea[ij1];
+
+                // Get area at depth of current particle height
+                x2 = Particle[p].Height * 10.0;
+                y2 = x2 - (int)(x2 / 1.0) * 1.0;
+                ij2 = (int)(x2 - y2) - 1;
+                if(ij2 > Nmorph){
+                    y2 = y2 + (float)(ij2 - Nmorph);
+                    ij2 = Nmorph - 1;
+                }
+                a2 = MphLevelArea[ij2] + y2 * dMphLevelArea[ij2];
+
+                // Calculate proportional difference between two areas
+                prob = (a1 - a2) / a1 * settling_efficiency;
+
+                // Bernoulli draw to determine if particle should be assigned as BED
+                rand_float = ((float)rand())/RAND_MAX;
+                if(rand_float < prob || Particle[p].Height < 0.02){
+                    Particle[p].Flag= BED; 
+                    if(Particle[p].Height<0.0){
+                        Particle[p].Height=0.0;
+                    }                      
+                    if(sed_deactivation){
+                        Particle[p].Status = 0;
+                    }
+                }
             }
+            
+            // Determine if particle should be assigned as SCUM
             if(Particle[p].Height>Lake[surfLayer].Height){
                 Particle[p].Flag= SCUM;                      // Maybe forming a scum layer
                 Particle[p].Height=Lake[surfLayer].Height;
+            }
+
+            if(Particle[p].Flag == BED){
+                fprintf(stderr, "  previous height of bed-flagged particle   = %f\n", prev_height);
+                fprintf(stderr, "  height of bed-flagged particle   = %f\n", Particle[p].Height);
+                fprintf(stderr, "  area at previous height   = %f\n", a1);
+                fprintf(stderr, "  area at new height   = %f\n", a2);
+                fprintf(stderr, "  prob   = %f\n", prob);
+                fprintf(stderr, "  rand_float   = %f\n", rand_float);
             }
           }
         }
@@ -343,7 +397,16 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vv
 
     random_float = -1+2*((float)rand())/RAND_MAX;            // random draw from uniform distribution [-1,1]
 
+<<<<<<< HEAD
     updated_height = Height + K_prime_z * Height * del_t + random_float *
+=======
+    // determine whether to use epsilon or K
+    if(Epsilon > 1E-6){
+        K = Epsilon;
+    }
+
+    updated_height = Height + K_prime_z * Height * del_t + random_float * 
+>>>>>>> settling on flanks and epsilon
     sqrt((2 * K * (Height + 0.5 * K_prime_z * Height * del_t) * del_t) / (1.0/3)); // random walk
 
     updated_height = updated_height + vvel;                   // account for sinking/floating
