@@ -49,5 +49,6 @@ extern int ptm_sw;
 extern AED_REAL settling_velocity;
 extern int init_particle_num;
 extern int sed_deactivation;
+extern AED_REAL settling_efficiency;
 
 #endif

@@ -297,6 +297,7 @@ extern CLOGICAL littoral_sw;
 extern ParticleDataType *Particle;
 extern AED_REAL settling_velocity;
 extern int init_particle_num;
+extern AED_REAL settling_efficiency;
 
 
 

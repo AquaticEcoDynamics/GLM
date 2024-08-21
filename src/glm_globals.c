@@ -245,6 +245,7 @@ CLOGICAL littoral_sw        = FALSE;
 ParticleDataType *Particle = NULL;
 AED_REAL settling_velocity = 0.;
 int init_particle_num = 10;
+AED_REAL settling_efficiency = 1.;
 
 
 //------------------------------------------------------------------------------
