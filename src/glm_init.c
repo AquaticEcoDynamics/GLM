@@ -1569,7 +1569,7 @@ void initialise_lake(int namlst)
             Lake[i].Salinity = the_sals[i];
         }
 
-        if (the_heights[num_heights-1] > CrestHeight) {
+        if (the_heights[num_heights-1] > CrestHeight && restart_variables == NULL) {
             fprintf(stderr, "     ERROR: maximum height is greater than crest level\n");
             exit(1);
         }
