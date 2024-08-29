@@ -482,7 +482,7 @@ AED_REAL do_outflows(int jday)
  * level.  Add in stack volumes when calculating overflow.                    *
  * After overflow, delete stack volumes from the structure.                   *
  ******************************************************************************/
-AED_REAL do_overflow(int jday)
+AED_REAL do_overflow(int jday, int startTOD, int stoptime)
 {
     AED_REAL VolSum = Lake[surfLayer].Vol1;
     AED_REAL DrawHeight = 0.;
@@ -501,7 +501,7 @@ AED_REAL do_overflow(int jday)
         AED_REAL ovfl_Q, ovfl_dz;
 
         ovfl_dz = MAX( Lake[surfLayer].Height - CrestHeight, zero );
-        ovfl_Q = 2./3. * crest_factor * pow(2*g,0.5) * crest_width * pow(ovfl_dz,1.5);
+        ovfl_Q = 2./3. * crest_factor * pow(2*g,0.5) * crest_width * pow(ovfl_dz,1.5) * (stoptime - startTOD);
         ovfl_Q  = MIN( (VolSum - VolAtCrest) , ovfl_Q );
 
         do_single_outflow(CrestHeight, ovfl_Q , NULL);
