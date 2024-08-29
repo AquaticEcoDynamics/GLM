@@ -32,8 +32,8 @@
 
 #include "glm.h"
 
-AED_REAL do_outflows(int jday);
-AED_REAL do_overflow(int jday);
+AED_REAL do_outflows(int jday, AED_REAL day_fraction);
+AED_REAL do_overflow(int jday, AED_REAL day_fraction);
 AED_REAL do_inflows(void);
 
 #endif
