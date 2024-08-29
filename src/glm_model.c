@@ -274,6 +274,7 @@ void do_model(int jstart, int nsave)
     AED_REAL Elev[MaxInf];
     int jday, ntot, stepnum, stoptime;
     int i, j;
+    AED_REAL day_fraction;
 
     /*------------------------------------------------------------------------*/
 
@@ -378,10 +379,11 @@ void do_model(int jstart, int nsave)
         SurfData.dailyInflow = do_inflows(); //# Do inflow for all streams
 
         //# Extract withdrawal from all offtakes
-        SurfData.dailyOutflow = do_outflows(jday);
+        day_fraction = (stoptime - startTOD) / iSecsPerDay;
+        SurfData.dailyOutflow = do_outflows(jday, day_fraction);
 
         //# Take care of any overflow
-        SurfData.dailyOverflow = do_overflow(jday);
+        SurfData.dailyOverflow = do_overflow(jday, day_fraction);
 
         //# Enforce layer limits
         check_layer_thickness();
@@ -447,6 +449,7 @@ void do_model_non_avg(int jstart, int nsave)
     AED_REAL SWold, SWnew, DailyKw, DailyEvap;
     int jday, ntot, stepnum, stoptime;
     int i, j;
+    AED_REAL day_fraction;
 
    /***************************************************************************
     *CAB Note: these WQ arrays should be sized to Num_WQ_Vars not MaxVars,    *
@@ -534,11 +537,12 @@ void do_model_non_avg(int jstart, int nsave)
         SurfData.dailyInflow = do_inflows();
 
         if (Lake[surfLayer].Vol1 > zero) {
-            //# Extract withdrawal from all offtakes
-            SurfData.dailyOutflow = do_outflows(jday);
+           //# Extract withdrawal from all offtakes
+           day_fraction = (stoptime - startTOD) / iSecsPerDay;
+           SurfData.dailyOutflow = do_outflows(jday, day_fraction);
 
-            //# Take care of any overflow
-            SurfData.dailyOverflow = do_overflow(jday);
+           //# Take care of any overflow
+           SurfData.dailyOverflow = do_overflow(jday, day_fraction);
         }
 
         //# Enforce layer limits
@@ -599,7 +603,8 @@ void do_model_coupled(int step_start, int step_end,
     AED_REAL WQNew[MaxInf * MaxVars];
     int jday, ntot, stepnum, stoptime, cDays;
     int i, j;
-
+    AED_REAL day_fraction;    
+        
     /*------------------------------------------------------------------------*/
     memset(WQNew, 0, sizeof(AED_REAL)*MaxInf*MaxVars);
 
@@ -675,11 +680,12 @@ void do_model_coupled(int step_start, int step_end,
         SurfData.dailyInflow = do_inflows();
 
         if (Lake[surfLayer].Vol1 > zero) {
-            //# Extract withdrawal from all offtakes
-            SurfData.dailyOutflow = do_outflows(jday);
+           //# Extract withdrawal from all offtakes
+           day_fraction = (stoptime - startTOD) / iSecsPerDay;
+           SurfData.dailyOutflow = do_outflows(jday, day_fraction);
 
-            //# Take care of any overflow
-            SurfData.dailyOverflow = do_overflow(jday);
+           //# Take care of any overflow
+           SurfData.dailyOverflow = do_overflow(jday, day_fraction);
         }
 
         //# Enforce layer limits
