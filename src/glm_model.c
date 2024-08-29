@@ -307,6 +307,7 @@ void do_model(int jstart, int nsave)
         //# If it is the last day, adjust the stop time for the day if necessary
         if (ntot == nDates) stoptime = stopTOD;
         if (stoptime == 0) break;
+        day_fraction = (stoptime - startTOD) / iSecsPerDay;
 
         //# Initialise daily values for volume & heat balance reporting (lake.csv)
         SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
@@ -327,7 +328,7 @@ void do_model(int jstart, int nsave)
         //# (stoptime - startTOD) allow for partial dates at the the beginning and end of
         //# simulation
         for (i = 0; i < NumInf; i++) {
-            Inflows[i].FlowRate = (FlowOld[i] + FlowNew[i]) / 2.0 * (stoptime - startTOD) ;
+            Inflows[i].FlowRate = (FlowOld[i] + FlowNew[i]) / 2.0 * day_fraction * iSecsPerDay;
             Inflows[i].TemInf   = (TempOld[i] + TempNew[i]) / 2.0;
             Inflows[i].SalInf   = (SaltOld[i] + SaltNew[i]) / 2.0;
             Inflows[i].SubmElev = Elev[i];
@@ -341,7 +342,7 @@ void do_model(int jstart, int nsave)
         read_daily_outflow(jday, NumOut, DrawNew);
         //# To get daily outflow (i.e. m3/day) times by the seconds in the current day
         for (i = 0; i < NumOut; i++)
-            Outflows[i].Draw = (DrawOld[i] + DrawNew[i]) / 2.0 * (stoptime - startTOD) ;
+            Outflows[i].Draw = (DrawOld[i] + DrawNew[i]) / 2.0 * day_fraction * iSecsPerDay ;
 
         read_daily_withdraw_temp(jday, &WithdrTempNew);
         WithdrawalTemp = (WithdrTempOld + WithdrTempNew) / 2.0;
@@ -379,7 +380,6 @@ void do_model(int jstart, int nsave)
         SurfData.dailyInflow = do_inflows(); //# Do inflow for all streams
 
         //# Extract withdrawal from all offtakes
-        day_fraction = (stoptime - startTOD) / iSecsPerDay;
         SurfData.dailyOutflow = do_outflows(jday, day_fraction);
 
         //# Take care of any overflow
@@ -480,6 +480,7 @@ void do_model_non_avg(int jstart, int nsave)
         //# If it is the last day, adjust the stop time for the day if necessary
         if (ntot == nDates) stoptime = stopTOD;
         if (stoptime == 0) break;
+        day_fraction = (stoptime - startTOD) / iSecsPerDay;
 
         //# Initialise daily values for volume & heat balance reporting (lake.csv)
         SurfData.dailyRain    = 0.; SurfData.dailyEvap     = 0.;
@@ -498,7 +499,7 @@ void do_model_non_avg(int jstart, int nsave)
 
         //# To get daily inflow (i.e. m3/day) times by SecsPerDay
         for (i = 0; i < NumInf; i++) {
-            Inflows[i].FlowRate = FlowNew[i] * (stoptime - startTOD) ;
+            Inflows[i].FlowRate = FlowNew[i] * day_fraction * iSecsPerDay;
             Inflows[i].TemInf   = TempNew[i];
             Inflows[i].SalInf   = SaltNew[i];
             Inflows[i].SubmElev = Elev[i];
@@ -514,7 +515,7 @@ void do_model_non_avg(int jstart, int nsave)
         //# (stoptime - startTOD) allow for partial dates at the the beginning and end of
         //# simulation
         for (i = 0; i < NumOut; i++)
-            Outflows[i].Draw = DrawNew[i] * (stoptime - startTOD) ;
+            Outflows[i].Draw = DrawNew[i] * day_fraction * iSecsPerDay ;
 
         read_daily_withdraw_temp(jday, &WithdrTempNew);
         WithdrawalTemp = WithdrTempNew;
@@ -538,7 +539,6 @@ void do_model_non_avg(int jstart, int nsave)
 
         if (Lake[surfLayer].Vol1 > zero) {
            //# Extract withdrawal from all offtakes
-           day_fraction = (stoptime - startTOD) / iSecsPerDay;
            SurfData.dailyOutflow = do_outflows(jday, day_fraction);
 
            //# Take care of any overflow
@@ -628,6 +628,7 @@ void do_model_coupled(int step_start, int step_end,
         //# If it is the last day, adjust the stop time for the day if necessary
         if (ntot == nDates) stoptime = stopTOD;
         if (stoptime == 0) break;
+        day_fraction = (stoptime - startTOD) / iSecsPerDay;
 
         //# Initialise daily values for volume & heat balance reporting (lake.csv)
         SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
@@ -645,7 +646,7 @@ void do_model_coupled(int step_start, int step_end,
         //# (stoptime - startTOD) allow for partial dates at the the beginning and end of
         //# simulation
         for (i = 0; i < NumInf; i++) {
-            Inflows[i].FlowRate = FlowNew[i] * (stoptime - startTOD);
+            Inflows[i].FlowRate = FlowNew[i] * day_fraction * iSecsPerDay;
 //          Inflows[i].TemInf   = TempNew[i];
 //          Inflows[i].SalInf   = SaltNew[i];
             for (j = 0; j < Num_WQ_Vars; j++) {
@@ -657,7 +658,7 @@ void do_model_coupled(int step_start, int step_end,
     //  read_daily_outflow(jday, NumOut, DrawNew);
         //# To get daily outflow (i.e. m3/day) times by SecsPerDay
         for (i = 0; i < NumOut; i++)
-            Outflows[i].Draw = DrawNew[i] * (stoptime - startTOD);
+            Outflows[i].Draw = DrawNew[i] * day_fraction * iSecsPerDay;
 
     //  read_daily_withdraw_temp(jday, &WithdrTempNew);
     //  WithdrawalTemp = WithdrTempNew;
@@ -681,7 +682,6 @@ void do_model_coupled(int step_start, int step_end,
 
         if (Lake[surfLayer].Vol1 > zero) {
            //# Extract withdrawal from all offtakes
-           day_fraction = (stoptime - startTOD) / iSecsPerDay;
            SurfData.dailyOutflow = do_outflows(jday, day_fraction);
 
            //# Take care of any overflow
