@@ -1,0 +1,6 @@
+This should be in the v4alpha branch
+
+This includes the new api and particle tracking and a bunch of fixes
+Unfortunately, the new API only works properly when built with ifort, not gfortran
+
+

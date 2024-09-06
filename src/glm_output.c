@@ -85,7 +85,7 @@ void init_output(int jstart, const char *out_dir, const char *out_fn,
     extern int startTOD;
 
     if ( out_dir != NULL && stat(out_dir, &sb) ) {
-        fprintf(stderr, "Directory \"%s\" does not exist - attempting to create it ...\n", out_dir);
+        fprintf(stderr, "Directory \"%s\" does not exist - attempting to create it\n", out_dir);
         if ( mkdir(out_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) ) {
             fprintf(stderr, "mkdir failed\n");
             exit(1);
@@ -278,7 +278,6 @@ void write_output(int jday, int iclock, int nsave, int stepnum)
     if (ptm_sw)
         ptm_write_glm(ncid, num_particles);
 
-
     if (csv_point_nlevs > 0) {
         for (i = 0; i < csv_point_nlevs; i++) {
             if ( csv_point_depth_avg[i] )
@@ -429,7 +428,7 @@ void close_output()
 #ifdef PLOTS
     if ( do_plots ) {
         extern char *all_plots_name;
-        if ( saveall > 1 && all_plots_name ) {
+        if ( saveall && all_plots_name ) {
             save_all_plots_named(all_plots_name);
             saveall = 0;
         }

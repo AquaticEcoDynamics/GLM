@@ -30,8 +30,6 @@
 !#                                                                             #
 !###############################################################################
 
-#define _VOLUME_SCALING_ 0
-
 #undef MISVAL
 #ifndef _FORTRAN_SOURCE_
 #define _FORTRAN_SOURCE_ 1
@@ -56,18 +54,18 @@ MODULE glm_api_zones
 
    PRIVATE ! By default, make everything private
 
-!  TYPE(ZoneType),DIMENSION(:),POINTER :: theZones
-!  TYPE(LakeDataType),DIMENSION(:),POINTER :: theLake
-
    INTEGER :: nvars, nbenv
+
+   PUBLIC api_set_glm_zones
 
 CONTAINS
 
 !###############################################################################
-SUBROUTINE api_set_glm_zones(numVars, numBenV) BIND(C, name="api_set_glm_zones")
+SUBROUTINE api_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)           &
+                                               BIND(C, name="api_set_glm_zones")
 !-------------------------------------------------------------------------------
 !ARGUMENTS
-   CINTEGER,INTENT(in) :: numVars, numBenV
+   CINTEGER,INTENT(in) :: numVars, numBenV, numDiagV, numDiagHzV
 !
 !LOCALS
    INTEGER :: i
@@ -81,7 +79,7 @@ SUBROUTINE api_set_glm_zones(numVars, numBenV) BIND(C, name="api_set_glm_zones")
    nvars = numVars
    nbenv = numBenV
 
-   CALL wq_set_glm_zones(numVars, numBenV)
+   CALL wq_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)
 
    CALL aed_init_zones(n_zones, 1, z_cc, z_cc_hz, z_diag, z_diag_hz)
 
@@ -98,23 +96,20 @@ END SUBROUTINE api_set_glm_zones
 
 
 !###############################################################################
-SUBROUTINE api_calc_zone_areas(aedZones, n_zones, areas, wlev, surf)
+SUBROUTINE api_calc_zone_areas(aedZones, n_zones, areas, heights, wlev)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    TYPE(api_zone_t),DIMENSION(:),INTENT(inout) :: aedZones
    INTEGER,INTENT(in) :: n_zones
 !
-   AED_REAL,DIMENSION(:),INTENT(in) :: areas
+   AED_REAL,DIMENSION(:),POINTER,INTENT(in) :: areas
+   AED_REAL,DIMENSION(:),POINTER,INTENT(in) :: heights
    INTEGER,INTENT(in) :: wlev
-   AED_REAL :: surf
 !
 !LOCALS
    INTEGER  :: lev, zon
+   AED_REAL :: surf
    LOGICAL  :: w_zones
-#if _VOLUME_SCALING_
-   INTEGER  :: ij
-   AED_REAL :: x, y
-#endif
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -122,45 +117,13 @@ SUBROUTINE api_calc_zone_areas(aedZones, n_zones, areas, wlev, surf)
       aedZones(zon)%z_area = 0.  ; aedZones(zon)%z_pc_wet = 0.
    ENDDO
    w_zones = .FALSE.
-
-#if _VOLUME_SCALING_
-   DO zon=1, n_zones
-      x = aedZones(zon)%z_heights(1) * 10.0
-      y = AMOD(x, 1.0)
-      ij = INT(x - y)
-      IF (ij .GT. NMorph) THEN
-         y = y + FLOAT(ij - NMorph)
-         ij = NMorph
-      ENDIF
-
-      zvol(zon) = MphLevelVol(ij) + y * dMphLevelVol(ij)
-      aedZones(zon)%z_area = MphLevelArea(ij) + y * dMphLevelArea(ij)
-   ENDDO
+   surf = heights(wlev)
 
    zon = 1
+   aedZones(1)%z_area(1) = areas(1)
    DO lev=2, wlev
-      IF ( zz(lev) > aedZones(zon)%z_heights(1) ) zon = zon + 1
-
-      IF ( aedZones(zon)%z_heights(1) > surf ) THEN
-         IF (.NOT. w_zones ) THEN
-            w_zones = .TRUE.
-            IF ( zon > 1 ) THEN
-               aedZones(zon)%z_pc_wet = surf / (aedZones(zon)%z_heights(1) - aedZones(zon-1)%z_heights(1))
-            ELSE
-               aedZones(zon)%z_pc_wet = surf / aedZones(zon)%z_heights(1)
-            ENDIF
-         ENDIF
-      ELSE
-         aedZones(zon)%z_pc_wet = 1.0
-      ENDIF
-   ENDDO
-
-#else
-
-   zon = 1
-   aedZones(1)%z_area = areas(1)
-   DO lev=2, wlev
-      IF ( zz(lev) > aedZones(zon)%z_heights(1) ) zon = zon + 1
+!print*,"heights(",lev,") = ",heights(lev)," zheight(",zon,") = ",aedZones(zon)%z_heights(1)
+      IF ( heights(lev) > aedZones(zon)%z_heights(1) ) zon = zon + 1
 
       aedZones(zon)%z_area(1) = aedZones(zon)%z_area(1) + areas(lev) - areas(lev-1)
 
@@ -168,109 +131,35 @@ SUBROUTINE api_calc_zone_areas(aedZones, n_zones, areas, wlev, surf)
          IF (.NOT. w_zones) THEN
             w_zones = .TRUE.
             IF ( zon > 1 ) THEN
-               aedZones(zon)%z_pc_wet = surf / (aedZones(zon)%z_heights(1) - aedZones(zon-1)%z_heights(1))
+               aedZones(zon)%z_pc_wet(1) = surf / (aedZones(zon)%z_heights(1) - aedZones(zon-1)%z_heights(1))
             ELSE
-               aedZones(zon)%z_pc_wet = surf / aedZones(zon)%z_heights(1)
+               aedZones(zon)%z_pc_wet(1) = surf / aedZones(zon)%z_heights(1)
             ENDIF
          ENDIF
       ELSE
-         TheZones(zon)%z_pc_wet = 1.0
+         aedZones(zon)%z_pc_wet(1) = 1.0
       ENDIF
    ENDDO
 
-#endif
-
    DO zon=1, n_zones
-      aedZones(zon)%z_pres = -aedZones(zon)%z_heights(1)
+      aedZones(zon)%z_pres(1) = -aedZones(zon)%z_heights(1)
    ENDDO
 END SUBROUTINE api_calc_zone_areas
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 !###############################################################################
-SUBROUTINE api_copy_from_zone(aedZones, n_zones, x_cc, x_cc_hz, x_diag, x_diag_hz, wlev)
-!-------------------------------------------------------------------------------
-!ARGUMENTS
-   TYPE(api_zone_t),DIMENSION(:),INTENT(in) :: aedZones
-   INTEGER,INTENT(in) :: n_zones
-!
-   AED_REAL,DIMENSION(:,:),INTENT(inout) :: x_cc
-   AED_REAL,DIMENSION(:),INTENT(inout) :: x_cc_hz
-   AED_REAL,DIMENSION(:,:),INTENT(inout) :: x_diag
-   AED_REAL,DIMENSION(:),INTENT(inout) :: x_diag_hz
-   INTEGER,INTENT(in) :: wlev
-!
-!LOCALS
-   INTEGER  :: zon, lev, v_start, v_end
-   AED_REAL :: scale, area
-   LOGICAL  :: splitZone
-!
-!-------------------------------------------------------------------------------
-!BEGIN
-   v_start = nvars+1 ; v_end = nvars+nbenv
-
-! print*,'copy_from_zone - wlev = ', wlev, ' n_zones = ',n_zones
-   zon = n_zones
-   DO lev=wlev,1,-1
-      IF ( zon .GT. 1 ) THEN
-         IF (lev .GT. 1) THEN
-            splitZone = zz(lev-1) < aedZones(zon-1)%z_heights(1)
-         ELSE
-            splitZone = 0.0 < aedZones(zon-1)%z_heights(1)
-         ENDIF
-      ELSE
-         splitZone = .FALSE.
-      ENDIF
-
-! print*,'from lev = ',lev, 'zon = ',zon,'x_diag_hz(1) = ',x_diag_hz(1),' z_diag_hz(zon,1) = ',z_diag_hz(zon,1)
-      IF (splitZone) THEN
-         IF (lev .GT. 1) THEN
-            scale = (aedZones(zon-1)%z_heights(1) - zz(lev-1)) / (zz(lev) - zz(lev-1))
-         ELSE
-            scale = (aedZones(zon-1)%z_heights(1) - 0.0) / (zz(lev) - 0.0)
-         ENDIF
-
-         WHERE(aedZones(zon)%z_cc_diag(1,:) /= 0.) &
-            x_diag(lev,:) = aedZones(zon)%z_cc_diag(1,:) * scale
-         x_cc(lev,v_start:v_end) = aedZones(zon)%z_cc(1,v_start:v_end) * scale
-
-         zon = zon - 1
-
-         WHERE(aedZones(zon)%z_cc_diag(1,:) /= 0.) &
-            x_diag(lev,:) = x_diag(lev,:) + (aedZones(zon)%z_cc_diag(1,:) * (1.0 - scale))
-         x_cc(lev,v_start:v_end) = x_cc(lev,v_start:v_end) + &
-                                   aedZones(zon)%z_cc(1,v_start:v_end) * (1.0 - scale)
-      ELSE
-         WHERE(aedZones(zon)%z_cc_diag(1,:) /= 0.)
-            x_diag(lev,:) = aedZones(zon)%z_cc_diag(1,:)
-         ENDWHERE
-         x_cc(lev,v_start:v_end) = aedZones(zon)%z_cc(1,v_start:v_end)
-      ENDIF
-   ENDDO
-
-   ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
-   area = 0.
-   DO zon=1,n_zones
-      area = area + SUM(aedZones(zon)%z_area)
-   ENDDO
-   DO zon=1,n_zones
-      x_diag_hz = x_diag_hz + (aedZones(zon)%z_cc_diag_hz(:) * (aedZones(zon)%z_area(1)/area))
-   ENDDO
-END SUBROUTINE api_copy_from_zone
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-!###############################################################################
-SUBROUTINE api_copy_to_zone(aedZones, n_zones, x_cc, x_cc_hz, x_diag, x_diag_hz, wlev)
+SUBROUTINE api_copy_to_zone(aedZones, n_zones, heights, x_cc, x_cc_hz, x_diag, x_diag_hz, wlev)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    TYPE(api_zone_t),DIMENSION(:),INTENT(inout) :: aedZones
    INTEGER,INTENT(in) :: n_zones
 !
-   AED_REAL,DIMENSION(:,:),INTENT(in) :: x_cc
-   AED_REAL,DIMENSION(:),INTENT(in) :: x_cc_hz
-   AED_REAL,DIMENSION(:,:),INTENT(in) :: x_diag
-   AED_REAL,DIMENSION(:),INTENT(in) :: x_diag_hz
+   AED_REAL,DIMENSION(:),  POINTER,INTENT(in) :: heights
+   AED_REAL,DIMENSION(:,:),POINTER,INTENT(in) :: x_cc
+   AED_REAL,DIMENSION(:),  POINTER,INTENT(in) :: x_cc_hz
+   AED_REAL,DIMENSION(:,:),POINTER,INTENT(in) :: x_diag
+   AED_REAL,DIMENSION(:),  POINTER,INTENT(in) :: x_diag_hz
    INTEGER,INTENT(in) :: wlev
 !
 !LOCALS
@@ -308,7 +197,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, x_cc, x_cc_hz, x_diag, x_diag_hz,
    w_zones = .FALSE.
    zon = 1
    DO lev=1,wlev
-      IF ( lev > 1 .AND. zz(lev) > aedZones(zon)%z_heights(1) ) THEN
+      IF ( lev > 1 .AND. heights(lev) > aedZones(zon)%z_heights(1) ) THEN
          zon = zon + 1
          IF (zon > n_zones) STOP 'Water level height is higher than highest zone height'
          aedZones(zon)%z_sed_zones(1) = zon
@@ -320,6 +209,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, x_cc, x_cc_hz, x_diag, x_diag_hz,
       ! Ideally this average would be based on volume weighting
 
       aedZones(zon)%z_cc(1,1:nvars) = aedZones(zon)%z_cc(1,1:nvars) + x_cc(lev,1:nvars)
+      aedZones(zon)%z_cc_hz(:)      = aedZones(zon)%z_cc_hz(:) + x_cc_hz(:)
       aedZones(zon)%z_cc_diag(1,:)  = aedZones(zon)%z_cc_diag(1,:) + x_diag(lev,:)
       aedZones(zon)%z_cc_diag_hz(:) = aedZones(zon)%z_cc_diag_hz(:) + x_diag_hz(:)
 
@@ -338,6 +228,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, x_cc, x_cc_hz, x_diag, x_diag_hz,
 
    DO zon=1,a_zones
       aedZones(zon)%z_cc(1,1:nvars) = aedZones(zon)%z_cc(1,1:nvars)/zcount(zon)
+      aedZones(zon)%z_cc_hz(:)      = aedZones(zon)%z_cc_hz(:)/zcount(zon)
       aedZones(zon)%z_cc_diag(1,:)  = aedZones(zon)%z_cc_diag(1,:)/zcount(zon)
       aedZones(zon)%z_cc_diag_hz(:) = aedZones(zon)%z_cc_diag_hz(:)/zcount(zon)
    ENDDO
@@ -364,7 +255,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, x_cc, x_cc_hz, x_diag, x_diag_hz,
       aedZones(zon)%z_dz(1) = 0.
    ENDDO
 
-   surf = zz(wlev)
+   surf = heights(wlev)
    IF ( surf > aedZones(1)%z_heights(1) ) THEN
       aedZones(1)%z_depth = aedZones(1)%z_heights(1)
       aedZones(1)%z_dz = aedZones(1)%z_heights(1)
@@ -391,6 +282,78 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, x_cc, x_cc_hz, x_diag, x_diag_hz,
       ENDIF
    ENDDO
 END SUBROUTINE api_copy_to_zone
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE api_copy_from_zone(aedZones, n_zones, heights, x_cc, x_cc_hz, x_diag, x_diag_hz, wlev)
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   TYPE(api_zone_t),DIMENSION(:),INTENT(in) :: aedZones
+   INTEGER,INTENT(in) :: n_zones
+!
+   AED_REAL,DIMENSION(:),  POINTER,INTENT(in) :: heights
+   AED_REAL,DIMENSION(:,:),POINTER,INTENT(inout) :: x_cc
+   AED_REAL,DIMENSION(:),  POINTER,INTENT(inout) :: x_cc_hz
+   AED_REAL,DIMENSION(:,:),POINTER,INTENT(inout) :: x_diag
+   AED_REAL,DIMENSION(:),  POINTER,INTENT(inout) :: x_diag_hz
+   INTEGER,INTENT(in) :: wlev
+!
+!LOCALS
+   INTEGER  :: zon, lev, v_start, v_end
+   AED_REAL :: scale, area
+   LOGICAL  :: splitZone
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   v_start = nvars+1 ; v_end = nvars+nbenv
+
+   zon = n_zones
+   DO lev=wlev,1,-1
+      IF ( zon .GT. 1 ) THEN
+         IF (lev .GT. 1) THEN
+            splitZone = heights(lev-1) < aedZones(zon-1)%z_heights(1)
+         ELSE
+            splitZone = 0.0 < aedZones(zon-1)%z_heights(1)
+         ENDIF
+      ELSE
+         splitZone = .FALSE.
+      ENDIF
+
+      IF (splitZone) THEN
+         IF (lev .GT. 1) THEN
+            scale = (aedZones(zon-1)%z_heights(1) - heights(lev-1)) / (heights(lev) - heights(lev-1))
+         ELSE
+            scale = (aedZones(zon-1)%z_heights(1) - 0.0) / (heights(lev) - 0.0)
+         ENDIF
+
+         WHERE(aedZones(zon)%z_cc_diag(1,:) /= 0.) &
+            x_diag(lev,:) = aedZones(zon)%z_cc_diag(1,:) * scale
+         x_cc(lev,v_start:v_end) = aedZones(zon)%z_cc(1,v_start:v_end) * scale
+
+         zon = zon - 1
+
+         WHERE(aedZones(zon)%z_cc_diag(1,:) /= 0.) &
+            x_diag(lev,:) = x_diag(lev,:) + (aedZones(zon)%z_cc_diag(1,:) * (1.0 - scale))
+         x_cc(lev,v_start:v_end) = x_cc(lev,v_start:v_end) + &
+                                   aedZones(zon)%z_cc(1,v_start:v_end) * (1.0 - scale)
+      ELSE
+         WHERE(aedZones(zon)%z_cc_diag(1,:) /= 0.)
+            x_diag(lev,:) = aedZones(zon)%z_cc_diag(1,:)
+         ENDWHERE
+         x_cc(lev,v_start:v_end) = aedZones(zon)%z_cc(1,v_start:v_end)
+      ENDIF
+   ENDDO
+
+   ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
+   area = 0.
+   DO zon=1,n_zones
+      area = area + SUM(aedZones(zon)%z_area)
+   ENDDO
+   DO zon=1,n_zones
+      x_diag_hz = x_diag_hz + (aedZones(zon)%z_cc_diag_hz(:) * (aedZones(zon)%z_area(1)/area))
+   ENDDO
+END SUBROUTINE api_copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 

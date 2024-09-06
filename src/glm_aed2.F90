@@ -151,6 +151,8 @@ MODULE glm_aed2
 #endif
 
    INTEGER :: n_aed2_vars
+   INTEGER :: n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
+   INTEGER :: zone_var
 
    CHARACTER(len=64) :: NULCSTR = ""
 !===============================================================================
@@ -482,6 +484,9 @@ SUBROUTINE aed2_set_glm_data()                    BIND(C, name=_WQ_SET_GLM_DATA)
    ALLOCATE(layer_area(MaxLayers))
    ALLOCATE(sed_zones(MaxLayers))
    sed_zones = 0.
+
+   IF (n_zones .GT. 0) &
+      CALL wq_set_glm_zones(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
 
    precip => MetData%Rain
    evap   => SurfData%Evap

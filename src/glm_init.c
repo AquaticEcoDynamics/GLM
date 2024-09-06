@@ -163,7 +163,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     int             timefmt;
     char           *start = NULL;
     char           *stop  = NULL;
-    AED_REAL        dt = 0.0;      // timestep
+    extern AED_REAL dt;     // timestep
     int             num_days = 0;  // number of days to run the sim
 //  AED_REAL        timezone_r;
     //==========================================================================
@@ -1201,14 +1201,8 @@ for (i = 0; i < n_zones; i++) {
             if ( (n_zones <= 0 || zone_heights == NULL) ) {
                 fprintf(stderr, "     benthic_mode %d must define zones\n", benthic_mode);
                 exit(1);
-            } else {
-                if ( strcmp(wq_lib, "api") == 0 )
-                    api_set_glm_zones(&Num_WQ_Vars, &Num_WQ_Ben);
-                else
-                    wq_set_glm_zones(&Num_WQ_Vars, &Num_WQ_Ben);
             }
         }
-
         wq_set_glm_data();
     }
     NumDif += Num_WQ_Vars;
@@ -1222,7 +1216,7 @@ for (i = 0; i < n_zones; i++) {
     }
     //--------------------------------------------------------------------------
 
-//--------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     // particles / ptm
     if ( ptm_sw ) {
         fprintf(stderr, "     PTM module active: initial particles = %d\n", init_particle_num);
@@ -1556,7 +1550,6 @@ void initialise_lake(int namlst)
     AED_REAL        avg_surf_temp = 6.0;
     AED_REAL       *restart_variables = NULL;
     int             restart_mixer_count;
-
 
     //==========================================================================
     NAMELIST init_profiles[] = {

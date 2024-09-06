@@ -64,7 +64,6 @@ AED_REAL ptm_time_step=1/60;
 AED_REAL ptm_diffusivity=1e-6;
 
 // VARIABLES
-
 int last_particle = 0;
 
 /*============================================================================*/
@@ -375,7 +374,6 @@ void ptm_write_glm(int ncid, int num_particles)
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
-
 
     set_no_p++;
 

@@ -39,6 +39,7 @@
 
 #include "glm.h"
 
+
 !-------------------------------------------------------------------------------
 MODULE glm_aed
 !
@@ -131,7 +132,7 @@ MODULE glm_aed
    AED_REAL,POINTER :: wnd
    AED_REAL,POINTER :: air_pres
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: depth
-   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: layer_area
+   AED_REAL,TARGET :: col_depth
 
    AED_REAL,POINTER :: lon
    AED_REAL,POINTER :: lat
@@ -149,15 +150,18 @@ MODULE glm_aed
 
    LOGICAL :: reinited = .FALSE.
 
-   INTEGER :: n_aed_vars
+   INTEGER :: n_aed_vars, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
+   INTEGER :: zone_var = 0
 
    CHARACTER(len=64) :: NULCSTR = ""
+
 !===============================================================================
 CONTAINS
 
 
 !###############################################################################
-SUBROUTINE aed_init_glm(i_fname,len,NumWQ_Vars,NumWQ_Ben) BIND(C, name=_WQ_INIT_GLM)
+SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
+                                                      BIND(C, name=_WQ_INIT_GLM)
 !-------------------------------------------------------------------------------
 ! Initialize the GLM-AED driver by reading settings from aed.nml.
 !-------------------------------------------------------------------------------
@@ -234,6 +238,7 @@ SUBROUTINE aed_init_glm(i_fname,len,NumWQ_Vars,NumWQ_Ben) BIND(C, name=_WQ_INIT_
    !col_num
    !col_depth
    tv = aed_provide_sheet_global( 'col_depth', 'lake depth', 'meters' )
+   tv = aed_provide_sheet_global( 'evap',      'evaporation', 'm/s' )
    ! added for oasim
    tv = aed_provide_sheet_global( 'longitude', 'longitude', 'radians' )
    tv = aed_provide_sheet_global( 'latitude',  'latitude',  'radians' )
@@ -296,6 +301,7 @@ SUBROUTINE aed_init_glm(i_fname,len,NumWQ_Vars,NumWQ_Ben) BIND(C, name=_WQ_INIT_
 
    NumWQ_Vars = n_vars
    NumWQ_Ben  = n_vars_ben
+
    !# Now that we know how many vars we need, we can allocate space for them
    ALLOCATE(cc(MaxLayers, (n_vars + n_vars_ben)),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (CC)'
@@ -360,10 +366,8 @@ SUBROUTINE aed_init_glm(i_fname,len,NumWQ_Vars,NumWQ_Ben) BIND(C, name=_WQ_INIT_
       ENDIF
    ENDDO
 
-!  ALLOCATE(column(n_aed_vars))
    ALLOCATE(externalid(n_aed_vars))
-!  IF ( n_zones .GT. 0 )  &
-      ALLOCATE(zexternalid(n_aed_vars))
+   ALLOCATE(zexternalid(n_aed_vars))
 
    !----------------------------------------------------------------------------
 
@@ -518,12 +522,15 @@ SUBROUTINE aed_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
    ALLOCATE(sed_zones(MaxLayers))
    sed_zones = 0.
 
+   IF (n_zones .GT. 0) &
+      CALL wq_set_glm_zones(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
+
    precip   => MetData%Rain
    air_temp => MetData%AirTemp
    rel_hum  => MetData%RelHum
    air_pres => MetData%AirPres
 
-   evap => SurfData%Evap
+   evap   => SurfData%Evap
    bottom_stress => layer_stress(botmLayer)
 
    !# Provide pointers to arrays with environmental variables to aed.
@@ -531,7 +538,7 @@ SUBROUTINE aed_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
    I_0 => MetData%ShortWave
 
    !# Calculate and save internal time step.
-   dt_eff = dt/FLOAT(split_factor)
+   dt_eff = timestep/FLOAT(split_factor)
 
    !# Trigger an error if WQ hasn't got all it needs from us.
    CALL check_data
@@ -579,6 +586,7 @@ SUBROUTINE check_data
             CASE ( 'par_sf' )      ; tvar%found = .true.
             CASE ( 'taub' )        ; tvar%found = .true.
             CASE ( 'col_depth' )   ; tvar%found = .true.
+            CASE ( 'evap' )        ; tvar%found = .true.
             CASE ( 'layer_area' )  ; tvar%found = .true.
             CASE ( 'rain' )        ; tvar%found = .true.
             CASE ( 'air_temp' )    ; tvar%found = .true.
@@ -661,7 +669,8 @@ SUBROUTINE define_column(column, top, flux_pel, flux_atm, flux_ben)
             CASE ( 'wind_speed' )  ; column(av)%cell_sheet => wnd
             CASE ( 'par_sf' )      ; column(av)%cell_sheet => I_0
             CASE ( 'taub' )        ; column(av)%cell_sheet => bottom_stress
-            CASE ( 'col_depth' )   ; column(av)%cell_sheet => depth(1)
+            CASE ( 'col_depth' )   ; column(av)%cell_sheet => col_depth
+            CASE ( 'evap' )        ; column(av)%cell_sheet => evap
             CASE ( 'layer_area' )  ; column(av)%cell => area(:)
             CASE ( 'rain' )        ; column(av)%cell_sheet => precip
             CASE ( 'air_temp' )    ; column(av)%cell_sheet => air_temp
@@ -780,14 +789,14 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    TYPE (aed_column_t) :: column(n_aed_vars)
    TYPE (aed_column_t) :: column_sed(n_aed_vars)
    AED_REAL,TARGET :: flux_ben(n_vars+n_vars_ben), flux_atm(n_vars+n_vars_ben)
-!  AED_REAL,TARGET :: flux_pel(wlev, n_vars+n_vars_ben)
    AED_REAL,TARGET,ALLOCATABLE :: flux_pel(:, :)
    AED_REAL,TARGET :: flux_zon(n_zones, n_vars+n_vars_ben)
-   AED_REAL :: pa = 0.;
+   AED_REAL :: pa = 0.
 !
 !-------------------------------------------------------------------------------
 !BEGIN
    surf = height(wlev)
+   col_depth = height(wlev)
    !# re-compute the layer heights and depths
    dz(1) = height(1)
    depth(1) = surf - height(1)
@@ -866,8 +875,8 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    DO split=1,split_factor
 
       IF (benthic_mode .GT. 1) THEN
-         CALL copy_to_zone(cc, cc_diag, cc_diag_hz, wlev)
          CALL calc_zone_areas(area, wlev, height(wlev))
+         CALL copy_to_zone(cc, cc_diag, cc_diag_hz, wlev)
       ENDIF
 
       !# Update local light field (self-shading may have changed through
@@ -971,11 +980,12 @@ CONTAINS
             CASE ( 'uvb' )         ; column_sed(av)%cell => theZones(:)%zuvb
             CASE ( 'pressure' )    ; column_sed(av)%cell => theZones(:)%zpres
             CASE ( 'depth' )       ; column_sed(av)%cell => theZones(:)%zdepth
-            CASE ( 'sed_zone' )    ; column_sed(av)%cell_sheet => theZones(1)%z_sed_zones; zone_var = av
+            CASE ( 'sed_zone' )    ; column_sed(av)%cell_sheet => theZones(zon)%z_sed_zones; zone_var = av
             CASE ( 'wind_speed' )  ; column_sed(av)%cell_sheet => wnd
             CASE ( 'par_sf' )      ; column_sed(av)%cell_sheet => I_0
             CASE ( 'taub' )        ; column_sed(av)%cell_sheet => bottom_stress
-            CASE ( 'col_depth' )   ; column_sed(av)%cell_sheet => depth(1)
+            CASE ( 'col_depth' )   ; column_sed(av)%cell_sheet => col_depth
+            CASE ( 'evap' )        ; column_sed(av)%cell_sheet => evap
             CASE ( 'layer_area' )  ; column_sed(av)%cell => theZones(:)%zarea
             CASE ( 'rain' )        ; column_sed(av)%cell_sheet => precip
             CASE ( 'air_temp' )    ; column_sed(av)%cell_sheet => air_temp
@@ -1009,7 +1019,7 @@ CONTAINS
             v = v + 1
             column_sed(av)%cell => z_cc(zon, :, v)
             column_sed(av)%flux_atm => flux_atm(v)
-            column_sed(av)%flux_pel => flux_pel(bot:top, v)
+            column_sed(av)%flux_pel => flux_pel(:, v)
             column_sed(av)%flux_ben => flux_ben(v)
          ENDIF
       ENDIF
@@ -1085,7 +1095,6 @@ CONTAINS
       INTEGER :: lev,zon,v,v_start,v_end,av,sv,sd
       INTEGER, ALLOCATABLE :: layer_map(:)
       AED_REAL :: scale
-!     AED_REAL, DIMENSION(wlev, n_vars+n_vars_ben)    :: flux_pel_pre
       AED_REAL, DIMENSION(:, :),ALLOCATABLE  :: flux_pel_pre
       AED_REAL, DIMENSION(n_zones, n_vars+n_vars_ben) :: flux_pel_z
       AED_REAL :: localrainl, localshade, localdrag
@@ -1190,6 +1199,7 @@ CONTAINS
       !# Disaggregation of zone induced fluxes to overlying layers
       v_start = 1 ; v_end = n_vars
       zon = n_zones
+
       DO lev=wlev,1,-1
          IF ( zon .GT. 1 ) THEN
             IF (lev .GT. 1) THEN
@@ -1257,7 +1267,8 @@ CONTAINS
             !# & distribute bottom flux into pelagic over bottom box (i.e., divide by layer height).
             !# scaled to proportion of area that is "bottom"
             DO v=v_start,v_end
-              IF ( cc(1, v) .GE. 0.0 ) flux_pel(lev, v) = max(-1.0 * cc(lev, v), flux_pel(lev, v)/dz(lev))
+              IF ( cc(lev, v) .GE. 0.0 ) flux_pel(lev, v) = &
+                                   max(-1.0 * cc(lev, v), flux_pel(lev, v)/dz(lev))
             END DO
             flux_pel(lev, :) = flux_pel(lev, :) * (area(lev)-area(lev-1))/area(lev)
          ENDDO

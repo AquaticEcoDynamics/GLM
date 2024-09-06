@@ -409,7 +409,7 @@ ${objdir}/glm+_rc.o: win/glm+.rc
 	windres $< -o $@
 
 ${objdir}/%.o: ${srcdir}/%.c ${incdir}/glm.h
-	$(CC) -fPIC $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
 
 %.${so_ext}:
 	$(LD) ${SHARED} $(LDFLAGS) \

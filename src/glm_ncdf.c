@@ -206,7 +206,6 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_var(ncid, "uorb",  NC_REALTYPE, 4, dims, &uorb_id));
     check_nc_error(nc_def_var(ncid, "taub",  NC_REALTYPE, 4, dims, &Taub_id));
 
-
     /**************************************************************************
      * assign attributes                                                      *
      **************************************************************************/

@@ -211,7 +211,6 @@ int prime_wq(const char *which)
         fprintf(stderr, "API not supported in this build\n");
         exit(1);
 #endif
-
         p_wq_ZSoilTemp       =       (wq_ZSoilTemp_t) zZSoilTemp;
     } else if ( *which != 0 ) {
         fprintf(stderr, "\"%s\" not a water quality module supported in this build\n", which);

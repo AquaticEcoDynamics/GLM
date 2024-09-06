@@ -19,6 +19,7 @@ build-stamp
 debian/files
 debian/*.debhelper.log
 debian/*.substvars
+debian/control
 output.nc
 WQ_*.csv
 lake.csv

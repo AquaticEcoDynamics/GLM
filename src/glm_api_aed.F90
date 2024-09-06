@@ -33,6 +33,7 @@
 #include "aed.h"
 #include <aed_api.h>
 
+#define FULLY_API 1
 
 #undef MISVAL
 #ifndef _FORTRAN_SOURCE_
@@ -51,7 +52,7 @@ MODULE glm_api_aed
    USE aed_common, ONLY : aed_variable_t, aed_get_var, zero_, aed_inflow_update
    USE glm_types
    USE glm_zones
-!  USE glm_api_zones
+   USE glm_api_zones
    USE aed_api, ONLY : api_config_t, api_env_t, api_data_t, sub_mobility_t,   &
                        aed_init_model, aed_var_index, aed_clean_model,        &
                        aed_set_model_env, aed_set_model_data, aed_config_model, &
@@ -131,7 +132,6 @@ MODULE glm_api_aed
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: nir
 
    !# External variables
-   AED_REAL :: dt_eff   ! External and internal time steps
    AED_REAL,DIMENSION(:),POINTER :: rad
    AED_REAL,DIMENSION(:),POINTER :: height
    AED_REAL,DIMENSION(:),POINTER :: salt
@@ -154,7 +154,6 @@ MODULE glm_api_aed
    CHARACTER(len=48),ALLOCATABLE :: names(:)
    CHARACTER(len=48),ALLOCATABLE :: bennames(:)
 !  CHARACTER(len=48),ALLOCATABLE :: diagnames(:)
-!  AED_REAL,DIMENSION(:),ALLOCATABLE :: min_, max_
 
    INTEGER,DIMENSION(:),ALLOCATABLE :: externalid
    INTEGER,DIMENSION(:),ALLOCATABLE :: zexternalid
@@ -166,7 +165,7 @@ MODULE glm_api_aed
 
    LOGICAL :: reinited = .FALSE.
 
-   INTEGER :: n_aed_vars
+   INTEGER :: n_aed_vars, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
 
    CHARACTER(len=64) :: NULCSTR = ""
 !===============================================================================
@@ -226,7 +225,6 @@ SUBROUTINE aed_init_glm(i_fname,len,NumWQ_Vars,NumWQ_Ben)                      &
    conf%friction = friction
 
    conf%Kw = Kw
-   conf%dt = dt
 
    CALL aed_config_model(conf)
 
@@ -262,7 +260,7 @@ SUBROUTINE aed_init_glm(i_fname,len,NumWQ_Vars,NumWQ_Ben)                      &
    ALLOCATE(zexternalid(n_aed_vars))
 
    !# Now that we know how many vars we need, we can allocate space for them
-   ALLOCATE(cc(MaxLayers, (n_vars + n_vars_ben)),stat=status)
+   ALLOCATE(cc(MaxLayers, (n_vars+n_vars_ben)),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (CC)'
    cc = 0.         !# initialise to zero
    CALL set_c_wqvars_ptr(cc)
@@ -271,13 +269,13 @@ SUBROUTINE aed_init_glm(i_fname,len,NumWQ_Vars,NumWQ_Ben)                      &
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (CC_hz)'
    cc_hz = 0.         !# initialise to zero
 
+   !# Allocate diagnostic variable array and set all values to zero.
+   !# (needed because time-integrated/averaged variables will increment
+   !#  rather than set the array)
    ALLOCATE(cc_diag(MaxLayers, n_vars_diag),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (cc_diag)'
    cc_diag = zero_
 
-   !# Allocate diagnostic variable array and set all values to zero.
-   !# (needed because time-integrated/averaged variables will increment
-   !#  rather than set the array)
    ALLOCATE(cc_diag_hz(n_vars_diag_sheet),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (cc_diag_hz)'
    cc_diag_hz = zero_
@@ -316,8 +314,8 @@ SUBROUTINE api_set_glm_env()
 
    evap => aSurfData%Evap
 
-   aed_env%yearday  => yearday
-   aed_env%timestep => timestep
+   aed_env%yearday   => yearday
+   aed_env%timestep  => timestep
 
    aed_env%longitude => longitude
    aed_env%latitude  => latitude
@@ -383,6 +381,10 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
    aed_data%cc_diag_hz => cc_diag_hz
 
    CALL aed_set_model_data(aed_data)
+
+   IF (n_zones .GT. 0) &
+      CALL api_set_glm_zones(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
+
 END SUBROUTINE api_set_glm_data
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

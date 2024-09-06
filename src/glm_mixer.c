@@ -1109,7 +1109,8 @@ void do_mixing()
             }
 
             //# redistribute particles in the mixed layer
-            if (ptm_sw) ptm_redistribute(Lake[surfLayer].Height, zero);
+            if ( ptm_sw )
+                ptm_redistribute(Lake[surfLayer].Height, zero);
 
             /***** fall through ******/
 
@@ -1143,7 +1144,8 @@ void do_mixing()
                 _WQ_Vars(wqvidx,Meta_topLayer+1) = WQ_VarsM[wqvidx];
 
             //# redistribute particles in the mixed layer
-            if (ptm_sw) ptm_redistribute(Lake[Meta_topLayer+1].Height, Lake[Meta_topLayer].Height);
+            if ( ptm_sw )
+                ptm_redistribute(Lake[Meta_topLayer+1].Height, Lake[Meta_topLayer].Height);
 
             //# reset the layer volume, density and area for the surface layer
             Lake[Meta_topLayer+1].Vol1 = Lake[surfLayer].Vol1;

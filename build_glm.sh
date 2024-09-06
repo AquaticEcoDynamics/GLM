@@ -158,7 +158,7 @@ if [ "$FABM" = "true" ] ; then
     mkdir build
   fi
   cd build
-  export FFLAGS="$FFLAGS -fPIC"
+# export FFLAGS="$FFLAGS -fPIC"
   if [ "${USE_DL}" = "true" ] ; then
     cmake ${FABMDIR} -DBUILD_SHARED_LIBS=1 || exit 1
   else

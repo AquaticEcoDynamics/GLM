@@ -87,7 +87,6 @@ int  atmos_stability(     AED_REAL *Q_latentheat,
  * Module variables                                                           *
  ******************************************************************************/
 
-// CLOGICAL ice = FALSE;               // flag that tells if there is ice cover
 AED_REAL  AvgSurfTemp= 6.;  // Recent average of surface temp, for ice-on.
 
 // Heat fluxes; these are made available for the lake.csv output

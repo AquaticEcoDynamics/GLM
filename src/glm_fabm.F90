@@ -82,6 +82,7 @@ MODULE glm_fabm
 
    PRIVATE ! By default, make everything private
 !
+#include "glm_globals.h"
 #include "glm_plot.h"
 #include "glm_ncdf.h"
 #include "glm_csv.h"
@@ -113,11 +114,6 @@ MODULE glm_fabm
 !
 !MODULE DATA
 
-   TYPE(LakeDataType),DIMENSION(:),POINTER  :: theLake
-!  TYPE(ZoneType),DIMENSION(:),POINTER      :: theZones
-   TYPE(MetDataType),POINTER     :: MetData  !# Meteorological data
-   TYPE(SurfaceDataType),POINTER :: SurfData !# Surface Data
-
    !# Model
    TYPE (type_model),POINTER :: model
 
@@ -137,7 +133,7 @@ MODULE glm_fabm
 
    !# External variables
    AED_REAL :: dt_eff   ! External and internal time steps
-   INTEGER  :: n_vars, n_vars_ben
+!  INTEGER  :: n_vars, n_vars_ben
    AED_REAL,POINTER,DIMENSION(:) :: rad, z, salt, temp, rho, area
    AED_REAL,POINTER,DIMENSION(:) :: extc_coef, layer_stress
    AED_REAL,POINTER              :: precip, evap, bottom_stress
@@ -146,6 +142,7 @@ MODULE glm_fabm
 #ifdef PLOTS
    INTEGER,ALLOCATABLE,DIMENSION(:) :: plot_id_v, plot_id_sv, plot_id_d, plot_id_sd
 #endif
+   INTEGER :: n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
 
    AED_REAL,ALLOCATABLE :: dz(:)         !# layer thickness
 !===============================================================================
@@ -437,10 +434,6 @@ SUBROUTINE fabm_set_glm_data() BIND(C, name=_WQ_SET_GLM_DATA)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-!  CALL C_F_POINTER(cLake, theLake, [MaxLayers])
-   CALL C_F_POINTER(cMetData, MetData)
-   CALL C_F_POINTER(cSurfData, SurfData)
-
    !# Save pointers to external dynamic variables that we need later (in do_glm_fabm)
    z => theLake%Height
    temp => theLake%Temp
@@ -450,6 +443,9 @@ SUBROUTINE fabm_set_glm_data() BIND(C, name=_WQ_SET_GLM_DATA)
    rad => theLake%Light
    extc_coef => theLake%ExtcCoefSW
    layer_stress => theLake%LayerStress
+
+   IF (n_zones .GT. 0) &
+      CALL wq_set_glm_zones(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
 
    precip => MetData%Rain
    evap   => SurfData%Evap

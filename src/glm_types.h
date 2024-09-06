@@ -145,7 +145,7 @@ typedef char filname[80];
        AED_REAL OWid;            // basin width at the outlet
        AED_REAL Draw;            // outflow volumes
        AED_REAL Factor;          // scaling factor for outflow
-       LOGICAL FloatOff;         // Is this a floating offtake
+       LOGICAL  FloatOff;        // Is this a floating offtake
    } OutflowDataType;
 
    /*===========================================================*/
