@@ -8,8 +8,15 @@ MOSLINE=`grep 'SOFTWARE LICENSE AGREEMENT FOR ' '/System/Library/CoreServices/Se
 # pre Sierra : MOSNAME=`echo ${MOSLINE} | awk -F 'OS X ' '{print $NF}'  | tr -d '\\' | tr ' ' '_'`
 MOSNAME=`echo ${MOSLINE} | awk -F 'macOS ' '{print $NF}'  | tr -d '\\' | tr ' ' '_'`
 
-if [ "$1" = "true" ] ; then
-   BASEDIR=usr
+HOMEBREW=$1
+
+if [ "$HOMEBREW" = "true" ] ; then
+   # It's HOMEBREW
+   if [ `uname -m` = "x86_64" ] ; then
+     BASEDIR=usr
+   else
+     BASEDIR=/opt/homebrew
+   fi
 else
    BASEDIR=opt
 fi
@@ -106,7 +113,15 @@ if [ "$FC" = "ifort" ] ; then
     LIBS2="${LIBS2} libifport.dylib"
   fi
 else
-  PATH2=/${BASEDIR}/local/
+  if [ "$HOMEBREW" = "true" ] ; then
+    if [ `uname -m` = "x86_64" ] ; then
+      PATH2=/${BASEDIR}/local/
+    else
+      PATH2=/${BASEDIR}/opt/
+    fi
+  else
+    PATH2=/${BASEDIR}/local/
+  fi
   PATH3=/usr/local/
   LIBS2="libgfortran.5.dylib"
 fi
