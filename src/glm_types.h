@@ -103,6 +103,7 @@ typedef char filname[80];
        AED_REAL Factor;          // scaling factor for inflow
        AED_REAL TemInf;          // inflow temperature
        AED_REAL SalInf;          // inflow salinity
+       AED_REAL ParticlesInf;    // inflow particles
        AED_REAL Dlwst;
        AED_REAL HFlow;
        AED_REAL TotIn;

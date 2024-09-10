@@ -390,7 +390,7 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vv
 
     del_t = dt*60;
     K = 1E-6;
-    K_prime_z = 0.0;
+    K_prime_z = 1E-6;
 
     random_float = -1+2*((float)rand())/RAND_MAX;            // random draw from uniform distribution [-1,1]
 
