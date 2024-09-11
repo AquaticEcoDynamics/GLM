@@ -460,6 +460,7 @@ void ptm_write_glm(int ncid, int num_particles)
     vvel  = malloc(num_particles*sizeof(AED_REAL));
 
     status  = malloc(num_particles*sizeof(int));
+    flag  = malloc(num_particles*sizeof(int));
     
     for (p = 0; p < num_particles; p++) { 
 		p_height[p] = Particle[p].Height;
@@ -468,6 +469,7 @@ void ptm_write_glm(int ncid, int num_particles)
         density[p] = Particle[p].Density;
         vvel[p] = Particle[p].vvel;
         status[p] = Particle[p].Status;
+        flag[p] = Particle[p].Flag;
     } 
     
      nc_put_vara(ncid, h_id, start, edges, p_height);
@@ -476,6 +478,7 @@ void ptm_write_glm(int ncid, int num_particles)
      nc_put_vara(ncid, dn_id, start, edges, density);
      nc_put_vara(ncid, vv_id, start, edges, vvel);
      nc_put_vara(ncid, stat_id, start, edges, status);
+     nc_put_vara(ncid, flag_id, start, edges, flag);
      
     free(p_height); 
     free(mass);
@@ -483,6 +486,7 @@ void ptm_write_glm(int ncid, int num_particles)
     free(density);
     free(vvel);
     free(status);
+    free(flag);
     
     check_nc_error(nc_sync(ncid));
 }
