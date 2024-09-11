@@ -51,7 +51,7 @@
 
 
 AED_REAL get_settling_velocity(AED_REAL settling_velocity);
-AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel);
+AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel);
 
 /*============================================================================*/
 
@@ -63,12 +63,8 @@ AED_REAL init_depth_min=0.0;
 AED_REAL init_depth_max=2.0;
 AED_REAL ptm_time_step=1/60;
 AED_REAL ptm_diffusivity=1e-6;
-<<<<<<< HEAD
-AED_REAL settling_velocity=0.;
-=======
 AED_REAL settling_velocity;
 AED_REAL settling_efficiency;
->>>>>>> settling on flanks and epsilon
 
 // VARIABLES
 int ptm_sw = FALSE;
@@ -141,8 +137,8 @@ void ptm_init_glm()
 void do_ptm_update()
 {
 //LOCALS
-    int p, tt, z, ij1, ij2, sub_steps;
-    AED_REAL dt;
+    int p, tt, ij1, ij2, sub_steps;
+    AED_REAL dt, K_z, K_above, K_prime_z;
     float rand_float, prob, prev_height, x1, x2, y1, y2, a1, a2;
 
 /*----------------------------------------------------------------------------*/
@@ -166,7 +162,28 @@ void do_ptm_update()
 
             // Update particle position based on diffusivity and vert velocity
             Particle[p].Flag= WATER;  
-            Particle[p].Height = random_walk(dt,Particle[p].Height, Lake[Particle[p].Layer].Epsilon,Particle[p].vvel);
+            K_z = Lake[Particle[p].Layer].Epsilon;
+            K_above = Lake[Particle[p+1].Layer].Epsilon;
+
+            // determine whether to assume molecular diffusion K
+            if(K_z < 1E-6){
+                K_z = 1E-6;
+            }
+
+            if(K_above < 1E-6){
+                K_above = 1E-6;
+            }
+
+            if(Particle[p].Layer == surfLayer){
+                K_prime_z = 0;
+                continue;
+            } 
+            else {
+                K_prime_z = fabs(K_z - K_above);
+                fprintf(stderr, "K_prime_z = %f\n", K_prime_z);
+            }
+
+            Particle[p].Height = random_walk(dt,Particle[p].Height, K_z, K_prime_z, Particle[p].vvel);
             //fprintf(stderr, "  p   = %i\n", p);
             //fprintf(stderr, "  Particle[p].Layer   = %i\n", Particle[p].Layer);
             //fprintf(stderr, "  Lake[Particle[p].Layer].Epsilon   = %f\n", Lake[Particle[p].Layer].Epsilon);
@@ -378,36 +395,23 @@ void ptm_update_layerid()
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL Epsilon, AED_REAL vvel)
+AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel)
 {
 //LOCALS
 
     AED_REAL updated_height;
     AED_REAL del_t;
-    AED_REAL K;
-    AED_REAL K_prime_z;
     float random_float;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
     del_t = dt*60;
-    K = 1E-6;
-    K_prime_z = 1E-6;
 
     random_float = -1+2*((float)rand())/RAND_MAX;            // random draw from uniform distribution [-1,1]
 
-<<<<<<< HEAD
-    updated_height = Height + K_prime_z * Height * del_t + random_float *
-=======
-    // determine whether to use epsilon or K
-    if(Epsilon > 1E-6){
-        K = Epsilon;
-    }
-
     updated_height = Height + K_prime_z * Height * del_t + random_float * 
->>>>>>> settling on flanks and epsilon
-    sqrt((2 * K * (Height + 0.5 * K_prime_z * Height * del_t) * del_t) / (1.0/3)); // random walk
+    sqrt((2 * K_z * (Height + 0.5 * K_prime_z * Height * del_t) * del_t) / (1.0/3)); // random walk
 
     updated_height = updated_height + vvel;                   // account for sinking/floating
 
