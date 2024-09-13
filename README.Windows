@@ -1,22 +1,13 @@
 
-Building for Windows requires Visual Studio and Intel fortran and either Visual C++ or Intel C++.
+We build GLM on windows using "chocolatey". 
 
-We use vs2017 Community with Visual C and Intel fortran
+After installing choco (see https://chocolatey.org/install ) install these packages :
 
-If you want to built with FABM included (the default) you will need to also install cmake
+          choco install -y make
+          choco install -y mingw
+          choco install -y git
+          choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
 
-   https://cmake.org/download/
-
-For fetching the sources it may be useful to have the command line git tools installed :
-
-  https://blogs.msdn.microsoft.com/devops/2013/03/08/use-the-git-command-prompt-to-supplement-visual-studio/
-
-or install Git for Windows :
-
-  https://gitforwindows.org/
-
-You will also need netcdf and some other 3rd party libraries. There are utilities available in the
-AED_Tools repository under win-3rd-party for fetching and building them. They, also, will need cmake.
-
-
-
+After which the build script ( build_glm.sh ) can be used in a "Git Bash" shell
+which should fetch and build some 3rd party libraries in the ancillary directory
+before building GLM
