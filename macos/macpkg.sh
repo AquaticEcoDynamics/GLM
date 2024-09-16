@@ -64,6 +64,8 @@ fi
 echo "BASEDIR is ${BASEDIR}" 1>&2
 find_libs () {
    echo "*** find_libs \"$1\" \"$2\"" 1>&2
+   otool --help
+   otool -L ${PKG}.app/Contents/MacOS/$2
    L2=`otool -L ${PKG}.app/Contents/MacOS/$2 | grep \/${BASEDIR}\/$1 | cut -d\  -f1 | grep -o '[^/]*$'`
    LIST=""
    while [ "$L2" != "$LIST" ] ; do
