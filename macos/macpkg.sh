@@ -61,9 +61,9 @@ if [ "${PKG}" = "glm+" ] ; then
 fi
 
 # find_libs path bin
-#echo "BASEDIR is ${BASEDIR}" 1>&2
+echo "BASEDIR is ${BASEDIR}" 1>&2
 find_libs () {
-   #echo "*** find_libs \"$1\" \"$2\"" 1>&2
+   echo "*** find_libs \"$1\" \"$2\"" 1>&2
    L2=`otool -L ${PKG}.app/Contents/MacOS/$2 | grep \/${BASEDIR}\/$1 | cut -d\  -f1 | grep -o '[^/]*$'`
    LIST=""
    while [ "$L2" != "$LIST" ] ; do
@@ -126,12 +126,14 @@ else
   LIBS2="libgfortran.5.dylib"
 fi
 
-#echo "LIBS1 = $LIBS1"
-#echo "LIBS2 = $LIBS2"
+echo "BASEDIR=$BASEDIR"
+echo $PATH2=$PATH2"
+echo "LIBS1 = $LIBS1"
+echo "LIBS2 = $LIBS2"
 
 # These general libraries
 for i in $LIBS1 ; do
-   #echo "*** Configuring : $i ***"
+   echo "*** Configuring : $i ***"
    xx=`find /${BASEDIR} -name $i 2> /dev/null | tail -n 1`
    #cp /${BASEDIR}/local/lib/$i ${PKG}.app/Contents/MacOS
    if [ ! -f ${PKG}.app/Contents/MacOS/$i ] ; then
