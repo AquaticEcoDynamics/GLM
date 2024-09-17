@@ -10,12 +10,14 @@ MOSNAME=`echo ${MOSLINE} | awk -F 'macOS ' '{print $NF}'  | tr -d '\\' | tr ' ' 
 
 HOMEBREW=$1
 
+EXTRPTH="local"
 if [ "$HOMEBREW" = "true" ] ; then
    # It's HOMEBREW
    if [ `uname -m` = "x86_64" ] ; then
      BASEDIR=usr
    else
      BASEDIR=/opt/homebrew
+     EXTRPTH="opt"
    fi
 else
    BASEDIR=opt
@@ -64,18 +66,18 @@ fi
 echo "BASEDIR is ${BASEDIR}" 1>&2
 find_libs () {
    echo "*** find_libs \"$1\" \"$2\"" 1>&2
-   otool --help
-   otool -L ${PKG}.app/Contents/MacOS/$2
+   otool -L ${PKG}.app/Contents/MacOS/$2 | grep \/${BASEDIR}\/
    L2=`otool -L ${PKG}.app/Contents/MacOS/$2 | grep \/${BASEDIR}\/$1 | cut -d\  -f1 | grep -o '[^/]*$'`
+   echo $L2
    LIST=""
    while [ "$L2" != "$LIST" ] ; do
       LIST=$L2
       for i in $LIST ; do
          xx=`find \/${BASEDIR} -name $i 2> /dev/null | tail -n 1`
-         #echo "Looking for \"$i\" ($xx)" 1>&2
+         echo "Looking for \"$i\" ($xx)" 1>&2
          if [ ! -f ${PKG}.app/Contents/MacOS/$i ] ; then
             if [ "$xx" = "" ] ; then
-               /bin/cp -f /${BASEDIR}/local/lib/$i ${PKG}.app/Contents/MacOS
+               /bin/cp -f /${BASEDIR}/${EXTRPTH}/lib/$i ${PKG}.app/Contents/MacOS
             else
                /bin/cp -f $xx ${PKG}.app/Contents/MacOS
             fi
@@ -104,7 +106,7 @@ find_libs () {
 }
 
 
-LIBS1=`find_libs local ${PKG}`
+LIBS1=`find_libs ${EXTRPTH} ${PKG}`
 #LIBS2=`find_libs intel ${PKG}`
 
 if [ "$FC" = "ifort" ] ; then
@@ -115,15 +117,7 @@ if [ "$FC" = "ifort" ] ; then
     LIBS2="${LIBS2} libifport.dylib"
   fi
 else
-  if [ "$HOMEBREW" = "true" ] ; then
-    if [ `uname -m` = "x86_64" ] ; then
-      PATH2=/${BASEDIR}/local/
-    else
-      PATH2=/${BASEDIR}/opt/
-    fi
-  else
-    PATH2=/${BASEDIR}/local/
-  fi
+  PATH2=/${BASEDIR}/${EXTRPTH}/
   PATH3=/usr/local/
   LIBS2="libgfortran.5.dylib"
 fi
@@ -137,7 +131,7 @@ echo "LIBS2 = $LIBS2"
 for i in $LIBS1 ; do
    echo "*** Configuring : $i ***"
    xx=`find /${BASEDIR} -name $i 2> /dev/null | tail -n 1`
-   #cp /${BASEDIR}/local/lib/$i ${PKG}.app/Contents/MacOS
+   #cp /${BASEDIR}/${EXTRPTH}/lib/$i ${PKG}.app/Contents/MacOS
    if [ ! -f ${PKG}.app/Contents/MacOS/$i ] ; then
 
       /bin/cp -f $xx ${PKG}.app/Contents/MacOS
@@ -148,12 +142,12 @@ for i in $LIBS1 ; do
          chmod +w ${PKG}.app/Contents/MacOS/$i
       fi
       install_name_tool -id $i ${PKG}.app/Contents/MacOS/$i
-      #install_name_tool -change /${BASEDIR}/local/lib/$i '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
+      #install_name_tool -change /${BASEDIR}/${EXTRPTH}/lib/$i '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
       install_name_tool -change $xx '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
       #echo '****' install_name_tool -change $xx '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
       if [ "${BASEDIR}" = "usr" ] ; then
          # This is probably a HOMEBREW setup, so there might be references into the Cellar
-         NLST=`otool -L ${PKG}.app/Contents/MacOS/$i | grep \/${BASEDIR}\/local/Cellar | cut -d\  -f1`
+         NLST=`otool -L ${PKG}.app/Contents/MacOS/$i | grep \/${BASEDIR}\/${EXTRPTH}/Cellar | cut -d\  -f1`
          for j in $NLST ; do
             k=`echo $j | grep -o '[^/]*$'`
             install_name_tool -change $j '@executable_path/'$k ${PKG}.app/Contents/MacOS/$i
