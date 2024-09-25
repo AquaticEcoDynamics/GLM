@@ -53,10 +53,8 @@ MODULE glm_api_aed
    USE glm_types
    USE glm_zones
    USE glm_api_zones
-   USE aed_api, ONLY : api_config_t, api_env_t, api_data_t, sub_mobility_t,   &
-                       aed_init_model, aed_var_index, aed_clean_model,        &
-                       aed_set_model_env, aed_set_model_data, aed_config_model, &
-                       aed_run_model
+   USE aed_api
+
 #if !FULLY_API
    USE aed_util, ONLY : STOPIT
    USE aed_zones, ONLY : aed_n_zones, aedZones, p_copy_to_zone, p_calc_zone_areas, p_copy_from_zone
@@ -474,7 +472,7 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    INTEGER :: i
    AED_REAL :: surf
 !
-   PROCEDURE(sub_mobility_t),POINTER :: doMobilityP
+   PROCEDURE(aed_mobility_t),POINTER :: doMobilityP
    LOGICAL :: doSurf
 !
 !-------------------------------------------------------------------------------
@@ -494,7 +492,9 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 
    doSurf = .not.pIce
    doMobilityP => doMobilityF
-   CALL aed_run_model(wlev, doMobilityP, doSurf)
+   CALL aed_set_mobility(doMobilityP)
+ ! CALL aed_run_model(wlev, doMobilityP, doSurf)
+   CALL aed_run_model(1, wlev, doSurf)
 END SUBROUTINE aed_do_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
