@@ -397,14 +397,20 @@ void do_model(int jstart, int nsave)
             today = jday;
 #endif
             write_output(jday, SecsPerDay, nsave, stepnum);
+            write_diags(jday, calculate_lake_number());
+            write_balance(jday);
             write_step += nsave;
-            if ( write_step > last_step ) write_step = last_step;
 #if PLOTS
             plotstep++;
             today = -1;
 #endif
 
         }
+        
+        if(ntot == nDates & stepnum < nsave){
+        	fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
+        }
+        
 
         /**********************************************************************
          * End of daily calculations, Prepare for next day and return.        *
@@ -430,9 +436,6 @@ void do_model(int jstart, int nsave)
             printf("     Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
             fflush(stdout);
         }
-
-        write_diags(jday, calculate_lake_number());
-        write_balance(jday);
     }   //# do while (ntot < nDates)
     if (quiet < 2) { printf("\n"); fflush(stdout); }
     /*----------########### End of main daily loop ################-----------*/
@@ -556,12 +559,19 @@ void do_model_non_avg(int jstart, int nsave)
             today = jday;
 #endif
             write_output(jday, SecsPerDay, nsave, stepnum);
+            write_diags(jday, calculate_lake_number());
+            write_balance(jday);
             write_step += nsave;
-            if ( write_step > last_step ) write_step = last_step;
+   
+            //if ( write_step > last_step ) write_step = last_step;
 #if PLOTS
             plotstep++;
             today = -1;
 #endif
+        }
+        
+        if(ntot == nDates & stepnum < nsave){
+        	fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
         }
 
         /**********************************************************************
@@ -578,9 +588,6 @@ void do_model_non_avg(int jstart, int nsave)
             printf("     Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
             fflush(stdout);
         }
-
-        write_diags(jday, calculate_lake_number());
-        write_balance(jday);
     }   //# do while (ntot < nDates)
     if (quiet < 2) { printf("\n"); fflush(stdout); }
     /*----------########### End of main daily loop ################-----------*/
@@ -699,31 +706,39 @@ void do_model_coupled(int step_start, int step_end,
             today = jday;
 #endif
             write_output(jday, SecsPerDay, nsave, stepnum);
+            write_diags(jday, calculate_lake_number());
+            write_balance(jday);
             write_step += nsave;
-            if ( write_step > last_step ) write_step = last_step;
+
+            //if ( write_step > last_step ) write_step = last_step;
 #if PLOTS
             plotstep++;
             today = -1;
+            
+            
 #endif
+		}
+        
+        if(ntot == nDates & stepnum < nsave){
+        	fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
         }
 
         /**********************************************************************
          * End of daily calculations, Prepare for next day and return.        *
          **********************************************************************/
         SWold = SWnew;
-
+        
 #ifdef XPLOTS
         if ( xdisp )
             flush_all_plots();
         else
 #endif
-          if (quiet < 2) {
+        if (quiet < 2) {
             printf("     Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
             fflush(stdout);
         }
 
-        write_diags(jday, calculate_lake_number());
-        write_balance(jday);
+
     }   //# do while (ntot < nDates)
     if (quiet < 2) { printf("\n"); fflush(stdout); }
     /*----------########### End of main daily loop ################-----------*/
@@ -753,12 +768,14 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
      **************************************************************************/
     iclock = startTOD;
     last_step = stepnum + ((stoptime - iclock) / noSecs);
+    if(stepnum == 0){
     write_step = stepnum + nsave;
-    if ( iclock != 0 ) {
-        int t = mod(((stoptime - iclock) / noSecs), nsave);
-        if ( t != 0 ) write_step = stepnum + t;
     }
-    if ( write_step > last_step ) write_step = last_step;
+    //if ( iclock != 0 ) {
+    //    int t = mod(((stoptime - iclock) / noSecs), nsave);
+    //    if ( t != 0 ) write_step = stepnum + t;
+    //}
+    
 //  printf("last step %d write_step %d\n", last_step, write_step);
 
     startTOD = 0; /* from now on start at the beginning of the day */
@@ -828,14 +845,13 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
         //# then do not output in the subdaily.  Output writing is moved to the
         //# daily loop so it occurs after the inflow and output calculations.
 
-        if ( stepnum == write_step && (iclock +  noSecs) != SecsPerDay) {
+        if ( stepnum == write_step && (iclock +  noSecs) != SecsPerDay && stepnum != last_step) {
 
 #if PLOTS
             today = jday;
 #endif
             write_output(jday, iclock, nsave, stepnum);
             write_step += nsave;
-            if ( write_step > last_step ) write_step = last_step;
 #if PLOTS
 //if (++n_steps_done > END_STEPS) { int i; for (i = 0; i < NumLayers; i++) show_l_line(2, Lake[i].Height); flush_all_plots(); }
             plotstep++;
@@ -852,6 +868,8 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
         iclock += noSecs;
         yearday += part_day_per_step;
     }   //# do while (iclock < iSecsPerDay)
+    
+    //if ( write_step > last_step ) write_step = last_step;
     /**************************************************************************
      * End of sub-daily loop                                                  *
      **************************************************************************/
