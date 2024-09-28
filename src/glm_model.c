@@ -295,10 +295,10 @@ void do_model(int jstart, int nsave)
     read_daily_met(jstart, &MetOld);
     MetData = MetOld;
     SWold = MetOld.ShortWave;
+	
+    jday = jstart - 1;
 
     write_output(jday, SecsPerDay, nsave, stepnum);
-
-    jday = jstart - 1;
     /**************************************************************************
      * Loop over all days                                                     *
      **************************************************************************/
@@ -473,10 +473,10 @@ void do_model_non_avg(int jstart, int nsave)
     stepnum = 0;
     stoptime = iSecsPerDay;
     SWold = 0.;
+	
+    jday = jstart - 1;
 
     write_output(jday, SecsPerDay, nsave, stepnum);
-
-    jday = jstart - 1;
     /**************************************************************************
      * Loop over all days                                                     *
      **************************************************************************/
@@ -627,10 +627,12 @@ void do_model_coupled(int step_start, int step_end,
     stoptime = iSecsPerDay;
     SWold = 0.;
 
-    write_output(jday, SecsPerDay, nsave, stepnum);
+
 
     cDays = step_end - step_start + 1;
     jday = step_start - 1;
+
+     write_output(jday, SecsPerDay, nsave, stepnum);
     /**************************************************************************
      * Loop over all days                                                     *
      **************************************************************************/
