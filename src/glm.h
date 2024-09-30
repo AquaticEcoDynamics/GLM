@@ -90,7 +90,6 @@
 
 # include <stdint.h>
 
-
   #define surfLayer (NumLayers-1)
   #define botmLayer 0
 

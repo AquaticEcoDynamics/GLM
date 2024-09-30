@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
     // Set random number seed
     srand ((unsigned int)time(NULL));
 
+
 #ifdef PLOTS
     saveall = 0;
 #ifdef XPLOTS

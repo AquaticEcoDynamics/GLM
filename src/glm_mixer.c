@@ -1162,7 +1162,6 @@ void do_mixing()
 
             NumLayers = Meta_topLayer + 2; //# add 2 as count from 0 (ie bottom layer == 0)
 
-
             dbgprt("Time_count_sim = %10.5f\n",Time_count_sim);
             dbgprt("Time_start_shear = %10.5f\n",Time_start_shear);
             dbgprt("Time_count_end_shear = %10.5f\n",Time_count_end_shear);

@@ -39,7 +39,7 @@
 
 #define DEBUG_GLOBS 0
 
-//int MaxLayers;   //# Maximum number of layers in this sim
+//int MaxLayers;   //# Maximum number of layers in this sim (now in fortran types)
 int NumLayers;   //# current number of layers
 LakeDataType *Lake = NULL;
 

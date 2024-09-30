@@ -54,7 +54,6 @@
 #include "glm_output.h"
 
 #include "glm_balance.h"
-
 #include "glm_ptm.h"
 
 #include "glm_debug.h"

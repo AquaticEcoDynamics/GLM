@@ -160,7 +160,7 @@ MODULE glm_types
       AED_REAL :: z_sed_zones
       AED_REAL :: z_pc_wet
       AED_REAL :: heatflux
-      CINTEGER :: n_sed_layers;     !# number of sediment layers
+      CINTEGER :: n_sed_layers;    !# number of sediment layers
       TYPE(C_PTR) :: c_layers      !# array of sed layers
    END TYPE ZoneType
 

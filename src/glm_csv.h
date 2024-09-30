@@ -88,7 +88,7 @@
 /*############################################################################*/
 
 extern AED_REAL csv_point_at[];
-extern LOGICAL csv_point_frombot[];
+extern CLOGICAL csv_point_frombot[];
 extern int csv_point_nlevs;
 extern int csv_lake_file;
 

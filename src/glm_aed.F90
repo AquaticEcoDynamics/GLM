@@ -39,6 +39,13 @@
 
 #include "glm.h"
 
+#ifndef __GFORTRAN__
+#  ifndef isnan
+#    define isnan(x) ieee_is_nan(x)
+#    define HAVE_IEEE_ARITH
+#  endif
+#endif
+
 
 !-------------------------------------------------------------------------------
 MODULE glm_aed
@@ -69,7 +76,6 @@ MODULE glm_aed
 # define _WQ_INIT_GLM_OUTPUT "wq_init_glm_output"
 # define _WQ_WRITE_GLM_      "wq_write_glm"
 # define _WQ_VAR_INDEX_C     "wq_var_index_c"
-# define _WQ_SET_FLAGS       "wq_set_flags"
 # define _WQ_IS_VAR          "wq_is_var"
 # define _WQ_INFLOW_UPDATE   "wq_inflow_update"
 #else
@@ -80,7 +86,6 @@ MODULE glm_aed
 # define _WQ_INIT_GLM_OUTPUT "aed_init_glm_output"
 # define _WQ_WRITE_GLM_      "aed_write_glm"
 # define _WQ_VAR_INDEX_C     "aed_var_index_c"
-# define _WQ_SET_FLAGS       "aed_set_flags"
 # define _WQ_IS_VAR          "aed_is_var"
 # define _WQ_INFLOW_UPDATE   "aed_update_inflow_wq"
 #endif
@@ -96,14 +101,18 @@ MODULE glm_aed
 
    !# Arrays for state and diagnostic variables
    AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: cc !# water quality array: nlayers, nvars
+   AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_hz !# water quality array - benthic: nvars
    AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: cc_diag
-   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: cc_diag_hz
-   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: tss
-   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: sed_zones
+   AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_diag_hz
 
    !# Arrays for work, vertical movement, and cross-boundary fluxes
    AED_REAL,DIMENSION(:,:),ALLOCATABLE :: ws
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: dz
+   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: tss
+   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: sed_zones
+
+   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: depth
+   AED_REAL,TARGET :: col_depth
 
    !# Arrays for environmental variables not supplied externally.
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: par
@@ -113,7 +122,7 @@ MODULE glm_aed
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: nir
 
    !# External variables
-   AED_REAL :: dt_eff   ! External and internal time steps
+   AED_REAL :: dt_eff       ! External and internal time steps
    AED_REAL,DIMENSION(:),POINTER :: rad
    AED_REAL,DIMENSION(:),POINTER :: height
    AED_REAL,DIMENSION(:),POINTER :: salt
@@ -123,6 +132,7 @@ MODULE glm_aed
    AED_REAL,DIMENSION(:),POINTER :: extc
    AED_REAL,DIMENSION(:),POINTER :: layer_stress
    AED_REAL,DIMENSION(:),POINTER :: vel
+
    AED_REAL,POINTER :: precip
    AED_REAL,POINTER :: evap
    AED_REAL,POINTER :: bottom_stress
@@ -131,16 +141,13 @@ MODULE glm_aed
    AED_REAL,POINTER :: I_0
    AED_REAL,POINTER :: wnd
    AED_REAL,POINTER :: air_pres
-   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: depth
-   AED_REAL,TARGET :: col_depth
-
-   AED_REAL,POINTER :: lon
-   AED_REAL,POINTER :: lat
 
    CHARACTER(len=48),ALLOCATABLE :: names(:)
    CHARACTER(len=48),ALLOCATABLE :: bennames(:)
 !  CHARACTER(len=48),ALLOCATABLE :: diagnames(:)
-   AED_REAL,DIMENSION(:),ALLOCATABLE :: min_, max_
+
+   AED_REAL,DIMENSION(:),ALLOCATABLE :: min_
+   AED_REAL,DIMENSION(:),ALLOCATABLE :: max_
 
    INTEGER,DIMENSION(:),ALLOCATABLE :: externalid
    INTEGER,DIMENSION(:),ALLOCATABLE :: zexternalid
@@ -301,7 +308,6 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
 
    NumWQ_Vars = n_vars
    NumWQ_Ben  = n_vars_ben
-
    !# Now that we know how many vars we need, we can allocate space for them
    ALLOCATE(cc(MaxLayers, (n_vars + n_vars_ben)),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (CC)'
@@ -436,7 +442,6 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    tss = zero_
 
    write(*,"(/,5X,'----------  AED config : end  ----------',/)")
-
 END SUBROUTINE aed_init_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -525,9 +530,9 @@ SUBROUTINE aed_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
    IF (n_zones .GT. 0) &
       CALL wq_set_glm_zones(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
 
-   precip   => MetData%Rain
+   precip => MetData%Rain
    air_temp => MetData%AirTemp
-   rel_hum  => MetData%RelHum
+   rel_hum => MetData%RelHum
    air_pres => MetData%AirPres
 
    evap   => SurfData%Evap
@@ -538,7 +543,7 @@ SUBROUTINE aed_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
    I_0 => MetData%ShortWave
 
    !# Calculate and save internal time step.
-   dt_eff = timestep/FLOAT(split_factor)
+   dt_eff = dt/FLOAT(split_factor)
 
    !# Trigger an error if WQ hasn't got all it needs from us.
    CALL check_data
@@ -676,8 +681,8 @@ SUBROUTINE define_column(column, top, flux_pel, flux_atm, flux_ben)
             CASE ( 'air_temp' )    ; column(av)%cell_sheet => air_temp
             CASE ( 'air_pres' )    ; column(av)%cell_sheet => air_pres
             CASE ( 'humidity' )    ; column(av)%cell_sheet => rel_hum
-            CASE ( 'longitude' )   ; column(av)%cell_sheet => lon
-            CASE ( 'latitude' )    ; column(av)%cell_sheet => lat
+            CASE ( 'longitude' )   ; column(av)%cell_sheet => longitude
+            CASE ( 'latitude' )    ; column(av)%cell_sheet => latitude
             CASE ( 'yearday' )     ; column(av)%cell_sheet => yearday
             CASE ( 'timestep' )    ; column(av)%cell_sheet => timestep
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
@@ -772,7 +777,7 @@ END SUBROUTINE check_states
 
 
 !###############################################################################
-SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
+SUBROUTINE aed_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
 !-------------------------------------------------------------------------------
 !                           wlev is the number of levels used;
 !-------------------------------------------------------------------------------
@@ -788,15 +793,16 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 
    TYPE (aed_column_t) :: column(n_aed_vars)
    TYPE (aed_column_t) :: column_sed(n_aed_vars)
-   AED_REAL,TARGET :: flux_ben(n_vars+n_vars_ben), flux_atm(n_vars+n_vars_ben)
-   AED_REAL,TARGET,ALLOCATABLE :: flux_pel(:, :)
-   AED_REAL,TARGET :: flux_zon(n_zones, n_vars+n_vars_ben)
+   AED_REAL,ALLOCATABLE,TARGET :: flux_ben(:)
+   AED_REAL,ALLOCATABLE,TARGET :: flux_atm(:)
+   AED_REAL,ALLOCATABLE,TARGET :: flux_pel(:, :)
+   AED_REAL,ALLOCATABLE,TARGET :: flux_zon(:, :)
    AED_REAL :: pa = 0.
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   surf = height(wlev)
    col_depth = height(wlev)
+   surf = height(wlev)
    !# re-compute the layer heights and depths
    dz(1) = height(1)
    depth(1) = surf - height(1)
@@ -809,6 +815,9 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    pres(1:wlev) = -height(1:wlev)
 
    ALLOCATE(flux_pel(MAX(wlev,n_zones),n_vars+n_vars_ben))
+   ALLOCATE(flux_ben(n_vars+n_vars_ben))
+   ALLOCATE(flux_atm(n_vars+n_vars_ben))
+   ALLOCATE(flux_zon(n_zones, n_vars+n_vars_ben))
 
    IF ( benthic_mode .GT. 1 ) THEN
       j = 1
@@ -922,6 +931,9 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
       CALL check_states(column, wlev)
    ENDDO
    DEALLOCATE(flux_pel)
+   DEALLOCATE(flux_ben)
+   DEALLOCATE(flux_atm)
+   DEALLOCATE(flux_zon)
 
 
   ! IF ( display_minmax ) THEN
@@ -991,8 +1003,8 @@ CONTAINS
             CASE ( 'air_temp' )    ; column_sed(av)%cell_sheet => air_temp
             CASE ( 'air_pres' )    ; column_sed(av)%cell_sheet => air_pres
             CASE ( 'humidity' )    ; column_sed(av)%cell_sheet => rel_hum
-            CASE ( 'longitude' )   ; column_sed(av)%cell_sheet => lon
-            CASE ( 'latitude' )    ; column_sed(av)%cell_sheet => lat
+            CASE ( 'longitude' )   ; column_sed(av)%cell_sheet => longitude
+            CASE ( 'latitude' )    ; column_sed(av)%cell_sheet => latitude
             CASE ( 'yearday' )     ; column_sed(av)%cell_sheet => yearday
             CASE ( 'timestep' )    ; column_sed(av)%cell_sheet => timestep
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
@@ -1095,8 +1107,8 @@ CONTAINS
       INTEGER :: lev,zon,v,v_start,v_end,av,sv,sd
       INTEGER, ALLOCATABLE :: layer_map(:)
       AED_REAL :: scale
-      AED_REAL, DIMENSION(:, :),ALLOCATABLE  :: flux_pel_pre
-      AED_REAL, DIMENSION(n_zones, n_vars+n_vars_ben) :: flux_pel_z
+      AED_REAL, DIMENSION(:, :),ALLOCATABLE :: flux_pel_pre
+      AED_REAL, DIMENSION(:, :),ALLOCATABLE :: flux_pel_z
       AED_REAL :: localrainl, localshade, localdrag
       LOGICAL :: splitZone
       TYPE(aed_variable_t),POINTER :: tvar
@@ -1106,9 +1118,11 @@ CONTAINS
    flux_atm = zero_
    flux_ben = zero_
    flux_zon = zero_
-   flux_pel_z = zero_
 
    ALLOCATE(flux_pel_pre(MAX(wlev, n_zones), n_vars+n_vars_ben))
+   flux_pel_pre = zero_
+   ALLOCATE(flux_pel_z(MAX(wlev, n_zones), n_vars+n_vars_ben))
+   flux_pel_z = zero_
    !# Start with updating column diagnostics (currently only used for light)
 
    !# (1) WATER COLUMN UPDATING
@@ -1199,7 +1213,6 @@ CONTAINS
       !# Disaggregation of zone induced fluxes to overlying layers
       v_start = 1 ; v_end = n_vars
       zon = n_zones
-
       DO lev=wlev,1,-1
          IF ( zon .GT. 1 ) THEN
             IF (lev .GT. 1) THEN
@@ -1292,6 +1305,7 @@ CONTAINS
       CALL aed_calculate(column, lev)
    ENDDO
 
+   DEALLOCATE(flux_pel_z)
    DEALLOCATE(flux_pel_pre)
    END SUBROUTINE calculate_fluxes
    !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

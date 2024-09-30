@@ -87,15 +87,10 @@ SUBROUTINE wq_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)            &
    zz => theLake%Height
    zone_heights => theZones%zheight
 
-!  DO i=1,n_zones
-!     CALL C_F_POINTER(theZones(i)%c_layers, layers, [theZones(i)%n_sed_layers]);
-!  ENDDO
-
-   ALLOCATE(z_cc(n_zones, 1, numVars+numBenV))    ; z_cc = 0.
-   ALLOCATE(z_cc_hz(n_zones+1, numVars+numBenV))  ; z_cc_hz = 0.
-
-   ALLOCATE(z_diag(n_zones, 1, numDiagV))         ; z_diag = 0.
-   ALLOCATE(z_diag_hz(n_zones+1, numDiagHzV))     ; z_diag_hz = 0.
+   ALLOCATE(z_cc(n_zones, MaxLayers, numVars+numBenV))  ; z_cc = 0.
+   ALLOCATE(z_cc_hz(n_zones, numVars+numBenV))          ; z_cc_hz = 0.
+   ALLOCATE(z_diag(n_zones, MaxLayers, numDiagV))       ; z_diag = 0.
+   ALLOCATE(z_diag_hz(n_zones+1, numDiagHzV))           ; z_diag_hz = 0.
 
    theZones%zarea = 0.
 END SUBROUTINE wq_set_glm_zones
@@ -161,7 +156,6 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
    zon = 1
    theZones(1)%zarea = areas(1)
    DO lev=2, wlev
-!print*,"zz(",lev,") = ",zz(lev)," zheight(",zon,") = ",zone_heights(zon)
       IF ( zz(lev) > zone_heights(zon) ) zon = zon + 1
 
       theZones(zon)%zarea = theZones(zon)%zarea + areas(lev) - areas(lev-1)
@@ -217,7 +211,6 @@ SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
          splitZone = .FALSE.
       ENDIF
 
-! print*,'from lev = ',lev, 'zon = ',zon,'x_diag_hz(1) = ',x_diag_hz(1),' z_diag_hz(zon,1) = ',z_diag_hz(zon,1)
       IF (splitZone) THEN
          IF (lev .GT. 1) THEN
             scale = (zone_heights(zon-1) - zz(lev-1)) / (zz(lev) - zz(lev-1))
@@ -225,26 +218,26 @@ SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
             scale = (zone_heights(zon-1) - 0.0) / (zz(lev) - 0.0)
          ENDIF
 
-         WHERE(z_diag(zon,1,:) /= 0.) &
-            x_diag(lev,:) = z_diag(zon,1,:) * scale
-         x_cc(lev,v_start:v_end) = z_cc(zon,1,v_start:v_end) * scale
+         WHERE(z_diag(zon,lev,:) /= 0.) &
+            x_diag(lev,:) = z_diag(zon,lev,:) * scale
+         x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end) * scale
 
          zon = zon - 1
 
-         WHERE(z_diag(zon,1,:) /= 0.) &
-            x_diag(lev,:) = x_diag(lev,:) + (z_diag(zon,1,:) * (1.0 - scale))
+         WHERE(z_diag(zon,lev,:) /= 0.) &
+            x_diag(lev,:) = x_diag(lev,:) + (z_diag(zon,lev,:) * (1.0 - scale))
          x_cc(lev,v_start:v_end) = x_cc(lev,v_start:v_end) + &
-                                   z_cc(zon,1,v_start:v_end) * (1.0 - scale)
+                                   z_cc(zon,lev,v_start:v_end) * (1.0 - scale)
       ELSE
-         WHERE(z_diag(zon,1,:) /= 0.) &
-            x_diag(lev,:) = z_diag(zon,1,:)
-         x_cc(lev,v_start:v_end) = z_cc(zon,1,v_start:v_end)
+         WHERE(z_diag(zon,lev,:) /= 0.) &
+            x_diag(lev,:) = z_diag(zon,lev,:)
+         x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end)
       ENDIF
    ENDDO
    ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
    area = SUM(theZones(1:n_zones)%zarea)
-   DO lev=1,n_zones
-      x_diag_hz = x_diag_hz + (z_diag_hz(lev,:) * (theZones(lev)%zarea/area))
+   DO zon=1,n_zones
+      x_diag_hz = x_diag_hz + (z_diag_hz(zon,:) * (theZones(zon)%zarea/area))
    ENDDO
 
 END SUBROUTINE copy_from_zone
@@ -268,8 +261,8 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   z_cc(:,1,1:nvars) = 0.
-   z_diag(:,1,:) = 0.
+   z_cc(:,:,1:nvars) = 0.
+   z_diag(:,:,:) = 0.
    z_diag_hz(:,:) = 0.
    theZones%zrad = 0. ; theZones%zsalt = 0. ; theZones%ztemp = 0. ; theZones%zrho = 0.
    theZones%zextc = 0. ; theZones%zlayer_stress = 0. ; theZones%ztss = 0.
@@ -292,9 +285,9 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
       ! introduce errors in z_cc (split layers)
       ! Ideally this average would be based on volume weighting
 
-      z_cc(zon,1,1:nvars) = z_cc(zon,1,1:nvars) + x_cc(lev,1:nvars)
-      z_diag(zon,1,:)     = z_diag(zon,1,:) + x_diag(lev,:)
-      z_diag_hz(zon,:)    = z_diag_hz(zon,:) + x_diag_hz(:)
+      z_cc(zon,lev,1:nvars) = z_cc(zon,lev,1:nvars) + x_cc(lev,1:nvars)
+      z_diag(zon,lev,:)     = z_diag(zon,lev,:) + x_diag(lev,:)
+      z_diag_hz(zon,:)  = z_diag_hz(zon,:) + x_diag_hz(:)
 
       theZones(zon)%ztemp         = theZones(zon)%ztemp + theLake(lev)%Temp
       theZones(zon)%zsalt         = theZones(zon)%zsalt + theLake(lev)%Salinity
@@ -304,15 +297,14 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
       theZones(zon)%zextc         = theZones(zon)%zextc + theLake(lev)%ExtcCoefSW
       theZones(zon)%zlayer_stress = theZones(zon)%zlayer_stress + theLake(lev)%LayerStress
 
-! print*,'to   lev = ',lev, 'zon = ',zon,'x_diag_hz(1) = ',x_diag_hz(1),' z_diag_hz(zon,1) = ',z_diag_hz(zon,1)
       zcount(zon) = zcount(zon) + 1
    ENDDO
    a_zones = zon
 
    DO zon=1,a_zones
-      z_cc(zon,1,1:nvars) = z_cc(zon,1,1:nvars)/zcount(zon)
-      z_diag(zon,1,:)     = z_diag(zon,1,:)/zcount(zon)
-      z_diag_hz(zon,:)    = z_diag_hz(zon,:)/zcount(zon)
+      z_cc(zon,:,1:nvars) = z_cc(zon,:,1:nvars)/zcount(zon)
+      z_diag(zon,:,:)     = z_diag(zon,:,:)/zcount(zon)
+      z_diag_hz(zon,:)  = z_diag_hz(zon,:)/zcount(zon)
    ENDDO
 
    WHERE (zcount /= 0)

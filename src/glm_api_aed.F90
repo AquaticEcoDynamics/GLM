@@ -493,7 +493,6 @@ SUBROUTINE aed_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    doSurf = .not.pIce
    doMobilityP => doMobilityF
    CALL aed_set_mobility(doMobilityP)
- ! CALL aed_run_model(wlev, doMobilityP, doSurf)
    CALL aed_run_model(1, wlev, doSurf)
 END SUBROUTINE aed_do_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

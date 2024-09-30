@@ -163,7 +163,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     int             timefmt;
     char           *start = NULL;
     char           *stop  = NULL;
-    extern AED_REAL dt;     // timestep
+    extern AED_REAL dt;            // timestep
     int             num_days = 0;  // number of days to run the sim
 //  AED_REAL        timezone_r;
     //==========================================================================
@@ -599,7 +599,6 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
-
     /*-- %%NAMELIST debugging ------------------------------------------------*/
 //  extern LOGICAL dbg_mix;   //# debug output from mixer
 //  extern LOGICAL no_evap;   //# turn off evaporation
@@ -984,7 +983,6 @@ for (i = 0; i < n_zones; i++) {
 }
 */
 
-
     //--------------------------------------------------------------------------
     open_met_file(meteo_fl, snow_sw, rain_sw, timefmt_m);
     config_bird(namlst);
@@ -1220,7 +1218,8 @@ for (i = 0; i < n_zones; i++) {
     // particles / ptm
     if ( ptm_sw ) {
         fprintf(stderr, "     PTM module active: initial particles = %d\n", init_particle_num);
-        ptm_init_glm();  //num_particle_grp, max_particle_num, init_particle_num,init_depth_min, init_depth_max, ptm_time_step, ptm_diffusivity
+        ptm_init_glm();  // num_particle_grp, max_particle_num, init_particle_num,
+                         // init_depth_min, init_depth_max, ptm_time_step, ptm_diffusivity
         if ( max_particle_num > 1000000 ) {
             fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", 1000000);
             exit(1);
@@ -1550,6 +1549,7 @@ void initialise_lake(int namlst)
     AED_REAL        avg_surf_temp = 6.0;
     AED_REAL       *restart_variables = NULL;
     int             restart_mixer_count;
+
 
     //==========================================================================
     NAMELIST init_profiles[] = {
