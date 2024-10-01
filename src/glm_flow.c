@@ -457,6 +457,7 @@ AED_REAL do_outflows(int jday)
         Outflows[i].Draw *= Outflows[i].Factor;
 
         do_single_outflow(DrawHeight, Outflows[i].Draw, &Outflows[i]);
+        //DrawHeight is layer where particles are; if know # of particles in 
 
         write_outflow(i, jday, DrawHeight, tVolSum-Lake[surfLayer].Vol1, Outflows[i].Draw, hBot, hTop);
     }
@@ -905,7 +906,7 @@ AED_REAL do_inflows()
                     // insert particles ---
                     upper_height = Lake[Layer_subm].Height;
                     lower_height = 0.0; if (Layer_subm>botmLayer) lower_height = Lake[Layer_subm-1].Height;
-                    new_particles = Inflows[iRiver].ParticleConc * (Inflows[iRiver].FlowRate*Inflows[iRiver].Factor);
+                    new_particles = Inflows[iRiver].ParticleConc * (Inflows[iRiver].FlowRate*Inflows[iRiver].Factor); //@MEL implement this
                     ptm_addparticles(new_particles, upper_height, lower_height);
                     // insert particles ---
                 }
@@ -923,6 +924,8 @@ AED_REAL do_inflows()
                     insert(Inflows[iRiver].QIns[j], Inflows[iRiver].DIIns[j], Inflows[iRiver].Phi,
                               Inflows[iRiver].TIns[j], Inflows[iRiver].SIns[j],
                                          WQ_VarsTmp[iRiver][j], SecsPerDay, &Inflow_width, &ll);
+                                         //QIns is flow; D depth, WQ vars defined above; need to pass particle 
+                                         // fraction to insert routine
 
                     for (jk = Inflows[iRiver].InPar[j]-1; jk < Inflows[iRiver].iCnt-1; jk++) {
                         Inflows[iRiver].QDown[jk] = Inflows[iRiver].QDown[jk+1];
@@ -931,6 +934,7 @@ AED_REAL do_inflows()
 
                         for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
                             Inflows[iRiver].WQDown[jk][wqidx] = Inflows[iRiver].WQDown[jk+1][wqidx];
+                            // jk is the inflow parcel; wqidx is wq attribute; would need NDown for particles
 
                         Inflows[iRiver].DDown[jk] = Inflows[iRiver].DDown[jk+1];
                         Inflows[iRiver].DOld[jk] = Inflows[iRiver].DOld[jk+1];

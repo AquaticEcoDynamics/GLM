@@ -108,8 +108,7 @@ AED_REAL rain_factor = 1.0;
  ******************************************************************************/
 void read_daily_inflow(int julian, int NumInf, AED_REAL *flow,
                                                AED_REAL *temp, AED_REAL *salt,
-                                                   AED_REAL *elev, AED_REAL *wq,
-                                                   AED_REAL *particles)
+                                                  AED_REAL *elev, AED_REAL *wq)
 {
     int csv;
     int i,j,k;
@@ -122,7 +121,6 @@ void read_daily_inflow(int julian, int NumInf, AED_REAL *flow,
         flow[i] = get_csv_val_r(csv,inf[i].flow_idx);
         temp[i] = get_csv_val_r(csv,inf[i].temp_idx);
         salt[i] = get_csv_val_r(csv,inf[i].salt_idx);
-        particles[i] = get_csv_val_r(csv,inf[i].particles_idx);
         if ( inf[i].elev_idx != -1 )
             elev[i] = get_csv_val_r(csv,inf[i].elev_idx);
         else

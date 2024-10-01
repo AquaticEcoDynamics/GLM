@@ -67,8 +67,7 @@ AED_REAL settling_velocity;
 AED_REAL settling_efficiency;
 
 // VARIABLES
-int ptm_sw = FALSE;
-int sed_deactivation = FALSE;
+LOGICAL sed_deactivation = FALSE;
 
 int last_particle = 0;
 
