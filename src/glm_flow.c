@@ -906,7 +906,11 @@ AED_REAL do_inflows()
                     // insert particles ---
                     upper_height = Lake[Layer_subm].Height;
                     lower_height = 0.0; if (Layer_subm>botmLayer) lower_height = Lake[Layer_subm-1].Height;
-                    new_particles = Inflows[iRiver].ParticleConc * (Inflows[iRiver].FlowRate*Inflows[iRiver].Factor); //@MEL implement this
+                    new_particles = floor(Inflows[iRiver].ParticleConc * (Inflows[iRiver].FlowRate*Inflows[iRiver].Factor)); //@MEL implement this
+                    fprintf(stderr, "Inflows[iRiver].ParticleConc = %f\n", Inflows[iRiver].ParticleConc);
+                    fprintf(stderr, "Inflows[iRiver].FlowRate = %f\n", Inflows[iRiver].FlowRate);
+                    fprintf(stderr, "Inflows[iRiver].Factor = %f\n", Inflows[iRiver].Factor);
+                    fprintf(stderr, "new_particles = %f\n", new_particles);
                     ptm_addparticles(new_particles, upper_height, lower_height);
                     // insert particles ---
                 }

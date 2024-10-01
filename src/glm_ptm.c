@@ -59,7 +59,6 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prim
 int max_particle_num=1000000;  // replace these from namelist
 int num_particle_grp=1;
 int init_particle_num;
-int inflow_conc;
 AED_REAL init_depth_min=0.0;
 AED_REAL init_depth_max=2.0;
 AED_REAL ptm_time_step=1/60;
@@ -180,7 +179,6 @@ void do_ptm_update()
             } 
             else {
                 K_prime_z = fabs(K_z - K_above);
-                fprintf(stderr, "K_prime_z = %f\n", K_prime_z);
             }
 
             Particle[p].Height = random_walk(dt,Particle[p].Height, K_z, K_prime_z, Particle[p].vvel);
@@ -231,15 +229,6 @@ void do_ptm_update()
             if(Particle[p].Height>Lake[surfLayer].Height){
                 Particle[p].Flag= SCUM;                      // Maybe forming a scum layer
                 Particle[p].Height=Lake[surfLayer].Height;
-            }
-
-            if(Particle[p].Flag == BED){
-                fprintf(stderr, "  previous height of bed-flagged particle   = %f\n", prev_height);
-                fprintf(stderr, "  height of bed-flagged particle   = %f\n", Particle[p].Height);
-                fprintf(stderr, "  area at previous height   = %f\n", a1);
-                fprintf(stderr, "  area at new height   = %f\n", a2);
-                fprintf(stderr, "  prob   = %f\n", prob);
-                fprintf(stderr, "  rand_float   = %f\n", rand_float);
             }
           }
         }

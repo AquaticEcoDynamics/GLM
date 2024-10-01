@@ -299,7 +299,7 @@ extern ParticleDataType *Particle;
 extern AED_REAL settling_velocity;
 extern int init_particle_num;
 extern AED_REAL settling_efficiency;
-extern int inflow_conc;    //# number of particles in the inflow at each timestep
+extern int *inflow_conc;    //# number of particles per cubic meter in the inflow 
 
 /*----------------------------------------------------------------------------*/
 // TIME

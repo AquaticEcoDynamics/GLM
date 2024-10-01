@@ -247,7 +247,7 @@ ParticleDataType *Particle = NULL;
 AED_REAL settling_velocity = 0.;
 int init_particle_num = 10;
 AED_REAL settling_efficiency = 1.;
-int inflow_conc = 0;    //# number of particles in the inflow at each timestep
+int *inflow_conc = 0;    //# number of particles per cubic meter in the inflow 
 
 
 //------------------------------------------------------------------------------
