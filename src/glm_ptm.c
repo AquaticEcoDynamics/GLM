@@ -59,6 +59,7 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prim
 int max_particle_num=1000000;  // replace these from namelist
 int num_particle_grp=1;
 int init_particle_num;
+int inflow_conc;
 AED_REAL init_depth_min=0.0;
 AED_REAL init_depth_max=2.0;
 AED_REAL ptm_time_step=1/60;
