@@ -34,7 +34,7 @@ void ptm_init_glm(void);
 AED_REAL do_particle_tracking(void);
 void ptm_init_glm_output(int ncid, int time_dim);
 //void ptm_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
-void ptm_write_glm(int ncid, int ptm_write_glm);
+void ptm_write_glm(int ncid, int max_particle_num, int num_particles);
 
 void do_ptm_update(void);
 

@@ -56,9 +56,10 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prim
 /*============================================================================*/
 
 //CONSTANTS
-int max_particle_num=1000000;  // replace these from namelist
+int max_particle_num;  // replace these from namelist
 int num_particle_grp=1;
 int init_particle_num;
+int num_particles;
 AED_REAL init_depth_min=0.0;
 AED_REAL init_depth_max=2.0;
 AED_REAL ptm_time_step=1/60;
@@ -69,7 +70,6 @@ AED_REAL settling_efficiency;
 // VARIABLES
 LOGICAL sed_deactivation = FALSE;
 
-int last_particle = 0;
 
 /*============================================================================*/
 
@@ -96,7 +96,7 @@ void ptm_init_glm()
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
-    last_particle = 0;
+    num_particles = 0;
 
     // Allocate maximum number of particles
     Particle = calloc(max_particle_num, sizeof(ParticleDataType));
@@ -259,7 +259,7 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
     height_range = upper_height - lower_height;
 
     // Check for active particles in the height range
-    for (p = 0; p < last_particle; p++) {
+    for (p = 0; p < num_particles; p++) {
         if (Particle[p].Status>0) {
           if (Particle[p].Height>=lower_height && Particle[p].Height<=upper_height ) {
             // Particle is in the mixing zone, so re-position
@@ -294,9 +294,11 @@ void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_h
 //BEGIN
     // Get vertical range in the water column that mixed
     height_range = upper_height - lower_height;
+    fprintf(stderr, "height_range = %f\n", height_range);
+    fprintf(stderr, "new_particles = %d\n", new_particles);
 
     // For each new particle, initialise their properties and height
-    for (p = last_particle ; p < last_particle+new_particles; p++) {
+    for (p = num_particles ; p < num_particles+new_particles; p++) {
         Particle[p].Status = 1;
         Particle[p].Mass = 1.0;
         Particle[p].Diam = 1e-6;
@@ -310,7 +312,7 @@ void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_h
         Particle[p].Height = lower_height + random_double;   // set particle height
     }
 
-    last_particle = last_particle + new_particles;  // updates the last index number of active particle set
+    num_particles = num_particles + new_particles;  // updates the last index number of active particle set
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -340,7 +342,7 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
 //  height_range = upper_height - lower_height;
 
     // Check for active particles in the impacted height range
-    for (p = 0; p < last_particle; p++) {
+    for (p = 0; p < num_particles; p++) {
         if (Particle[p].Status>0) {
           if (Particle[p].Height>lower_height && Particle[p].Height<upper_height ) {
             // Particle is in the impacted zone, so re-position (lift or drop)
@@ -426,7 +428,7 @@ static size_t start[2],edges[2];
  *                                                                            *
  ******************************************************************************/
 //void ptm_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs)
-void ptm_write_glm(int ncid, int num_particles)
+void ptm_write_glm(int ncid, int max_particle_num, int num_particles)
 {
 //LOCALS
     int p;
@@ -439,17 +441,17 @@ void ptm_write_glm(int ncid, int num_particles)
 
     set_no_p++;
 
-    start[1] = 0;             edges[1] = num_particles;
+    start[1] = 0;             edges[1] = max_particle_num;
     start[0] = set_no_p;      edges[0] = 1;
 
-    p_height  = malloc(num_particles*sizeof(AED_REAL));
-    mass  = malloc(num_particles*sizeof(AED_REAL));
-    diam  = malloc(num_particles*sizeof(AED_REAL));
-    density  = malloc(num_particles*sizeof(AED_REAL));
-    vvel  = malloc(num_particles*sizeof(AED_REAL));
+    p_height  = malloc(max_particle_num*sizeof(AED_REAL));
+    mass  = malloc(max_particle_num*sizeof(AED_REAL));
+    diam  = malloc(max_particle_num*sizeof(AED_REAL));
+    density  = malloc(max_particle_num*sizeof(AED_REAL));
+    vvel  = malloc(max_particle_num*sizeof(AED_REAL));
 
-    status  = malloc(num_particles*sizeof(int));
-    flag  = malloc(num_particles*sizeof(int));
+    status  = malloc(max_particle_num*sizeof(int));
+    flag  = malloc(max_particle_num*sizeof(int));
     
     for (p = 0; p < num_particles; p++) { 
 		p_height[p] = Particle[p].Height;
@@ -494,7 +496,7 @@ void ptm_init_glm_output(int ncid, int time_dim)
 //BEGIN
    define_mode_on(&ncid);   // Put NetCDF library in define mode.
 
-   check_nc_error(nc_def_dim(ncid, "particles", num_particles, &ptm_dim));
+   check_nc_error(nc_def_dim(ncid, "particles", max_particle_num, &ptm_dim));
 
    dims[1] = ptm_dim;
    dims[0] = time_dim;

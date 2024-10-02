@@ -295,11 +295,12 @@ extern CLOGICAL littoral_sw;
 // PARTICLE TRANSPORT MODEL
 extern LOGICAL ptm_sw;
 extern int num_particles;   //# current number of particles
+extern int max_particle_num;   //# current number of particles
 extern ParticleDataType *Particle;
 extern AED_REAL settling_velocity;
 extern int init_particle_num;
 extern AED_REAL settling_efficiency;
-extern int *inflow_conc;    //# number of particles per cubic meter in the inflow 
+extern AED_REAL *inflow_conc;    //# concentration of particles per ?? in the inflow 
 
 /*----------------------------------------------------------------------------*/
 // TIME

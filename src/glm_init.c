@@ -578,7 +578,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern int       num_particle_grp;
     extern int       max_particle_num;
     extern int       init_particle_num;
-    extern int       *inflow_conc;
+    extern AED_REAL  *inflow_conc;
     extern AED_REAL  init_depth_min;
     extern AED_REAL  init_depth_max;
     extern AED_REAL  ptm_time_step;
@@ -593,7 +593,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "num_particle_grp",  TYPE_INT,              &num_particle_grp     },
           { "max_particle_num",  TYPE_INT,              &max_particle_num     },
           { "init_particle_num", TYPE_INT,              &init_particle_num    },
-          { "inflow_conc",       TYPE_INT|MASK_LIST,    &inflow_conc          },
+          { "inflow_conc",       TYPE_DOUBLE|MASK_LIST, &inflow_conc          },
           { "init_depth_min",    TYPE_DOUBLE,           &init_depth_min       },
           { "init_depth_max",    TYPE_DOUBLE,           &init_depth_max       },
           { "ptm_time_step",     TYPE_DOUBLE,           &ptm_time_step        },
@@ -1216,7 +1216,7 @@ for (i = 0; i < n_zones; i++) {
 
         fprintf(stderr, "     PTM module active: initial particles = %d\n", init_particle_num);
         ptm_init_glm();  //num_particle_grp, max_particle_num, init_particle_num,init_depth_min, init_depth_max, ptm_time_step, ptm_diffusivity
-        if ( max_particle_num > 1000000 ) {
+        if ( max_particle_num > 10000 ) {
             fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", 1000000);
             exit(1);
         }
