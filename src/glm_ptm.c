@@ -48,7 +48,8 @@
 #define BED    1
             // Maybe forming a scum layer
 #define SCUM   2
-
+            // Maybe exiting the lake
+#define EXIT   3
 
 AED_REAL get_settling_velocity(AED_REAL settling_velocity);
 AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel);
@@ -59,7 +60,6 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prim
 int max_particle_num;  // replace these from namelist
 int num_particle_grp=1;
 int init_particle_num;
-int num_particles;
 AED_REAL init_depth_min=0.0;
 AED_REAL init_depth_max=2.0;
 AED_REAL ptm_time_step=1/60;
@@ -96,14 +96,19 @@ void ptm_init_glm()
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
-    num_particles = 0;
-
     // Allocate maximum number of particles
     Particle = calloc(max_particle_num, sizeof(ParticleDataType));
 
-    // Pre-initialise all particle status index to 0 (all inactive)
-    for (p = 0; p < max_particle_num; p++) Particle[p].Status = 0;
-
+    // Set initial inactive particle status/properties (initial inactive particles)
+    for (p = 0; p < max_particle_num; p++) {
+        Particle[p].Status = 0;
+        Particle[p].Flag = 3;
+        Particle[p].Mass = 0.0;
+        Particle[p].Diam = 0.0;
+        Particle[p].Density = 0.0;
+        Particle[p].vvel = 0.0;
+    }
+    
     // Set initial active particle status/properties (initial active particles)
     for (p = 0; p < init_particle_num; p++) {
         Particle[p].Status = 1;
@@ -114,13 +119,11 @@ void ptm_init_glm()
         Particle[p].vvel = 0.0;
     }
 
-    num_particles = init_particle_num;
-
     // Set initial active particle height within the water column
     upper_height = Lake[surfLayer].Height - init_depth_min;
     lower_height = Lake[surfLayer].Height - init_depth_max;
 
-    ptm_addparticles(init_particle_num,upper_height,lower_height);
+    ptm_addparticles(init_particle_num, max_particle_num, upper_height,lower_height);
 
     ptm_update_layerid();     // assign layers to active particles
 }
@@ -144,7 +147,7 @@ void do_ptm_update()
 //BEGIN
 
     // Update settling/migration velocity  ! Will overwrite AED
-    for (p = 0; p < num_particles; p++) {
+    for (p = 0; p < max_particle_num; p++) {
         if (Particle[p].Status>0) {
            Particle[p].vvel = get_settling_velocity(settling_velocity);
         }
@@ -154,7 +157,7 @@ void do_ptm_update()
     sub_steps = 60;
     dt = 1;
     for (tt = 1; tt < sub_steps; tt++) {
-        for (p = 0; p < num_particles; p++) {
+        for (p = 0; p < max_particle_num; p++) {
           if (Particle[p].Status>0) {
             // Capture current height of particle to calculate probability of settling below
             prev_height = Particle[p].Height;
@@ -182,10 +185,6 @@ void do_ptm_update()
             }
 
             Particle[p].Height = random_walk(dt,Particle[p].Height, K_z, K_prime_z, Particle[p].vvel);
-            //fprintf(stderr, "  p   = %i\n", p);
-            //fprintf(stderr, "  Particle[p].Layer   = %i\n", Particle[p].Layer);
-            //fprintf(stderr, "  Lake[Particle[p].Layer].Epsilon   = %f\n", Lake[Particle[p].Layer].Epsilon);
-
 
             if(prev_height > Particle[p].Height){
 
@@ -259,15 +258,15 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
     height_range = upper_height - lower_height;
 
     // Check for active particles in the height range
-    for (p = 0; p < num_particles; p++) {
+    for (p = 0; p < max_particle_num; p++) {
         if (Particle[p].Status>0) {
-          if (Particle[p].Height>=lower_height && Particle[p].Height<=upper_height ) {
-            // Particle is in the mixing zone, so re-position
-            rand_int = rand() % 100 + 1;                            // random draw from unit distribution
-            double random_double = (double)rand_int / 100;
-            random_double = random_double * height_range;                 // scale unit random to requested range
-            Particle[p].Height = lower_height + random_double;
-          }
+            if (Particle[p].Height>=lower_height && Particle[p].Height<=upper_height ) {
+                // Particle is in the mixing zone, so re-position
+                rand_int = rand() % 100 + 1;                            // random draw from unit distribution
+                double random_double = (double)rand_int / 100;
+                random_double = random_double * height_range;                 // scale unit random to requested range
+                Particle[p].Height = lower_height + random_double;
+            }
         }
     }
     ptm_update_layerid();     // assign layers to active particles
@@ -282,10 +281,11 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
  *                                                                            *
  *                                                                            *
  ******************************************************************************/
-void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_height)
+void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_height, 
+                      AED_REAL lower_height)
 {
 //LOCALS
-    int p;
+    int p, n;
 
     int rand_int;
     AED_REAL height_range;
@@ -294,25 +294,65 @@ void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_h
 //BEGIN
     // Get vertical range in the water column that mixed
     height_range = upper_height - lower_height;
-    fprintf(stderr, "height_range = %f\n", height_range);
-    fprintf(stderr, "new_particles = %d\n", new_particles);
+    n = 0;
 
     // For each new particle, initialise their properties and height
-    for (p = num_particles ; p < num_particles+new_particles; p++) {
-        Particle[p].Status = 1;
-        Particle[p].Mass = 1.0;
-        Particle[p].Diam = 1e-6;
-        Particle[p].Density = 1000.0;
-        Particle[p].vvel = 0.0;
+    for (p = 0 ; p < max_particle_num; p++) {
+        if(n == new_particles){
+            break;
+        }
+        if(Particle[p].Status == 0 && Particle[p].Flag == 3){ // find the first inactive particles with EXIT flag
+            Particle[p].Status = 1;
+            Particle[p].Mass = 1.0;
+            Particle[p].Diam = 1e-6;
+            Particle[p].Density = 1000.0;
+            Particle[p].vvel = 0.0;
 
-        // Assign particles initial height
-        rand_int = rand() % 100 + 1;                            // random draw from unit distribution
-        double random_double = (double)rand_int / 100;
-        random_double = random_double * height_range;                 // scale unit random to requested range
-        Particle[p].Height = lower_height + random_double;   // set particle height
+            // Assign particles initial height
+            rand_int = rand() % 100 + 1;                            // random draw from unit distribution
+            double random_double = (double)rand_int / 100;
+            random_double = random_double * height_range;                 // scale unit random to requested range
+            Particle[p].Height = lower_height + random_double;   // set particle height
+
+            // Adjust counter
+            n++;
+        }
     }
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
-    num_particles = num_particles + new_particles;  // updates the last index number of active particle set
+/******************************************************************************
+ *                                                                            *
+ *    This routine removes new particles from a specified layer, based        *
+ *    on the proportion of layer volume that is removed through outflow       *
+ *                                                                            *
+ *                                                                            *
+ ******************************************************************************/
+void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, int max_particle_num)
+{
+//LOCALS
+    AED_REAL layer_prop, rand_float;
+    int p;
+
+/*----------------------------------------------------------------------------*/
+//BEGIN
+    // For each particle, draw from Bernoulli distribution to see whether removed from layer
+    layer_prop = delta_vol / layer_vol;
+    for (p = 0; p < max_particle_num; p++) {
+        if(Particle[p].Status == 1 && Particle[p].Layer == layer_id){
+            rand_float = ((float)rand())/RAND_MAX;
+            if(rand_float <= layer_prop){
+                // If particle leaves through outflow, reset completely
+                Particle[p].Status = 0;
+                Particle[p].Flag = 3;
+                Particle[p].Mass = 0.0;
+                Particle[p].Diam = 0.0;
+                Particle[p].Density = 0.0;
+                Particle[p].vvel = 0.0;
+                fprintf(stderr, "I've died with a rand_float of %f\n", rand_float);
+            }
+        }
+    }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -342,12 +382,12 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
 //  height_range = upper_height - lower_height;
 
     // Check for active particles in the impacted height range
-    for (p = 0; p < num_particles; p++) {
+    for (p = 0; p < max_particle_num; p++) {
         if (Particle[p].Status>0) {
-          if (Particle[p].Height>lower_height && Particle[p].Height<upper_height ) {
-            // Particle is in the impacted zone, so re-position (lift or drop)
-            Particle[p].Height = Particle[p].Height + shift_amount;   // adjust particle height
-          }
+            if (Particle[p].Height>lower_height && Particle[p].Height<upper_height ) {
+                // Particle is in the impacted zone, so re-position (lift or drop)
+                Particle[p].Height = Particle[p].Height + shift_amount;   // adjust particle height
+            }
         }
     }
 
@@ -369,7 +409,7 @@ void ptm_update_layerid()
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
-    for (p = 0; p < num_particles; p++) {
+    for (p = 0; p < max_particle_num; p++) {
         if (Particle[p].Status>0) {
             for (i = botmLayer; i < NumLayers; i++) {
                 if (Particle[p].Height<Lake[i].Height) {
@@ -384,6 +424,8 @@ void ptm_update_layerid()
 
 
 /******************************************************************************
+ *                                                                            *
+ *      This routine redistributes particles using a random walk function     *
  *                                                                            *
  ******************************************************************************/
 AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel)
@@ -407,14 +449,6 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prim
     updated_height = updated_height + vvel;                   // account for sinking/floating
 
     return updated_height;
-
-    // Mary random walk equation in R:
-            // following Visser 1997 https://www.int-res.com/articles/meps/158/m158p275.pdf
-            // z_t1 <- z + K_prime_z * z * del_t + runif(1, min = -1,max = 1) * sqrt((2 * K_z * (z + 0.5 * K_prime_z * z * del_t) * del_t) / (1/3))
-            // z is depth (or elevation in this case)
-            // del_t is timestep of one minute in SECONDS
-            // K_z is vertical diffusivity at depth/elevation z; we are assuming constant K of 1x10e-6 for now I think?
-            // K_prime is delta K / delta z
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -428,7 +462,7 @@ static size_t start[2],edges[2];
  *                                                                            *
  ******************************************************************************/
 //void ptm_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs)
-void ptm_write_glm(int ncid, int max_particle_num, int num_particles)
+void ptm_write_glm(int ncid, int max_particle_num)
 {
 //LOCALS
     int p;
@@ -453,7 +487,7 @@ void ptm_write_glm(int ncid, int max_particle_num, int num_particles)
     status  = malloc(max_particle_num*sizeof(int));
     flag  = malloc(max_particle_num*sizeof(int));
     
-    for (p = 0; p < num_particles; p++) { 
+    for (p = 0; p < max_particle_num; p++) { 
 		p_height[p] = Particle[p].Height;
         mass[p] = Particle[p].Mass;
         diam[p] = Particle[p].Diam;

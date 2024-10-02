@@ -34,16 +34,16 @@ void ptm_init_glm(void);
 AED_REAL do_particle_tracking(void);
 void ptm_init_glm_output(int ncid, int time_dim);
 //void ptm_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
-void ptm_write_glm(int ncid, int max_particle_num, int num_particles);
+void ptm_write_glm(int ncid, int max_particle_num);
 
 void do_ptm_update(void);
 
 void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height);
-void ptm_addparticles(int new_particles, AED_REAL upper_height, AED_REAL lower_height);
+void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_height, AED_REAL lower_height);
 void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount);
 void ptm_update_layerid(void);
 
-// void ptm_destroyparticles()
+void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, int max_particle_num);
 // void ptm_restart()
 
 extern int ptm_sw;
