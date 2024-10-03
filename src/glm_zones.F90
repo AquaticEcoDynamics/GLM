@@ -91,7 +91,6 @@ SUBROUTINE wq_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)            &
    ALLOCATE(z_cc_hz(n_zones, numVars+numBenV))          ; z_cc_hz = 0.
    ALLOCATE(z_diag(n_zones, MaxLayers, numDiagV))       ; z_diag = 0.
    ALLOCATE(z_diag_hz(n_zones+1, numDiagHzV))           ; z_diag_hz = 0.
-
    theZones%zarea = 0.
 END SUBROUTINE wq_set_glm_zones
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -178,69 +177,6 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
 
    theZones(1:n_zones)%zpres = -zone_heights(1:n_zones)
 END SUBROUTINE calc_zone_areas
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-!###############################################################################
-SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
-!-------------------------------------------------------------------------------
-!ARGUMENTS
-   AED_REAL,DIMENSION(:,:),INTENT(inout) :: x_cc
-   AED_REAL,DIMENSION(:,:),INTENT(inout) :: x_diag
-   AED_REAL,DIMENSION(:),INTENT(inout) :: x_diag_hz
-   INTEGER,INTENT(in) :: wlev
-!
-!LOCALS
-   INTEGER  :: zon, lev, v_start, v_end
-   AED_REAL :: scale, area
-   LOGICAL  :: splitZone
-!
-!-------------------------------------------------------------------------------
-!BEGIN
-   v_start = nvars+1 ; v_end = nvars+nbenv
-
-   zon = n_zones
-   DO lev=wlev,1,-1
-      IF ( zon .GT. 1 ) THEN
-         IF (lev .GT. 1) THEN
-            splitZone = zz(lev-1) < zone_heights(zon-1)
-         ELSE
-            splitZone = 0.0 < zone_heights(zon-1)
-         ENDIF
-      ELSE
-         splitZone = .FALSE.
-      ENDIF
-
-      IF (splitZone) THEN
-         IF (lev .GT. 1) THEN
-            scale = (zone_heights(zon-1) - zz(lev-1)) / (zz(lev) - zz(lev-1))
-         ELSE
-            scale = (zone_heights(zon-1) - 0.0) / (zz(lev) - 0.0)
-         ENDIF
-
-         WHERE(z_diag(zon,lev,:) /= 0.) &
-            x_diag(lev,:) = z_diag(zon,lev,:) * scale
-         x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end) * scale
-
-         zon = zon - 1
-
-         WHERE(z_diag(zon,lev,:) /= 0.) &
-            x_diag(lev,:) = x_diag(lev,:) + (z_diag(zon,lev,:) * (1.0 - scale))
-         x_cc(lev,v_start:v_end) = x_cc(lev,v_start:v_end) + &
-                                   z_cc(zon,lev,v_start:v_end) * (1.0 - scale)
-      ELSE
-         WHERE(z_diag(zon,lev,:) /= 0.) &
-            x_diag(lev,:) = z_diag(zon,lev,:)
-         x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end)
-      ENDIF
-   ENDDO
-   ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
-   area = SUM(theZones(1:n_zones)%zarea)
-   DO zon=1,n_zones
-      x_diag_hz = x_diag_hz + (z_diag_hz(zon,:) * (theZones(zon)%zarea/area))
-   ENDDO
-
-END SUBROUTINE copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -353,6 +289,69 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
       ENDIF
    ENDDO
 END SUBROUTINE copy_to_zone
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   AED_REAL,DIMENSION(:,:),INTENT(inout) :: x_cc
+   AED_REAL,DIMENSION(:,:),INTENT(inout) :: x_diag
+   AED_REAL,DIMENSION(:),INTENT(inout) :: x_diag_hz
+   INTEGER,INTENT(in) :: wlev
+!
+!LOCALS
+   INTEGER  :: zon, lev, v_start, v_end
+   AED_REAL :: scale, area
+   LOGICAL  :: splitZone
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   v_start = nvars+1 ; v_end = nvars+nbenv
+
+   zon = n_zones
+   DO lev=wlev,1,-1
+      IF ( zon .GT. 1 ) THEN
+         IF (lev .GT. 1) THEN
+            splitZone = zz(lev-1) < zone_heights(zon-1)
+         ELSE
+            splitZone = 0.0 < zone_heights(zon-1)
+         ENDIF
+      ELSE
+         splitZone = .FALSE.
+      ENDIF
+
+      IF (splitZone) THEN
+         IF (lev .GT. 1) THEN
+            scale = (zone_heights(zon-1) - zz(lev-1)) / (zz(lev) - zz(lev-1))
+         ELSE
+            scale = (zone_heights(zon-1) - 0.0) / (zz(lev) - 0.0)
+         ENDIF
+
+         WHERE(z_diag(zon,lev,:) /= 0.) &
+            x_diag(lev,:) = z_diag(zon,lev,:) * scale
+         x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end) * scale
+
+         zon = zon - 1
+
+         WHERE(z_diag(zon,lev,:) /= 0.) &
+            x_diag(lev,:) = x_diag(lev,:) + (z_diag(zon,lev,:) * (1.0 - scale))
+         x_cc(lev,v_start:v_end) = x_cc(lev,v_start:v_end) + &
+                                   z_cc(zon,lev,v_start:v_end) * (1.0 - scale)
+      ELSE
+         WHERE(z_diag(zon,lev,:) /= 0.) &
+            x_diag(lev,:) = z_diag(zon,lev,:)
+         x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end)
+      ENDIF
+   ENDDO
+   ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
+   area = SUM(theZones(1:n_zones)%zarea)
+   DO zon=1,n_zones
+      x_diag_hz = x_diag_hz + (z_diag_hz(zon,:) * (theZones(zon)%zarea/area))
+   ENDDO
+
+END SUBROUTINE copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 

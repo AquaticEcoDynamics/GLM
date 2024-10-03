@@ -51,12 +51,12 @@
 MODULE glm_aed
 !
    USE ISO_C_BINDING
+   USE IEEE_ARITHMETIC
 
    USE aed_util
    USE aed_common
    USE glm_types
    USE glm_zones
-   USE IEEE_ARITHMETIC
 
    IMPLICIT NONE
 
@@ -559,7 +559,7 @@ SUBROUTINE check_data
 !ARGUMENTS
 !
 !LOCALS
-   INTEGER :: av !, i
+   INTEGER :: av
    INTEGER :: v, d, sv, sd, ev, err_count
    TYPE(aed_variable_t),POINTER :: tvar
 !-------------------------------------------------------------------------------
@@ -1369,9 +1369,7 @@ SUBROUTINE update_light(column, nlev)
       par(i) = par(i+1) * EXP( -(Kw + localext_up) * dz(i+1) )
 
       IF (bioshade_feedback) extc(i) = Kw + localext
-
    ENDDO
-
 END SUBROUTINE update_light
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

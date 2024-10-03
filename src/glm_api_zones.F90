@@ -122,7 +122,6 @@ SUBROUTINE api_calc_zone_areas(aedZones, n_zones, areas, heights, wlev)
    zon = 1
    aedZones(1)%z_area(1) = areas(1)
    DO lev=2, wlev
-!print*,"heights(",lev,") = ",heights(lev)," zheight(",zon,") = ",aedZones(zon)%z_heights(1)
       IF ( heights(lev) > aedZones(zon)%z_heights(1) ) zon = zon + 1
 
       aedZones(zon)%z_area(1) = aedZones(zon)%z_area(1) + areas(lev) - areas(lev-1)
@@ -208,10 +207,10 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, heights, x_cc, x_cc_hz, x_diag, x
       ! introduce errors in z_cc (split layers)
       ! Ideally this average would be based on volume weighting
 
-      aedZones(zon)%z_cc(1,1:nvars) = aedZones(zon)%z_cc(1,1:nvars) + x_cc(lev,1:nvars)
-      aedZones(zon)%z_cc_hz(:)      = aedZones(zon)%z_cc_hz(:) + x_cc_hz(:)
-      aedZones(zon)%z_cc_diag(1,:)  = aedZones(zon)%z_cc_diag(1,:) + x_diag(lev,:)
-      aedZones(zon)%z_cc_diag_hz(:) = aedZones(zon)%z_cc_diag_hz(:) + x_diag_hz(:)
+      aedZones(zon)%z_cc(lev,1:nvars) = aedZones(zon)%z_cc(lev,1:nvars) + x_cc(lev,1:nvars)
+      aedZones(zon)%z_cc_hz(:)        = aedZones(zon)%z_cc_hz(:) + x_cc_hz(:)
+      aedZones(zon)%z_cc_diag(lev,:)  = aedZones(zon)%z_cc_diag(lev,:) + x_diag(lev,:)
+      aedZones(zon)%z_cc_diag_hz(:)   = aedZones(zon)%z_cc_diag_hz(:) + x_diag_hz(:)
 
       aedZones(zon)%z_temp(1)         = aedZones(zon)%z_temp(1) + theLake(lev)%Temp
       aedZones(zon)%z_salt(1)         = aedZones(zon)%z_salt(1) + theLake(lev)%Salinity
@@ -227,9 +226,9 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, heights, x_cc, x_cc_hz, x_diag, x
    a_zones = zon
 
    DO zon=1,a_zones
-      aedZones(zon)%z_cc(1,1:nvars) = aedZones(zon)%z_cc(1,1:nvars)/zcount(zon)
+      aedZones(zon)%z_cc(:,1:nvars) = aedZones(zon)%z_cc(:,1:nvars)/zcount(zon)
       aedZones(zon)%z_cc_hz(:)      = aedZones(zon)%z_cc_hz(:)/zcount(zon)
-      aedZones(zon)%z_cc_diag(1,:)  = aedZones(zon)%z_cc_diag(1,:)/zcount(zon)
+      aedZones(zon)%z_cc_diag(:,:)  = aedZones(zon)%z_cc_diag(:,:)/zcount(zon)
       aedZones(zon)%z_cc_diag_hz(:) = aedZones(zon)%z_cc_diag_hz(:)/zcount(zon)
    ENDDO
 
