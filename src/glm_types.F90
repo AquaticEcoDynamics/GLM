@@ -200,7 +200,7 @@ MODULE glm_types
    TYPE(CLOGICAL),BIND(C, name="mobility_off")     :: mobility_off
    TYPE(CLOGICAL),BIND(C, name="bioshade_feedback"):: bioshade_feedback
    TYPE(CLOGICAL),BIND(C, name="repair_state")     :: repair_state
-   TYPE(CLOGICAL),BIND(C, name="do_plots")         :: do_plots
+   TYPE(CLOGICAL),BIND(C, name="do_plots")         :: do_plots = .FALSE.
    TYPE(CLOGICAL),BIND(C, name="link_rain_loss")   :: link_rain_loss
    TYPE(CLOGICAL),BIND(C, name="link_solar_shade") :: link_solar_shade
    TYPE(CLOGICAL),BIND(C, name="link_bottom_drag") :: link_bottom_drag

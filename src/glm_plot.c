@@ -51,7 +51,8 @@
     int xdisp = 0;
 #endif
 
-CLOGICAL do_plots, saveall = 0;
+extern CLOGICAL do_plots;
+CLOGICAL saveall = FALSE;
 static int nplots = 9;
 static int max_plots = 16, *theplots = NULL;
 static char **vars = NULL;

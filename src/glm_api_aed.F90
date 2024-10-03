@@ -196,7 +196,7 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    conf%mobility_off = mobility_off
    conf%bioshade_feedback = bioshade_feedback
    conf%repair_state = repair_state
-   conf%do_plots = do_plots
+!  conf%do_plots = do_plots
    conf%link_rain_loss = link_rain_loss
    conf%link_solar_shade = link_solar_shade
    conf%link_bottom_drag = link_bottom_drag
