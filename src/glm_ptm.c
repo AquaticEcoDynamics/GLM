@@ -101,6 +101,8 @@ void ptm_init_glm()
 
     // Set initial inactive particle status/properties (initial inactive particles)
     for (p = 0; p < max_particle_num; p++) {
+        //partgroup[grp].istat[id_stat,p] id_stat is equivalent to Status, p is particle
+        //partgroup[grp].istat[id_flag,p] id_flag is equivalent to Flag, p is particle
         Particle[p].Status = 0;
         Particle[p].Flag = 3;
         Particle[p].Mass = 0.0;
@@ -521,6 +523,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
+//will also need to handle groups in write step; append group name onto 
 void ptm_init_glm_output(int ncid, int time_dim)
 {
    int dims[2];
