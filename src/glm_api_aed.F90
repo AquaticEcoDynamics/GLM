@@ -30,10 +30,12 @@
 !#                                                                             #
 !###############################################################################
 
-#include "aed.h"
-#include <aed_api.h>
+#include "aed_api.h"
 
 #undef MISVAL
+#ifndef _FORTRAN_SOURCE_
+#define _FORTRAN_SOURCE_ 1
+#endif
 
 #ifndef __GFORTRAN__
 #  ifndef isnan
@@ -51,14 +53,16 @@ MODULE glm_api_aed
 
    USE aed_util
    USE aed_common
-!  USE glm_types
-   USE glm_zones
+   USE glm_types
    USE aed_api
+   USE aed_zones
+   USE glm_api_zones
+
 
    IMPLICIT NONE
 
    PRIVATE ! By default, make everything private
-
+!
 #include "glm_globals.h"
 #include "glm_plot.h"
 #include "glm_ncdf.h"
@@ -89,11 +93,11 @@ MODULE glm_api_aed
 !
 !-------------------------------------------------------------------------------
 !MODULE DATA
-!
-   AED_REAL :: nir_fraction =  0.52   ! 0.51
-   AED_REAL :: par_fraction =  0.43   ! 0.45
-   AED_REAL :: uva_fraction =  0.048  ! 0.035
-   AED_REAL :: uvb_fraction =  0.002  ! 0.005
+
+   AED_REAL :: par_fraction =  0.450
+   AED_REAL :: nir_fraction =  0.510
+   AED_REAL :: uva_fraction =  0.035
+   AED_REAL :: uvb_fraction =  0.005
 
    !# Arrays for state and diagnostic variables
    AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: cc !# water quality array: nlayers, nvars
@@ -102,9 +106,13 @@ MODULE glm_api_aed
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_diag_hz
 
    !# Arrays for work, vertical movement, and cross-boundary fluxes
+!  AED_REAL,DIMENSION(:,:),ALLOCATABLE :: ws
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: dz
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: tss
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: sed_zones
+
+   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: depth
+   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: col_depth
 
    !# Arrays for environmental variables not supplied externally.
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: par
@@ -114,16 +122,15 @@ MODULE glm_api_aed
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: nir
 
    !# External variables
-   AED_REAL :: dt_eff       ! External and internal time steps
-   AED_REAL,DIMENSION(:),POINTER :: rad
-   AED_REAL,DIMENSION(:),POINTER :: height
-   AED_REAL,DIMENSION(:),POINTER :: salt
    AED_REAL,DIMENSION(:),POINTER :: temp
+   AED_REAL,DIMENSION(:),POINTER :: salt
+   AED_REAL,DIMENSION(:),POINTER :: rad
    AED_REAL,DIMENSION(:),POINTER :: rho
    AED_REAL,DIMENSION(:),POINTER :: area
    AED_REAL,DIMENSION(:),POINTER :: extc
    AED_REAL,DIMENSION(:),POINTER :: layer_stress
    AED_REAL,DIMENSION(:),POINTER :: cvel
+
    AED_REAL,DIMENSION(:),POINTER :: rain
    AED_REAL,DIMENSION(:),POINTER :: evap
    AED_REAL,DIMENSION(:),POINTER :: air_temp
@@ -131,23 +138,22 @@ MODULE glm_api_aed
    AED_REAL,DIMENSION(:),POINTER :: I_0
    AED_REAL,DIMENSION(:),POINTER :: wnd
    AED_REAL,DIMENSION(:),POINTER :: air_pres
-   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: depth
-   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: col_depth
 
-   CHARACTER(len=48),ALLOCATABLE :: names(:)
-   CHARACTER(len=48),ALLOCATABLE :: bennames(:)
+!  CHARACTER(len=48),ALLOCATABLE :: names(:)
+!  CHARACTER(len=48),ALLOCATABLE :: bennames(:)
 !  CHARACTER(len=48),ALLOCATABLE :: diagnames(:)
+
+!  AED_REAL,DIMENSION(:),ALLOCATABLE :: min_
+!  AED_REAL,DIMENSION(:),ALLOCATABLE :: max_
 
    INTEGER,DIMENSION(:),ALLOCATABLE :: externalid
    INTEGER,DIMENSION(:),ALLOCATABLE :: zexternalid
-
    INTEGER,DIMENSION(:),ALLOCATABLE :: plot_id_v, plot_id_sv, plot_id_d, plot_id_sd
-
-!  INTEGER :: zone_var = 0
 
 !  LOGICAL :: reinited = .FALSE.
 
    INTEGER :: n_aed_vars, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
+!  INTEGER :: zone_var = 0
 
    CHARACTER(len=64) :: NULCSTR = ""
 
@@ -156,9 +162,8 @@ CONTAINS
 
 
 !###############################################################################
-SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
+SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
                                                       BIND(C, name=_WQ_INIT_GLM)
-   USE glm_types
 !-------------------------------------------------------------------------------
 ! Initialize the GLM-AED driver by reading settings from aed.nml.
 !-------------------------------------------------------------------------------
@@ -168,8 +173,6 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    CINTEGER,INTENT(out)  :: NumWQ_Vars, NumWQ_Ben
 !
 !LOCALS
-   INTEGER :: status
-
    CHARACTER(len=80) :: fname
 
    TYPE(api_config_t) :: conf
@@ -178,16 +181,7 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
 !BEGIN
    CALL make_string(fname, i_fname, len)
 
-   ALLOCATE(dz(MaxLayers),stat=status)
-   dz = zero_
-   ALLOCATE(pres(MaxLayers),stat=status)
-   pres = zero_
-   ALLOCATE(tss(MaxLayers),stat=status)
-   IF (status /= 0) STOP 'allocate_memory(): Error allocating (tss)'
-   tss = zero_
-
    conf%MaxLayers = MaxLayers
-
    conf%par_fraction =  0.450
    conf%nir_fraction =  0.510
    conf%uva_fraction =  0.035
@@ -196,7 +190,6 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    conf%mobility_off = mobility_off
    conf%bioshade_feedback = bioshade_feedback
    conf%repair_state = repair_state
-!  conf%do_plots = do_plots
    conf%link_rain_loss = link_rain_loss
    conf%link_solar_shade = link_solar_shade
    conf%link_bottom_drag = link_bottom_drag
@@ -212,24 +205,8 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
 
    CALL aed_config_model(conf)
 
-   ALLOCATE(par(MaxLayers),stat=status)
-   IF (status /= 0) STOP 'allocate_memory(): Error allocating (par)'
-   par = zero_
-   ALLOCATE(nir(MaxLayers),stat=status)
-   IF (status /= 0) STOP 'allocate_memory(): Error allocating (nir)'
-   nir = zero_
-   ALLOCATE(uva(MaxLayers),stat=status)
-   IF (status /= 0) STOP 'allocate_memory(): Error allocating (uva)'
-   uva = zero_
-   ALLOCATE(uvb(MaxLayers),stat=status)
-   IF (status /= 0) STOP 'allocate_memory(): Error allocating (uvb)'
-   uvb = zero_
-   ALLOCATE(depth(MaxLayers))
-   depth = 0.
-   ALLOCATE(sed_zones(MaxLayers))
-   sed_zones = 0.
-
    CALL api_set_glm_env()
+
    n_aed_vars = aed_init_model(fname, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
 
    NumWQ_Vars  = n_vars
@@ -243,30 +220,34 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
 
    ALLOCATE(externalid(n_aed_vars))
    ALLOCATE(zexternalid(n_aed_vars))
-END SUBROUTINE aed_init_glm
+END SUBROUTINE api_init_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 !###############################################################################
 SUBROUTINE api_set_glm_env()
-   USE glm_types
 !-------------------------------------------------------------------------------
 !ARGUMENTS
+!
 !LOCALS
-   TYPE(api_env_t) :: aed_env
+   INTEGER :: status
+
+   TYPE(api_env_t) :: env
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   height => theLake%Height
-   temp   => theLake%Temp
-   salt   => theLake%Salinity
-   rho    => theLake%Density
-   area   => theLake%LayerArea
-   rad    => theLake%Light
-   cvel   => theLake%Umean
-   extc   => theLake%ExtcCoefSW
+   !# Save pointers to external dynamic variables that we need later (in do_glm_wq)
+   lheights => theLake%Height
+   temp     => theLake%Temp
+   salt     => theLake%Salinity
+   rho      => theLake%Density
+   area     => theLake%LayerArea
+   rad      => theLake%Light
+   cvel     => theLake%Umean
+   extc     => theLake%ExtcCoefSW
    layer_stress => theLake%LayerStress
 
+   !# Provide pointers to arrays with environmental variables to aed.
    wnd      => aMetData%WindSpeed
    rain     => aMetData%Rain
    I_0      => aMetData%ShortWave
@@ -276,86 +257,122 @@ SUBROUTINE api_set_glm_env()
 
    evap => aSurfData%Evap
 
-   aed_env%yearday   => yearday
-   aed_env%timestep  => timestep
+   !# Allocate array for photosynthetically active radiation (PAR).
+   !# This will be calculated internally during each time step.
+   ALLOCATE(par(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (par)'
+   par = zero_
 
-   aed_env%longitude => longitude
-   aed_env%latitude  => latitude
+   ALLOCATE(nir(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (nir)'
+   nir = zero_
+   ALLOCATE(uva(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (uva)'
+   uva = zero_
+   ALLOCATE(uvb(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (uvb)'
+   uvb = zero_
 
-   aed_env%temp          => temp
-   aed_env%salt          => salt
-   aed_env%rho           => rho
-   aed_env%dz            => dz
-   aed_env%height        => height
-   aed_env%area          => area
-   aed_env%depth         => depth
-ALLOCATE(col_depth(1))
-   aed_env%col_depth     => col_depth
-   aed_env%extc          => extc
-   aed_env%tss           => tss
-!  aed_env%ss1           => ss1
-!  aed_env%ss2           => ss2
-!  aed_env%ss3           => ss3
-!  aed_env%ss4           => ss4
-   aed_env%cvel          => cvel
-!  aed_env%vvel          => vvel
-!  aed_env%bio_drag      => bio_drag
-   aed_env%rad           => rad
-   aed_env%I_0           => I_0
-   aed_env%wnd           => wnd
-   aed_env%air_temp      => air_temp
-   aed_env%air_pres      => air_pres
-   aed_env%rain          => rain
-   aed_env%evap          => evap
-   aed_env%humidity      => humidity
-!  aed_env%longwave      => longwave
-!  aed_env%bathy         => bathy
-!  aed_env%rainloss      => rainloss
-!  aed_env%ustar_bed     => ustar_bed
-!  aed_env%wv_uorb       => wv_uorb
-!  aed_env%wv_t          => wv_t
-   aed_env%layer_stress  => layer_stress
-   aed_env%sed_zones     => sed_zones
-   aed_env%par => par
-   aed_env%nir => nir
-   aed_env%uva => uva
-   aed_env%uvb => uvb
+   !# Allocate array for local pressure.
+   !# This will be calculated [approximated] from layer depths internally
+   !# during each time step.
+   ALLOCATE(pres(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (pres)'
+   pres = zero_
 
-   aed_env%pres => pres
+   ALLOCATE(dz(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (dz)'
+   dz = zero_
+   ALLOCATE(depth(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (depth)'
+   depth = zero_
+   ALLOCATE(sed_zones(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (sed_zones)'
+   sed_zones = zero_
 
-   CALL aed_set_model_env(aed_env)
+   ALLOCATE(col_depth(1),stat=status)
+
+   ALLOCATE(tss(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (tss)'
+   tss = zero_
+
+   env%yearday   => yearday
+   timestep = dt
+   env%timestep  => timestep
+
+   env%longitude => longitude
+   env%latitude  => latitude
+
+   env%temp          => temp
+   env%salt          => salt
+   env%rho           => rho
+   env%dz            => dz
+   env%height        => lheights
+   env%area          => area
+   env%depth         => depth
+   env%col_depth     => col_depth
+   env%extc          => extc
+   env%tss           => tss
+!  env%ss1           => ss1
+!  env%ss2           => ss2
+!  env%ss3           => ss3
+!  env%ss4           => ss4
+   env%cvel          => cvel
+!  env%vvel          => vvel
+!  env%bio_drag      => bio_drag
+   env%rad           => rad
+   env%I_0           => I_0
+   env%wnd           => wnd
+   env%air_temp      => air_temp
+   env%air_pres      => air_pres
+   env%rain          => rain
+   env%evap          => evap
+   env%humidity      => humidity
+!  env%longwave      => longwave
+!  env%bathy         => bathy
+!  env%rainloss      => rainloss
+!  env%ustar_bed     => ustar_bed
+!  env%wv_uorb       => wv_uorb
+!  env%wv_t          => wv_t
+   env%layer_stress  => layer_stress
+   env%sed_zones     => sed_zones
+   env%par => par
+   env%nir => nir
+   env%uva => uva
+   env%uvb => uvb
+
+   env%pres => pres
+
+   CALL aed_set_model_env(env)
 END SUBROUTINE api_set_glm_env
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 !###############################################################################
 SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
-   USE glm_types
-   USE glm_api_zones
 !-------------------------------------------------------------------------------
 !ARGUMENTS
 !
 !LOCALS
    INTEGER :: status
-   TYPE(api_data_t) :: aed_data
+
+   TYPE(api_data_t) :: dat
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   !# Save pointers to external dynamic variables that we need later (in do_glm_wq)
-   height => theLake%Height
-   temp   => theLake%Temp
-   salt   => theLake%Salinity
-   rho    => theLake%Density
-   area   => theLake%LayerArea
-   rad    => theLake%Light
-   cvel   => theLake%Umean
-   extc   => theLake%ExtcCoefSW
-   layer_stress => theLake%LayerStress
+   IF (n_zones .GT. 0) &
+      CALL api_set_glm_zones(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
 
    !# Now that we know how many vars we need, we can allocate space for them
    ALLOCATE(cc(MaxLayers, (n_vars + n_vars_ben)),stat=status)
-   IF (status /= 0) STOP 'allocate_memory(): Error allocating (CC)'
-   cc = 0.         !# initialise to zero
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (cc)'
+   cc = zero_         !# initialise to zero
+
+   CALL set_c_wqvars_ptr(cc)
+
+!  ALLOCATE(cc_hz(n_vars_ben),stat=status)
+!  IF (status /= 0) STOP 'allocate_memory(): Error allocating (cc_hz)'
+!  cc_hz = zero_         !# initialise to zero
 
    !# Allocate diagnostic variable array and set all values to zero.
    !# (needed because time-integrated/averaged variables will increment rather than set the array)
@@ -369,52 +386,29 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (cc_diag_hz)'
    cc_diag_hz = zero_
 
-   aed_data%cc => cc
-   aed_data%cc_hz => cc_hz
-   aed_data%cc_diag => cc_diag
-   aed_data%cc_diag_hz => cc_diag_hz
+   dat%cc => cc
+!  dat%cc_hz => cc_hz
+   dat%cc_diag => cc_diag
+   dat%cc_diag_hz => cc_diag_hz
 
-   CALL aed_set_model_data(aed_data)
-
-   CALL set_c_wqvars_ptr(cc)
-
-   IF (n_zones .GT. 0) &
-      CALL api_set_glm_zones(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
-
-!  precip => MetData%Rain
-   rain => aMetData%Rain
-   air_temp => aMetData%AirTemp
-   humidity => aMetData%RelHum
-   air_pres => aMetData%AirPres
-
-   evap   => aSurfData%Evap
-!  bottom_stress => layer_stress(botmLayer)
-
-   !# Provide pointers to arrays with environmental variables to aed.
-   wnd => aMetData%WindSpeed
-   I_0 => aMetData%ShortWave
-
-   !# Calculate and save internal time step.
-   dt_eff = dt/FLOAT(split_factor)
-
- ! !# Trigger an error if WQ hasn't got all it needs from us.
- ! CALL check_data
+   CALL aed_set_model_data(dat)
 END SUBROUTINE api_set_glm_data
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 !###############################################################################
-CINTEGER FUNCTION aed_is_var(id,i_vname,len)            BIND(C, name=_WQ_IS_VAR)
-   USE glm_types
+CINTEGER FUNCTION api_is_var(id,i_vname,len)            BIND(C, name=_WQ_IS_VAR)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    CINTEGER,INTENT(in)   :: id
    CCHARACTER,INTENT(in) :: i_vname(*)
    CSIZET,INTENT(in)     :: len
+!
 !LOCALS
    CHARACTER(len=45) :: vname
    TYPE(aed_variable_t),POINTER :: tvar
    INTEGER :: i, v, sv, d, sd
+!
 !-------------------------------------------------------------------------------
 !BEGIN
    CALL make_string(vname, i_vname, len)
@@ -426,10 +420,10 @@ CINTEGER FUNCTION aed_is_var(id,i_vname,len)            BIND(C, name=_WQ_IS_VAR)
             IF ( tvar%sheet ) THEN ; sv=sv+1; ELSE ; v=v+1 ; ENDIF
             IF ( TRIM(tvar%name) == vname ) THEN
                IF (tvar%sheet) THEN
-                  aed_is_var=-sv
+                  api_is_var=-sv
                   plot_id_sv(sv) = id;
                ELSE
-                  aed_is_var=v
+                  api_is_var=v
                   plot_id_v(v) = id;
                ENDIF
                RETURN
@@ -438,10 +432,10 @@ CINTEGER FUNCTION aed_is_var(id,i_vname,len)            BIND(C, name=_WQ_IS_VAR)
             IF ( tvar%sheet ) THEN ; sd=sd+1; ELSE ; d=d+1 ; ENDIF
             IF ( TRIM(tvar%name) == vname ) THEN
                IF (tvar%sheet) THEN
-                  aed_is_var=-sd
+                  api_is_var=-sd
                   plot_id_sd(sd) = id;
                ELSE
-                  aed_is_var=d
+                  api_is_var=d
                   plot_id_d(d) = id;
                ENDIF
                RETURN
@@ -449,8 +443,8 @@ CINTEGER FUNCTION aed_is_var(id,i_vname,len)            BIND(C, name=_WQ_IS_VAR)
          ENDIF
       ENDIF
    ENDDO
-   aed_is_var = 0
-END FUNCTION aed_is_var
+   api_is_var = 0
+END FUNCTION api_is_var
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -466,8 +460,10 @@ SUBROUTINE doMobilityF(N,dt,h,A,ww,min_C,cc)
    AED_REAL,INTENT(in)    :: ww(*)   !# vertical speed (m/s)
    AED_REAL,INTENT(in)    :: min_C   !# minimum allowed cell concentration
    AED_REAL,INTENT(inout) :: cc(*)   !# cell concentration
+!
 !LOCALS
    CINTEGER :: NC
+!
 !-------------------------------------------------------------------------------
 !BEGIN
    NC = N
@@ -477,67 +473,71 @@ END SUBROUTINE doMobilityF
 
 
 !###############################################################################
-SUBROUTINE aed_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
-!-------------------------------------------------------------------------------
-!                           wlev is the number of levels used;
+SUBROUTINE api_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    CINTEGER,INTENT(in) :: wlev
    CLOGICAL,INTENT(in) :: pIce
 !
 !LOCALS
-   INTEGER :: i
    LOGICAL :: doSurface
+   INTEGER :: lev
    AED_REAL :: surf
 
    PROCEDURE(aed_mobility_t),POINTER :: doMobilityP
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   col_depth(1) = height(wlev)
-   surf = height(wlev)
+   col_depth = lheights(wlev)
+   surf = lheights(wlev)
    !# re-compute the layer heights and depths
-   dz(1) = height(1)
-   depth(1) = surf - height(1)
-   DO i=2,wlev
-      dz(i) = height(i) - height(i-1)
-      depth(i) = surf - height(i)
+   dz(1) = lheights(1)
+   depth(1) = surf - lheights(1)
+   DO lev=2,wlev
+      dz(lev) = lheights(lev) - lheights(lev-1)
+      depth(lev) = surf - lheights(lev)
    ENDDO
 
    !# Calculate local pressure
-   pres(1:wlev) = -height(1:wlev)
+   pres(1:wlev) = -lheights(1:wlev)
 
    doSurface = .NOT. pIce
+
    doMobilityP => doMobilityF
    CALL aed_set_mobility(doMobilityP)
    CALL aed_run_model(1, wlev, doSurface)
-END SUBROUTINE aed_do_glm
+END SUBROUTINE api_do_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 !###############################################################################
-SUBROUTINE aed_clean_glm() BIND(C, name=_WQ_CLEAN_GLM)
+SUBROUTINE api_clean_glm()                           BIND(C, name=_WQ_CLEAN_GLM)
 !-------------------------------------------------------------------------------
 ! Finish biogeochemical model
 !-------------------------------------------------------------------------------
 !BEGIN
    CALL aed_clean_model()
    ! Deallocate internal arrays
-   IF (ALLOCATED(cc_diag))    DEALLOCATE(cc_diag)
-   IF (ALLOCATED(cc_diag_hz)) DEALLOCATE(cc_diag_hz)
- ! IF (ALLOCATED(ws))         DEALLOCATE(ws)
-!  IF (ALLOCATED(par))        DEALLOCATE(par)
-!  IF (ALLOCATED(nir))        DEALLOCATE(nir)
-!  IF (ALLOCATED(uva))        DEALLOCATE(uva)
-!  IF (ALLOCATED(uvb))        DEALLOCATE(uvb)
-!  IF (ALLOCATED(pres))       DEALLOCATE(pres)
-!  IF (ALLOCATED(dz))         DEALLOCATE(dz)
-END SUBROUTINE aed_clean_glm
+!  IF (ALLOCATED(cc))         DEALLOCATE(cc)
+!  IF (ALLOCATED(cc_hz))      DEALLOCATE(cc_hz)
+!  IF (ALLOCATED(cc_diag))    DEALLOCATE(cc_diag)
+!  IF (ALLOCATED(cc_diag_hz)) DEALLOCATE(cc_diag_hz)
+   IF (ALLOCATED(par))        DEALLOCATE(par)
+   IF (ALLOCATED(nir))        DEALLOCATE(nir)
+   IF (ALLOCATED(uva))        DEALLOCATE(uva)
+   IF (ALLOCATED(uvb))        DEALLOCATE(uvb)
+   IF (ALLOCATED(pres))       DEALLOCATE(pres)
+   IF (ALLOCATED(dz))         DEALLOCATE(dz)
+   IF (ALLOCATED(tss))        DEALLOCATE(tss)
+   IF (ALLOCATED(sed_zones))  DEALLOCATE(sed_zones)
+   IF (ALLOCATED(depth))      DEALLOCATE(depth)
+   IF (ALLOCATED(col_depth))  DEALLOCATE(col_depth)
+END SUBROUTINE api_clean_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 !###############################################################################
-SUBROUTINE aed_init_glm_output(ncid,x_dim,y_dim,z_dim,zone_dim,time_dim)       &
+SUBROUTINE api_init_glm_output(ncid,x_dim,y_dim,z_dim,zone_dim,time_dim)       &
                                                BIND(C, name=_WQ_INIT_GLM_OUTPUT)
 !-------------------------------------------------------------------------------
 !  Initialize the output by defining biogeochemical variables.
@@ -612,7 +612,7 @@ SUBROUTINE aed_init_glm_output(ncid,x_dim,y_dim,z_dim,zone_dim,time_dim)       &
 
    !# Take NetCDF library out of define mode (ready for storing data).
    CALL define_mode_off(ncid)
-END SUBROUTINE aed_init_glm_output
+END SUBROUTINE api_init_glm_output
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -620,9 +620,7 @@ END SUBROUTINE aed_init_glm_output
 !  Save properties of biogeochemical model, including state variable
 !  values, diagnostic variable values, and sums of conserved quantities.
 !-------------------------------------------------------------------------------
-SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_GLM_)
-   USE glm_types
-   USE glm_zones
+SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_GLM_)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    CINTEGER,INTENT(in) :: ncid, wlev, nlev
@@ -654,7 +652,7 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                IF ( do_plots .AND. plot_id_sd(sd).GE.0 ) THEN
                   IF ( n_zones .GT. 0 ) THEN
                      DO z=1,n_zones
-                        CALL put_glm_val_z(plot_id_sd(sd), z_diag_hz(z, sd), z)
+                        CALL put_glm_val_z(plot_id_sd(sd),z_diag_hz(z, sd), z)
                      ENDDO
                   ENDIF
                   CALL put_glm_val_s(plot_id_sd(sd),cc_diag_hz(sd))
@@ -683,8 +681,7 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                sv = sv + 1
                !# Store benthic biogeochemical state variables.
                IF ( n_zones .GT. 0 ) THEN
-                   CALL store_nc_array(ncid, zexternalid(i), XYNT_SHAPE, n_zones, n_zones, &
-                                                               array=z_cc(1:n_zones, 1, n_vars+sv))
+                  CALL store_nc_array(ncid, zexternalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_cc(1:n_zones, 1, n_vars+sv))
                ENDIF
                CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc(1, n_vars+sv))
                IF ( do_plots .AND. plot_id_sv(sv).GE.0 ) THEN
@@ -716,19 +713,23 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
          ENDIF
       ENDIF
    ENDDO
-END SUBROUTINE aed_write_glm
+END SUBROUTINE api_write_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 !###############################################################################
-SUBROUTINE wq_inflow_update(wqinf, nwqVars, temp, salt) BIND(C, name=_WQ_INFLOW_UPDATE)
+SUBROUTINE wq_inflow_update(wqinf, nwqVars, temp, salt)                        &
+                                                 BIND(C, name=_WQ_INFLOW_UPDATE)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    TYPE(C_PTR),VALUE :: wqinf
    CINTEGER,INTENT(in) :: nwqVars
    AED_REAL,INTENT(inout) :: temp, salt
+!
 !LOCALS
    AED_REAL,DIMENSION(:),POINTER :: wqInfF
+!
+!-------------------------------------------------------------------------------
 !BEGIN
    CALL C_F_POINTER(wqinf, wqInfF, [nwqVars])
    CALL aed_inflow_update(wqInfF, temp, salt)
@@ -737,13 +738,16 @@ END SUBROUTINE wq_inflow_update
 
 
 !###############################################################################
-CINTEGER FUNCTION aed_var_index_c(name, len) BIND(C, name=_WQ_VAR_INDEX_C)
+CINTEGER FUNCTION aed_var_index_c(name, len)       BIND(C, name=_WQ_VAR_INDEX_C)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    CCHARACTER,INTENT(in) :: name(*)
    CSIZET,INTENT(in)     :: len
+!
 !LOCALS
    CHARACTER(len=len) :: tn
+!
+!-------------------------------------------------------------------------------
 !BEGIN
    tn = trim(transfer(name(1:len),tn))
    aed_var_index_c = aed_var_index(tn) - 1

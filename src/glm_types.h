@@ -249,7 +249,7 @@ typedef char filname[80];
        AED_REAL z_sed_zones;
        AED_REAL z_pc_wet;
        AED_REAL heatflux;
-       int n_sed_layers;      // number of sediment layers
+       int      n_sed_layers;      // number of sediment layers
        SedLayerType *layers;
    } ZoneType;
 

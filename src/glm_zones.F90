@@ -30,8 +30,6 @@
 !#                                                                             #
 !###############################################################################
 
-#define _VOLUME_SCALING_ 0
-
 #undef MISVAL
 #ifndef _FORTRAN_SOURCE_
 #define _FORTRAN_SOURCE_ 1
@@ -54,12 +52,12 @@ MODULE glm_zones
    AED_REAL,DIMENSION(:,:,:),ALLOCATABLE,TARGET :: z_diag    ! (nsed_zones, n_levs, n_vars)
    AED_REAL,DIMENSION(:,:),  ALLOCATABLE,TARGET :: z_diag_hz ! (nsed_zones, n_vars)
 
-   AED_REAL,DIMENSION(:),POINTER :: zz
+   AED_REAL,DIMENSION(:),POINTER :: lheights
 
    AED_REAL,DIMENSION(:),POINTER :: zone_heights
    INTEGER :: nvars, nbenv, nvdiag, nvdiag_hz
 
-   PUBLIC n_zones, zone_heights, zz
+   PUBLIC n_zones, zone_heights, lheights
    PUBLIC wq_set_glm_zones, copy_from_zone, copy_to_zone, calc_zone_areas
 
    PUBLIC z_cc, z_cc_hz, z_diag, z_diag_hz, theZones, theLake
@@ -84,7 +82,7 @@ SUBROUTINE wq_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)            &
    nvdiag = numDiagV
    nvdiag_hz = numDiagHzV
 
-   zz => theLake%Height
+   lheights => theLake%Height
    zone_heights => theZones%zheight
 
    ALLOCATE(z_cc(n_zones, MaxLayers, numVars+numBenV))  ; z_cc = 0.
@@ -102,60 +100,21 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
 !ARGUMENTS
    AED_REAL,DIMENSION(:),INTENT(in) :: areas
    INTEGER,INTENT(in) :: wlev
-   AED_REAL :: surf
+   AED_REAL,INTENT(in) :: surf
 !
 !LOCALS
    INTEGER  :: lev, zon
    LOGICAL  :: w_zones
-#if _VOLUME_SCALING_
-   INTEGER  :: ij
-   AED_REAL :: x, y
-#endif
 !
 !-------------------------------------------------------------------------------
 !BEGIN
    theZones%zarea = 0.  ; theZones%z_pc_wet = 0.
    w_zones = .FALSE.
 
-#if _VOLUME_SCALING_
-
-   DO zon=1, n_zones
-      x = zone_heights(zon) * 10.0
-      y = AMOD(x, 1.0)
-      ij = INT(x - y)
-      IF (ij .GT. NMorph) THEN
-         y = y + FLOAT(ij - NMorph)
-         ij = NMorph
-      ENDIF
-
-      zvol(zon) = MphLevelVol(ij) + y * dMphLevelVol(ij)
-      theZones(zon)%zarea = MphLevelArea(ij) + y * dMphLevelArea(ij)
-   ENDDO
-
-   zon = 1
-   DO lev=2, wlev
-      IF ( zz(lev) > zone_heights(zon) ) zon = zon + 1
-
-      IF ( zone_heights(zon) > surf ) THEN
-         IF (.NOT. w_zones ) THEN
-            w_zones = .TRUE.
-            IF ( zon > 1 ) THEN
-               theZones(zon)%z_pc_wet = surf / (zone_heights(zon) - zone_heights(zon-1))
-            ELSE
-               theZones(zon)%z_pc_wet = surf / zone_heights(zon)
-            ENDIF
-         ENDIF
-      ELSE
-         theZones(zon)%z_pc_wet = 1.0
-      ENDIF
-   ENDDO
-
-#else
-
    zon = 1
    theZones(1)%zarea = areas(1)
    DO lev=2, wlev
-      IF ( zz(lev) > zone_heights(zon) ) zon = zon + 1
+      IF ( lheights(lev) > zone_heights(zon) ) zon = zon + 1
 
       theZones(zon)%zarea = theZones(zon)%zarea + areas(lev) - areas(lev-1)
 
@@ -172,8 +131,6 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
          TheZones(zon)%z_pc_wet = 1.0
       ENDIF
    ENDDO
-
-#endif
 
    theZones(1:n_zones)%zpres = -zone_heights(1:n_zones)
 END SUBROUTINE calc_zone_areas
@@ -200,17 +157,27 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
    z_cc(:,:,1:nvars) = 0.
    z_diag(:,:,:) = 0.
    z_diag_hz(:,:) = 0.
-   theZones%zrad = 0. ; theZones%zsalt = 0. ; theZones%ztemp = 0. ; theZones%zrho = 0.
-   theZones%zextc = 0. ; theZones%zlayer_stress = 0. ; theZones%ztss = 0.
-   theZones%zpar = 0. ; theZones%znir = 0. ; theZones%zuva = 0. ; theZones%zuvb = 0.
-   theZones%z_sed_zones = 1. ; theZones%zvel = 0.
+
+   theZones%zrad = 0.
+   theZones%zsalt = 0.
+   theZones%ztemp = 0.
+   theZones%zrho = 0.
+   theZones%zextc = 0.
+   theZones%zlayer_stress = 0.
+   theZones%ztss = 0.
+   theZones%zpar = 0.
+   theZones%znir = 0.
+   theZones%zuva = 0.
+   theZones%zuvb = 0.
+   theZones%z_sed_zones = 1.
+   theZones%zvel = 0.
 
    a_zones = 1
    zcount = 0
    w_zones = .FALSE.
    zon = 1
    DO lev=1,wlev
-      IF ( lev > 1 .AND. zz(lev) > zone_heights(zon) ) THEN
+      IF ( lev > 1 .AND. lheights(lev) > zone_heights(zon) ) THEN
          zon = zon + 1
          IF (zon > n_zones) STOP 'Water level height is higher than highest zone height'
          theZones(zon)%z_sed_zones = zon
@@ -262,7 +229,7 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
    ENDWHERE
 
    theZones%zdz = 0.
-   surf = zz(wlev)
+   surf = lheights(wlev)
    IF ( surf > zone_heights(1) ) THEN
       theZones(1)%zdepth = zone_heights(1)
       theZones(1)%zdz = zone_heights(1)
@@ -314,7 +281,7 @@ SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
    DO lev=wlev,1,-1
       IF ( zon .GT. 1 ) THEN
          IF (lev .GT. 1) THEN
-            splitZone = zz(lev-1) < zone_heights(zon-1)
+            splitZone = lheights(lev-1) < zone_heights(zon-1)
          ELSE
             splitZone = 0.0 < zone_heights(zon-1)
          ENDIF
@@ -324,9 +291,9 @@ SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
 
       IF (splitZone) THEN
          IF (lev .GT. 1) THEN
-            scale = (zone_heights(zon-1) - zz(lev-1)) / (zz(lev) - zz(lev-1))
+            scale = (zone_heights(zon-1) - lheights(lev-1)) / (lheights(lev) - lheights(lev-1))
          ELSE
-            scale = (zone_heights(zon-1) - 0.0) / (zz(lev) - 0.0)
+            scale = (zone_heights(zon-1) - 0.0) / (lheights(lev) - 0.0)
          ENDIF
 
          WHERE(z_diag(zon,lev,:) /= 0.) &
@@ -350,7 +317,6 @@ SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
    DO zon=1,n_zones
       x_diag_hz = x_diag_hz + (z_diag_hz(zon,:) * (theZones(zon)%zarea/area))
    ENDDO
-
 END SUBROUTINE copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

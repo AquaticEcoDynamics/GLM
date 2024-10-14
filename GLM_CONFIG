@@ -2,21 +2,13 @@
 # These are settings used for building glm
 #
 
-# export FABM=false
-# export AED2=false
+export FABM=false
+export AED2=false
 export AED=true
+export API=true
 export USE_DL=false
 export WITH_PLOTS=true
 export WITH_XPLOTS=true
-
-# The build scripts will look for gfortran-8, gfortran then ifort; these can
-# be used to override
-# export FC=ifort
-# export FC=gfortran
-
-# The default is MacPorts : uncomment the next line if you use "homebrew"
-# the build_glm.sh scripts will try to auto-configure this
-#export HOMEBREW=true
 
 export CURDIR=`pwd`
 export FABMDIR=${CURDIR}/../fabm-git

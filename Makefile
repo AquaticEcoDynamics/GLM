@@ -141,8 +141,14 @@ endif
 
 EXTFFLAGS=
 ifeq ($(AED),true)
-  DEFINES+=-DAED -DAPI
+  DEFINES+=-DAED
+endif
+ifeq ($(API),true)
+  DEFINES+=-DAPI
+  AED=true
+endif
 
+ifeq ($(AED),true)
   AEDWATDIR=../libaed-water
   AEDAPIDIR=../libaed-api
   FINCLUDES+=-I$(AEDWATDIR)/include -I$(AEDWATDIR)/mod

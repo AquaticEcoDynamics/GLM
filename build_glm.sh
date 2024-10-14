@@ -30,6 +30,9 @@ while [ $# -gt 0 ] ; do
     --debug)
       export DEBUG=true
       ;;
+    --checks)
+      export WITH_CHECKS=true
+      ;;
     --mdebug)
       export MDEBUG=true
       ;;
@@ -180,7 +183,7 @@ if [ "${AED2}" = "true" ] ; then
   fi
 fi
 
-if [ "${AED}" = "true" ] ; then
+if [ "${AED}" = "true" ] || [ "${API}" = "true" ] ; then
   echo "build libaed-water"
   cd "${CURDIR}/../libaed-water"
   ${MAKE} || exit 1
