@@ -403,6 +403,8 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    IF (rc /= 0) STOP 'allocate_memory(): Error allocating (cc_diag_hz)'
    cc_diag_hz = zero_
 
+   CALL set_c_wqdvars_ptr(cc_diag, cc_diag_hz, n_vars_diag, n_vars_diag_sheet)
+
    !# Allocate array with vertical movement rates (m/s, positive for upwards),
    !# and set these to the values provided by the model.
    !# allocated for all vars even though only state vars entries will be used

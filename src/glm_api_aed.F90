@@ -386,6 +386,8 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (cc_diag_hz)'
    cc_diag_hz = zero_
 
+   CALL set_c_wqdvars_ptr(cc_diag, cc_diag_hz, n_vars_diag, n_vars_diag_sheet)
+
    dat%cc => cc
 !  dat%cc_hz => cc_hz
    dat%cc_diag => cc_diag

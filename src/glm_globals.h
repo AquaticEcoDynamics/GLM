@@ -43,6 +43,17 @@
         AED_REAL,INTENT(in) :: iwqvars(*)
      END SUBROUTINE set_c_wqvars_ptr
 
+     SUBROUTINE set_c_wqdvars_ptr(iwqdvars,iwqdsvars,nwqd,nwqds) BIND(C, name="set_c_wqdvars_ptr")
+        USE ISO_C_BINDING
+#       if defined( _WIN32 ) && USE_DL_LOADER
+        !DEC$ ATTRIBUTES DLLIMPORT :: set_c_wqvars_ptr
+#       endif
+        AED_REAL,INTENT(in) :: iwqdvars(*)
+        AED_REAL,INTENT(in) :: iwqdsvars(*)
+        CINTEGER,INTENT(in) :: nwqd
+        CINTEGER,INTENT(in) :: nwqds
+     END SUBROUTINE set_c_wqdvars_ptr
+
 # if DEBUG
      SUBROUTINE debug_print_lake() BIND(C, name="debug_print_lake")
      END SUBROUTINE debug_print_lake
@@ -85,7 +96,12 @@ extern AED_REAL Kw;            //# background light attenuation (m**-1)
 extern int wq_calc;            //# are we doing water quality calcs
 extern int Num_WQ_Vars;        //# number of water quality variables
 extern int Num_WQ_Ben;         //# number of benthic water quality variables
-extern AED_REAL *WQ_Vars;      //# water quality array : nlayers, nvars
+extern int Num_WQD_Vars;       //# number of water quality diagnostic variables
+extern int Num_WQDS_Vars;      //# number of water quality diagnostic "sheet" variables
+extern AED_REAL *WQ_Vars;      //# water quality array : [nlayers, nvars]
+//extern AED_REAL *WQS_Vars;      //# water quality benthics array : [nvars]
+extern AED_REAL *WQD_Vars;     //# water quality diagnostics array : [nlayers, nvars]
+extern AED_REAL *WQDS_Vars;    //# water quality sheet diagnostics array : [nvars]
 
 extern int       n_zones;      //# number of sediment zones
 extern ZoneType *theZones;
@@ -326,6 +342,9 @@ void debug_initialisation(int which);
 void debug_initialisation_(int *which);
 
 #define _WQ_Vars(var,lyr) WQ_Vars[_IDX_2d(MaxLayers,Num_WQ_Vars,lyr,var)]
+//#define _WQS_Vars(var,lyr) WQ_Vars[_IDX_2d(MaxLayers,Num_WQ_Vars,lyr,var)]
+#define _WQD_Vars(var,lyr) WQD_Vars[_IDX_2d(MaxLayers,Num_WQD_Vars,lyr,var)]
+#define _WQDS_Vars(var,lyr) WQDS_Vars[_IDX_2d(Num_WQDS_Vars,lyr,var)]
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif

@@ -150,11 +150,13 @@ endif
 
 ifeq ($(AED),true)
   AEDWATDIR=../libaed-water
-  AEDAPIDIR=../libaed-api
   FINCLUDES+=-I$(AEDWATDIR)/include -I$(AEDWATDIR)/mod
-  FINCLUDES+=-I$(AEDAPIDIR)/include -I$(AEDAPIDIR)/mod
   AEDLIBS=-L$(AEDWATDIR)/lib -laed-water
-  AEDLIBS+=-L$(AEDAPIDIR)/lib -laed-api
+  ifeq ($(API),true)
+    AEDAPIDIR=../libaed-api
+    FINCLUDES+=-I$(AEDAPIDIR)/include -I$(AEDAPIDIR)/mod
+    AEDLIBS+=-L$(AEDAPIDIR)/lib -laed-api
+  endif
   ifdef AEDBENDIR
     AEDLIBS+=-L$(AEDBENDIR)/lib -laed-benthic
   else
@@ -360,10 +362,12 @@ else
   ifeq ($(AED2),true)
     OBJS+=${objdir}/glm_aed2.o
   endif
-  ifeq ($(AED),true)
+  ifeq ($(API),true)
     OBJS+=${objdir}/glm_api_zones.o \
-          ${objdir}/glm_api_aed.o   \
-          ${objdir}/glm_aed.o       \
+          ${objdir}/glm_api_aed.o
+  endif
+  ifeq ($(AED),true)
+    OBJS+=${objdir}/glm_aed.o \
           ${objdir}/aed_external.o
   endif
   ifeq ($(FABM),true)

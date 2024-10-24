@@ -54,9 +54,11 @@ int wq_calc = FALSE;
 
 AED_REAL Kw;      //# background light attenuation (m**-1)
 
-int Num_WQ_Vars;  //# number of water quality variables
-int Num_WQ_Ben;   //# number of benthic water quality variables
-int atm_stab = 0; //# Account for non-neutral atmospheric stability
+int Num_WQ_Vars = 0;   //# number of water quality variables
+int Num_WQ_Ben = 0;    //# number of benthic water quality variables
+int Num_WQD_Vars = 0;  //# number of diagnostic water quality variables
+int Num_WQDS_Vars = 0; //# number of diagnostic benthic water quality variables
+int atm_stab = 0;      //# Account for non-neutral atmospheric stability
 
 //------------------------------------------------------------------------------
 
@@ -269,7 +271,10 @@ int noSecs;
 
 //------------------------------------------------------------------------------
 
-AED_REAL *WQ_Vars = NULL;  //# water quality array, nlayers, nvars
+AED_REAL *WQ_Vars = NULL;  //# water quality array, [nlayers, nvars]
+AED_REAL *WQS_Vars = NULL;  //# water quality benthic array, [nvars]
+AED_REAL *WQD_Vars = NULL;  //# water quality diagnostics array, [nlayers, nvars]
+AED_REAL *WQDS_Vars = NULL;  //# water quality diagnostic benthic array, [nvars]
 
 int       n_zones = 0;
 ZoneType *theZones = NULL;
@@ -283,6 +288,8 @@ LOGICAL no_evap = FALSE;   //# turn off evaporation
 int      quiet   = 0;       //# turn down output messages
 
 void set_c_wqvars_ptr(AED_REAL *iwqv) { WQ_Vars = iwqv; }
+void set_c_wqdvars_ptr(AED_REAL *iwqd, AED_REAL *iwqds, int nwqd, int nwqds)
+{ WQD_Vars = iwqd; WQDS_Vars = iwqds; Num_WQD_Vars = nwqd; Num_WQDS_Vars = nwqds; }
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
