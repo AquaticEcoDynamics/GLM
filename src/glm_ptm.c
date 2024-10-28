@@ -110,16 +110,6 @@ void ptm_init_glm()
         Particle[p].Density = 0.0;
         Particle[p].vvel = 0.0;
     }
-    
-    // Set initial active particle status/properties (initial active particles)
-    for (p = 0; p < init_particle_num; p++) {
-        Particle[p].Status = 1;
-        Particle[p].Flag = 0;
-        Particle[p].Mass = 1.0;
-        Particle[p].Diam = 1e-6;
-        Particle[p].Density = 1000.0;
-        Particle[p].vvel = 0.0;
-    }
 
     // Set initial active particle height within the water column
     upper_height = Lake[surfLayer].Height - init_depth_min;
@@ -305,6 +295,7 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
         }
         if(Particle[p].Status == 0 && Particle[p].Flag == 3){ // find the first inactive particles with EXIT flag
             Particle[p].Status = 1;
+            Particle[p].Flag = 0;
             Particle[p].Mass = 1.0;
             Particle[p].Diam = 1e-6;
             Particle[p].Density = 1000.0;
@@ -351,7 +342,6 @@ void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, i
                 Particle[p].Diam = 0.0;
                 Particle[p].Density = 0.0;
                 Particle[p].vvel = 0.0;
-                fprintf(stderr, "I've died with a rand_float of %f\n", rand_float);
             }
         }
     }
