@@ -179,6 +179,30 @@ MODULE glm_types
        CINTEGER :: Layer
    END TYPE ParticleDataType
 
+   !#===========================================================#!
+   !# NEW structured type for Particle Transport Model (PTM), following AED API
+
+   TYPE,BIND(C) :: partgroup 
+      INTEGER(KIND=4) :: NP                                ! Number of Particles
+      INTEGER(KIND=4) :: id_stat, id_i2, id_i3, id_layer   ! Particle ISTAT Index Values
+      INTEGER(KIND=4) :: id_bed_layer, id_motility         ! Particle ISTAT Index Values
+      INTEGER(KIND=4) :: id_uvw0, id_uvw, id_nu, id_wnd    ! Particle PROP Index Values
+      INTEGER(KIND=4) :: id_wsel, id_watd, id_partd        ! Particle PROP Index Values
+      INTEGER(KIND=4) :: id_age, id_state                  ! Particle TSTAT Index Values
+      INTEGER(KIND=4) :: i_next                            ! next particle index
+      INTEGER(KIND=4),POINTER,DIMENSION(:,:) :: istat      ! Particle Integer Status/Cell-index variables (4,NPart)
+      REAL(KIND=8),POINTER,DIMENSION(:,:) :: tstat         ! Particle Time/Age Vector (2,Npart)
+      REAL(KIND=8),POINTER,DIMENSION(:,:) :: xyz           ! particle position vector
+      REAL(KIND=4),POINTER,DIMENSION(:,:) :: prop          ! Particle Property Vector (12,Npart)
+      REAL(KIND=4),POINTER,DIMENSION(:,:) :: U             ! Particle Conserved Variable Vector (NU,NP)
+   END TYPE partgroup
+   TYPE,BIND(C) :: partgroup_p
+      INTEGER :: idx, grp
+   END TYPE partgroup_p
+   TYPE,BIND(C) :: partgroup_cell
+      INTEGER :: count, n
+      TYPE(partgroup_p),ALLOCATABLE,DIMENSION(:) :: prt
+   END TYPE partgroup_cell
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 CONTAINS

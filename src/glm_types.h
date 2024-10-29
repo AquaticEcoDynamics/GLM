@@ -43,6 +43,7 @@
 #define MaxInf        20     /* Maximum number of inflows */
 #define MaxVars       60     /* Maximum number of variables */
 #define MaxDif   (MaxVars+2) /* Maximum number of diffusing substances */
+#define NPart         10000  /* Maximum number of particles */
 
 typedef int  LOGICAL;
 typedef char varname[40];
@@ -267,5 +268,29 @@ typedef char filname[80];
        AED_REAL vvel;       // vertical velocity of particle (m/day)
        int      Layer;      // layer of particle
    } ParticleDataType;
+
+    /*===========================================================*/
+   // NEW Structured type for Particle Transport Model (PTM), following AED API
+   typedef struct partgroup {
+       int NP;                                           // number of particles
+       int id_stat, id_i2, id_i3, id_layer;              // ISTAT index values; descriptions? 
+       int id_bed_layer, id_motility;                    // ISTAT index values; descriptions?
+       int id_uvw0, id_uvw, id_nu, id_wnd;               // PROP index values; descriptions?
+       int id_wsel, id_watd, id_partd;                   // PROP index values; descriptions?
+       int id_age, id_state;                             // TSTAT index valuess; descriptions?
+       int i_next;                                       // next particle index
+       AED_REAL *istat[4][NPart];                         // Particle Integer Status/Cell-index variables (4,NPart)
+       AED_REAL *tstat[2][NPart];                         // Particle Time/Age Vector (2,Npart)
+       AED_REAL *xyz[NPart];                              // particle position vector (assuming length NPart)
+       AED_REAL *prop[12][NPart];                         // Particle Property Vector (12,Npart)
+       AED_REAL *U[12][NPart];                            // Particle Conserved Variable Vector (NU,NP) but written as NPart for now b/c don't know what NU, NP are
+   } partgroup;
+   typedef struct partgroup_p {
+       int idx, grp; 
+   } partgroup_p;
+   typedef struct partgroup_cell {
+       int count, n;
+       partgroup_p prt[NPart];
+   } partgroup_cell;
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif
