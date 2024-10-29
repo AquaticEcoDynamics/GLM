@@ -288,8 +288,8 @@ LOGICAL no_evap = FALSE;   //# turn off evaporation
 int      quiet   = 0;       //# turn down output messages
 
 void set_c_wqvars_ptr(AED_REAL *iwqv) { WQ_Vars = iwqv; }
-void set_c_wqdvars_ptr(AED_REAL *iwqd, AED_REAL *iwqds, int nwqd, int nwqds)
-{ WQD_Vars = iwqd; WQDS_Vars = iwqds; Num_WQD_Vars = nwqd; Num_WQDS_Vars = nwqds; }
+void set_c_wqdvars_ptr(AED_REAL *iwqd, AED_REAL *iwqds, int *nwqd, int *nwqds)
+{ WQD_Vars = iwqd; WQDS_Vars = iwqds; Num_WQD_Vars = *nwqd; Num_WQDS_Vars = *nwqds; }
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
