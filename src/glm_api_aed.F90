@@ -115,8 +115,8 @@ MODULE glm_api_aed
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: col_depth
 
    !# Arrays for environmental variables not supplied externally.
-   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: par
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: pres
+   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: par
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: uva
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: uvb
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: nir
@@ -136,7 +136,7 @@ MODULE glm_api_aed
    AED_REAL,DIMENSION(:),POINTER :: air_temp
    AED_REAL,DIMENSION(:),POINTER :: humidity
    AED_REAL,DIMENSION(:),POINTER :: I_0
-   AED_REAL,DIMENSION(:),POINTER :: wnd
+   AED_REAL,DIMENSION(:),POINTER :: wind
    AED_REAL,DIMENSION(:),POINTER :: air_pres
 
 !  CHARACTER(len=48),ALLOCATABLE :: names(:)
@@ -232,7 +232,7 @@ SUBROUTINE api_set_glm_env()
 !LOCALS
    INTEGER :: status
 
-   TYPE(api_env_t) :: env
+   TYPE(api_env_t) :: env(1)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -248,7 +248,7 @@ SUBROUTINE api_set_glm_env()
    layer_stress => theLake%LayerStress
 
    !# Provide pointers to arrays with environmental variables to aed.
-   wnd      => aMetData%WindSpeed
+   wind     => aMetData%WindSpeed
    rain     => aMetData%Rain
    I_0      => aMetData%ShortWave
    air_temp => aMetData%AirTemp
@@ -296,54 +296,55 @@ SUBROUTINE api_set_glm_env()
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (tss)'
    tss = zero_
 
-   env%yearday   => yearday
+   env(1)%yearday   => yearday
    timestep = dt
-   env%timestep  => timestep
+   env(1)%timestep  => timestep
 
-   env%longitude => longitude
-   env%latitude  => latitude
+   env(1)%longitude => longitude
+   env(1)%latitude  => latitude
 
-   env%temp          => temp
-   env%salt          => salt
-   env%rho           => rho
-   env%dz            => dz
-   env%height        => lheights
-   env%area          => area
-   env%depth         => depth
-   env%col_depth     => col_depth
-   env%extc          => extc
-   env%tss           => tss
-!  env%ss1           => ss1
-!  env%ss2           => ss2
-!  env%ss3           => ss3
-!  env%ss4           => ss4
-   env%cvel          => cvel
-!  env%vvel          => vvel
-!  env%bio_drag      => bio_drag
-   env%rad           => rad
-   env%I_0           => I_0
-   env%wnd           => wnd
-   env%air_temp      => air_temp
-   env%air_pres      => air_pres
-   env%rain          => rain
-   env%evap          => evap
-   env%humidity      => humidity
-!  env%longwave      => longwave
-!  env%bathy         => bathy
-!  env%rainloss      => rainloss
-!  env%ustar_bed     => ustar_bed
-!  env%wv_uorb       => wv_uorb
-!  env%wv_t          => wv_t
-   env%layer_stress  => layer_stress
-   env%sed_zones     => sed_zones
-   env%par => par
-   env%nir => nir
-   env%uva => uva
-   env%uvb => uvb
+   env(1)%temp          => temp
+   env(1)%salt          => salt
+   env(1)%rho           => rho
+   env(1)%dz            => dz
+   env(1)%height        => lheights
+   env(1)%area          => area
+   env(1)%depth         => depth
+   env(1)%col_depth     => col_depth
 
-   env%pres => pres
+   env(1)%tss           => tss
+!  env(1)%ss1           => ss1
+!  env(1)%ss2           => ss2
+!  env(1)%ss3           => ss3
+!  env(1)%ss4           => ss4
+   env(1)%cvel          => cvel
+!  env(1)%vvel          => vvel
+!  env(1)%bio_drag      => bio_drag
+   env(1)%wind          => wind
+   env(1)%air_temp      => air_temp
+   env(1)%air_pres      => air_pres
+   env(1)%rain          => rain
+   env(1)%evap          => evap
+   env(1)%humidity      => humidity
+!  env(1)%longwave      => longwave
+!  env(1)%bathy         => bathy
+!  env(1)%rainloss      => rainloss
+!  env(1)%ustar_bed     => ustar_bed
+!  env(1)%wv_uorb       => wv_uorb
+!  env(1)%wv_t          => wv_t
+   env(1)%layer_stress  => layer_stress
+   env(1)%sed_zones     => sed_zones
+   env(1)%pres          => pres
 
-   CALL aed_set_model_env(env)
+   env(1)%rad           => rad
+   env(1)%I_0           => I_0
+   env(1)%extc          => extc
+   env(1)%par           => par
+   env(1)%nir           => nir
+   env(1)%uva           => uva
+   env(1)%uvb           => uvb
+
+   CALL aed_set_model_env(env, 1)
 END SUBROUTINE api_set_glm_env
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -356,7 +357,7 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
 !LOCALS
    INTEGER :: status
 
-   TYPE(api_data_t) :: dat
+   TYPE(api_data_t) :: dat(1)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -388,12 +389,12 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
 
    CALL set_c_wqdvars_ptr(cc_diag, cc_diag_hz, n_vars_diag, n_vars_diag_sheet)
 
-   dat%cc => cc
-!  dat%cc_hz => cc_hz
-   dat%cc_diag => cc_diag
-   dat%cc_diag_hz => cc_diag_hz
+   dat(1)%cc => cc
+!  dat(1)%cc_hz => cc_hz
+   dat(1)%cc_diag => cc_diag
+   dat(1)%cc_diag_hz => cc_diag_hz
 
-   CALL aed_set_model_data(dat)
+   CALL aed_set_model_data(dat,1)
 END SUBROUTINE api_set_glm_data
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
