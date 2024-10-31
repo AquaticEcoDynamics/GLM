@@ -575,26 +575,32 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     /*-- %%NAMELIST particle model -------------------------------------------*/
 //  extern LOGICAL   ptm_sw;
+//  extern LOGICAL   sed_deactivation;
     extern int       num_particle_grp;
     extern int       max_particle_num;
     extern int       init_particle_num;
+    extern AED_REAL  *inflow_conc;
     extern AED_REAL  init_depth_min;
     extern AED_REAL  init_depth_max;
     extern AED_REAL  ptm_time_step;
     extern AED_REAL  ptm_diffusivity;
     extern AED_REAL  settling_velocity;
+    extern AED_REAL  settling_efficiency;
     //==========================================================================
     NAMELIST particles[] = {
           { "particles",         TYPE_START,            NULL                  },
           { "ptm_sw",            TYPE_BOOL,             &ptm_sw               },
+          { "sed_deactivation",  TYPE_BOOL,             &sed_deactivation     },
           { "num_particle_grp",  TYPE_INT,              &num_particle_grp     },
           { "max_particle_num",  TYPE_INT,              &max_particle_num     },
           { "init_particle_num", TYPE_INT,              &init_particle_num    },
+          { "inflow_conc",       TYPE_DOUBLE|MASK_LIST, &inflow_conc          },
           { "init_depth_min",    TYPE_DOUBLE,           &init_depth_min       },
           { "init_depth_max",    TYPE_DOUBLE,           &init_depth_max       },
           { "ptm_time_step",     TYPE_DOUBLE,           &ptm_time_step        },
           { "ptm_diffusivity",   TYPE_DOUBLE,           &ptm_diffusivity      },
           { "settling_velocity", TYPE_DOUBLE,           &settling_velocity    },
+          { "settling_efficiency", TYPE_DOUBLE,         &settling_efficiency  },
           { NULL,                TYPE_END,              NULL                  }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
@@ -1039,6 +1045,7 @@ for (i = 0; i < n_zones; i++) {
             Inflows[i].Phi = strmbd_slope[i] * Pi/PiDeg;
             Inflows[i].DragCoeff = strmbd_drag[i];
             Inflows[i].Factor = inflow_factor[i];
+            Inflows[i].ParticleConc = inflow_conc[i];
 
             open_inflow_file(i, inflow_fl[i], timefmt_i);
         }
@@ -1214,13 +1221,12 @@ for (i = 0; i < n_zones; i++) {
     }
     //--------------------------------------------------------------------------
 
-    //--------------------------------------------------------------------------
     // particles / ptm
     if ( ptm_sw ) {
         fprintf(stderr, "     PTM module active: initial particles = %d\n", init_particle_num);
         ptm_init_glm();  // num_particle_grp, max_particle_num, init_particle_num,
                          // init_depth_min, init_depth_max, ptm_time_step, ptm_diffusivity
-        if ( max_particle_num > 1000000 ) {
+        if ( max_particle_num > 10000 ) {
             fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", 1000000);
             exit(1);
         }
@@ -1549,7 +1555,6 @@ void initialise_lake(int namlst)
     AED_REAL        avg_surf_temp = 6.0;
     AED_REAL       *restart_variables = NULL;
     int             restart_mixer_count;
-
 
     //==========================================================================
     NAMELIST init_profiles[] = {

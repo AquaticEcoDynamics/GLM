@@ -381,8 +381,16 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
      * Now we have Delta_V[i] for all layers we can remove it             *
      **********************************************************************/
     for (i = botmLayer; i <= surfLayer; i++){
-//      if (Delta_V[i] > zero) printf("%d DeltaV %8.4f; flow %10.4f;%10.4f %d %d %d %10.1f %10.1f \n",i,Delta_V[i],flow,Q_outf_star,Outflow_LayerNum,iBot,iTop,hBot,hTop);
-        if (Delta_V[i] > zero) Lake[i].LayerVol -= Delta_V[i];
+        if (Delta_V[i] > zero) {
+/*
+            printf("%d DeltaV %8.4f; flow %10.4f;%10.4f %d %d %d %10.1f %10.1f \n",
+               i,Delta_V[i],flow,Q_outf_star,Outflow_LayerNum,iBot,iTop,hBot,hTop);
+*/
+            if ( ptm_sw ) {
+                ptm_removeparticles(i, Delta_V[i], Lake[i].LayerVol, max_particle_num);
+            }
+            Lake[i].LayerVol -= Delta_V[i];
+        }
         mb_sub_outflows(i, Delta_V[i]);
     }
 
@@ -456,6 +464,7 @@ AED_REAL do_outflows(int jday)
         Outflows[i].Draw *= Outflows[i].Factor;
 
         do_single_outflow(DrawHeight, Outflows[i].Draw, &Outflows[i]);
+        // DrawHeight is layer where particles are; if know # of particles in
 
         write_outflow(i, jday, DrawHeight, tVolSum-Lake[surfLayer].Vol1, Outflows[i].Draw, hBot, hTop);
     }
@@ -760,7 +769,8 @@ AED_REAL do_inflows()
 
     int new_particles;
     AED_REAL height_start = Lake[surfLayer].Height; //# Total lake height before inflows
-    AED_REAL  upper_height, lower_height;
+    AED_REAL double_particles;
+    AED_REAL upper_height, lower_height;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
@@ -904,8 +914,9 @@ AED_REAL do_inflows()
                     // insert particles ---
                     upper_height = Lake[Layer_subm].Height;
                     lower_height = 0.0; if (Layer_subm>botmLayer) lower_height = Lake[Layer_subm-1].Height;
-                    new_particles = Inflows[iRiver].ParticleConc * (Inflows[iRiver].FlowRate*Inflows[iRiver].Factor);
-                    ptm_addparticles(new_particles, upper_height, lower_height);
+                    double_particles = floor(Inflows[iRiver].ParticleConc * (Inflows[iRiver].FlowRate*Inflows[iRiver].Factor)); //@MEL implement this
+                    new_particles = (int) floor(double_particles);
+                    ptm_addparticles(new_particles, max_particle_num, upper_height, lower_height);
                     // insert particles ---
                 }
 
@@ -922,6 +933,8 @@ AED_REAL do_inflows()
                     insert(Inflows[iRiver].QIns[j], Inflows[iRiver].DIIns[j], Inflows[iRiver].Phi,
                               Inflows[iRiver].TIns[j], Inflows[iRiver].SIns[j],
                                          WQ_VarsTmp[iRiver][j], SecsPerDay, &Inflow_width, &ll);
+                                         // QIns is flow; D depth, WQ vars defined above; need to pass particle
+                                         // fraction to insert routine
 
                     for (jk = Inflows[iRiver].InPar[j]-1; jk < Inflows[iRiver].iCnt-1; jk++) {
                         Inflows[iRiver].QDown[jk] = Inflows[iRiver].QDown[jk+1];
@@ -930,6 +943,7 @@ AED_REAL do_inflows()
 
                         for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
                             Inflows[iRiver].WQDown[jk][wqidx] = Inflows[iRiver].WQDown[jk+1][wqidx];
+                            // jk is the inflow parcel; wqidx is wq attribute; would need NDown for particles
 
                         Inflows[iRiver].DDown[jk] = Inflows[iRiver].DDown[jk+1];
                         Inflows[iRiver].DOld[jk] = Inflows[iRiver].DOld[jk+1];
