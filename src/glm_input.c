@@ -56,6 +56,7 @@ typedef struct _inf_data_ {
     int flow_idx;
     int temp_idx;
     int salt_idx;
+    int particles_idx;
     int elev_idx;
     int in_vars[MaxVars];
     int wq_vars[MaxVars];
@@ -599,6 +600,7 @@ void open_inflow_file(int idx, const char *fname, const char *timefmt)
     inf[idx].flow_idx = find_csv_var(inf[idx].inf,"flow");
     inf[idx].temp_idx = find_csv_var(inf[idx].inf,"temp");
     inf[idx].salt_idx = find_csv_var(inf[idx].inf,"salt");
+    inf[idx].particles_idx = find_csv_var(inf[idx].inf,"particles");
     if ( Inflows[idx].SubmFlag )
         inf[idx].elev_idx = find_csv_var(inf[idx].inf,"elevation");
     else
@@ -620,7 +622,8 @@ void index_inflow_file(int idx, int nvars, const char *vars[])
         k = 0;
         while ( (nm = get_csv_colname(inf[idx].inf, k)) != NULL ) {
             if ( k != inf[idx].flow_idx && k != inf[idx].temp_idx &&
-                 k != inf[idx].salt_idx && k != inf[idx].elev_idx ) {
+                 k != inf[idx].salt_idx && k != inf[idx].elev_idx &&
+                 k != inf[idx].particles_idx) {
                 sl = strlen(nm);
                 inf[idx].wq_vars[l] = wq_var_index_c(nm, &sl);
                 inf[idx].in_vars[l++] = k;
@@ -635,7 +638,8 @@ void index_inflow_file(int idx, int nvars, const char *vars[])
             else {
                 nm = vars[j];
                 if ( k != inf[idx].flow_idx && k != inf[idx].temp_idx &&
-                     k != inf[idx].salt_idx && k != inf[idx].elev_idx ) {
+                     k != inf[idx].salt_idx && k != inf[idx].elev_idx &&
+                     k != inf[idx].particles_idx) {
                     sl = strlen(nm);
                     inf[idx].wq_vars[l] = wq_var_index_c(nm, &sl);
                     inf[idx].in_vars[l++] = k;
