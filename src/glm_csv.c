@@ -461,7 +461,7 @@ void write_csv_point_(int *f, const char *name, int *len, AED_REAL *val,
     char *n = make_c_string(name, *len);
     char *v = make_c_string(cval, *vlen);
     write_csv_var(csv_points[*f-1], n, *val, v, *last);
-    free(n); free(v);
+    free(v); free(n);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -473,6 +473,6 @@ void write_csv_point_avg_(int *f, const char *name, int *len, AED_REAL *vals,
     char *n = make_c_string(name, *len);
     char *v = make_c_string(cval, *vlen);
     write_csv_point_avg(csv_points[*f-1], n, vals, v, *last);
-    free(n); free(v);
+    free(v); free(n);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

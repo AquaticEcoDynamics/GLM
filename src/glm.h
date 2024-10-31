@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2024 -  The University of Western Australia               *
+ * Copyright 2013 - 2024 - The University of Western Australia                *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -36,7 +36,7 @@
 #define USE_FILLVALUE 1
 
 /* Actually pre-alpha V4.0.0 */
-#define GLM_VERSION  "3.9.011"
+#define GLM_VERSION  "3.9.012"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -74,7 +74,7 @@
 #  define AINT DINT
 #  define FLOAT
 #  define DOUBLETYPE double precision
-#  define CINTEGER INTEGER(kind=C_INT)
+#  define CINTEGER INTEGER(kind=C_INT32_T)
 #  define CSIZET   INTEGER(kind=C_SIZE_T)
 #  define CLOGICAL LOGICAL(kind=C_BOOL)
 #  define CCHARACTER CHARACTER(C_CHAR)

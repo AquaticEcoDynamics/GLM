@@ -1045,7 +1045,7 @@ for (i = 0; i < n_zones; i++) {
             Inflows[i].Phi = strmbd_slope[i] * Pi/PiDeg;
             Inflows[i].DragCoeff = strmbd_drag[i];
             Inflows[i].Factor = inflow_factor[i];
-            Inflows[i].ParticleConc = inflow_conc[i];
+            if ( inflow_conc != NULL ) Inflows[i].ParticleConc = inflow_conc[i];
 
             open_inflow_file(i, inflow_fl[i], timefmt_i);
         }
