@@ -43,6 +43,7 @@
 #define MaxInf        20     /* Maximum number of inflows */
 #define MaxVars       60     /* Maximum number of variables */
 #define MaxDif   (MaxVars+2) /* Maximum number of diffusing substances */
+#define NPart         10000  /* Maximum number of particles */
 
 typedef int  LOGICAL;
 typedef char varname[40];
@@ -103,6 +104,7 @@ typedef char filname[80];
        AED_REAL Factor;          // scaling factor for inflow
        AED_REAL TemInf;          // inflow temperature
        AED_REAL SalInf;          // inflow salinity
+       AED_REAL ParticlesInf;    // inflow particles
        AED_REAL Dlwst;
        AED_REAL HFlow;
        AED_REAL TotIn;
@@ -256,14 +258,39 @@ typedef char filname[80];
    /*===========================================================*/
    // Structured type for Particle Transport Model (PTM)
    typedef struct ParticleDataType {
-       int Status;          // indivdual particle status
-       AED_REAL Height;
-       AED_REAL Mass;
-       AED_REAL Diam;
-       AED_REAL Density;
-       AED_REAL Velocity;
-       AED_REAL vvel;
-       int      Layer;
+       int Status;          // indivdual particle status (0 = dead, 1 = alive)
+       int Flag;            // indivdual particle flag indicating BED (1), SCUM (2), or neither (0)
+       AED_REAL Height;     // height of particle (m)
+       AED_REAL Mass;       // mass of particle
+       AED_REAL Diam;       // diameter of particle
+       AED_REAL Density;    // density of particle
+       AED_REAL Velocity;   // velocity of particle
+       AED_REAL vvel;       // vertical velocity of particle (m/day)
+       int      Layer;      // layer of particle
    } ParticleDataType;
+
+    /*===========================================================*/
+   // NEW Structured type for Particle Transport Model (PTM), following AED API
+   typedef struct partgroup {
+       int NP;                                           // number of particles
+       int id_stat, id_i2, id_i3, id_layer;              // ISTAT index values; descriptions?
+       int id_bed_layer, id_motility;                    // ISTAT index values; descriptions?
+       int id_uvw0, id_uvw, id_nu, id_wnd;               // PROP index values; descriptions?
+       int id_wsel, id_watd, id_partd;                   // PROP index values; descriptions?
+       int id_age, id_state;                             // TSTAT index valuess; descriptions?
+       int i_next;                                       // next particle index
+       AED_REAL *istat[4][NPart];                         // Particle Integer Status/Cell-index variables (4,NPart)
+       AED_REAL *tstat[2][NPart];                         // Particle Time/Age Vector (2,Npart)
+       AED_REAL *xyz[NPart];                              // particle position vector (assuming length NPart)
+       AED_REAL *prop[12][NPart];                         // Particle Property Vector (12,Npart)
+       AED_REAL *U[12][NPart];                            // Particle Conserved Variable Vector (NU,NP) but written as NPart for now b/c don't know what NU, NP are
+   } partgroup;
+   typedef struct partgroup_p {
+       int idx, grp;
+   } partgroup_p;
+   typedef struct partgroup_cell {
+       int count, n;
+       partgroup_p prt[NPart];
+   } partgroup_cell;
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif
