@@ -94,10 +94,10 @@ MODULE glm_api_aed
 !-------------------------------------------------------------------------------
 !MODULE DATA
 
-   AED_REAL :: par_fraction =  0.450
-   AED_REAL :: nir_fraction =  0.510
-   AED_REAL :: uva_fraction =  0.035
-   AED_REAL :: uvb_fraction =  0.005
+   AED_REAL :: par_fraction = 0.450
+   AED_REAL :: nir_fraction = 0.510
+   AED_REAL :: uva_fraction = 0.035
+   AED_REAL :: uvb_fraction = 0.005
 
    !# Arrays for state and diagnostic variables
    AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: cc !# water quality array: nlayers, nvars
@@ -394,7 +394,7 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
    dat(1)%cc_diag => cc_diag
    dat(1)%cc_diag_hz => cc_diag_hz
 
-   CALL aed_set_model_data(dat,1)
+   CALL aed_set_model_data(dat, 1)
 END SUBROUTINE api_set_glm_data
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

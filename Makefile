@@ -180,7 +180,7 @@ ifeq ($(AED),true)
   ifdef AEDDEVDIR
     AEDLIBS+=-L$(AEDDEVDIR)/lib -laed-dev
     ifdef PHREEQDIR
-       AEDLIBS+=-L$(PHREEQDIR)/lib -lphreeqcrm
+       AEDLIBS+=-L$(PHREEQDIR)/build -lPhreeqcRM
        FINCLUDES+=-I$(PHREEQDIR)/include -I$(PHREEQDIR)/include -I$(PHREEQDIR)/src -I$(PHREEQDIR)/build/Tests
     endif
   else
