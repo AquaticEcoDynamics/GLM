@@ -1076,6 +1076,7 @@ for (i = 0; i < n_zones; i++) {
         fprintf(stderr, "     No 'outflow' config, assuming no outflows\n");
         NumOut = 0;
     } else {
+        LOGICAL need_free = FALSE;
         if ( num_outlet > MaxOut) {
             fprintf(stderr, "     ERROR: Too many outlets specified in 'outflow' config %d > %d\n", num_outlet, MaxOut);
             exit(1);
@@ -1084,6 +1085,7 @@ for (i = 0; i < n_zones; i++) {
         if (num_outlet<=0) num_outlet=1; // BEWARE: num_outlet is only used now for malloc
                                          // remove this if you use it for anything else!!
         if ( flt_off_sw == NULL ) {
+            need_free = TRUE;
             flt_off_sw = malloc(sizeof(LOGICAL)*num_outlet);
             for (i = 0; i < NumOut; i++) flt_off_sw[i] = FALSE;
         } else if ( outlet_type == NULL ) {
@@ -1128,11 +1130,13 @@ for (i = 0; i < n_zones; i++) {
             if ( outlet_crit != NULL )
                 Outflows[i].Hcrit  = outlet_crit[i];
             if ( target_temp != NULL )
-                Outflows[i].TARGETtemp  = target_temp[i]; // if more than 1 withdrawals with their depth should work with a target temperature (like "isotherm")
+                Outflows[i].TARGETtemp  = target_temp[i]; // if more than 1 withdrawals with their depth should
+                                                          // work with a target temperature (like "isotherm")
 
             if (outflow_fl[i] != NULL) open_outflow_file(i, outflow_fl[i], timefmt_o);
 
         }
+        if (need_free) free(flt_off_sw);
         free(outlet_type);
     }
     if ( outlet_crit != NULL ) { // only relevant if we have defined it.
