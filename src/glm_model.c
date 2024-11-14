@@ -410,7 +410,7 @@ void do_model(int jstart, int nsave)
 
         }
         
-        if(ntot == nDates & stepnum < nsave){
+        if ( (ntot == nDates) && (stepnum < nsave)) {
         	fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
         }
         
@@ -575,7 +575,7 @@ void do_model_non_avg(int jstart, int nsave)
 #endif
         }
         
-        if(ntot == nDates & stepnum < nsave){
+        if ( (ntot == nDates) && (stepnum < nsave)) {
         	fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
         }
 
@@ -728,7 +728,7 @@ void do_model_coupled(int step_start, int step_end,
 #endif
 		}
         
-        if(ntot == nDates & stepnum < nsave){
+        if ( (ntot == nDates) && (stepnum < nsave)) {
         	fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
         }
 

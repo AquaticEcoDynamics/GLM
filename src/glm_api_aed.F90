@@ -46,7 +46,7 @@
 
 #include "glm.h"
 
-#define LOCAL_VERS  1
+#define LOCAL_VERS  0
 #define AS_IT_SHOULD_BE 0
 
 !-------------------------------------------------------------------------------
@@ -332,7 +332,7 @@ SUBROUTINE api_set_glm_env()
    env(1)%height        => lheights
    env(1)%area          => area
    env(1)%depth         => depth
-   env(1)%col_depth     => col_depth(1)
+   env(1)%col_depth     => col_depth
 
    env(1)%tss           => tss
 !  env(1)%ss1           => ss1
@@ -342,24 +342,24 @@ SUBROUTINE api_set_glm_env()
    env(1)%cvel          => cvel
 !  env(1)%vvel          => vvel
 !  env(1)%bio_drag      => bio_drag
-   env(1)%wind          => wind(1)
-   env(1)%air_temp      => air_temp(1)
-   env(1)%air_pres      => air_pres(1)
-   env(1)%rain          => rain(1)
-   env(1)%evap          => evap(1)
-   env(1)%humidity      => humidity(1)
+   env(1)%wind          => wind
+   env(1)%air_temp      => air_temp
+   env(1)%air_pres      => air_pres
+   env(1)%rain          => rain
+   env(1)%evap          => evap
+   env(1)%humidity      => humidity
 !  env(1)%longwave      => longwave
 !  env(1)%bathy         => bathy
 !  env(1)%rainloss      => rainloss
 !  env(1)%ustar_bed     => ustar_bed
 !  env(1)%wv_uorb       => wv_uorb
 !  env(1)%wv_t          => wv_t
-   env(1)%layer_stress  => layer_stress(1)
-!  env(1)%sed_zones     => sed_zones(1)
+   env(1)%layer_stress  => layer_stress
+   env(1)%sed_zones     => sed_zones
    env(1)%pres          => pres
 
    env(1)%rad           => rad
-   env(1)%I_0           => I_0(1)
+   env(1)%I_0           => I_0
    env(1)%extc          => extc
    env(1)%par           => par
    env(1)%nir           => nir

@@ -363,7 +363,6 @@ else
   endif
   ifeq ($(API),true)
     OBJS+=${objdir}/glm_api_zones.o \
-          ${objdir}/glm_api_api.o   \
           ${objdir}/glm_api_aed.o
   endif
   ifeq ($(AED),true)
