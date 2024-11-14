@@ -11,7 +11,7 @@
 #                                                                             #
 #      http://aquatic.science.uwa.edu.au/                                     #
 #                                                                             #
-#  Copyright 2013 - 2024 -  The University of Western Australia               #
+#  Copyright 2013 - 2024 - The University of Western Australia                #
 #                                                                             #
 #   GLM is free software: you can redistribute it and/or modify               #
 #   it under the terms of the GNU General Public License as published by      #
@@ -181,7 +181,6 @@ ifeq ($(AED),true)
     AEDLIBS+=-L$(AEDDEVDIR)/lib -laed-dev
     ifdef PHREEQDIR
        AEDLIBS+=-L$(PHREEQDIR)/build -lPhreeqcRM
-       FINCLUDES+=-I$(PHREEQDIR)/include -I$(PHREEQDIR)/include -I$(PHREEQDIR)/src -I$(PHREEQDIR)/build/Tests
     endif
   else
     EXTFFLAGS+=-DNO_DEV
@@ -364,6 +363,7 @@ else
   endif
   ifeq ($(API),true)
     OBJS+=${objdir}/glm_api_zones.o \
+          ${objdir}/glm_api_api.o   \
           ${objdir}/glm_api_aed.o
   endif
   ifeq ($(AED),true)

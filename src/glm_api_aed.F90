@@ -1,6 +1,7 @@
 !###############################################################################
 !#                                                                             #
 !# glm_api_aed.F90                                                             #
+!#      realer-04                                                              #
 !#                                                                             #
 !# The interface between glm and libaed-xxx                                    #
 !#                                                                             #
@@ -45,6 +46,9 @@
 
 #include "glm.h"
 
+#define LOCAL_VERS  1
+#define AS_IT_SHOULD_BE 0
+
 !-------------------------------------------------------------------------------
 MODULE glm_api_aed
 !
@@ -54,9 +58,28 @@ MODULE glm_api_aed
    USE aed_util
    USE aed_common
    USE glm_types
+#if LOCAL_VERS
+   USE glm_api_api
+#else
    USE aed_api
+#endif
    USE aed_zones
    USE glm_api_zones
+
+#if LOCAL_VERS
+#  define aed_init_model aed_init_model_x
+#  define aed_run_model aed_run_model_x
+#  define aed_var_index aed_var_index_x
+#  define aed_clean_model aed_clean_model_x
+!#  define api_config_t api_config_t_x
+#  define aed_config_model aed_config_model_x
+!#  define api_env_t api_env_t_x
+#  define aed_set_model_env aed_set_model_env_x
+!  #define api_data_t api_data_t_x
+#  define aed_set_model_data aed_set_model_data_x
+!#  define aed_mobility_t aed_mobility_t_x
+#  define aed_set_mobility aed_set_mobility_x
+#endif
 
 
    IMPLICIT NONE
@@ -106,15 +129,15 @@ MODULE glm_api_aed
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_diag_hz
 
    !# Arrays for work, vertical movement, and cross-boundary fluxes
-!  AED_REAL,DIMENSION(:,:),ALLOCATABLE :: ws
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: dz
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: tss
-   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: sed_zones
-
-   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: depth
-   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: col_depth
 
    !# Arrays for environmental variables not supplied externally.
+   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: depth
+ ! AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: sed_zones
+   AED_REAL,TARGET :: sed_zones(500)
+   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: col_depth
+
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: pres
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: par
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: uva
@@ -143,17 +166,11 @@ MODULE glm_api_aed
 !  CHARACTER(len=48),ALLOCATABLE :: bennames(:)
 !  CHARACTER(len=48),ALLOCATABLE :: diagnames(:)
 
-!  AED_REAL,DIMENSION(:),ALLOCATABLE :: min_
-!  AED_REAL,DIMENSION(:),ALLOCATABLE :: max_
-
    INTEGER,DIMENSION(:),ALLOCATABLE :: externalid
    INTEGER,DIMENSION(:),ALLOCATABLE :: zexternalid
    INTEGER,DIMENSION(:),ALLOCATABLE :: plot_id_v, plot_id_sv, plot_id_d, plot_id_sd
 
-!  LOGICAL :: reinited = .FALSE.
-
    INTEGER :: n_aed_vars, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
-!  INTEGER :: zone_var = 0
 
    CHARACTER(len=64) :: NULCSTR = ""
 
@@ -257,6 +274,34 @@ SUBROUTINE api_set_glm_env()
 
    evap => aSurfData%Evap
 
+   !# Allocate arrays for various data constructs
+
+#if AS_IT_SHOULD_BE
+   ALLOCATE(depth(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (depth)'
+   depth = one_
+ ! ALLOCATE(sed_zones(MaxLayers),stat=status)
+ ! IF (status /= 0) STOP 'allocate_memory(): Error allocating (sed_zones)'
+ ! sed_zones = zero_
+#endif
+
+   ALLOCATE(dz(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (dz)'
+   dz = zero_
+
+   ALLOCATE(col_depth(1),stat=status)
+
+   !# Allocate array for local pressure.
+   !# This will be calculated [approximated] from layer depths internally
+   !# during each time step.
+   ALLOCATE(pres(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (pres)'
+   pres = zero_
+
+   ALLOCATE(tss(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (tss)'
+   tss = zero_
+
    !# Allocate array for photosynthetically active radiation (PAR).
    !# This will be calculated internally during each time step.
    ALLOCATE(par(MaxLayers),stat=status)
@@ -273,29 +318,6 @@ SUBROUTINE api_set_glm_env()
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (uvb)'
    uvb = zero_
 
-   !# Allocate array for local pressure.
-   !# This will be calculated [approximated] from layer depths internally
-   !# during each time step.
-   ALLOCATE(pres(MaxLayers),stat=status)
-   IF (status /= 0) STOP 'allocate_memory(): Error allocating (pres)'
-   pres = zero_
-
-   ALLOCATE(dz(MaxLayers),stat=status)
-   IF (status /= 0) STOP 'allocate_memory(): Error allocating (dz)'
-   dz = zero_
-   ALLOCATE(depth(MaxLayers),stat=status)
-   IF (status /= 0) STOP 'allocate_memory(): Error allocating (depth)'
-   depth = zero_
-   ALLOCATE(sed_zones(MaxLayers),stat=status)
-   IF (status /= 0) STOP 'allocate_memory(): Error allocating (sed_zones)'
-   sed_zones = zero_
-
-   ALLOCATE(col_depth(1),stat=status)
-
-   ALLOCATE(tss(MaxLayers),stat=status)
-   IF (status /= 0) STOP 'allocate_memory(): Error allocating (tss)'
-   tss = zero_
-
    env(1)%yearday   => yearday
    timestep = dt
    env(1)%timestep  => timestep
@@ -310,7 +332,7 @@ SUBROUTINE api_set_glm_env()
    env(1)%height        => lheights
    env(1)%area          => area
    env(1)%depth         => depth
-   env(1)%col_depth     => col_depth
+   env(1)%col_depth     => col_depth(1)
 
    env(1)%tss           => tss
 !  env(1)%ss1           => ss1
@@ -320,24 +342,24 @@ SUBROUTINE api_set_glm_env()
    env(1)%cvel          => cvel
 !  env(1)%vvel          => vvel
 !  env(1)%bio_drag      => bio_drag
-   env(1)%wind          => wind
-   env(1)%air_temp      => air_temp
-   env(1)%air_pres      => air_pres
-   env(1)%rain          => rain
-   env(1)%evap          => evap
-   env(1)%humidity      => humidity
+   env(1)%wind          => wind(1)
+   env(1)%air_temp      => air_temp(1)
+   env(1)%air_pres      => air_pres(1)
+   env(1)%rain          => rain(1)
+   env(1)%evap          => evap(1)
+   env(1)%humidity      => humidity(1)
 !  env(1)%longwave      => longwave
 !  env(1)%bathy         => bathy
 !  env(1)%rainloss      => rainloss
 !  env(1)%ustar_bed     => ustar_bed
 !  env(1)%wv_uorb       => wv_uorb
 !  env(1)%wv_t          => wv_t
-   env(1)%layer_stress  => layer_stress
-   env(1)%sed_zones     => sed_zones
+   env(1)%layer_stress  => layer_stress(1)
+!  env(1)%sed_zones     => sed_zones(1)
    env(1)%pres          => pres
 
    env(1)%rad           => rad
-   env(1)%I_0           => I_0
+   env(1)%I_0           => I_0(1)
    env(1)%extc          => extc
    env(1)%par           => par
    env(1)%nir           => nir
@@ -361,6 +383,16 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
+#if ! AS_IT_SHOULD_BE
+   !# These should be in the set_env above - but things break if they're moved
+   ALLOCATE(depth(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (depth)'
+   depth = zero_
+!  ALLOCATE(sed_zones(MaxLayers),stat=status)
+!  IF (status /= 0) STOP 'allocate_memory(): Error allocating (sed_zones)'
+   sed_zones = zero_
+#endif
+
    IF (n_zones .GT. 0) &
       CALL api_set_glm_zones(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
 
@@ -484,8 +516,8 @@ SUBROUTINE api_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
 !
 !LOCALS
    LOGICAL :: doSurface
-   INTEGER :: lev
-   AED_REAL :: surf
+   INTEGER :: lev, zon
+   AED_REAL :: surf, pa = 0.
 
    PROCEDURE(aed_mobility_t),POINTER :: doMobilityP
 !
@@ -500,6 +532,18 @@ SUBROUTINE api_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
       dz(lev) = lheights(lev) - lheights(lev-1)
       depth(lev) = surf - lheights(lev)
    ENDDO
+   IF ( benthic_mode .GT. 1 ) THEN
+      zon = 1
+      DO lev=1,wlev
+         IF (lheights(lev) .GT. aedZones(zon)%z_env(1)%z_height) THEN  !CAB ???
+            sed_zones(lev) = zon * ( area(lev) - pa ) / area(lev)
+            pa = area(lev)
+            zon = zon+1
+         ELSE
+            sed_zones(lev) = zon
+         ENDIF
+      ENDDO
+   ENDIF
 
    !# Calculate local pressure
    pres(1:wlev) = -lheights(1:wlev)
@@ -532,8 +576,8 @@ SUBROUTINE api_clean_glm()                           BIND(C, name=_WQ_CLEAN_GLM)
    IF (ALLOCATED(pres))       DEALLOCATE(pres)
    IF (ALLOCATED(dz))         DEALLOCATE(dz)
    IF (ALLOCATED(tss))        DEALLOCATE(tss)
-   IF (ALLOCATED(sed_zones))  DEALLOCATE(sed_zones)
-   IF (ALLOCATED(depth))      DEALLOCATE(depth)
+!  IF (ALLOCATED(sed_zones))  DEALLOCATE(sed_zones)
+!  IF (ALLOCATED(depth))      DEALLOCATE(depth)
    IF (ALLOCATED(col_depth))  DEALLOCATE(col_depth)
 END SUBROUTINE api_clean_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
