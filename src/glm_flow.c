@@ -386,6 +386,7 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
             printf("%d DeltaV %8.4f; flow %10.4f;%10.4f %d %d %d %10.1f %10.1f \n",
                i,Delta_V[i],flow,Q_outf_star,Outflow_LayerNum,iBot,iTop,hBot,hTop);
 */
+        if (Delta_V[i] > zero) {
             if ( ptm_sw ) {
                 ptm_removeparticles(i, Delta_V[i], Lake[i].LayerVol, max_particle_num);
             }

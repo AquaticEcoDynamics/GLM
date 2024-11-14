@@ -108,7 +108,7 @@ AED_REAL rain_factor = 1.0;
  ******************************************************************************/
 void read_daily_inflow(int julian, int NumInf, AED_REAL *flow,
                                                AED_REAL *temp, AED_REAL *salt,
-                                                   AED_REAL *elev, AED_REAL *wq)
+                                                  AED_REAL *elev, AED_REAL *wq)
 {
     int csv;
     int i,j,k;

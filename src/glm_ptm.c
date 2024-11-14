@@ -469,7 +469,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
     flag  = malloc(max_particle_num*sizeof(int));
 
     for (p = 0; p < max_particle_num; p++) {
-		p_height[p] = Particle[p].Height;
+        p_height[p] = Particle[p].Height;
         mass[p] = Particle[p].Mass;
         diam[p] = Particle[p].Diam;
         density[p] = Particle[p].Density;
@@ -478,13 +478,13 @@ void ptm_write_glm(int ncid, int max_particle_num)
         flag[p] = Particle[p].Flag;
     }
 
-     nc_put_vara(ncid, h_id, start, edges, p_height);
-     nc_put_vara(ncid, m_id, start, edges, mass);
-     nc_put_vara(ncid, d_id, start, edges, diam);
-     nc_put_vara(ncid, dn_id, start, edges, density);
-     nc_put_vara(ncid, vv_id, start, edges, vvel);
-     nc_put_vara(ncid, stat_id, start, edges, status);
-     nc_put_vara(ncid, flag_id, start, edges, flag);
+    nc_put_vara(ncid, h_id, start, edges, p_height);
+    nc_put_vara(ncid, m_id, start, edges, mass);
+    nc_put_vara(ncid, d_id, start, edges, diam);
+    nc_put_vara(ncid, dn_id, start, edges, density);
+    nc_put_vara(ncid, vv_id, start, edges, vvel);
+    nc_put_vara(ncid, stat_id, start, edges, status);
+    nc_put_vara(ncid, flag_id, start, edges, flag);
 
     free(p_height);
     free(mass);
@@ -502,7 +502,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-//will also need to handle groups in write step; append group name onto
+// will also need to handle groups in write step; append group name onto
 void ptm_init_glm_output(int ncid, int time_dim)
 {
    int dims[2];
