@@ -415,7 +415,7 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
  * Loop through all outflows and process - return the difference between      *
  *  total volume before and after.                                            *
  ******************************************************************************/
-AED_REAL do_outflows(int jday)
+AED_REAL do_outflows(int jday, AED_REAL day_fraction)
 {
     int i;
     AED_REAL DrawHeight = -1; //# Height of withdraw [m from bottom]
@@ -472,12 +472,12 @@ AED_REAL do_outflows(int jday)
     if (seepage) {
         if (seepage_rate>zero) {
             // Darcy's Law used, so input rate is hydraulic conductivity (m/day) x hydraulic head
-            SeepDraw = seepage_rate * Lake[surfLayer].Height * Lake[surfLayer].LayerArea * 0.95;
+            SeepDraw = seepage_rate * Lake[surfLayer].Height * Lake[surfLayer].LayerArea * 0.95 * day_fraction;
         } else {
             // Constant seepage assumed, so input rate is dh (m/day)
             // 0.95 added since the effective area of seeping is probably
             // a bit less than max area of water innundation???
-            SeepDraw = -seepage_rate * Lake[surfLayer].LayerArea * 0.95;
+            SeepDraw = -seepage_rate * Lake[surfLayer].LayerArea * 0.95 * day_fraction;
       }
         do_single_outflow(0., SeepDraw, NULL);
     }
@@ -493,7 +493,7 @@ AED_REAL do_outflows(int jday)
  * level.  Add in stack volumes when calculating overflow.                    *
  * After overflow, delete stack volumes from the structure.                   *
  ******************************************************************************/
-AED_REAL do_overflow(int jday)
+AED_REAL do_overflow(int jday, AED_REAL day_fraction)
 {
     AED_REAL VolSum = Lake[surfLayer].Vol1;
     AED_REAL DrawHeight = 0.;
@@ -512,7 +512,7 @@ AED_REAL do_overflow(int jday)
         AED_REAL ovfl_Q, ovfl_dz;
 
         ovfl_dz = MAX( Lake[surfLayer].Height - CrestHeight, zero );
-        ovfl_Q = 2./3. * crest_factor * pow(2*g,0.5) * crest_width * pow(ovfl_dz,1.5);
+        ovfl_Q = 2./3. * crest_factor * pow(2*g,0.5) * crest_width * pow(ovfl_dz,1.5) * day_fraction * iSecsPerDay;
         ovfl_Q  = MIN( (VolSum - VolAtCrest) , ovfl_Q );
 
         do_single_outflow(CrestHeight, ovfl_Q , NULL);

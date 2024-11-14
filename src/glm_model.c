@@ -275,6 +275,7 @@ void do_model(int jstart, int nsave)
     AED_REAL Elev[MaxInf];
     int jday, ntot, stepnum, stoptime;
     int i, j;
+    AED_REAL day_fraction;
 
     /*------------------------------------------------------------------------*/
 
@@ -295,8 +296,10 @@ void do_model(int jstart, int nsave)
     read_daily_met(jstart, &MetOld);
     MetData = MetOld;
     SWold = MetOld.ShortWave;
-
+	
     jday = jstart - 1;
+
+    write_output(jday, SecsPerDay, nsave, stepnum);
     /**************************************************************************
      * Loop over all days                                                     *
      **************************************************************************/
@@ -307,6 +310,7 @@ void do_model(int jstart, int nsave)
         //# If it is the last day, adjust the stop time for the day if necessary
         if (ntot == nDates) stoptime = stopTOD;
         if (stoptime == 0) break;
+        day_fraction = (stoptime - startTOD) / iSecsPerDay;
 
         //# Initialise daily values for volume & heat balance reporting (lake.csv)
         SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
@@ -327,7 +331,7 @@ void do_model(int jstart, int nsave)
         //# (stoptime - startTOD) allow for partial dates at the the beginning and end of
         //# simulation
         for (i = 0; i < NumInf; i++) {
-            Inflows[i].FlowRate = (FlowOld[i] + FlowNew[i]) / 2.0 * (stoptime - startTOD) ;
+            Inflows[i].FlowRate = (FlowOld[i] + FlowNew[i]) / 2.0 * day_fraction * iSecsPerDay;
             Inflows[i].TemInf   = (TempOld[i] + TempNew[i]) / 2.0;
             Inflows[i].SalInf   = (SaltOld[i] + SaltNew[i]) / 2.0;
             Inflows[i].SubmElev = Elev[i];
@@ -341,7 +345,7 @@ void do_model(int jstart, int nsave)
         read_daily_outflow(jday, NumOut, DrawNew);
         //# To get daily outflow (i.e. m3/day) times by the seconds in the current day
         for (i = 0; i < NumOut; i++)
-            Outflows[i].Draw = (DrawOld[i] + DrawNew[i]) / 2.0 * (stoptime - startTOD) ;
+            Outflows[i].Draw = (DrawOld[i] + DrawNew[i]) / 2.0 * day_fraction * iSecsPerDay ;
 
         read_daily_withdraw_temp(jday, &WithdrTempNew);
         WithdrawalTemp = (WithdrTempOld + WithdrTempNew) / 2.0;
@@ -379,10 +383,10 @@ void do_model(int jstart, int nsave)
         SurfData.dailyInflow = do_inflows(); //# Do inflow for all streams
 
         //# Extract withdrawal from all offtakes
-        SurfData.dailyOutflow = do_outflows(jday);
+        SurfData.dailyOutflow = do_outflows(jday, day_fraction);
 
         //# Take care of any overflow
-        SurfData.dailyOverflow = do_overflow(jday);
+        SurfData.dailyOverflow = do_overflow(jday, day_fraction);
 
         //# Enforce layer limits
         check_layer_thickness();
@@ -396,14 +400,20 @@ void do_model(int jstart, int nsave)
             today = jday;
 #endif
             write_output(jday, SecsPerDay, nsave, stepnum);
+            write_diags(jday, calculate_lake_number());
+            write_balance(jday);
             write_step += nsave;
-            if ( write_step > last_step ) write_step = last_step;
 #if PLOTS
             plotstep++;
             today = -1;
 #endif
 
         }
+        
+        if(ntot == nDates & stepnum < nsave){
+        	fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
+        }
+        
 
         /**********************************************************************
          * End of daily calculations, Prepare for next day and return.        *
@@ -429,9 +439,6 @@ void do_model(int jstart, int nsave)
             printf("     Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
             fflush(stdout);
         }
-
-        write_diags(jday, calculate_lake_number());
-        write_balance(jday);
     }   //# do while (ntot < nDates)
     if (quiet < 2) { printf("\n"); fflush(stdout); }
     /*----------########### End of main daily loop ################-----------*/
@@ -448,6 +455,7 @@ void do_model_non_avg(int jstart, int nsave)
     AED_REAL SWold, SWnew, DailyKw, DailyEvap;
     int jday, ntot, stepnum, stoptime;
     int i, j;
+    AED_REAL day_fraction;
 
    /***************************************************************************
     *CAB Note: these WQ arrays should be sized to Num_WQ_Vars not MaxVars,    *
@@ -466,8 +474,10 @@ void do_model_non_avg(int jstart, int nsave)
     stepnum = 0;
     stoptime = iSecsPerDay;
     SWold = 0.;
-
+	
     jday = jstart - 1;
+
+    write_output(jday, SecsPerDay, nsave, stepnum);
     /**************************************************************************
      * Loop over all days                                                     *
      **************************************************************************/
@@ -478,6 +488,7 @@ void do_model_non_avg(int jstart, int nsave)
         //# If it is the last day, adjust the stop time for the day if necessary
         if (ntot == nDates) stoptime = stopTOD;
         if (stoptime == 0) break;
+        day_fraction = (stoptime - startTOD) / iSecsPerDay;
 
         //# Initialise daily values for volume & heat balance reporting (lake.csv)
         SurfData.dailyRain    = 0.; SurfData.dailyEvap     = 0.;
@@ -496,7 +507,7 @@ void do_model_non_avg(int jstart, int nsave)
 
         //# To get daily inflow (i.e. m3/day) times by SecsPerDay
         for (i = 0; i < NumInf; i++) {
-            Inflows[i].FlowRate = FlowNew[i] * (stoptime - startTOD) ;
+            Inflows[i].FlowRate = FlowNew[i] * day_fraction * iSecsPerDay;
             Inflows[i].TemInf   = TempNew[i];
             Inflows[i].SalInf   = SaltNew[i];
             Inflows[i].SubmElev = Elev[i];
@@ -512,7 +523,7 @@ void do_model_non_avg(int jstart, int nsave)
         //# (stoptime - startTOD) allow for partial dates at the the beginning and end of
         //# simulation
         for (i = 0; i < NumOut; i++)
-            Outflows[i].Draw = DrawNew[i] * (stoptime - startTOD) ;
+            Outflows[i].Draw = DrawNew[i] * day_fraction * iSecsPerDay ;
 
         read_daily_withdraw_temp(jday, &WithdrTempNew);
         WithdrawalTemp = WithdrTempNew;
@@ -535,11 +546,11 @@ void do_model_non_avg(int jstart, int nsave)
         SurfData.dailyInflow = do_inflows();
 
         if (Lake[surfLayer].Vol1 > zero) {
-            //# Extract withdrawal from all offtakes
-            SurfData.dailyOutflow = do_outflows(jday);
+           //# Extract withdrawal from all offtakes
+           SurfData.dailyOutflow = do_outflows(jday, day_fraction);
 
-            //# Take care of any overflow
-            SurfData.dailyOverflow = do_overflow(jday);
+           //# Take care of any overflow
+           SurfData.dailyOverflow = do_overflow(jday, day_fraction);
         }
 
         //# Enforce layer limits
@@ -553,12 +564,19 @@ void do_model_non_avg(int jstart, int nsave)
             today = jday;
 #endif
             write_output(jday, SecsPerDay, nsave, stepnum);
+            write_diags(jday, calculate_lake_number());
+            write_balance(jday);
             write_step += nsave;
-            if ( write_step > last_step ) write_step = last_step;
+   
+            //if ( write_step > last_step ) write_step = last_step;
 #if PLOTS
             plotstep++;
             today = -1;
 #endif
+        }
+        
+        if(ntot == nDates & stepnum < nsave){
+        	fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
         }
 
         /**********************************************************************
@@ -575,9 +593,6 @@ void do_model_non_avg(int jstart, int nsave)
             printf("     Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
             fflush(stdout);
         }
-
-        write_diags(jday, calculate_lake_number());
-        write_balance(jday);
     }   //# do while (ntot < nDates)
     if (quiet < 2) { printf("\n"); fflush(stdout); }
     /*----------########### End of main daily loop ################-----------*/
@@ -600,7 +615,8 @@ void do_model_coupled(int step_start, int step_end,
     AED_REAL WQNew[MaxInf * MaxVars];
     int jday, ntot, stepnum, stoptime, cDays;
     int i, j;
-
+    AED_REAL day_fraction;    
+        
     /*------------------------------------------------------------------------*/
     memset(WQNew, 0, sizeof(AED_REAL)*MaxInf*MaxVars);
 
@@ -612,8 +628,12 @@ void do_model_coupled(int step_start, int step_end,
     stoptime = iSecsPerDay;
     SWold = 0.;
 
+
+
     cDays = step_end - step_start + 1;
     jday = step_start - 1;
+
+     write_output(jday, SecsPerDay, nsave, stepnum);
     /**************************************************************************
      * Loop over all days                                                     *
      **************************************************************************/
@@ -624,6 +644,7 @@ void do_model_coupled(int step_start, int step_end,
         //# If it is the last day, adjust the stop time for the day if necessary
         if (ntot == nDates) stoptime = stopTOD;
         if (stoptime == 0) break;
+        day_fraction = (stoptime - startTOD) / iSecsPerDay;
 
         //# Initialise daily values for volume & heat balance reporting (lake.csv)
         SurfData.dailyRain = 0.; SurfData.dailyEvap = 0.;
@@ -641,7 +662,7 @@ void do_model_coupled(int step_start, int step_end,
         //# (stoptime - startTOD) allow for partial dates at the the beginning and end of
         //# simulation
         for (i = 0; i < NumInf; i++) {
-            Inflows[i].FlowRate = FlowNew[i] * (stoptime - startTOD);
+            Inflows[i].FlowRate = FlowNew[i] * day_fraction * iSecsPerDay;
 //          Inflows[i].TemInf   = TempNew[i];
 //          Inflows[i].SalInf   = SaltNew[i];
             for (j = 0; j < Num_WQ_Vars; j++) {
@@ -653,7 +674,7 @@ void do_model_coupled(int step_start, int step_end,
     //  read_daily_outflow(jday, NumOut, DrawNew);
         //# To get daily outflow (i.e. m3/day) times by SecsPerDay
         for (i = 0; i < NumOut; i++)
-            Outflows[i].Draw = DrawNew[i] * (stoptime - startTOD);
+            Outflows[i].Draw = DrawNew[i] * day_fraction * iSecsPerDay;
 
     //  read_daily_withdraw_temp(jday, &WithdrTempNew);
     //  WithdrawalTemp = WithdrTempNew;
@@ -676,11 +697,11 @@ void do_model_coupled(int step_start, int step_end,
         SurfData.dailyInflow = do_inflows();
 
         if (Lake[surfLayer].Vol1 > zero) {
-            //# Extract withdrawal from all offtakes
-            SurfData.dailyOutflow = do_outflows(jday);
+           //# Extract withdrawal from all offtakes
+           SurfData.dailyOutflow = do_outflows(jday, day_fraction);
 
-            //# Take care of any overflow
-            SurfData.dailyOverflow = do_overflow(jday);
+           //# Take care of any overflow
+           SurfData.dailyOverflow = do_overflow(jday, day_fraction);
         }
 
         //# Enforce layer limits
@@ -694,31 +715,39 @@ void do_model_coupled(int step_start, int step_end,
             today = jday;
 #endif
             write_output(jday, SecsPerDay, nsave, stepnum);
+            write_diags(jday, calculate_lake_number());
+            write_balance(jday);
             write_step += nsave;
-            if ( write_step > last_step ) write_step = last_step;
+
+            //if ( write_step > last_step ) write_step = last_step;
 #if PLOTS
             plotstep++;
             today = -1;
+            
+            
 #endif
+		}
+        
+        if(ntot == nDates & stepnum < nsave){
+        	fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
         }
 
         /**********************************************************************
          * End of daily calculations, Prepare for next day and return.        *
          **********************************************************************/
         SWold = SWnew;
-
+        
 #ifdef XPLOTS
         if ( xdisp )
             flush_all_plots();
         else
 #endif
-          if (quiet < 2) {
+        if (quiet < 2) {
             printf("     Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
             fflush(stdout);
         }
 
-        write_diags(jday, calculate_lake_number());
-        write_balance(jday);
+
     }   //# do while (ntot < nDates)
     if (quiet < 2) { printf("\n"); fflush(stdout); }
     /*----------########### End of main daily loop ################-----------*/
@@ -748,12 +777,14 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
      **************************************************************************/
     iclock = startTOD;
     last_step = stepnum + ((stoptime - iclock) / noSecs);
+    if(stepnum == 0){
     write_step = stepnum + nsave;
-    if ( iclock != 0 ) {
-        int t = mod(((stoptime - iclock) / noSecs), nsave);
-        if ( t != 0 ) write_step = stepnum + t;
     }
-    if ( write_step > last_step ) write_step = last_step;
+    //if ( iclock != 0 ) {
+    //    int t = mod(((stoptime - iclock) / noSecs), nsave);
+    //    if ( t != 0 ) write_step = stepnum + t;
+    //}
+    
 //  printf("last step %d write_step %d\n", last_step, write_step);
 
     startTOD = 0; /* from now on start at the beginning of the day */
@@ -828,14 +859,13 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
         //# then do not output in the subdaily.  Output writing is moved to the
         //# daily loop so it occurs after the inflow and output calculations.
 
-        if ( stepnum == write_step && (iclock +  noSecs) != SecsPerDay) {
+        if ( stepnum == write_step && (iclock +  noSecs) != SecsPerDay && stepnum != last_step) {
 
 #if PLOTS
             today = jday;
 #endif
             write_output(jday, iclock, nsave, stepnum);
             write_step += nsave;
-            if ( write_step > last_step ) write_step = last_step;
 #if PLOTS
 //if (++n_steps_done > END_STEPS) { int i; for (i = 0; i < NumLayers; i++) show_l_line(2, Lake[i].Height); flush_all_plots(); }
             plotstep++;
@@ -852,6 +882,8 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
         iclock += noSecs;
         yearday += part_day_per_step;
     }   //# do while (iclock < iSecsPerDay)
+    
+    //if ( write_step > last_step ) write_step = last_step;
     /**************************************************************************
      * End of sub-daily loop                                                  *
      **************************************************************************/
