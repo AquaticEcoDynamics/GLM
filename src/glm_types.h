@@ -272,18 +272,18 @@ typedef char filname[80];
     /*===========================================================*/
    // NEW Structured type for Particle Transport Model (PTM), following AED API
    typedef struct partgroup {
-       int NP;                                           // number of particles
-       int id_stat, id_i2, id_i3, id_layer;              // ISTAT index values; descriptions?
-       int id_bed_layer, id_motility;                    // ISTAT index values; descriptions?
-       int id_uvw0, id_uvw, id_nu, id_wnd;               // PROP index values; descriptions?
-       int id_wsel, id_watd, id_partd;                   // PROP index values; descriptions?
-       int id_age, id_state;                             // TSTAT index valuess; descriptions?
-       int i_next;                                       // next particle index
-       AED_REAL *istat[4][NPart];                         // Particle Integer Status/Cell-index variables (4,NPart)
-       AED_REAL *tstat[2][NPart];                         // Particle Time/Age Vector (2,Npart)
-       AED_REAL *xyz[NPart];                              // particle position vector (assuming length NPart)
-       AED_REAL *prop[12][NPart];                         // Particle Property Vector (12,Npart)
-       AED_REAL *U[12][NPart];                            // Particle Conserved Variable Vector (NU,NP) but written as NPart for now b/c don't know what NU, NP are
+       int NP;                              // number of particles
+       int id_stat, id_i2, id_i3, id_layer; // ISTAT index values; descriptions?
+       int id_bed_layer, id_motility;       // ISTAT index values; descriptions?
+       int id_uvw0, id_uvw, id_nu, id_wnd;  // PROP index values; descriptions?
+       int id_wsel, id_watd, id_partd;      // PROP index values; descriptions?
+       int id_age, id_state;                // TSTAT index valuess; descriptions?
+       int i_next;                          // next particle index
+       AED_REAL *istat[4][NPart];           // Particle Integer Status/Cell-index variables (4,NPart)
+       AED_REAL *tstat[2][NPart];           // Particle Time/Age Vector (2,Npart)
+       AED_REAL *xyz[NPart];                // particle position vector (assuming length NPart)
+       AED_REAL *prop[12][NPart];           // Particle Property Vector (12,Npart)
+       AED_REAL *U[12][NPart];              // Particle Conserved Variable Vector (NU,NP) but written as NPart for now b/c don't know what NU, NP are
    } partgroup;
    typedef struct partgroup_p {
        int idx, grp;
