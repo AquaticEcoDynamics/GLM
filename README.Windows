@@ -1,5 +1,5 @@
 
-We build GLM on windows using "chocolatey". 
+We build GLM on windows using "chocolatey".
 
 After installing choco (see https://chocolatey.org/install ) install these packages :
 
