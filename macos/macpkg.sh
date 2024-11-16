@@ -65,10 +65,9 @@ fi
 # find_libs path bin
 echo "BASEDIR is ${BASEDIR}" 1>&2
 find_libs () {
-   echo "*** find_libs \"$1\" \"$2\"" 1>&2
-   otool -L ${PKG}.app/Contents/MacOS/$2 | grep \/${BASEDIR}\/
-   L2=`otool -L ${PKG}.app/Contents/MacOS/$2 | grep \/${BASEDIR}\/$1 | cut -d\  -f1 | grep -o '[^/]*$'`
-   echo $L2
+   otool -L ${PKG}.app/Contents/MacOS/${PKG} | grep ${BASEDIR} | cut -d\  -f1 | grep -o '[^/]*$'
+   L2=`otool -L ${PKG}.app/Contents/MacOS/${PKG} | grep ${BASEDIR} | cut -d\  -f1 | grep -o '[^/]*$'`
+   echo $L2 1>&2
    LIST=""
    while [ "$L2" != "$LIST" ] ; do
       LIST=$L2
@@ -89,9 +88,9 @@ find_libs () {
             fi
          fi
          if [ "$xx" = "" ] ; then
-            NLST=`otool -L /${BASEDIR}/$1/lib/$i | grep -v $i | grep \/${BASEDIR}\/$1 | cut -d\  -f1 | grep -o '[^/]*$'`
+            NLST=`otool -L /${BASEDIR}/$i | grep -v $i | grep ${BASEDIR} | cut -d\  -f1 | grep -o '[^/]*$'`
          else
-            NLST=`otool -L $xx | grep -v $i | grep \/${BASEDIR}\/$1 | cut -d\  -f1 | grep -o '[^/]*$'`
+            NLST=`otool -L $xx | grep -v $i | grep ${BASEDIR} | cut -d\  -f1 | grep -o '[^/]*$'`
          fi
          for j in $NLST ; do
             echo $L2 | grep $j > /dev/null 2>&1
@@ -107,25 +106,18 @@ find_libs () {
 
 
 LIBS1=`find_libs ${EXTRPTH} ${PKG}`
-#LIBS2=`find_libs intel ${PKG}`
 
-if [ "$FC" = "ifort" ] ; then
-  PATH2=/opt/intel
-  PATH3=
-  LIBS2="libifcore.dylib libsvml.dylib libimf.dylib libintlc.dylib libiomp5.dylib libifport.dylib"
-  if [ "${PKG}" = "glm+" ] ; then
-    LIBS2="${LIBS2} libifport.dylib"
-  fi
-else
-  PATH2=/${BASEDIR}/${EXTRPTH}/
-  PATH3=/usr/local/
-  LIBS2="libgfortran.5.dylib"
-fi
+PATH2=${BASEDIR}/${EXTRPTH}/
+LIBS2="libgfortran.5.dylib"
 
 echo "BASEDIR=$BASEDIR"
-echo $PATH2=$PATH2"
+echo "==="
+echo "PATH2=$PATH2"
+echo "==="
 echo "LIBS1 = $LIBS1"
+echo "==="
 echo "LIBS2 = $LIBS2"
+echo "==="
 
 # These general libraries
 for i in $LIBS1 ; do
@@ -133,7 +125,6 @@ for i in $LIBS1 ; do
    xx=`find /${BASEDIR} -name $i 2> /dev/null | tail -n 1`
    #cp /${BASEDIR}/${EXTRPTH}/lib/$i ${PKG}.app/Contents/MacOS
    if [ ! -f ${PKG}.app/Contents/MacOS/$i ] ; then
-
       /bin/cp -f $xx ${PKG}.app/Contents/MacOS
       if [ $? != 0 ] ; then
          echo " ####### Failed to copy(2) $i" 1>&2
