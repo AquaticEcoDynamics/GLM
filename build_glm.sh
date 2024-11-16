@@ -72,6 +72,12 @@ if [ "$OSTYPE" = "Darwin" ] ; then
       export HOMEBREW=true
     fi
   fi
+  start_sh="$(ps -p "$$" -o  command= | awk '{print $1}')"
+  if [ "$start_sh" = "/bin/sh" ] ;  then
+     echo Restart using bash because MacOS cant use /bin/sh
+     /bin/bash $0 $ARGS
+     exit $?
+  fi
 fi
 
 # see if FC is defined, if not look for gfortran at least v8
