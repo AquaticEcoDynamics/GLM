@@ -59,10 +59,11 @@ typedef char filname[80];
  * a bit messy, but until we are all C we must live with the cards we are...  *
  *                                                                            *
  ******************************************************************************/
-#define _IDX_2d(di,dj,i,j) (((di) * (j)) + (i))
+#define _IDX_2d(di,dj,      i,j)                                                         (((di) * (j)) + (i))
 
-#define _IDX_3d(di,dj,dk,   i,j,k)                         ((dk * dj * i) + (dk * j) + k)
-#define _IDX_4d(di,dj,dk,dl,i,j,k,l)  ((dl * dk * dj * i) + (dl * dk * j) + (dl * k) + l)
+// These two were wrong, but never used so never tested - hopefully they are now correct, but still not tested
+#define _IDX_3d(di,dj,dk,   i,j,k)                                 (((di) * (dj) * (k)) + ((di) * (j)) + (i))
+#define _IDX_4d(di,dj,dk,dl,i,j,k,l)  (((di) * (dj) * (dk) * (l)) + ((di) * (dj) * (k)) + ((di) * (j)) + (i))
 
 /******************************************************************************
  * Macros for max and min - the first are the "standard" macros but suffer    *
