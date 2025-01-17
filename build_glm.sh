@@ -45,8 +45,14 @@ while [ $# -gt 0 ] ; do
     --gfort)
       export FC=gfortran
       ;;
+    --ifx)
+      export FC=ifx
+      ;;
     --ifort)
       export FC=ifort
+      ;;
+    --flang-new)
+      export FC=flang-new
       ;;
     --flang)
       export FC=flang
@@ -62,6 +68,12 @@ while [ $# -gt 0 ] ; do
 done
 
 if [ "$OSTYPE" = "Darwin" ] ; then
+  start_sh="$(ps -p "$$" -o  command= | awk '{print $1}')"
+  if [ "$start_sh" = "/bin/sh" ] ;  then
+     echo Restart using bash because MacOS cant use /bin/sh
+     /bin/bash $0 $ARGS
+     exit $?
+  fi
   if [ "$HOMEBREW" = "" ] ; then
     brew -v > /dev/null 2>&1
     if [ $? != 0 ] ; then
@@ -74,12 +86,6 @@ if [ "$OSTYPE" = "Darwin" ] ; then
     else
       export HOMEBREW=true
     fi
-  fi
-  start_sh="$(ps -p "$$" -o  command= | awk '{print $1}')"
-  if [ "$start_sh" = "/bin/sh" ] ;  then
-     echo Restart using bash because MacOS cant use /bin/sh
-     /bin/bash $0 $ARGS
-     exit $?
   fi
 fi
 
@@ -103,7 +109,7 @@ if [ "$FC" = "" ] ; then
   fi
 fi
 
-if [ "$FC" = "ifort" ] ; then
+if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
   if [ "$OSTYPE" = "Linux" ] ; then
     start_sh="$(ps -p "$$" -o  command= | awk '{print $1}')"
     # ifort config scripts wont work with /bin/sh
@@ -122,10 +128,19 @@ if [ "$FC" = "ifort" ] ; then
   elif [ -d /opt/intel/bin ] ; then
      . /opt/intel/bin/compilervars.sh intel64
   fi
-  which ifort > /dev/null 2>&1
-  if [ $? != 0 ] ; then
-     echo ifort compiler requested, but not found
-     exit 1
+  if [ "$FC" = "ifort" ] ; then
+    which ifort > /dev/null 2>&1
+    if [ $? != 0 ] ; then
+      echo ifort compiler requested, but not found
+      exit 1
+    fi
+  fi
+  if [ "$FC" = "ifx" ] ; then
+    which ifx > /dev/null 2>&1
+    if [ $? != 0 ] ; then
+      echo ifx compiler requested, but not found
+      exit 1
+    fi
   fi
 fi
 
@@ -194,12 +209,6 @@ if [ "${AED}" = "true" ] || [ "${API}" = "true" ] ; then
   cd "${CURDIR}/../libaed-water"
   ${MAKE} || exit 1
   DAEDWATDIR=`pwd`
-  if [ -d "${CURDIR}/../libaed-api" ] ; then
-    echo build libaed-api
-    cd "${CURDIR}/../libaed-api"
-    ${MAKE} || exit 1
-    DAEDAPIDIR=`pwd`
-  fi
   if [ -d "${CURDIR}/../libaed-benthic" ] ; then
     echo build libaed-benthic
     cd "${CURDIR}/../libaed-benthic"
@@ -246,6 +255,12 @@ if [ "${AED}" = "true" ] || [ "${API}" = "true" ] ; then
       ${MAKE} || exit 1
     fi
     DAEDDEVDIR=`pwd`
+  fi
+  if [ -d "${CURDIR}/../libaed-api" ] ; then
+    echo build libaed-api
+    cd "${CURDIR}/../libaed-api"
+    ${MAKE} || exit 1
+    DAEDAPIDIR=`pwd`
   fi
 fi
 
