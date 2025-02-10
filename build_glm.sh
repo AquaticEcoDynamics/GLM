@@ -67,82 +67,7 @@ while [ $# -gt 0 ] ; do
   shift
 done
 
-if [ "$OSTYPE" = "Darwin" ] ; then
-  start_sh="$(ps -p "$$" -o  command= | awk '{print $1}')"
-  if [ "$start_sh" = "/bin/sh" ] ;  then
-     echo Restart using bash because MacOS cant use /bin/sh
-     /bin/bash $0 $ARGS
-     exit $?
-  fi
-  if [ "$HOMEBREW" = "" ] ; then
-    brew -v > /dev/null 2>&1
-    if [ $? != 0 ] ; then
-      which port > /dev/null 2>&1
-      if [ $? != 0 ] ; then
-        echo no ports and no brew
-      else
-        export MACPORTS=true
-      fi
-    else
-      export HOMEBREW=true
-    fi
-  fi
-fi
-
-# see if FC is defined, if not look for gfortran at least v8
-if [ "$FC" = "" ] ; then
-  gfortran -v > /dev/null 2>&1
-  if [ $? != 0 ] ; then
-    export FC=ifort
-  else
-    VERS=`gfortran -dumpversion | cut -d\. -f1`
-    if [ $VERS -ge 8 ] ; then
-      export FC=gfortran
-    else
-      gfortran-8 -v > /dev/null 2>&1
-      if [ $? != 0 ] ; then
-        export FC=ifort
-      else
-        export gfortran-8
-      fi
-    fi
-  fi
-fi
-
-if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-  if [ "$OSTYPE" = "Linux" ] ; then
-    start_sh="$(ps -p "$$" -o  command= | awk '{print $1}')"
-    # ifort config scripts wont work with /bin/sh
-    # so we restart using bash
-    if [ "$start_sh" = "/bin/sh" ] ;  then
-       echo Restart using bash because ifort cant use /bin/sh
-       /bin/bash $0 $ARGS
-       exit $?
-    fi
-  fi
-
-  if [ -x /opt/intel/setvars.sh ] ; then
-     . /opt/intel/setvars.sh
-  elif [ -d /opt/intel/oneapi ] ; then
-     . /opt/intel/oneapi/setvars.sh
-  elif [ -d /opt/intel/bin ] ; then
-     . /opt/intel/bin/compilervars.sh intel64
-  fi
-  if [ "$FC" = "ifort" ] ; then
-    which ifort > /dev/null 2>&1
-    if [ $? != 0 ] ; then
-      echo ifort compiler requested, but not found
-      exit 1
-    fi
-  fi
-  if [ "$FC" = "ifx" ] ; then
-    which ifx > /dev/null 2>&1
-    if [ $? != 0 ] ; then
-      echo ifx compiler requested, but not found
-      exit 1
-    fi
-  fi
-fi
+. ${CWD}/build_env.inc
 
 export F77=$FC
 export F90=$FC
@@ -205,63 +130,8 @@ if [ "${AED2}" = "true" ] ; then
 fi
 
 if [ "${AED}" = "true" ] || [ "${API}" = "true" ] ; then
-  echo "build libaed-water"
-  cd "${CURDIR}/../libaed-water"
-  ${MAKE} || exit 1
-  DAEDWATDIR=`pwd`
-  if [ -d "${CURDIR}/../libaed-benthic" ] ; then
-    echo build libaed-benthic
-    cd "${CURDIR}/../libaed-benthic"
-    ${MAKE} || exit 1
-    DAEDBENDIR=`pwd`
-  fi
-  if [ -d "${CURDIR}/../libaed-demo" ] ; then
-    echo build libaed-demo
-    cd "${CURDIR}/../libaed-demo"
-    ${MAKE} || exit 1
-    DAEDDMODIR=`pwd`
-  fi
-  if [ -d "${CURDIR}/../libaed-riparian" ] ; then
-    echo build libaed-riparian
-    cd "${CURDIR}/../libaed-riparian"
-    ${MAKE} || exit 1
-    DAEDRIPDIR=`pwd`
-  fi
-  if [ -d "${CURDIR}/../libaed-light" ] ; then
-    echo build libaed-light
-    cd "${CURDIR}/../libaed-light"
-    ${MAKE} || exit 1
-    DAEDLGTDIR=`pwd`
-  fi
-  if [ -d "${CURDIR}/../libaed-dev" ] ; then
-    if [ -d "${CURDIR}/../phreeqcrm" ] ; then
-      PHREEQDIR="${CURDIR}/../phreeqcrm"
-      cd "${CURDIR}/../phreeqcrm"
-      mkdir build
-      sed -i -e 's/option(PHREEQCRM_FORTRAN_TESTING "Build Fortran test" OFF)/option(PHREEQCRM_FORTRAN_TESTING "Build Fortran test" ON)/' CMakeLists.txt
-      cd build
-      cmake ..
-      ${MAKE}
-      if [ ! -f libPhreeqcRM.a ] ; then
-        echo building libPhreeqcRM.a failed
-        unset PHREEQDIR
-      fi
-    fi
-    echo build libaed-dev
-    cd "${CURDIR}/../libaed-dev"
-    if [ "$PHREEQDIR" != "" ] ; then
-      ${MAKE} PHREEQDIR=$PHREEQDIR || exit 1
-    else
-      ${MAKE} || exit 1
-    fi
-    DAEDDEVDIR=`pwd`
-  fi
-  if [ -d "${CURDIR}/../libaed-api" ] ; then
-    echo build libaed-api
-    cd "${CURDIR}/../libaed-api"
-    ${MAKE} || exit 1
-    DAEDAPIDIR=`pwd`
-  fi
+  export WITH_AED_PLUS='true'
+  . ${CWD}/build_aedlibs.inc
 fi
 
 if [ -d "${UTILDIR}" ] ; then
@@ -313,6 +183,46 @@ if [ "${DAEDDEVDIR}" != "" ] ; then
     echo now build plus version
     /bin/rm obj/aed_external.o
     ${MAKE} glm+ AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR AEDRIPDIR=$DAEDRIPDIR AEDLGTDIR=$DAEDLGTDIR AEDDEVDIR=$DAEDDEVDIR PHREEQDIR=$PHREEQDIR || exit 1
+  fi
+fi
+
+cd "${CURDIR}/.."
+
+# =====================================================================
+# Package building bit
+
+# ***************************** Linux *********************************
+if [ "$OSTYPE" = "Linux" ] ; then
+  if [ $(lsb_release -is) = Ubuntu ] ; then
+    BINPATH=binaries/ubuntu/$(lsb_release -rs)
+    if [ ! -d "${BINPATH}" ] ; then
+      mkdir -p "${BINPATH}"/
+    fi
+    cd ${CURDIR}
+    if [ -x glm+ ] ; then
+       /bin/cp debian/control-with+ debian/control
+    else
+       /bin/cp debian/control-no+ debian/control
+    fi
+    VERSDEB=`head -1 debian/changelog | cut -f2 -d\( | cut -f1 -d-`
+    echo debian version $VERSDEB
+    if [ "$VERSION" != "$VERSDEB" ] ; then
+      echo updating debian version
+      dch --newversion ${VERSION}-0 "new version ${VERSION}"
+    fi
+    VERSRUL=`grep 'version=' debian/rules | cut -f2 -d=`
+    if [ "$VERSION" != "$VERSRUL" ] ; then
+      sed -i "s/version=$VERSRUL/version=$VERSION/" debian/rules
+    fi
+
+    fakeroot ${MAKE} -f debian/rules binary || exit 1
+
+    cd ..
+
+    mv glm*.deb ${BINPATH}/
+  else
+    BINPATH="binaries/$(lsb_release -is)/$(lsb_release -rs)"
+    echo "No package build for $(lsb_release -is)"
   fi
 fi
 

@@ -11,7 +11,7 @@
 #                                                                             #
 #      http://aquatic.science.uwa.edu.au/                                     #
 #                                                                             #
-#  Copyright 2013 - 2024 - The University of Western Australia                #
+#  Copyright 2013 - 2025 - The University of Western Australia                #
 #                                                                             #
 #   GLM is free software: you can redistribute it and/or modify               #
 #   it under the terms of the GNU General Public License as published by      #
@@ -114,7 +114,7 @@ else
   CINCLUDES+=-I/usr/local/include
   EXTRALINKFLAGS=-Wl,-z,relro,--export-dynamic
   ifeq ($(MDEBUG),true)
-  DBG_LIBS=-fsanitize=address -static-libasan
+    DBG_LIBS=-fsanitize=address -static-libasan
     SHARED=-shared
   endif
   so_ext=so
