@@ -59,7 +59,7 @@ typedef char filname[80];
  * a bit messy, but until we are all C we must live with the cards we are...  *
  *                                                                            *
  ******************************************************************************/
-#define _IDX_2d(di,dj,i,j) (((di) * (j)) + (i))
+#define _IDX_2d(di,dj,      i,j)                                                         (((di) * (j)) + (i))
 
 //#define _IDX_3d(di,dj,dk,   i,j,k)                         ((dk * dj * i) + (dk * j) + k)
 //#define _IDX_4d(di,dj,dk,dl,i,j,k,l)  ((dl * dk * dj * i) + (dl * dk * j) + (dl * k) + l)

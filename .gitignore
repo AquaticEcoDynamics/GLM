@@ -8,8 +8,10 @@ bin
 *.i90
 glm
 glm.app
+glm.exe
 glm+
 glm+.app
+glm+.exe
 Glm-Log.txt
 ._*
 .DS*

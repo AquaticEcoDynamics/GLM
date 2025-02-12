@@ -36,7 +36,7 @@
 #define USE_FILLVALUE 1
 
 /* Actually pre-alpha V4.0.0 */
-#define GLM_VERSION  "3.9.012"
+#define GLM_VERSION  "3.9.013"
 
 #define POINT         0
 #define Z_SHAPE       1

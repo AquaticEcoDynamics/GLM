@@ -11,7 +11,7 @@
 #                                                                             #
 #      http://aquatic.science.uwa.edu.au/                                     #
 #                                                                             #
-#  Copyright 2013 - 2024 -  The University of Western Australia               #
+#  Copyright 2013 - 2025 - The University of Western Australia                #
 #                                                                             #
 #   GLM is free software: you can redistribute it and/or modify               #
 #   it under the terms of the GNU General Public License as published by      #
@@ -114,7 +114,7 @@ else
   CINCLUDES+=-I/usr/local/include
   EXTRALINKFLAGS=-Wl,-z,relro,--export-dynamic
   ifeq ($(MDEBUG),true)
-  DBG_LIBS=-fsanitize=address -static-libasan
+    DBG_LIBS=-fsanitize=address -static-libasan
     SHARED=-shared
   endif
   so_ext=so
@@ -181,7 +181,6 @@ ifeq ($(AED),true)
     AEDLIBS+=-L$(AEDDEVDIR)/lib -laed-dev
     ifdef PHREEQDIR
        AEDLIBS+=-L$(PHREEQDIR)/build -lPhreeqcRM
-       FINCLUDES+=-I$(PHREEQDIR)/include -I$(PHREEQDIR)/include -I$(PHREEQDIR)/src -I$(PHREEQDIR)/build/Tests
     endif
   else
     EXTFFLAGS+=-DNO_DEV
@@ -220,6 +219,7 @@ ifeq ($(F90),ifort)
   LINK=$(CC)
   FINCLUDES+=-I/opt/intel/include
   DEBUG_FFLAGS=-g -traceback -DDEBUG=1
+  OMPFLAG=-qopenmp
   OPT_FFLAGS=-O3
   FFLAGS=-warn all -module ${moddir} -static-intel -mp1 -stand f08 -warn nounused $(DEFINES) $(FINCLUDES)
   ifeq ($(WITH_CHECKS),true)
@@ -229,8 +229,21 @@ ifeq ($(F90),ifort)
   FLIBS+=-L/opt/intel/lib
   FLIBS+=-lifcore -lsvml -lifport
   FLIBS+=-limf -lintlc -liomp5  -lifport
-  OMPFLAG=-qopenmp
   #EXTFFLAGS=-warn-no-unused-dummy-argument
+else ifeq ($(F90),ifx)
+  LINK=$(CC)
+# INCLUDES+=-I/opt/intel/oneapi/compiler/latest/include
+  DEBUG_FFLAGS=-g -traceback -DDEBUG=1 -O0
+  OMPFLAG=-qopenmp
+  OPT_FFLAGS=-O3
+  FFLAGS=-warn all -module ${moddir} -static-intel -mp1 -stand f08 -warn nounused $(DEFINES) $(FINCLUDES)
+  ifeq ($(WITH_CHECKS),true)
+    FFLAGS+=-check all -check noarg_temp_created
+  endif
+  FFLAGS+=-real-size 64 -fpscomp
+  FLIBS+=-L/opt/intel/lib
+  FLIBS+=-lifcore -lsvml -lifport
+  FLIBS+=-limf -lintlc -liomp5  -lifport
 else ifeq ($(F90),flang)
 # LINK=$(FC) -fno-fortran-main
   LINK=$(CC)

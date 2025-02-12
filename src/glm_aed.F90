@@ -191,7 +191,11 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    CALL make_string(fname, i_fname, len)
 
 #ifdef __INTEL_COMPILER
+#  ifdef __INTEL_LLVM_COMPILER
+   print *,'    glm_aed built using intel fortran (ifx) version ', __INTEL_LLVM_COMPILER
+#  else
    print *,'    glm_aed built using intel fortran version ', __INTEL_COMPILER
+#  endif
 #else
 # ifdef __PGI
    print *,'    glm_aed built using pgfortran version ', __PGIC__, '.', __PGIC_MINOR__, '.', __PGIC_PATCHLEVEL__
