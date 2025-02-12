@@ -61,8 +61,12 @@ typedef char filname[80];
  ******************************************************************************/
 #define _IDX_2d(di,dj,i,j) (((di) * (j)) + (i))
 
-#define _IDX_3d(di,dj,dk,   i,j,k)                         ((dk * dj * i) + (dk * j) + k)
-#define _IDX_4d(di,dj,dk,dl,i,j,k,l)  ((dl * dk * dj * i) + (dl * dk * j) + (dl * k) + l)
+//#define _IDX_3d(di,dj,dk,   i,j,k)                         ((dk * dj * i) + (dk * j) + k)
+//#define _IDX_4d(di,dj,dk,dl,i,j,k,l)  ((dl * dk * dj * i) + (dl * dk * j) + (dl * k) + l)
+
+// These two were wrong, but never used so never tested - hopefully they are now correct, but still not tested
+#define _IDX_3d(di,dj,dk,   i,j,k)                                 (((di) * (dj) * (k)) + ((di) * (j)) + (i))
+#define _IDX_4d(di,dj,dk,dl,i,j,k,l)  (((di) * (dj) * (dk) * (l)) + ((di) * (dj) * (k)) + ((di) * (j)) + (i))
 
 /******************************************************************************
  * Macros for max and min - the first are the "standard" macros but suffer    *
@@ -260,40 +264,45 @@ typedef char filname[80];
    typedef struct ParticleDataType {
        CINTEGER Status;          // indivdual particle status (0 = dead, 1 = alive)
        CINTEGER Flag;            // indivdual particle flag indicating BED (1), SCUM (2), or neither (0)
-       AED_REAL Height;     // height of particle (m)
-       AED_REAL Mass;       // mass of particle
-       AED_REAL Diam;       // diameter of particle
-       AED_REAL Density;    // density of particle
-       AED_REAL Velocity;   // velocity of particle
-       AED_REAL vvel;       // vertical velocity of particle (m/day)
-       CINTEGER Layer;      // layer of particle
+       AED_REAL Height;          // height of particle (m)
+       AED_REAL Mass;            // mass of particle
+       AED_REAL Diam;            // diameter of particle
+       AED_REAL Density;         // density of particle
+       AED_REAL Velocity;        // velocity of particle
+       AED_REAL vvel;            // vertical velocity of particle (m/day)
+       CINTEGER Layer;           // layer of particle
    } ParticleDataType;
 
-    /*===========================================================*/
+   /*===========================================================*/
    // NEW Structured type for Particle Transport Model (PTM), following AED API
-/*
+
    typedef struct partgroup {
-       CINTEGER NP;                                           // number of particles
-       CINTEGER id_stat, id_i2, id_i3, id_layer;              // ISTAT index values; descriptions?
+       CINTEGER NP;                             // number of particles in group
+                                                // number of particles
+       CINTEGER ptmid_stat, ptmid_col, ptmid_3d, ptmid_layer;              // ISTAT index values; descriptions?
        CINTEGER id_bed_layer, id_motility;                    // ISTAT index values; descriptions?
-       CINTEGER id_uvw0, id_uvw, id_nu, id_wnd;               // PROP index values; descriptions?
-       CINTEGER id_wsel, id_watd, id_partd;                   // PROP index values; descriptions?
-       CINTEGER id_age, id_state;                             // TSTAT index valuess; descriptions?
-       CINTEGER i_next;                                       // next particle index
-       AED_REAL *istat[4][NPart];                         // Particle Integer Status/Cell-index variables (4,NPart)
+       CINTEGER ptmid_age, ptmid_state;                             // TSTAT index valuess; descriptions?
+       CINTEGER ptmid_wvel, ptmid_pvel, ptmid_nu, ptmid_vvel;               // PROP index values; descriptions?
+       CINTEGER ptmid_wsel, ptmid_wdep, ptmid_pdep;                   // PROP index values; descriptions?
+       CINTEGER i_next; 
+                                             // next particle index
+       CINTEGER *istat[4][NPart];                         // Particle Integer Status/Cell-index variables (4,NPart)
        AED_REAL *tstat[2][NPart];                         // Particle Time/Age Vector (2,Npart)
        AED_REAL *xyz[NPart];                              // particle position vector (assuming length NPart)
        AED_REAL *prop[12][NPart];                         // Particle Property Vector (12,Npart)
-       AED_REAL *U[12][NPart];                            // Particle Conserved Variable Vector (NU,NP) but written as NPart for now b/c don't know what NU, NP are
+       AED_REAL *vars[12][NPart];                            // Particle Conserved Variable Vector (NU,NP) but written as NPart for now b/c don't know what NU, NP are
    } partgroup;
-   typedef struct partgroup_p {
+    /*
+    typedef struct partgroup_p {
        CINTEGER idx, grp;
    } partgroup_p;
    typedef struct partgroup_cell {
        CINTEGER count, n;
        partgroup_p prt[NPart];
    } partgroup_cell;
-*/
+    */
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif
+
+

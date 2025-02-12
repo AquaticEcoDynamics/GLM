@@ -111,6 +111,7 @@ void api_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
 int  api_var_index_c(const char*name, size_t *len);
 int  api_is_var(int *id, const char *v, size_t *len);
 void api_update_inflow_wq(AED_REAL *wqinf, int *nwqVars, AED_REAL *temp, AED_REAL *salt);
+void api_set_glm_ptm(int *num_particle_groups, int *max_particle_num);
 #endif
 
 #if AED

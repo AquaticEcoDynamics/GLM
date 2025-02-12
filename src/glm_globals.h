@@ -54,6 +54,22 @@
         CINTEGER,INTENT(in) :: nwqds
      END SUBROUTINE set_c_wqdvars_ptr
 
+     SUBROUTINE set_c_ptmstat_ptr(iptms) BIND(C, name="set_c_ptmstat_ptr")
+        USE ISO_C_BINDING
+#       if defined( _WIN32 ) && USE_DL_LOADER
+        !DEC$ ATTRIBUTES DLLIMPORT :: set_c_ptmstat_ptr
+#       endif
+        CINTEGER,INTENT(in) :: iptms(*)
+     END SUBROUTINE set_c_ptmstat_ptr
+
+     SUBROUTINE set_c_ptmenv_ptr(iptmv) BIND(C, name="set_c_ptmenv_ptr")
+        USE ISO_C_BINDING
+#       if defined( _WIN32 ) && USE_DL_LOADER
+        !DEC$ ATTRIBUTES DLLIMPORT :: set_c_ptmenv_ptr
+#       endif
+        AED_REAL,INTENT(in) :: iptmv(*)
+     END SUBROUTINE set_c_ptmenv_ptr
+
 # if DEBUG
      SUBROUTINE debug_print_lake() BIND(C, name="debug_print_lake")
      END SUBROUTINE debug_print_lake
@@ -102,6 +118,9 @@ extern AED_REAL *WQ_Vars;      //# water quality array : [nlayers, nvars]
 //extern AED_REAL *WQS_Vars;      //# water quality benthics array : [nvars]
 extern AED_REAL *WQD_Vars;     //# water quality diagnostics array : [nlayers, nvars]
 extern AED_REAL *WQDS_Vars;    //# water quality sheet diagnostics array : [nvars]
+
+extern int *PTM_Stat;     //# water quality diagnostics array : [nlayers, nvars]
+extern AED_REAL *PTM_Vars;    //# water quality sheet diagnostics array : [nvars]
 
 extern int       n_zones;      //# number of sediment zones
 extern ZoneType *theZones;
@@ -321,6 +340,8 @@ extern int init_particle_num;
 extern AED_REAL settling_efficiency;
 extern AED_REAL *inflow_conc;    //# concentration of particles per ?? in the inflow
 
+extern partgroup *Particles;
+
 /*----------------------------------------------------------------------------*/
 // TIME
 extern AED_REAL timezone_r, timezone_m, timezone_i, timezone_o;
@@ -339,6 +360,9 @@ extern int      quiet;     //# turn down output messages
 /******************************************************************************/
 void allocate_storage(void);
 void set_c_wqvars_ptr(AED_REAL *iwqvars);
+void set_c_wqdvars_ptr(AED_REAL *iwqd, AED_REAL *iwqds, int *nwqd, int *nwqds);
+void set_c_ptmstat_ptr(int *iptms);
+void set_c_ptmenv_ptr(AED_REAL *iptmv); 
 void debug_print_lake(void);
 void debug_initialisation(int which);
 void debug_initialisation_(int *which);
@@ -347,6 +371,9 @@ void debug_initialisation_(int *which);
 //#define _WQS_Vars(var,lyr) WQ_Vars[_IDX_2d(MaxLayers,Num_WQ_Vars,lyr,var)]
 #define _WQD_Vars(var,lyr) WQD_Vars[_IDX_2d(MaxLayers,Num_WQD_Vars,lyr,var)]
 #define _WQDS_Vars(var,lyr) WQDS_Vars[_IDX_2d(Num_WQDS_Vars,lyr,var)]
+
+#define _PTM_Stat(grp,part,var) PTM_Stat[_IDX_3d(1,max_particle_num,4,grp,part,var)]
+#define _PTM_Vars(grp,part,var) PTM_Vars[_IDX_3d(1,max_particle_num,Num_WQ_Vars,grp,part,var)]
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif

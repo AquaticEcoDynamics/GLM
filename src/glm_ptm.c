@@ -41,6 +41,7 @@
 
 #include "glm_util.h"
 #include "glm_ncdf.h"
+#include "glm_wqual.h"
 
             // Cell suspended in water column
 #define WATER  0
@@ -50,6 +51,21 @@
 #define SCUM   2
             // Maybe exiting the lake
 #define EXIT   3
+
+            // Cell suspended in water column
+#define STAT   0
+#define IDX2   1
+#define IDX3   2
+#define LAYR   3
+#define FLAG   4
+
+#define MASS   0
+#define DIAM   1
+#define DENS   2
+#define VVEL   3
+#define HGHT   4
+
+
 
 AED_REAL get_settling_velocity(AED_REAL settling_velocity);
 AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel);
@@ -88,22 +104,53 @@ void ptm_init_glm()
     AED_REAL upper_height;
     AED_REAL lower_height;
 
+    CINTEGER num_particle_groups;
+    int bla;
+    int pg;
+
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
-    // Allocate maximum number of particles
-    Particle = calloc(max_particle_num, sizeof(ParticleDataType));
+    num_particle_groups = 1;
+  
+    printf("ptm_init_glm: num_particle_groups  %d \n",num_particle_groups);
 
-    // Set initial inactive particle status/properties (initial inactive particles)
-    for (p = 0; p < max_particle_num; p++) {
-        //partgroup[grp].istat[id_stat,p] id_stat is equivalent to Status, p is particle
-        //partgroup[grp].istat[id_flag,p] id_flag is equivalent to Flag, p is particle
-        Particle[p].Status = 0;
-        Particle[p].Flag = 3;
-        Particle[p].Mass = 0.0;
-        Particle[p].Diam = 0.0;
-        Particle[p].Density = 0.0;
-        Particle[p].vvel = 0.0;
+    //NEW allocate AED ptm data structures, and GLM pointers
+    api_set_glm_ptm(&num_particle_groups,&max_particle_num);   //_WQ_SET_GLM_PTM
+
+    printf("_PTM_Stat(0,5000-1,0)  %d \n" ,_PTM_Stat(0,5000-1,0)); 
+    printf("_PTM_Stat(0,5000-1,1)  %d \n"  ,_PTM_Stat(0,5000-1,1)); 
+    printf("_PTM_Stat(0,5000-1,2)  %d \n"  ,_PTM_Stat(0,5000-1,2)); 
+    printf("_PTM_Stat(0,5000-1,3)  %d \n"  ,_PTM_Stat(0,5000-1,3)); 
+    printf("_PTM_Stat(0,5000,0)  %d \n"  ,_PTM_Stat(0,5000,0));   
+    printf("_PTM_Stat(0,5000,1)  %d \n"  ,_PTM_Stat(0,5000,1));   
+    printf("_PTM_Stat(0,5000,2)  %d \n"  ,_PTM_Stat(0,5000,2));   
+    printf("_PTM_Stat(0,5000,3)  %d \n"  ,_PTM_Stat(0,5000,3));   
+    printf("_PTM_Stat(0,5000,4)  %d \n" ,_PTM_Stat(0,5000,4));  
+    printf("_PTM_Stat(0,0,0)  %d \n"  ,_PTM_Stat(0,0,0));     
+    printf("_PTM_Stat(0,1,1)  %d \n"  ,_PTM_Stat(0,1,1));     
+    printf("_PTM_Stat(0,2,2)  %d \n"  ,_PTM_Stat(0,2,2));   
+    printf("_PTM_Stat(0,3,3)  %d \n"  ,_PTM_Stat(0,3,3));   
+
+    printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,0));   
+    printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,1));   
+    printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,2));   
+    printf("_PTM_Vars(0,2,2)  %f \n"  ,_PTM_Vars(0,2,2));   
+
+
+    //NEW initialise (integer) status array for all particles to 0
+    for (pg = 0; pg < num_particle_groups; pg++) {
+      for (p = 0; p < max_particle_num; p++) {
+         _PTM_Stat(pg,p,STAT) = 0;     // 1 idx_stat 
+         _PTM_Stat(pg,p,IDX2) = 0;     // 2 idx_2 
+         _PTM_Stat(pg,p,IDX3) = 0;     // 3 idx_3 
+         _PTM_Stat(pg,p,LAYR) = 0;     // 4 idx_layer 
+         _PTM_Stat(pg,p,FLAG) = 3;     // 5 flag 
+         _PTM_Vars(pg,p,MASS) = 0.0;   // 
+         _PTM_Vars(pg,p,DIAM) = 0.0;
+         _PTM_Vars(pg,p,DENS)  = 0.0;
+         _PTM_Vars(pg,p,VVEL)  = 0.0;
+      }
     }
 
     // Set initial active particle height within the water column
@@ -113,6 +160,7 @@ void ptm_init_glm()
     ptm_addparticles(init_particle_num, max_particle_num, upper_height,lower_height);
 
     ptm_update_layerid();     // assign layers to active particles
+
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -123,7 +171,7 @@ void ptm_init_glm()
  *    and settling/migration                                                  *
  *                                                                            *
  ******************************************************************************/
-void do_ptm_update()
+void do_ptm_update_old()
 {
 //LOCALS
     int p, tt, ij1, ij2, sub_steps;
@@ -217,6 +265,104 @@ void do_ptm_update()
 
     ptm_update_layerid();     // assign layers to active particles
 }
+void do_ptm_update()
+{
+//LOCALS
+    int p, tt, ij1, ij2, sub_steps, pg;
+    AED_REAL dt, K_z, K_above, K_prime_z;
+    float rand_float, prob, prev_height, x1, x2, y1, y2, a1, a2;
+
+/*----------------------------------------------------------------------------*/
+//BEGIN
+    pg = 1;
+
+    // Update settling/migration velocity  ! Will overwrite AED
+    for (p = 0; p < max_particle_num; p++) {
+        if (_PTM_Stat(pg,p,STAT)>0) {
+           _PTM_Vars(pg,p,VVEL) = get_settling_velocity(settling_velocity);
+        }
+    }
+
+    // Loop through sub-timesteps, incrementing position
+    sub_steps = 60;
+    dt = 1;
+    for (tt = 1; tt < sub_steps; tt++) {
+        for (p = 0; p < max_particle_num; p++) {
+          if (_PTM_Stat(pg,p,STAT)>0) {
+
+            printf("void do_ptm_update() %d %f \n"  , _PTM_Stat(pg,p,STAT),_PTM_Vars(pg,p,HGHT));   
+            
+            // Capture current height of particle to calculate probability of settling below
+            prev_height = _PTM_Vars(pg,p,HGHT);
+
+            // Update particle position based on diffusivity and vert velocity
+            _PTM_Stat(pg,p,FLAG)= WATER;
+            K_z = Lake[_PTM_Stat(pg,p,LAYR)].Epsilon;
+            K_above = Lake[_PTM_Stat(pg,p+1,LAYR)].Epsilon;
+
+            // determine whether to assume molecular diffusion K
+            if (K_z < 1E-6) K_z = 1E-6;
+
+            if (K_above < 1E-6) K_above = 1E-6;
+
+            if(_PTM_Stat(pg,p,LAYR) == surfLayer){
+                K_prime_z = 0;
+                continue;
+            } else {
+                K_prime_z = fabs(K_z - K_above);
+            }
+
+            _PTM_Vars(pg,p,HGHT) = random_walk(dt,_PTM_Vars(pg,p,HGHT), K_z, K_prime_z, _PTM_Vars(pg,p,VVEL));
+
+            if(prev_height > _PTM_Vars(pg,p,HGHT)){
+
+                // Get area at previous particle height
+                x1 = prev_height * 10.0;
+                y1 = x1 - (int)(x1 / 1.0) * 1.0;
+                ij1 = (int)(x1 - y1) - 1;
+                if(ij1 > Nmorph){
+                    y1 = y1 + (float)(ij1 - Nmorph);
+                    ij1 = Nmorph - 1;
+                }
+                a1 = MphLevelArea[ij1] + y1 * dMphLevelArea[ij1];
+
+                // Get area at depth of current particle height
+                x2 = _PTM_Vars(pg,p,HGHT) * 10.0;
+                y2 = x2 - (int)(x2 / 1.0) * 1.0;
+                ij2 = (int)(x2 - y2) - 1;
+                if(ij2 > Nmorph){
+                    y2 = y2 + (float)(ij2 - Nmorph);
+                    ij2 = Nmorph - 1;
+                }
+                a2 = MphLevelArea[ij2] + y2 * dMphLevelArea[ij2];
+
+                // Calculate proportional difference between two areas
+                prob = (a1 - a2) / a1 * settling_efficiency;
+
+                // Bernoulli draw to determine if particle should be assigned as BED
+                rand_float = ((float)rand())/RAND_MAX;
+                if(rand_float < prob || _PTM_Vars(pg,p,HGHT) < 0.02){
+                    _PTM_Stat(pg,p,FLAG)= BED;
+                    if(_PTM_Vars(pg,p,HGHT)<0.0){
+                        _PTM_Vars(pg,p,HGHT)=0.0;
+                    }
+                    if(sed_deactivation){
+                        _PTM_Stat(pg,p,STAT) = 0;
+                    }
+                }
+            }
+
+            // Determine if particle should be assigned as SCUM
+            if(_PTM_Vars(pg,p,HGHT)>Lake[surfLayer].Height){
+                _PTM_Stat(pg,p,FLAG)= SCUM;                      // Maybe forming a scum layer
+                _PTM_Vars(pg,p,HGHT)=Lake[surfLayer].Height;
+            }
+          }
+        }
+    }
+
+    ptm_update_layerid();     // assign layers to active particles
+}
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
@@ -226,7 +372,7 @@ void do_ptm_update()
  *    range, used to capture the effect of layer mixing                       *
  *                                                                            *
  ******************************************************************************/
-void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
+void ptm_redistribute_old(AED_REAL upper_height, AED_REAL lower_height)
 {
 //LOCALS
     int p;
@@ -253,6 +399,34 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
     }
     ptm_update_layerid();     // assign layers to active particles
 }
+void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
+{
+//LOCALS
+    int p;
+
+    int rand_int, pg;
+    AED_REAL height_range;
+
+/*----------------------------------------------------------------------------*/
+//BEGIN
+    // Get vertical range in the water column that mixed
+    height_range = upper_height - lower_height;
+
+    pg = 1;
+    // Check for active particles in the height range
+    for (p = 0; p < max_particle_num; p++) {
+        if (_PTM_Stat(pg,p,STAT)>0) {
+            if (_PTM_Vars(pg,p,HGHT)>=lower_height && _PTM_Vars(pg,p,HGHT)<=upper_height ) {
+                // Particle is in the mixing zone, so re-position
+                rand_int = rand() % 100 + 1;                            // random draw from unit distribution
+                double random_double = (double)rand_int / 100;
+                random_double = random_double * height_range;                 // scale unit random to requested range
+                _PTM_Vars(pg,p,HGHT) = lower_height + random_double;
+            }
+        }
+    }
+    ptm_update_layerid();     // assign layers to active particles
+}
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
@@ -263,7 +437,7 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
  *                                                                            *
  *                                                                            *
  ******************************************************************************/
-void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_height,
+void ptm_addparticles_old(int new_particles, int max_particle_num, AED_REAL upper_height,
                       AED_REAL lower_height)
 {
 //LOCALS
@@ -304,6 +478,58 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
+
+/******************************************************************************
+ *                                                                            *
+ *    This routine adds new particles within the provided depth               *
+ *    range, used to capture the effect of layer mixing                       *
+ *                                                                            *
+ *                                                                            *
+ ******************************************************************************/
+void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_height,
+                      AED_REAL lower_height)
+{
+//LOCALS
+    int p, n, pg;
+
+    int rand_int;
+    AED_REAL height_range;
+
+/*----------------------------------------------------------------------------*/
+//BEGIN
+    // Get vertical range in the water column that mixed
+    height_range = upper_height - lower_height;
+    n = 0;
+
+    pg = 1;
+    // For each new particle, initialise their properties and height
+    for (p = 0 ; p < max_particle_num; p++) {
+        if(n == new_particles){
+            break;
+        }
+                    printf("ptm_addparticles() %d %d \n"  , p,n);   
+
+        if( _PTM_Stat(pg,p,STAT) == 0 && _PTM_Stat(pg,p,FLAG) == 3){ // find the first inactive particles with EXIT flag
+            _PTM_Stat(pg,p,STAT) = 1;
+            _PTM_Stat(pg,p,FLAG) = 0;
+            _PTM_Vars(pg,p,MASS) = 1.0;
+            _PTM_Vars(pg,p,DIAM) = 1e-6;
+            _PTM_Vars(pg,p,DENS) = 1000.0;
+            _PTM_Vars(pg,p,VVEL) = 0.0;
+
+            // Assign particles initial height
+            rand_int = rand() % 100 + 1;                            // random draw from unit distribution
+            double random_double = (double)rand_int / 100;
+            random_double = random_double * height_range;           // scale unit random to requested range
+            _PTM_Vars(pg,p,HGHT) = lower_height + random_double;     // set particle height
+
+            // Adjust counter
+            n++;
+        }
+    }
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
 /******************************************************************************
  *                                                                            *
  *    This routine removes new particles from a specified layer, based        *
@@ -311,7 +537,7 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
  *                                                                            *
  *                                                                            *
  ******************************************************************************/
-void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, int max_particle_num)
+void ptm_removeparticles_old(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, int max_particle_num)
 {
 //LOCALS
     AED_REAL layer_prop, rand_float;
@@ -339,6 +565,43 @@ void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, i
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
+
+/******************************************************************************
+ *                                                                            *
+ *    This routine removes new particles from a specified layer, based        *
+ *    on the proportion of layer volume that is removed through outflow       *
+ *                                                                            *
+ *                                                                            *
+ ******************************************************************************/
+void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, int max_particle_num)
+{
+//LOCALS
+    AED_REAL layer_prop, rand_float;
+    int p, pg;
+
+/*----------------------------------------------------------------------------*/
+//BEGIN
+    pg = 1;
+    // For each particle, draw from Bernoulli distribution to see whether removed from layer
+    layer_prop = delta_vol / layer_vol;
+    for (p = 0; p < max_particle_num; p++) {
+        if(_PTM_Stat(pg,p,STAT) == 1 && _PTM_Stat(pg,p,LAYR) == layer_id){
+            rand_float = ((float)rand())/RAND_MAX;
+            if(rand_float <= layer_prop){
+                // If particle leaves through outflow, reset completely
+                _PTM_Stat(pg,p,STAT) = 0;
+                _PTM_Stat(pg,p,FLAG) = 3;
+                //_PTM_Vars(pg,p,MASS) = 0.0;
+                //_PTM_Vars(pg,p,DIAM) = 0.0;
+                //_PTM_Vars(pg,p,DENS) = 0.0;
+                //_PTM_Vars(pg,p,VVEL) = 0.0;
+            }
+        }
+    }
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
 /******************************************************************************
  *                                                                            *
  *    This routine raises or lowers particle vertical positions due to        *
@@ -346,7 +609,7 @@ void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, i
  *                                                                            *
  *                                                                            *
  ******************************************************************************/
-void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
+void ptm_layershift_old(AED_REAL shift_height, AED_REAL shift_amount)
 {
 //LOCALS
     int p;
@@ -375,6 +638,36 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
 
     ptm_update_layerid();     // assign layers to active particles
 }
+void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
+{
+//LOCALS
+    int p,pg;
+
+    AED_REAL upper_height;
+    AED_REAL lower_height;
+//  AED_REAL height_range;
+
+/*----------------------------------------------------------------------------*/
+//BEGIN
+
+    // Get vertical range in the water column that is impacted by the shift
+    lower_height = shift_height;
+    upper_height = shift_height + shift_amount;
+//  height_range = upper_height - lower_height;
+    
+    pg = 1;
+    // Check for active particles in the impacted height range
+    for (p = 0; p < max_particle_num; p++) {
+        if (_PTM_Stat(pg,p,STAT)>0) {
+            if (_PTM_Vars(pg,p,HGHT)>lower_height && _PTM_Vars(pg,p,HGHT)<upper_height ) {
+                // Particle is in the impacted zone, so re-position (lift or drop)
+                _PTM_Vars(pg,p,HGHT) = _PTM_Vars(pg,p,HGHT) + shift_amount;   // adjust particle height
+            }
+        }
+    }
+
+    ptm_update_layerid();     // assign layers to active particles
+}
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
@@ -383,7 +676,7 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
  *    This routine sets the layer id for each particle based on its height    *
  *                                                                            *
  ******************************************************************************/
-void ptm_update_layerid()
+void ptm_update_layerid_old()
 {
 //LOCALS
     int p,i;
@@ -396,6 +689,25 @@ void ptm_update_layerid()
             for (i = botmLayer; i < NumLayers; i++) {
                 if (Particle[p].Height<Lake[i].Height) {
                     Particle[p].Layer = i;
+                    break; // get out of layer loop
+                }
+            }
+        }
+    }
+}
+void ptm_update_layerid()
+{
+//LOCALS
+    int p,i,pg;
+
+/*----------------------------------------------------------------------------*/
+//BEGIN
+    pg = 1;
+    for (p = 0; p < max_particle_num; p++) {
+        if (_PTM_Stat(pg,p,STAT)>0) {
+            for (i = botmLayer; i < NumLayers; i++) {
+                if (_PTM_Vars(pg,p,HGHT)<Lake[i].Height) {
+                    _PTM_Stat(pg,p,LAYR) = i;
                     break; // get out of layer loop
                 }
             }
@@ -447,13 +759,14 @@ static size_t start[2],edges[2];
 void ptm_write_glm(int ncid, int max_particle_num)
 {
 //LOCALS
-    int p;
+    int p,pg;
     AED_REAL *p_height, *mass, *diam, *density, *vvel;
     int *status, *flag;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
-
+   
+    pg = 1;
     set_no_p++;
 
     start[1] = 0;             edges[1] = max_particle_num;
@@ -469,13 +782,13 @@ void ptm_write_glm(int ncid, int max_particle_num)
     flag  = malloc(max_particle_num*sizeof(int));
 
     for (p = 0; p < max_particle_num; p++) {
-		p_height[p] = Particle[p].Height;
-        mass[p] = Particle[p].Mass;
-        diam[p] = Particle[p].Diam;
-        density[p] = Particle[p].Density;
-        vvel[p] = Particle[p].vvel;
-        status[p] = Particle[p].Status;
-        flag[p] = Particle[p].Flag;
+		p_height[p] = _PTM_Vars(pg,p,HGHT);  //Particle[p].Height;   REAL
+        mass[p]     = _PTM_Vars(pg,p,MASS);  //Particle[p].Mass;     REAL
+        diam[p]     = _PTM_Vars(pg,p,DIAM);  // Particle[p].Diam;    REAL
+        density[p]  = _PTM_Vars(pg,p,DENS);  //Particle[p].Density;  REAL
+        vvel[p]     = _PTM_Vars(pg,p,VVEL);  //Particle[p].vvel;     REAL
+        status[p]   = _PTM_Stat(pg,p,STAT);  //Particle[p].Status;   INT
+        flag[p]     = _PTM_Stat(pg,p,FLAG);  //Particle[p].Flag;     INT
     }
 
      nc_put_vara(ncid, h_id, start, edges, p_height);

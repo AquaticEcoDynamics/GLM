@@ -260,6 +260,8 @@ int init_particle_num = 10;
 AED_REAL settling_efficiency = 1.;
 AED_REAL *inflow_conc = 0;    //# number of particles per cubic meter in the inflow
 
+partgroup *Particles = NULL;
+
 
 //------------------------------------------------------------------------------
 
@@ -282,6 +284,8 @@ AED_REAL *WQDS_Vars = NULL;  //# water quality diagnostic benthic array, [nvars]
 int       n_zones = 0;
 ZoneType *theZones = NULL;
 
+int *PTM_Stat = NULL;  //# water quality array, [nlayers, nvars]
+AED_REAL *PTM_Vars = NULL;  //# water quality array, [nlayers, nvars]
 
 //------------------------------------------------------------------------------
 //  These for debugging
@@ -293,6 +297,9 @@ int      quiet   = 0;       //# turn down output messages
 void set_c_wqvars_ptr(AED_REAL *iwqv) { WQ_Vars = iwqv; }
 void set_c_wqdvars_ptr(AED_REAL *iwqd, AED_REAL *iwqds, int *nwqd, int *nwqds)
 { WQD_Vars = iwqd; WQDS_Vars = iwqds; Num_WQD_Vars = *nwqd; Num_WQDS_Vars = *nwqds; }
+
+void set_c_ptmstat_ptr(int *iptms) { PTM_Stat = iptms; }
+void set_c_ptmenv_ptr(AED_REAL *iptmv) { PTM_Vars = iptmv; }
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

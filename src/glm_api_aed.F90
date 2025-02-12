@@ -55,6 +55,7 @@ MODULE glm_api_aed
    USE aed_common
    USE glm_types
    USE aed_api
+   USE aed_ptm
    USE aed_zones
    USE glm_api_zones
 
@@ -72,6 +73,7 @@ MODULE glm_api_aed
 #if USE_DL_LOADER
 # define _WQ_INIT_GLM        "wq_init_glm"
 # define _WQ_SET_GLM_DATA    "wq_set_glm_data"
+# define _WQ_SET_GLM_PTM     "api_set_glm_ptm"
 # define _WQ_DO_GLM          "wq_do_glm"
 # define _WQ_CLEAN_GLM       "wq_clean_glm"
 # define _WQ_INIT_GLM_OUTPUT "wq_init_glm_output"
@@ -82,6 +84,7 @@ MODULE glm_api_aed
 #else
 # define _WQ_INIT_GLM        "api_init_glm"
 # define _WQ_SET_GLM_DATA    "api_set_glm_data"
+# define _WQ_SET_GLM_PTM     "api_set_glm_ptm"
 # define _WQ_DO_GLM          "api_do_glm"
 # define _WQ_CLEAN_GLM       "api_clean_glm"
 # define _WQ_INIT_GLM_OUTPUT "api_init_glm_output"
@@ -90,6 +93,10 @@ MODULE glm_api_aed
 # define _WQ_IS_VAR          "api_is_var"
 # define _WQ_INFLOW_UPDATE   "api_update_inflow_wq"
 #endif
+
+
+
+
 !
 !-------------------------------------------------------------------------------
 !MODULE DATA
@@ -156,6 +163,9 @@ MODULE glm_api_aed
 !  INTEGER :: zone_var = 0
 
    CHARACTER(len=64) :: NULCSTR = ""
+
+   TYPE(aed_part_group_t),DIMENSION(:),ALLOCATABLE :: ptm_bla
+
 
 !===============================================================================
 CONTAINS
@@ -396,6 +406,40 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
 
    CALL aed_set_model_data(dat, 1)
 END SUBROUTINE api_set_glm_data
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE api_set_glm_ptm(num_particle_groups,num_particles)    BIND(C, name=_WQ_SET_GLM_PTM)
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   CINTEGER,INTENT(in) :: num_particle_groups,num_particles
+!LOCALS
+   INTEGER :: status
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+
+print *,'HI0',num_particle_groups
+
+   ALLOCATE(ptm_bla(num_particle_groups))
+
+print *,'HI'
+
+   CALL aed_ptm_init(num_particle_groups,num_particles,ptm_bla,n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
+
+print *,'BYE', num_particles
+
+
+  ! CALL set_c_ptmvars_ptr(cc)
+   CALL set_c_ptmstat_ptr(ptm_istat)
+   CALL set_c_ptmenv_ptr(ptm_env)
+
+   print *,'PTM : ', ptm_istat(1,5000,1)
+   print *,'PTM : ', ptm_env(1,5000,1)
+
+
+END SUBROUTINE api_set_glm_ptm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
