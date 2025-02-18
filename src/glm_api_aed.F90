@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2024 - The University of Western Australia                        #
+!# Copyright 2024 - 2025 - The University of Western Australia                 #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -67,18 +67,18 @@ MODULE glm_api_aed
    USE glm_api_zones
 
 #if LOCAL_VERS
-#  define aed_init_model aed_init_model_x
+#  define aed_configure_models aed_configure_models_x
 #  define aed_run_model aed_run_model_x
 #  define aed_var_index aed_var_index_x
 #  define aed_clean_model aed_clean_model_x
-!#  define api_config_t api_config_t_x
-#  define aed_config_model aed_config_model_x
-!#  define api_env_t api_env_t_x
+!#  define aed_coupling_t aed_coupling_t_x
+#  define aed_set_coupling aed_set_coupling_x
+!#  define aed_env_t aed_env_t_x
 #  define aed_set_model_env aed_set_model_env_x
-!  #define api_data_t api_data_t_x
+!  #define aed_data_t aed_data_t_x
 #  define aed_set_model_data aed_set_model_data_x
-!#  define aed_mobility_t aed_mobility_t_x
-#  define aed_set_mobility aed_set_mobility_x
+!#  define aed_mobility_fn_t aed_mobility_fn_t_x
+#  define aed_set_mobility_fn aed_set_mobility_fn_x
 #endif
 
 
@@ -203,7 +203,7 @@ SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
 !LOCALS
    CHARACTER(len=80) :: fname
 
-   TYPE(api_config_t) :: conf
+   TYPE(aed_coupling_t) :: conf
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -231,11 +231,11 @@ SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
 
    conf%Kw = Kw
 
-   CALL aed_config_model(conf)
+   CALL aed_set_coupling(conf)
 
    CALL api_set_glm_env()
 
-   n_aed_vars = aed_init_model(fname, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
+   n_aed_vars = aed_configure_models(fname, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
 
    NumWQ_Vars  = n_vars
    NumWQ_Ben   = n_vars_ben
@@ -260,7 +260,7 @@ SUBROUTINE api_set_glm_env()
 !LOCALS
    INTEGER :: status
 
-   TYPE(api_env_t) :: env(1)
+   TYPE(aed_env_t) :: env(1)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -392,7 +392,7 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
 !LOCALS
    INTEGER :: status
 
-   TYPE(api_data_t) :: dat(1)
+   TYPE(aed_data_t) :: dat(1)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -429,7 +429,7 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
    dat(1)%cc_diag => cc_diag
    dat(1)%cc_diag_hz => cc_diag_hz
 
-   CALL aed_set_model_data(dat, 1)
+   CALL aed_set_model_data(dat, 1, MaxLayers)
 END SUBROUTINE api_set_glm_data
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -440,7 +440,7 @@ SUBROUTINE api_set_glm_ptm(num_particle_groups,num_particles)    BIND(C, name=_W
 !ARGUMENTS
    CINTEGER,INTENT(in) :: num_particle_groups,num_particles
 !LOCALS
-   INTEGER :: status
+ ! INTEGER :: status
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -556,7 +556,7 @@ SUBROUTINE api_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
    INTEGER :: lev, zon
    AED_REAL :: surf, pa = 0.
 
-   PROCEDURE(aed_mobility_t),POINTER :: doMobilityP
+   PROCEDURE(aed_mobility_fn_t),POINTER :: doMobilityP
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -588,7 +588,7 @@ SUBROUTINE api_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
    doSurface = .NOT. pIce
 
    doMobilityP => doMobilityF
-   CALL aed_set_mobility(doMobilityP)
+   CALL aed_set_mobility_fn(doMobilityP)
    CALL aed_run_model(1, wlev, doSurface)
 END SUBROUTINE api_do_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

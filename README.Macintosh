@@ -10,47 +10,22 @@ Building n on macOS-X requires :
       MacPorts and Homebrew which seem to be amongst the most popular.  If you don't
       already have a collection, look at :
 
-          MacPorts : https://www.macports.org
-      or
           Homebrew : http://brew.sh/
 
-      Although I like MacPorts and it is the default we use, it does have some annoying problems.
-      One that has caught me again is when XCode is upgraded to a new major release it breaks
-      builds :
-           ld: framework not found Cocoa
-      Whatever Homebrew do seems to avoid this problem ....
-
-   3) If you want to use gfortran, make sure you have at least version 8.2. For MacPorts use :
-
-             sudo port install gcc9 +gfortran
-             sudo port select gcc mp-gcc9
-
-      For homebrew
+   3) If you want to use gfortran, make sure you have at least version 8.2.
 
              brew install gcc
 
-   4) You will need netcdf - this is available from MacPorts :
-
-             sudo port install netcdf
-
-      Or you can use Homebrew :
+   4) You will need netcdf - this is available from Homebrew :
 
              brew install netcdf
 
-   5) To build the GUI you will need libgd - this is available through MacPorts
-
-             sudo port install gd2
-
-      or through Homebrew
+   5) To build the GUI you will need libgd - this is available through Homebrew
 
              brew install gd
 
    6) To build a version including FABM you will need cmake, both brew and port seem to include it
       in their compiler bundles, but in case they don't :
-
-             sudo port install cmake
-
-       or
 
              brew install cmake
 
@@ -65,8 +40,7 @@ Note:
 
 Note:
     GLM source includes a script - "macpkg.sh" to include non-standard libraries
-    into the glm.app binary.  This script defaults to use for MacPorts at the moment. To change
-    to homebrew edit the GLM_CONFIG file
+    into the glm.app binary.
 
 Note:
    GLM requires gfortran v8 or later in order to build correctly - previous versions of gfortran
