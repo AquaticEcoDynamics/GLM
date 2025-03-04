@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2013 - 2024 -  The University of Western Australia                #
+!# Copyright 2013 - 2025 -  The University of Western Australia                #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -42,14 +42,15 @@ MODULE glm_zones
    USE ISO_C_BINDING
 
    USE glm_types
+   USE aed_common
 
    IMPLICIT NONE
 
    PRIVATE ! By default, make everything private
 
-   AED_REAL,DIMENSION(:,:,:),ALLOCATABLE,TARGET :: z_cc      ! (nsed_zones, n_levs, n_vars)
+   AED_REAL,DIMENSION(:,:,:),ALLOCATABLE,TARGET :: z_cc      ! (nsed_zones, n_layers, n_vars)
    AED_REAL,DIMENSION(:,:),  ALLOCATABLE,TARGET :: z_cc_hz   ! (nsed_zones, n_vars)
-   AED_REAL,DIMENSION(:,:,:),ALLOCATABLE,TARGET :: z_diag    ! (nsed_zones, n_levs, n_vars)
+   AED_REAL,DIMENSION(:,:,:),ALLOCATABLE,TARGET :: z_diag    ! (nsed_zones, n_layers, n_vars)
    AED_REAL,DIMENSION(:,:),  ALLOCATABLE,TARGET :: z_diag_hz ! (nsed_zones, n_vars)
 
    AED_REAL,DIMENSION(:),POINTER :: lheights
@@ -77,6 +78,7 @@ SUBROUTINE wq_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)            &
 !
 !-------------------------------------------------------------------------------
 !BEGIN
+   
    nvars = numVars
    nbenv = numBenV
    nvdiag = numDiagV
@@ -90,6 +92,7 @@ SUBROUTINE wq_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)            &
    ALLOCATE(z_diag(n_zones, MaxLayers, numDiagV))       ; z_diag = 0.
    ALLOCATE(z_diag_hz(n_zones+1, numDiagHzV))           ; z_diag_hz = 0.
    theZones%zarea = 0.
+
 END SUBROUTINE wq_set_glm_zones
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -105,6 +108,7 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
 !LOCALS
    INTEGER  :: lev, zon
    LOGICAL  :: w_zones
+   AED_REAL :: scale 
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -114,9 +118,18 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
    zon = 1
    theZones(1)%zarea = areas(1)
    DO lev=2, wlev
-      IF ( lheights(lev) > zone_heights(zon) ) zon = zon + 1
-
-      theZones(zon)%zarea = theZones(zon)%zarea + areas(lev) - areas(lev-1)
+      !IF ( lheights(lev) > zone_heights(zon) ) zon = zon + 1
+      ! 
+      !theZones(zon)%zarea = theZones(zon)%zarea + areas(lev) - areas(lev-1)
+      
+      IF (lheights(lev) <= zone_heights(zon)) THEN
+         theZones(zon)%zarea = theZones(zon)%zarea + areas(lev) - areas(lev-1)
+      ELSEIF (lheights(lev) > zone_heights(zon) .AND. lheights(lev-1) < zone_heights(zon)) THEN
+         scale = (zone_heights(zon) - lheights(lev-1)) / (lheights(lev) - lheights(lev-1))
+         theZones(zon)%zarea = theZones(zon)%zarea + (areas(lev) - areas(lev-1)) * scale
+         zon = zon + 1
+         theZones(zon)%zarea = theZones(zon)%zarea + (areas(lev) - areas(lev-1)) * (1-scale)
+      ENDIF
 
       IF ( zone_heights(zon) > surf ) THEN
          IF (.NOT. w_zones) THEN
@@ -154,10 +167,15 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
+
+   ! Reset zone data structure to zero, for copying in information from main 
+   ! lake data structures. Note that z_cc(:,:,nvars+1:nvars_ben) is not zeroed
+   ! as this is the benthic zone data we need to preserve
    z_cc(:,:,1:nvars) = 0.
    z_diag(:,:,:) = 0.
-   z_diag_hz(:,:) = 0.
+  !z_diag_hz(:,:) = 0.
 
+   ! Initialise the zone environment
    theZones%zrad = 0.
    theZones%zsalt = 0.
    theZones%ztemp = 0.
@@ -172,6 +190,7 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
    theZones%z_sed_zones = 1.
    theZones%zvel = 0.
 
+   ! Populate the 1st layer in each zone structure, with the zone-averaged quantity
    a_zones = 1
    zcount = 0
    w_zones = .FALSE.
@@ -183,31 +202,40 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
          theZones(zon)%z_sed_zones = zon
       ENDIF
 
-      ! Pelagic variables need zonifying, in case benthic people want them
-      ! Note that this should not be done on benthic vars because it will
+      ! Populate the 1st layer in each zone structure, with the zone-averaged quantity,
+      ! That is pelagic ("cc") variables need zonifying, in case benthic modules want 
+      ! to refer to them.
+      ! Note that this is not be done on benthic vars (nvars+1->) because it will
       ! introduce errors in z_cc (split layers)
-      ! Ideally this average would be based on volume weighting
+      ! Ideally this average would be based on volume weighting, rather than count-based
 
-      z_cc(zon,lev,1:nvars) = z_cc(zon,lev,1:nvars) + x_cc(lev,1:nvars)
-      z_diag(zon,lev,:)     = z_diag(zon,lev,:) + x_diag(lev,:)
-      z_diag_hz(zon,:)  = z_diag_hz(zon,:) + x_diag_hz(:)
+      z_cc(zon,1,1:nvars) = z_cc(zon,1,1:nvars) + x_cc(lev,1:nvars)  ! 1:nvars is the water coumn "cc". not benthic
+      z_diag(zon,1,:)     = z_diag(zon,1,:)     + x_diag(lev,:)      !     
+     !z_diag_hz(zon,:)    = z_diag_hz(zon,:)    + x_diag_hz(:)       !
 
       theZones(zon)%ztemp         = theZones(zon)%ztemp + theLake(lev)%Temp
       theZones(zon)%zsalt         = theZones(zon)%zsalt + theLake(lev)%Salinity
       theZones(zon)%zrho          = theZones(zon)%zrho  + theLake(lev)%Density
       theZones(zon)%zrad          = theZones(zon)%zrad  + theLake(lev)%Light
+      theZones(zon)%zpar          = theZones(zon)%zpar  + theLake(lev)%Light*0.45
       theZones(zon)%zvel          = theZones(zon)%zvel  + theLake(lev)%Umean
       theZones(zon)%zextc         = theZones(zon)%zextc + theLake(lev)%ExtcCoefSW
       theZones(zon)%zlayer_stress = theZones(zon)%zlayer_stress + theLake(lev)%LayerStress
 
       zcount(zon) = zcount(zon) + 1
    ENDDO
-   a_zones = zon
+   a_zones = zon ! Available zones is the last zone we found, at the current water level
+
 
    DO zon=1,a_zones
-      z_cc(zon,:,1:nvars) = z_cc(zon,:,1:nvars)/zcount(zon)
-      z_diag(zon,:,:)     = z_diag(zon,:,:)/zcount(zon)
-      z_diag_hz(zon,:)  = z_diag_hz(zon,:)/zcount(zon)
+      ! Finalise zone averaged information (1st layer in each zone structure reserved for zavg)
+      z_cc(zon,1,1:nvars) = z_cc(zon,1,1:nvars)/zcount(zon)  ! water column state vars
+      z_diag(zon,1,:)     = z_diag(zon,1,:)/zcount(zon)      ! water column diag vars
+     !z_diag_hz(zon,:)  = z_diag_hz(zon,:)/zcount(zon)       ! benthic diag vars
+      
+      ! Set the water column above a zone, to the respective water layer values 
+      z_cc(zon,2:wlev,1:nvars) = x_cc(2:wlev,1:nvars)        ! water column state vars
+      z_diag(zon,2:wlev,:)     = x_diag(2:wlev,:)     ! water column diag vars
    ENDDO
 
    WHERE (zcount /= 0)
@@ -234,7 +262,7 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
       theZones(1)%zdepth = zone_heights(1)
       theZones(1)%zdz = zone_heights(1)
    ELSE
-      theZones%zdepth = surf
+      theZones(1)%zdepth = surf
       theZones(1)%zdz = surf
       w_zones = .TRUE.
    ENDIF
@@ -260,25 +288,31 @@ END SUBROUTINE copy_to_zone
 
 
 !###############################################################################
-SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
+SUBROUTINE copy_from_zone(n_aed_vars,x_cc, x_diag, x_diag_hz, wlev)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    AED_REAL,DIMENSION(:,:),INTENT(inout) :: x_cc
    AED_REAL,DIMENSION(:,:),INTENT(inout) :: x_diag
    AED_REAL,DIMENSION(:),INTENT(inout) :: x_diag_hz
-   INTEGER,INTENT(in) :: wlev
+   INTEGER,INTENT(in) :: wlev, n_aed_vars
 !
 !LOCALS
-   INTEGER  :: zon, lev, v_start, v_end
+   INTEGER  :: zon, lev, v_start, v_end, j, i
    AED_REAL :: scale, area
    LOGICAL  :: splitZone
+   LOGICAL  :: column_benthic_var_averaging = .false.
+   INTEGER  :: water_column_zone = 1
+   TYPE(aed_variable_t),POINTER :: tvar
 !
 !-------------------------------------------------------------------------------
 !BEGIN
    v_start = nvars+1 ; v_end = nvars+nbenv
-
    zon = n_zones
+
+   ! Loop down through water layers
    DO lev=wlev,1,-1
+      
+      ! Check if zone boundary is in this water layer range
       IF ( zon .GT. 1 ) THEN
          IF (lev .GT. 1) THEN
             splitZone = lheights(lev-1) < zone_heights(zon-1)
@@ -289,36 +323,163 @@ SUBROUTINE copy_from_zone(x_cc, x_diag, x_diag_hz, wlev)
          splitZone = .FALSE.
       ENDIF
 
+      ! Set water layer variables, based on zone infomration, where variable is flagged for zavg 
       IF (splitZone) THEN
+         ! Compute layer fraction
          IF (lev .GT. 1) THEN
             scale = (zone_heights(zon-1) - lheights(lev-1)) / (lheights(lev) - lheights(lev-1))
          ELSE
             scale = (zone_heights(zon-1) - 0.0) / (lheights(lev) - 0.0)
          ENDIF
 
-         WHERE(z_diag(zon,lev,:) /= 0.) &
-            x_diag(lev,:) = z_diag(zon,lev,:) * scale
-         x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end) * scale
+         ! Select the diag vars that have zavg == true, and assign to layer
+         ! (for first zone in the layer)
+         j = 0
+         DO i=1,n_aed_vars
+            IF ( aed_get_var(i, tvar) ) THEN
+               !print *,'zav', i, TRIM(tvar%name),tvar%zavg
+               IF ( tvar%diag ) THEN
+                  IF ( .NOT.  tvar%sheet ) THEN
+                  j = j + 1
+                  !print*, "j1", j
+                     IF ( tvar%zavg ) THEN 
+                     !print*, "here1 split",j
+                     x_diag(lev, j) = z_diag(zon,1, j) * scale
+                     !print*, "lev", lev
+                     !print*, "xdiag", x_diag(lev, j)
+                     !print*, "z_diag", z_diag(zon, j)
+                     !print*, "scale", scale
+                     ENDIF
+                  ENDIF
+               ENDIF
+            ENDIF
+         ENDDO
+         ! Select the benthic vars (implicitly all zavg == true), and assign to layer
+         ! (for first zone in the layer)
+         x_cc(lev,v_start:v_end) = z_cc(zon,1,v_start:v_end) * scale ! KK only happening on benthic
 
+
+         ! Select the diag vars that have zavg == true, and assign to layer
+         ! (for second zone in the layer)
          zon = zon - 1
-
-         WHERE(z_diag(zon,lev,:) /= 0.) &
-            x_diag(lev,:) = x_diag(lev,:) + (z_diag(zon,lev,:) * (1.0 - scale))
+         j = 0
+         DO i=1,n_aed_vars
+            IF ( aed_get_var(i, tvar) ) THEN
+               IF ( tvar%diag ) THEN
+                  IF ( .NOT.  tvar%sheet ) THEN
+                     j = j + 1
+                     IF ( tvar%zavg ) THEN 
+                        x_diag(lev, j) = x_diag(lev, j) + (z_diag(zon,1, j) * (1.0 - scale))
+                        !print*, "xdiag2 other split", x_diag(lev, j)
+                     ENDIF
+                  ENDIF
+               ENDIF
+            ENDIF
+         ENDDO
+         ! Select the benthic vars (implicitly all zavg == true), and assign to layer
+         ! (for first zone in the layer)
          x_cc(lev,v_start:v_end) = x_cc(lev,v_start:v_end) + &
-                                   z_cc(zon,lev,v_start:v_end) * (1.0 - scale)
-      ELSE
-         WHERE(z_diag(zon,lev,:) /= 0.) &
-            x_diag(lev,:) = z_diag(zon,lev,:)
-         x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end)
+                                   z_cc(zon,1,v_start:v_end) * (1.0 - scale)
+
+      ELSE  ! Not a split layer - layer bounds are fully within zone
+
+         ! Select the diag vars that have zavg == true, and assign to layer
+         j = 0
+         DO i=1,n_aed_vars
+            IF ( aed_get_var(i, tvar) ) THEN
+               IF ( tvar%diag ) THEN
+                  IF ( .NOT.  tvar%sheet ) THEN
+                     j = j + 1
+                     IF ( tvar%zavg ) THEN 
+                        x_diag(lev, j) = z_diag(zon,1, j)
+                     ENDIF
+                  ENDIF
+               ENDIF
+            ENDIF
+         ENDDO
+         ! Select the benthic vars (implicitly all zavg == true), and assign to layer
+         x_cc(lev,v_start:v_end) = z_cc(zon,1,v_start:v_end)
+         
       ENDIF
    ENDDO
-   ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
-   area = SUM(theZones(1:n_zones)%zarea)
-   DO zon=1,n_zones
-      x_diag_hz = x_diag_hz + (z_diag_hz(zon,:) * (theZones(zon)%zarea/area))
-   ENDDO
+
+   ! Reset the normal (non-zone-based) sheet diagnostics 
+   IF (column_benthic_var_averaging) THEN
+     ! IF column_benthic_var_averaging, set single-value to the mean, weighted by area
+     area = SUM(theZones(1:n_zones)%zarea)
+     DO zon=1,n_zones
+        x_diag_hz = x_diag_hz + (z_diag_hz(zon,:) * (theZones(zon)%zarea/area))
+     ENDDO
+   ELSE
+     ! If not column_benthic_var_averaging, set single-value to selected zone (e.g. bottom)
+     x_diag_hz = z_diag_hz(water_column_zone,:) 
+   ENDIF
+
+
 END SUBROUTINE copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE copy_from_zone_og(x_cc, x_diag, x_diag_hz, wlev)
+   !-------------------------------------------------------------------------------
+   !ARGUMENTS
+      AED_REAL,DIMENSION(:,:),INTENT(inout) :: x_cc
+      AED_REAL,DIMENSION(:,:),INTENT(inout) :: x_diag
+      AED_REAL,DIMENSION(:),INTENT(inout) :: x_diag_hz
+      INTEGER,INTENT(in) :: wlev
+   !
+   !LOCALS
+      INTEGER  :: zon, lev, v_start, v_end
+      AED_REAL :: scale, area
+      LOGICAL  :: splitZone
+   !
+   !-------------------------------------------------------------------------------
+   !BEGIN
+      v_start = nvars+1 ; v_end = nvars+nbenv
+   
+      zon = n_zones
+      DO lev=wlev,1,-1
+         IF ( zon .GT. 1 ) THEN
+            IF (lev .GT. 1) THEN
+               splitZone = lheights(lev-1) < zone_heights(zon-1)
+            ELSE
+               splitZone = 0.0 < zone_heights(zon-1)
+            ENDIF
+         ELSE
+            splitZone = .FALSE.
+         ENDIF
+   
+         IF (splitZone) THEN
+            IF (lev .GT. 1) THEN
+               scale = (zone_heights(zon-1) - lheights(lev-1)) / (lheights(lev) - lheights(lev-1))
+            ELSE
+               scale = (zone_heights(zon-1) - 0.0) / (lheights(lev) - 0.0)
+            ENDIF
+   
+            WHERE(z_diag(zon,lev,:) /= 0.) &
+               x_diag(lev,:) = z_diag(zon,lev,:) * scale
+            x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end) * scale
+   
+            zon = zon - 1
+   
+            WHERE(z_diag(zon,lev,:) /= 0.) &
+               x_diag(lev,:) = x_diag(lev,:) + (z_diag(zon,lev,:) * (1.0 - scale))
+            x_cc(lev,v_start:v_end) = x_cc(lev,v_start:v_end) + &
+                                      z_cc(zon,lev,v_start:v_end) * (1.0 - scale)
+         ELSE
+            WHERE(z_diag(zon,lev,:) /= 0.) &
+               x_diag(lev,:) = z_diag(zon,lev,:)
+            x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end)
+         ENDIF
+      ENDDO
+      ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
+      area = SUM(theZones(1:n_zones)%zarea)
+      DO zon=1,n_zones
+         x_diag_hz = x_diag_hz + (z_diag_hz(zon,:) * (theZones(zon)%zarea/area))
+      ENDDO
+   END SUBROUTINE copy_from_zone_og
+   !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 !###############################################################################
