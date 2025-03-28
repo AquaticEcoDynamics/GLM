@@ -76,7 +76,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\ancillary\windows\$(Platform)-$(Configuration)\include;..\..\..\libplot\include;..\..\..\libutil\include;..\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\ancillary\windows\include;..\..\..\libplot\include;..\..\..\libutil\include;..\</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>AED;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <CallingConvention>Cdecl</CallingConvention>
@@ -84,7 +84,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>glm-aed.lib;libaed+.lib;libutil.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;$(Platform)-$(Configuration)\lib\;..\..\..\ancillary\windows\$(Platform)-$(Configuration)\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;$(Platform)-$(Configuration)\lib\;..\..\..\ancillary\windows\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>

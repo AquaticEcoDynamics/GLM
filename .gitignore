@@ -6,6 +6,7 @@ bin
 *.so
 *.dylib
 *.i90
+*.u2d
 glm
 glm.app
 glm.exe
