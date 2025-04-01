@@ -51,10 +51,6 @@
     <OutDir>$(SolutionDir)\$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\$(Platform)-$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(IFORT_COMPILER22)\compiler\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(IFORT_COMPILER22)\compiler\lib\intel64;$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5CDBCC36-B1AF-4861-84A6-A469B8C10B2B}</ProjectGuid>
     <RootNamespace>glm</RootNamespace>
@@ -93,7 +89,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>glm-aed.lib;libaed-water.lib;libaed-benthic.lib;libaed-demo.lib;libaed-api.lib;libutil.lib;libplot.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;$(Platform)-$(Configuration)\lib\;..\..\..\ancillary\windows\lib\;$(VC_LibraryPath_x64);$(WindowsSdkDir)lib\winv6.3\um\x64;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\um\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(Platform)-$(Configuration)\;$(Platform)-$(Configuration)\lib\;..\..\..\ancillary\windows\lib\;$(IFORT_COMPILER22)compiler\lib\intel64\;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath)$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
