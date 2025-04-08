@@ -284,7 +284,7 @@ typedef char filname[80];
        CINTEGER ptmid_age, ptmid_state;                             // TSTAT index valuess; descriptions?
        CINTEGER ptmid_wvel, ptmid_pvel, ptmid_nu, ptmid_vvel;               // PROP index values; descriptions?
        CINTEGER ptmid_wsel, ptmid_wdep, ptmid_pdep;                   // PROP index values; descriptions?
-       CINTEGER i_next; 
+       CINTEGER i_next;
                                              // next particle index
        CINTEGER *istat[4][NPart];                         // Particle Integer Status/Cell-index variables (4,NPart)
        AED_REAL *tstat[2][NPart];                         // Particle Time/Age Vector (2,Npart)

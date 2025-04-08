@@ -112,41 +112,41 @@ void ptm_init_glm()
 //BEGIN
 
     num_particle_groups = 1;
-  
+
     printf("ptm_init_glm: num_particle_groups  %d \n",num_particle_groups);
 
     //NEW allocate AED ptm data structures, and GLM pointers
     api_set_glm_ptm(&num_particle_groups,&max_particle_num);   //_WQ_SET_GLM_PTM
 
-    printf("_PTM_Stat(0,5000-1,0)  %d \n" ,_PTM_Stat(0,5000-1,0)); 
-    printf("_PTM_Stat(0,5000-1,1)  %d \n"  ,_PTM_Stat(0,5000-1,1)); 
-    printf("_PTM_Stat(0,5000-1,2)  %d \n"  ,_PTM_Stat(0,5000-1,2)); 
-    printf("_PTM_Stat(0,5000-1,3)  %d \n"  ,_PTM_Stat(0,5000-1,3)); 
-    printf("_PTM_Stat(0,5000,0)  %d \n"  ,_PTM_Stat(0,5000,0));   
-    printf("_PTM_Stat(0,5000,1)  %d \n"  ,_PTM_Stat(0,5000,1));   
-    printf("_PTM_Stat(0,5000,2)  %d \n"  ,_PTM_Stat(0,5000,2));   
-    printf("_PTM_Stat(0,5000,3)  %d \n"  ,_PTM_Stat(0,5000,3));   
-    printf("_PTM_Stat(0,5000,4)  %d \n" ,_PTM_Stat(0,5000,4));  
-    printf("_PTM_Stat(0,0,0)  %d \n"  ,_PTM_Stat(0,0,0));     
-    printf("_PTM_Stat(0,1,1)  %d \n"  ,_PTM_Stat(0,1,1));     
-    printf("_PTM_Stat(0,2,2)  %d \n"  ,_PTM_Stat(0,2,2));   
-    printf("_PTM_Stat(0,3,3)  %d \n"  ,_PTM_Stat(0,3,3));   
+    printf("_PTM_Stat(0,5000-1,0)  %d \n" ,_PTM_Stat(0,5000-1,0));
+    printf("_PTM_Stat(0,5000-1,1)  %d \n"  ,_PTM_Stat(0,5000-1,1));
+    printf("_PTM_Stat(0,5000-1,2)  %d \n"  ,_PTM_Stat(0,5000-1,2));
+    printf("_PTM_Stat(0,5000-1,3)  %d \n"  ,_PTM_Stat(0,5000-1,3));
+    printf("_PTM_Stat(0,5000,0)  %d \n"  ,_PTM_Stat(0,5000,0));
+    printf("_PTM_Stat(0,5000,1)  %d \n"  ,_PTM_Stat(0,5000,1));
+    printf("_PTM_Stat(0,5000,2)  %d \n"  ,_PTM_Stat(0,5000,2));
+    printf("_PTM_Stat(0,5000,3)  %d \n"  ,_PTM_Stat(0,5000,3));
+    printf("_PTM_Stat(0,5000,4)  %d \n" ,_PTM_Stat(0,5000,4));
+    printf("_PTM_Stat(0,0,0)  %d \n"  ,_PTM_Stat(0,0,0));
+    printf("_PTM_Stat(0,1,1)  %d \n"  ,_PTM_Stat(0,1,1));
+    printf("_PTM_Stat(0,2,2)  %d \n"  ,_PTM_Stat(0,2,2));
+    printf("_PTM_Stat(0,3,3)  %d \n"  ,_PTM_Stat(0,3,3));
 
-    printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,0));   
-    printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,1));   
-    printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,2));   
-    printf("_PTM_Vars(0,2,2)  %f \n"  ,_PTM_Vars(0,2,2));   
+    printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,0));
+    printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,1));
+    printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,2));
+    printf("_PTM_Vars(0,2,2)  %f \n"  ,_PTM_Vars(0,2,2));
 
 
     //NEW initialise (integer) status array for all particles to 0
     for (pg = 0; pg < num_particle_groups; pg++) {
       for (p = 0; p < max_particle_num; p++) {
-         _PTM_Stat(pg,p,STAT) = 0;     // 1 idx_stat 
-         _PTM_Stat(pg,p,IDX2) = 0;     // 2 idx_2 
-         _PTM_Stat(pg,p,IDX3) = 0;     // 3 idx_3 
-         _PTM_Stat(pg,p,LAYR) = 0;     // 4 idx_layer 
-         _PTM_Stat(pg,p,FLAG) = 3;     // 5 flag 
-         _PTM_Vars(pg,p,MASS) = 0.0;   // 
+         _PTM_Stat(pg,p,STAT) = 0;     // 1 idx_stat
+         _PTM_Stat(pg,p,IDX2) = 0;     // 2 idx_2
+         _PTM_Stat(pg,p,IDX3) = 0;     // 3 idx_3
+         _PTM_Stat(pg,p,LAYR) = 0;     // 4 idx_layer
+         _PTM_Stat(pg,p,FLAG) = 3;     // 5 flag
+         _PTM_Vars(pg,p,MASS) = 0.0;   //
          _PTM_Vars(pg,p,DIAM) = 0.0;
          _PTM_Vars(pg,p,DENS)  = 0.0;
          _PTM_Vars(pg,p,VVEL)  = 0.0;
@@ -290,8 +290,8 @@ void do_ptm_update()
         for (p = 0; p < max_particle_num; p++) {
           if (_PTM_Stat(pg,p,STAT)>0) {
 
-            printf("void do_ptm_update() %d %f \n"  , _PTM_Stat(pg,p,STAT),_PTM_Vars(pg,p,HGHT));   
-            
+            printf("void do_ptm_update() %d %f \n"  , _PTM_Stat(pg,p,STAT),_PTM_Vars(pg,p,HGHT));
+
             // Capture current height of particle to calculate probability of settling below
             prev_height = _PTM_Vars(pg,p,HGHT);
 
@@ -507,7 +507,7 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
         if(n == new_particles){
             break;
         }
-                    printf("ptm_addparticles() %d %d \n"  , p,n);   
+                    printf("ptm_addparticles() %d %d \n"  , p,n);
 
         if( _PTM_Stat(pg,p,STAT) == 0 && _PTM_Stat(pg,p,FLAG) == 3){ // find the first inactive particles with EXIT flag
             _PTM_Stat(pg,p,STAT) = 1;
@@ -654,7 +654,7 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
     lower_height = shift_height;
     upper_height = shift_height + shift_amount;
 //  height_range = upper_height - lower_height;
-    
+
     pg = 1;
     // Check for active particles in the impacted height range
     for (p = 0; p < max_particle_num; p++) {
@@ -765,7 +765,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
-   
+
     pg = 1;
     set_no_p++;
 
@@ -782,7 +782,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
     flag  = malloc(max_particle_num*sizeof(int));
 
     for (p = 0; p < max_particle_num; p++) {
-		p_height[p] = _PTM_Vars(pg,p,HGHT);  //Particle[p].Height;   REAL
+        p_height[p] = _PTM_Vars(pg,p,HGHT);  //Particle[p].Height;   REAL
         mass[p]     = _PTM_Vars(pg,p,MASS);  //Particle[p].Mass;     REAL
         diam[p]     = _PTM_Vars(pg,p,DIAM);  // Particle[p].Diam;    REAL
         density[p]  = _PTM_Vars(pg,p,DENS);  //Particle[p].Density;  REAL
