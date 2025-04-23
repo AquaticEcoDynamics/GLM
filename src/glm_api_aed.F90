@@ -129,7 +129,7 @@ MODULE glm_api_aed
    AED_REAL :: uvb_fraction = 0.005
 
    !# Arrays for state and diagnostic variables
-   AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: cc !# water quality array: nlayers, nvars
+   AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: cc    !# water quality array - water  : nlayers, nvars
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_hz !# water quality array - benthic: nvars
    AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: cc_diag
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_diag_hz
@@ -326,39 +326,15 @@ SUBROUTINE api_set_glm_env()
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (uvb)'
    uvb = zero_
 
-   env(1)%yearday   => yearday
    timestep = dt
+
    env(1)%timestep  => timestep
+   env(1)%yearday   => yearday
 
    env(1)%longitude => longitude
    env(1)%latitude  => latitude
 
-   env(1)%temp          => temp
-   env(1)%salt          => salt
-   env(1)%rho           => rho
-   env(1)%dz            => dz
-   env(1)%height        => lheights
-   env(1)%area          => area
-   env(1)%depth         => depth
-
-   env(1)%tss           => tss
-!  env(1)%ss1           => ss1
-!  env(1)%ss2           => ss2
-!  env(1)%ss3           => ss3
-!  env(1)%ss4           => ss4
-   env(1)%cvel          => cvel
-!  env(1)%vvel          => vvel
-!  env(1)%bio_drag      => bio_drag
-!  env(1)%ustar_bed     => ustar_bed
-!  env(1)%wv_uorb       => wv_uorb
-!  env(1)%wv_t          => wv_t
-   env(1)%pres          => pres
-
-   env(1)%sed_zones     => sed_zones
-   env(1)%sed_zone      => sed_zones(1)
-
-   env(1)%col_depth     => col_depth
-!  env(1)%col_num       => col_num
+  ! env(1)%active      = .true.
 
    env(1)%I_0           => I_0(1)
    env(1)%wind          => wind(1)
@@ -367,19 +343,53 @@ SUBROUTINE api_set_glm_env()
    env(1)%rain          => rain(1)
    env(1)%evap          => evap(1)
    env(1)%humidity      => humidity(1)
-!  env(1)%longwave      => longwave(1)
-!  env(1)%bathy         => bathy(1)
-!  env(1)%rainloss      => rainloss(1)
-   env(1)%layer_stress  => layer_stress(1)
+   env(1)%longwave      =>  rain(1) !longwave(1)
+   env(1)%bathy         =>  rain(1) !bathy(1)
+   env(1)%rainloss      =>  rain(1) !rainloss(1)
 
+   env(1)%n_layers      = MaxLayers
+
+   env(1)%temp          => temp
+   env(1)%salt          => salt
+   env(1)%rho           => rho
+   env(1)%dz            => dz
+   env(1)%height        => lheights
+   env(1)%area          => area
+   env(1)%depth         => depth
+   env(1)%pres          => pres
+   env(1)%cvel          => cvel
    env(1)%rad           => rad
    env(1)%extc          => extc
    env(1)%par           => par
    env(1)%nir           => nir
    env(1)%uva           => uva
    env(1)%uvb           => uvb
+   env(1)%tss           => tss
+   env(1)%ss1           =>  tss !ss1
+   env(1)%ss2           =>  tss !ss2
+   env(1)%ss3           =>  tss !ss3
+   env(1)%ss4           =>  tss !ss4
+
+   env(1)%layer_stress  => layer_stress(1)
+   env(1)%biodrag       =>  tss !bio_drag
+   env(1)%ustar_bed     =>  tss !ustar_bed
+   env(1)%wv_uorb       =>  tss !wv_uorb
+   env(1)%wv_t          =>  tss !wv_t
+!  env(1)%vvel          =>  tss !vvel
+
+   env(1)%bioextc       =>  tss
+   env(1)%solarshade    =>  rain(1) 
+   env(1)%windshade     =>  rain(1)
+   env(1)%rainloss      =>  rain(1)
+   env(1)%bathy         =>  rain(1)
+
+   env(1)%sed_zones     => sed_zones
+   env(1)%sed_zone      => sed_zones(1)
+   env(1)%col_depth     => col_depth
+!  env(1)%col_num       => 1 !col_num
 
    CALL aed_set_model_env(env, 1)
+
 END SUBROUTINE api_set_glm_env
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
