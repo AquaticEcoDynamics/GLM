@@ -1202,7 +1202,7 @@ CONTAINS
          ENDDO
          !print*,"Calling ben for zone ",zone_var,zon,z_sed_zones(zon)
 
-         !# (1) ZONE COLUMN UPDATING 
+         !# (1) ZONE COLUMN UPDATING
          zlev = 0
          DO lev=1,wlev
             IF(zone_heights(zon)<lheights(lev)) THEN
@@ -1212,8 +1212,8 @@ CONTAINS
          ENDDO
          ! The upper height of the last zone may have no water above it.
          ! In this case, set the wet-layer vector to just be the top water layer
-         IF(zlev == 0) zlev = wlev 
-      
+         IF(zlev == 0) zlev = wlev
+
          ALLOCATE(layer_map(zlev:wlev)) ! the water layers above the zone
          DO lev=zlev,wlev
            layer_map(lev) = zlev + wlev-lev
@@ -1254,7 +1254,7 @@ CONTAINS
          !# Record benthic fluxes in the zone array
          flux_zon(zon, :) = flux_ben(:)
 
-         !# Now we have to find out the water column flux that occured in 
+         !# Now we have to find out the water column flux that occured in
          !# aed_calculate_zone_column, aed_calculate_riparian & aed_calculate_benthic
          !# (incremented in flux_pel) and then disaggregate it to relevant layers
          flux_pel_z(zon,:) = flux_pel(zon,:)-flux_pel_pre(zon,:)

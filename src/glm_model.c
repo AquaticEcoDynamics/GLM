@@ -296,7 +296,7 @@ void do_model(int jstart, int nsave)
     read_daily_met(jstart, &MetOld);
     MetData = MetOld;
     SWold = MetOld.ShortWave;
-	
+
     jday = jstart - 1;
 
     write_output(jday, SecsPerDay, nsave, stepnum);
@@ -409,11 +409,11 @@ void do_model(int jstart, int nsave)
 #endif
 
         }
-        
+
         if ( (ntot == nDates) && (stepnum < nsave)) {
-        	fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
+            fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
         }
-        
+
 
         /**********************************************************************
          * End of daily calculations, Prepare for next day and return.        *
@@ -474,7 +474,7 @@ void do_model_non_avg(int jstart, int nsave)
     stepnum = 0;
     stoptime = iSecsPerDay;
     SWold = 0.;
-	
+
     jday = jstart - 1;
 
     write_output(jday, SecsPerDay, nsave, stepnum);
@@ -567,16 +567,16 @@ void do_model_non_avg(int jstart, int nsave)
             write_diags(jday, calculate_lake_number());
             write_balance(jday);
             write_step += nsave;
-   
+
             //if ( write_step > last_step ) write_step = last_step;
 #if PLOTS
             plotstep++;
             today = -1;
 #endif
         }
-        
+
         if ( (ntot == nDates) && (stepnum < nsave)) {
-        	fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
+            fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
         }
 
         /**********************************************************************
@@ -615,8 +615,8 @@ void do_model_coupled(int step_start, int step_end,
     AED_REAL WQNew[MaxInf * MaxVars];
     int jday, ntot, stepnum, stoptime, cDays;
     int i, j;
-    AED_REAL day_fraction;    
-        
+    AED_REAL day_fraction;
+
     /*------------------------------------------------------------------------*/
     memset(WQNew, 0, sizeof(AED_REAL)*MaxInf*MaxVars);
 
@@ -723,20 +723,20 @@ void do_model_coupled(int step_start, int step_end,
 #if PLOTS
             plotstep++;
             today = -1;
-            
-            
+
+
 #endif
-		}
-        
+        }
+
         if ( (ntot == nDates) && (stepnum < nsave)) {
-        	fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
+            fprintf(stderr, "     ERROR: NO netcdf output generated because nsave is less total number of time steps in simuluation\n");
         }
 
         /**********************************************************************
          * End of daily calculations, Prepare for next day and return.        *
          **********************************************************************/
         SWold = SWnew;
-        
+
 #ifdef XPLOTS
         if ( xdisp )
             flush_all_plots();
@@ -784,7 +784,7 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
     //    int t = mod(((stoptime - iclock) / noSecs), nsave);
     //    if ( t != 0 ) write_step = stepnum + t;
     //}
-    
+
 //  printf("last step %d write_step %d\n", last_step, write_step);
 
     startTOD = 0; /* from now on start at the beginning of the day */
@@ -882,7 +882,7 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
         iclock += noSecs;
         yearday += part_day_per_step;
     }   //# do while (iclock < iSecsPerDay)
-    
+
     //if ( write_step > last_step ) write_step = last_step;
     /**************************************************************************
      * End of sub-daily loop                                                  *

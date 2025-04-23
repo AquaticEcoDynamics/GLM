@@ -362,7 +362,7 @@ void allocate_storage(void);
 void set_c_wqvars_ptr(AED_REAL *iwqvars);
 void set_c_wqdvars_ptr(AED_REAL *iwqd, AED_REAL *iwqds, int *nwqd, int *nwqds);
 void set_c_ptmstat_ptr(int *iptms);
-void set_c_ptmenv_ptr(AED_REAL *iptmv); 
+void set_c_ptmenv_ptr(AED_REAL *iptmv);
 void debug_print_lake(void);
 void debug_initialisation(int which);
 void debug_initialisation_(int *which);
