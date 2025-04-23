@@ -884,7 +884,7 @@ SUBROUTINE aed_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
       ENDDO
    ENDIF
 
-   CALL check_states(column,wlev)
+   CALL check_states(column,wlev)          ! Remove aed_equilibrate
 
    DO split=1,split_factor
 
@@ -933,7 +933,14 @@ SUBROUTINE aed_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
          ENDDO
       ENDIF
 
-      CALL check_states(column, wlev)
+     ! CALL post_integration_update(column,wlev,flux_pel,flux_ben,flux_atm,flux_zon)
+
+        !     aed_update  (aka aed_equilibrate) 
+        !      ALLOCATE(layer_map(wlev))
+        !       layer_map = (/ (i, i = wlev, 1, -1) /)
+        !     aed_update_column (column,layer_map,) 
+
+      CALL check_states(column, wlev)  ! Remove aed_equilibrate from in here
    ENDDO
    DEALLOCATE(flux_pel)
    DEALLOCATE(flux_ben)
