@@ -169,7 +169,6 @@ ifeq ($(AED),true)
     AEDLIBS+=-L$(AEDDEVDIR)/lib -laed-dev
     ifdef PHREEQDIR
        AEDLIBS+=-L$(PHREEQDIR)/build -lPhreeqcRM
-       FINCLUDES+=-I$(PHREEQDIR)/src
     endif
   else
     EXTFFLAGS+=-DNO_DEV
@@ -207,6 +206,21 @@ FLIBS=
 ifeq ($(F90),ifort)
   LINK=$(CC)
   FINCLUDES+=-I/opt/intel/include
+  DEBUG_FFLAGS=-g -traceback -DDEBUG=1
+  OPT_FFLAGS=-O3
+  FFLAGS=-warn all -module ${moddir} -static-intel -mp1 -stand f08 -warn nounused $(DEFINES) $(FINCLUDES)
+  ifeq ($(WITH_CHECKS),true)
+    FFLAGS+=-check bounds -check noarg_temp_created
+  endif
+  FFLAGS+=-real-size 64
+  FLIBS+=-L/opt/intel/lib
+  FLIBS+=-lifcore -lsvml -lifport
+  FLIBS+=-limf -lintlc -liomp5  -lifport
+  OMPFLAG=-qopenmp
+  #EXTFFLAGS=-warn-no-unused-dummy-argument
+else ifeq ($(F90),ifx)
+  LINK=$(CC)
+# FINCLUDES+=-I/opt/intel/include
   DEBUG_FFLAGS=-g -traceback -DDEBUG=1
   OPT_FFLAGS=-O3
   FFLAGS=-warn all -module ${moddir} -static-intel -mp1 -stand f08 -warn nounused $(DEFINES) $(FINCLUDES)

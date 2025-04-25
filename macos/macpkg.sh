@@ -8,8 +8,17 @@ MOSLINE=`grep 'SOFTWARE LICENSE AGREEMENT FOR ' '/System/Library/CoreServices/Se
 # pre Sierra : MOSNAME=`echo ${MOSLINE} | awk -F 'OS X ' '{print $NF}'  | tr -d '\\' | tr ' ' '_'`
 MOSNAME=`echo ${MOSLINE} | awk -F 'macOS ' '{print $NF}'  | tr -d '\\' | tr ' ' '_'`
 
-if [ "$1" = "true" ] ; then
-   BASEDIR=usr
+HOMEBREW=$1
+
+EXTRPTH="local"
+if [ "$HOMEBREW" = "true" ] ; then
+   # It's HOMEBREW
+   if [ `uname -m` = "x86_64" ] ; then
+     BASEDIR=usr
+   else
+     BASEDIR=/opt/homebrew
+     EXTRPTH="opt"
+   fi
 else
    BASEDIR=opt
 fi
@@ -54,19 +63,20 @@ if [ "${PKG}" = "glm+" ] ; then
 fi
 
 # find_libs path bin
-#echo "BASEDIR is ${BASEDIR}" 1>&2
+echo "BASEDIR is ${BASEDIR}" 1>&2
 find_libs () {
-   #echo "*** find_libs \"$1\" \"$2\"" 1>&2
-   L2=`otool -L ${PKG}.app/Contents/MacOS/$2 | grep \/${BASEDIR}\/$1 | cut -d\  -f1 | grep -o '[^/]*$'`
+   otool -L ${PKG}.app/Contents/MacOS/${PKG} | grep ${BASEDIR} | cut -d\  -f1 | grep -o '[^/]*$'
+   L2=`otool -L ${PKG}.app/Contents/MacOS/${PKG} | grep ${BASEDIR} | cut -d\  -f1 | grep -o '[^/]*$'`
+   echo $L2 1>&2
    LIST=""
    while [ "$L2" != "$LIST" ] ; do
       LIST=$L2
       for i in $LIST ; do
          xx=`find \/${BASEDIR} -name $i 2> /dev/null | tail -n 1`
-         #echo "Looking for \"$i\" ($xx)" 1>&2
+         echo "Looking for \"$i\" ($xx)" 1>&2
          if [ ! -f ${PKG}.app/Contents/MacOS/$i ] ; then
             if [ "$xx" = "" ] ; then
-               /bin/cp -f /${BASEDIR}/local/lib/$i ${PKG}.app/Contents/MacOS
+               /bin/cp -f /${BASEDIR}/${EXTRPTH}/lib/$i ${PKG}.app/Contents/MacOS
             else
                /bin/cp -f $xx ${PKG}.app/Contents/MacOS
             fi
@@ -78,9 +88,9 @@ find_libs () {
             fi
          fi
          if [ "$xx" = "" ] ; then
-            NLST=`otool -L /${BASEDIR}/$1/lib/$i | grep -v $i | grep \/${BASEDIR}\/$1 | cut -d\  -f1 | grep -o '[^/]*$'`
+            NLST=`otool -L /${BASEDIR}/$i | grep -v $i | grep ${BASEDIR} | cut -d\  -f1 | grep -o '[^/]*$'`
          else
-            NLST=`otool -L $xx | grep -v $i | grep \/${BASEDIR}\/$1 | cut -d\  -f1 | grep -o '[^/]*$'`
+            NLST=`otool -L $xx | grep -v $i | grep ${BASEDIR} | cut -d\  -f1 | grep -o '[^/]*$'`
          fi
          for j in $NLST ; do
             echo $L2 | grep $j > /dev/null 2>&1
@@ -95,32 +105,26 @@ find_libs () {
 }
 
 
-LIBS1=`find_libs local ${PKG}`
-#LIBS2=`find_libs intel ${PKG}`
+LIBS1=`find_libs ${EXTRPTH} ${PKG}`
 
-if [ "$FC" = "ifort" ] ; then
-  PATH2=/opt/intel
-  PATH3=
-  LIBS2="libifcore.dylib libsvml.dylib libimf.dylib libintlc.dylib libiomp5.dylib libifport.dylib"
-  if [ "${PKG}" = "glm+" ] ; then
-    LIBS2="${LIBS2} libifport.dylib"
-  fi
-else
-  PATH2=/${BASEDIR}/local/
-  PATH3=/usr/local/
-  LIBS2="libgfortran.5.dylib"
-fi
+PATH2=${BASEDIR}/${EXTRPTH}/
+LIBS2="libgfortran.5.dylib"
 
-#echo "LIBS1 = $LIBS1"
-#echo "LIBS2 = $LIBS2"
+echo "BASEDIR=$BASEDIR"
+echo "==="
+echo "PATH2=$PATH2"
+echo "==="
+echo "LIBS1 = $LIBS1"
+echo "==="
+echo "LIBS2 = $LIBS2"
+echo "==="
 
 # These general libraries
 for i in $LIBS1 ; do
-   #echo "*** Configuring : $i ***"
+   echo "*** Configuring : $i ***"
    xx=`find /${BASEDIR} -name $i 2> /dev/null | tail -n 1`
-   #cp /${BASEDIR}/local/lib/$i ${PKG}.app/Contents/MacOS
+   #cp /${BASEDIR}/${EXTRPTH}/lib/$i ${PKG}.app/Contents/MacOS
    if [ ! -f ${PKG}.app/Contents/MacOS/$i ] ; then
-
       /bin/cp -f $xx ${PKG}.app/Contents/MacOS
       if [ $? != 0 ] ; then
          echo " ####### Failed to copy(2) $i" 1>&2
@@ -129,12 +133,12 @@ for i in $LIBS1 ; do
          chmod +w ${PKG}.app/Contents/MacOS/$i
       fi
       install_name_tool -id $i ${PKG}.app/Contents/MacOS/$i
-      #install_name_tool -change /${BASEDIR}/local/lib/$i '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
+      #install_name_tool -change /${BASEDIR}/${EXTRPTH}/lib/$i '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
       install_name_tool -change $xx '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
       #echo '****' install_name_tool -change $xx '@executable_path/'$i ${PKG}.app/Contents/MacOS/${PKG}
       if [ "${BASEDIR}" = "usr" ] ; then
          # This is probably a HOMEBREW setup, so there might be references into the Cellar
-         NLST=`otool -L ${PKG}.app/Contents/MacOS/$i | grep \/${BASEDIR}\/local/Cellar | cut -d\  -f1`
+         NLST=`otool -L ${PKG}.app/Contents/MacOS/$i | grep \/${BASEDIR}\/${EXTRPTH}/Cellar | cut -d\  -f1`
          for j in $NLST ; do
             k=`echo $j | grep -o '[^/]*$'`
             install_name_tool -change $j '@executable_path/'$k ${PKG}.app/Contents/MacOS/$i
