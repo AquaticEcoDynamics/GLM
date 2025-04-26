@@ -129,7 +129,7 @@ MODULE glm_api_aed
    AED_REAL :: uvb_fraction = 0.005
 
    !# Arrays for state and diagnostic variables
-   AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: cc    !# water quality array - water  : nlayers, nvars
+   AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: cc    !# water quality array - water  : nvars, nlayers
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_hz !# water quality array - benthic: nvars
    AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: cc_diag
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_diag_hz
@@ -410,7 +410,7 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
       CALL api_set_glm_zones(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
 
    !# Now that we know how many vars we need, we can allocate space for them
-   ALLOCATE(cc(MaxLayers, (n_vars + n_vars_ben)),stat=status)
+   ALLOCATE(cc((n_vars + n_vars_ben), MaxLayers),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (cc)'
    cc = zero_         !# initialise to zero
 
@@ -422,7 +422,7 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
 
    !# Allocate diagnostic variable array and set all values to zero.
    !# (needed because time-integrated/averaged variables will increment rather than set the array)
-   ALLOCATE(cc_diag(MaxLayers, n_vars_diag),stat=status)
+   ALLOCATE(cc_diag(n_vars_diag, MaxLayers),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (cc_diag)'
    cc_diag = zero_
 
@@ -737,35 +737,35 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                sd = sd + 1
                !# Process and store diagnostic variables defined on horizontal slices of the domain.
                IF ( n_zones .GT. 0 ) THEN
-                  z_diag_hz(n_zones+1,sd) = cc_diag_hz(sd)
-                  CALL store_nc_array(ncid, zexternalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_diag_hz(1:n_zones+1,sd))
+                  z_diag_hz(sd,n_zones+1) = cc_diag_hz(sd)
+                  CALL store_nc_array(ncid, zexternalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_diag_hz(sd,1:n_zones+1))
                ENDIF
                CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc_diag_hz(sd))
                IF ( do_plots .AND. plot_id_sd(sd).GE.0 ) THEN
                   IF ( n_zones .GT. 0 ) THEN
                      DO z=1,n_zones
-                        CALL put_glm_val_z(plot_id_sd(sd),z_diag_hz(z, sd), z)
+                        CALL put_glm_val_z(plot_id_sd(sd),z_diag_hz(sd, z), z)
                      ENDDO
                   ENDIF
                   CALL put_glm_val_s(plot_id_sd(sd),cc_diag_hz(sd))
                ENDIF
                DO j=1,point_nlevs
                   val_out = missing
-                  IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc_diag(1, v)
-                  IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc_diag(1, v)
+                  IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc_diag(v, 1)
+                  IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc_diag(v, 1)
                   CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
                ENDDO
             ELSE  !# not sheet
                d = d + 1
                !# Store diagnostic variable values defined on the full domain.
-               CALL store_nc_array(ncid, externalid(i), XYZT_SHAPE, wlev, nlev, array=cc_diag(:, d))
+               CALL store_nc_array(ncid, externalid(i), XYZT_SHAPE, wlev, nlev, array=cc_diag(d, :))
                IF ( do_plots .AND. plot_id_d(d).GE.0 ) &
-                  CALL put_glm_val(plot_id_d(d), cc_diag(1:wlev, d))
+                  CALL put_glm_val(plot_id_d(d), cc_diag(d, 1:wlev))
                DO j=1,point_nlevs
-                  IF (lvl(j) .GE. 0) THEN ; val_out = cc_diag(lvl(j)+1, d)
+                  IF (lvl(j) .GE. 0) THEN ; val_out = cc_diag(d, lvl(j)+1)
                   ELSE                    ; val_out = missing     ; ENDIF
                   CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
-                  CALL write_csv_point_avg(j, tv%name, len_trim(tv%name), cc_diag(:, d), NULCSTR, 0, last=last)
+                  CALL write_csv_point_avg(j, tv%name, len_trim(tv%name), cc_diag(d, :), NULCSTR, 0, last=last)
                ENDDO
             ENDIF
          ELSE IF ( .NOT. tv%extern ) THEN  ! not diag
@@ -773,33 +773,33 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                sv = sv + 1
                !# Store benthic biogeochemical state variables.
                IF ( n_zones .GT. 0 ) THEN
-                  CALL store_nc_array(ncid, zexternalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_cc(1:n_zones, 1, n_vars+sv))
+                  CALL store_nc_array(ncid, zexternalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_cc(n_vars+sv, 1, 1:n_zones))
                ENDIF
-               CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc(1, n_vars+sv))
+               CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc(n_vars+sv, 1))
                IF ( do_plots .AND. plot_id_sv(sv).GE.0 ) THEN
                   IF ( n_zones .GT. 0 ) THEN
                      DO z=1,n_zones
-                        CALL put_glm_val_z(plot_id_sv(sv), z_cc(z, 1, n_vars+sv), z)
+                        CALL put_glm_val_z(plot_id_sv(sv), z_cc(n_vars+sv, 1, z), z)
                      ENDDO
                   ENDIF
-                  CALL put_glm_val_s(plot_id_sv(sv), cc(1, n_vars+sv))
+                  CALL put_glm_val_s(plot_id_sv(sv), cc(n_vars+sv, 1))
                ENDIF
                DO j=1,point_nlevs
                   val_out = missing
-                  IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc(1, v)
-                  IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc(1, v)
+                  IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc(v, 1)
+                  IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc(v, 1)
                   CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
                ENDDO
             ELSE     !# not sheet
                v = v + 1
                !# Store pelagic biogeochemical state variables.
-               CALL store_nc_array(ncid, externalid(i), XYZT_SHAPE, wlev, nlev, array=cc(:, v))
-               IF ( do_plots .AND. plot_id_v(v).GE.0 ) CALL put_glm_val(plot_id_v(v), cc(1:wlev, v))
+               CALL store_nc_array(ncid, externalid(i), XYZT_SHAPE, wlev, nlev, array=cc(v, :))
+               IF ( do_plots .AND. plot_id_v(v).GE.0 ) CALL put_glm_val(plot_id_v(v), cc(v, 1:wlev))
                DO j=1,point_nlevs
-                  IF (lvl(j) .GE. 0) THEN ; val_out = cc(lvl(j)+1, v)
+                  IF (lvl(j) .GE. 0) THEN ; val_out = cc(v, lvl(j)+1)
                   ELSE                    ; val_out = missing     ; ENDIF
                   CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
-                  CALL write_csv_point_avg(j, tv%name, len_trim(tv%name), cc(:, v), NULCSTR, 0, last=last)
+                  CALL write_csv_point_avg(j, tv%name, len_trim(tv%name), cc(v, :), NULCSTR, 0, last=last)
                ENDDO
             ENDIF
          ENDIF

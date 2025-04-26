@@ -52,7 +52,8 @@
 #include <aed_time.h>
 #include <namelist.h>
 
-#define DEFAULT_GLM_NML   "glm3.nml"
+#define DEFAULT_GLM_NML   "glm4.nml"
+#define DEFAULT_GLM_NML_3 "glm3.nml"
 #define DEFAULT_GLM_NML_2 "glm2.nml"
 #define DEFAULT_WQ_LIB    "aed"
 #define DEFAULT_WQ_NML    "aed.nml"
@@ -628,11 +629,16 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( (namlst = open_namelist(glm_nml_file)) < 0 ) {
         fprintf(stderr,"\n     ERROR opening the glm namelist file %s\n", glm_nml_file);
         if (strcmp(glm_nml_file, DEFAULT_GLM_NML) == 0) {
-            fprintf(stderr, "     Trying %s\n", DEFAULT_GLM_NML_2);
-            strcpy(glm_nml_file, DEFAULT_GLM_NML_2);
+            fprintf(stderr, "     Trying %s\n", DEFAULT_GLM_NML_3);
+            strcpy(glm_nml_file, DEFAULT_GLM_NML_3);
             if ( (namlst = open_namelist(glm_nml_file)) < 0 ) {
                 fprintf(stderr,"\n     ERROR opening the glm namelist file %s\n", glm_nml_file);
-                exit(1);
+                fprintf(stderr, "     Trying %s\n", DEFAULT_GLM_NML_2);
+                strcpy(glm_nml_file, DEFAULT_GLM_NML_2);
+                if ( (namlst = open_namelist(glm_nml_file)) < 0 ) {
+                    fprintf(stderr,"\n     ERROR opening the glm namelist file %s\n", glm_nml_file);
+                    exit(1);
+                }
             }
         } else
             exit(1);
