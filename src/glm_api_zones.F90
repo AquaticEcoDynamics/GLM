@@ -48,10 +48,10 @@ MODULE glm_api_zones
 
    PRIVATE ! By default, make everything private
 
-   AED_REAL,DIMENSION(:,:,:),ALLOCATABLE,TARGET :: z_cc      ! (nsed_zones, n_levs, n_vars)
-   AED_REAL,DIMENSION(:,:),  ALLOCATABLE,TARGET :: z_cc_hz   ! (nsed_zones, n_vars)
-   AED_REAL,DIMENSION(:,:,:),ALLOCATABLE,TARGET :: z_diag    ! (nsed_zones, n_levs, n_vars)
-   AED_REAL,DIMENSION(:,:),  ALLOCATABLE,TARGET :: z_diag_hz ! (nsed_zones, n_vars)
+   AED_REAL,DIMENSION(:,:,:),ALLOCATABLE,TARGET :: z_cc      ! (n_vars, n_levs, nsed_zones)
+   AED_REAL,DIMENSION(:,:),  ALLOCATABLE,TARGET :: z_cc_hz   ! (n_vars, nsed_zones)
+   AED_REAL,DIMENSION(:,:,:),ALLOCATABLE,TARGET :: z_diag    ! (n_vars, n_levs, nsed_zones)
+   AED_REAL,DIMENSION(:,:),  ALLOCATABLE,TARGET :: z_diag_hz ! (n_vars, nsed_zones)
 
    AED_REAL,DIMENSION(:),POINTER :: lheights
 
@@ -88,10 +88,10 @@ SUBROUTINE api_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)           &
 
    lheights => theLake%Height
 
-   ALLOCATE(z_cc(n_zones, MaxLayers, numVars+numBenV))  ; z_cc = 0.
-   ALLOCATE(z_cc_hz(n_zones, numVars+numBenV))          ; z_cc_hz = 0.
-   ALLOCATE(z_diag(n_zones, MaxLayers, numDiagV))       ; z_diag = 0.
-   ALLOCATE(z_diag_hz(n_zones+1, numDiagHzV))           ; z_diag_hz = 0.
+   ALLOCATE(z_cc(numVars+numBenV, MaxLayers, n_zones))  ; z_cc = 0.
+   ALLOCATE(z_cc_hz(numVars+numBenV, n_zones))          ; z_cc_hz = 0.
+   ALLOCATE(z_diag(numDiagV, MaxLayers, n_zones))       ; z_diag = 0.
+   ALLOCATE(z_diag_hz(numDiagHzV, n_zones+1))           ; z_diag_hz = 0.
 
    CALL aed_init_zones(n_zones, 1, z_cc, z_cc_hz, z_diag, z_diag_hz)
 
@@ -184,9 +184,9 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
 !-------------------------------------------------------------------------------
 !BEGIN
    DO zon=1,n_zones
-      z_cc(zon,:,1:nvars) = 0.
-      z_diag(zon,:,:) = 0.
-      z_diag_hz(zon,:) = 0.
+      z_cc(1:nvars,:,zon) = 0.
+      z_diag(:,:,zon) = 0.
+      z_diag_hz(:,zon) = 0.
 
       aedZones(zon)%z_env%z_temp = 0.
       aedZones(zon)%z_env%z_salt = 0.
@@ -219,9 +219,9 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
       ! introduce errors in z_cc (split layers)
       ! Ideally this average would be based on volume weighting
 
-      z_cc(zon,lev,1:nvars) = z_cc(zon,lev,1:nvars) + x_cc(lev,1:nvars)
-      z_diag(zon,lev,:)     = z_diag(zon,lev,:) + x_diag(lev,:)
-      z_diag_hz(zon,:)      = z_diag_hz(zon,:) + x_diag_hz(:)
+      z_cc(1:nvars,lev,zon) = z_cc(1:nvars,lev,zon) + x_cc(1:nvars,lev)
+      z_diag(:,lev,zon)     = z_diag(:,lev,zon) + x_diag(:,lev)
+      z_diag_hz(:,zon)      = z_diag_hz(:,zon) + x_diag_hz(:)
 
       aedZones(zon)%z_env(1)%z_temp         = aedZones(zon)%z_env(1)%z_temp + theLake(lev)%Temp
       aedZones(zon)%z_env(1)%z_salt         = aedZones(zon)%z_env(1)%z_salt + theLake(lev)%Salinity
@@ -236,9 +236,9 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
    a_zones = zon
 
    DO zon=1,a_zones
-      z_cc(zon,:,1:nvars) = z_cc(zon,:,1:nvars)/zcount(zon)
-      z_diag(zon,:,:)     = z_diag(zon,:,:)/zcount(zon)
-      z_diag_hz(zon,:)  = z_diag_hz(zon,:)/zcount(zon)
+      z_cc(1:nvars,:,zon) = z_cc(1:nvars,:,zon)/zcount(zon)
+      z_diag(:,:,zon)     = z_diag(:,:,zon)/zcount(zon)
+      z_diag_hz(:,zon)    = z_diag_hz(:,zon)/zcount(zon)
    ENDDO
 
    DO zon=1,a_zones
@@ -336,20 +336,20 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
             scale = (aedZones(zon-1)%z_env(1)%z_height - 0.0) / (wheights(lev) - 0.0)
          ENDIF
 
-         WHERE(z_diag(zon,lev,:) /= 0.) &
-            x_diag(lev,:) = z_diag(zon,lev,:) * scale
-         x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end) * scale
+         WHERE(z_diag(:,lev,zon) /= 0.) &
+            x_diag(:,lev) = z_diag(:,lev,zon) * scale
+         x_cc(v_start:v_end,lev) = z_cc(v_start:v_end,lev,zon) * scale
 
          zon = zon - 1
 
-         WHERE(z_diag(zon,lev,:) /= 0.) &
-            x_diag(lev,:) = x_diag(lev,:) + (z_diag(zon,lev,:) * (1.0 - scale))
-         x_cc(lev,v_start:v_end) = x_cc(lev,v_start:v_end) + &
-                                   z_cc(zon,lev,v_start:v_end) * (1.0 - scale)
+         WHERE(z_diag(:,lev,zon) /= 0.) &
+            x_diag(:,lev) = x_diag(:,lev) + (z_diag(:,lev,zon) * (1.0 - scale))
+         x_cc(v_start:v_end,lev) = x_cc(v_start:v_end,lev) + &
+                                   z_cc(v_start:v_end,lev,zon) * (1.0 - scale)
       ELSE
-         WHERE(z_diag(zon,lev,:) /= 0.) &
-            x_diag(lev,:) = z_diag(zon,lev,:)
-         x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end)
+         WHERE(z_diag(:,lev,zon) /= 0.) &
+            x_diag(:,lev) = z_diag(:,lev,zon)
+         x_cc(v_start:v_end,lev) = z_cc(v_start:v_end,lev,zon)
       ENDIF
    ENDDO
 
@@ -359,7 +359,7 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
       area = area + aedZones(zon)%z_env(1)%z_area
    ENDDO
    DO zon=1,n_zones
-      x_diag_hz = x_diag_hz + (z_diag_hz(zon,:) * (aedZones(zon)%z_env(1)%z_area/area))
+      x_diag_hz = x_diag_hz + (z_diag_hz(:,zon) * (aedZones(zon)%z_env(1)%z_area/area))
    ENDDO
 END SUBROUTINE api_copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
