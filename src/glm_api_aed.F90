@@ -161,6 +161,7 @@ MODULE glm_api_aed
    AED_REAL,TARGET :: col_num = 1
 
    AED_REAL,DIMENSION(:),POINTER :: sed_zones
+   INTEGER,TARGET :: matz
 
    AED_REAL,DIMENSION(:),POINTER :: rain
    AED_REAL,DIMENSION(:),POINTER :: evap
@@ -264,44 +265,43 @@ SUBROUTINE api_set_glm_env()
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   !# Save pointers to external dynamic variables that we need later (in do_glm_wq)
-   lheights => theLake%Height
-   temp     => theLake%Temp
-   salt     => theLake%Salinity
-   rho      => theLake%Density
-   area     => theLake%LayerArea
-   rad      => theLake%Light
-   cvel     => theLake%Umean
-   extc     => theLake%ExtcCoefSW
-   layer_stress => theLake%LayerStress
 
-   !# Provide pointers to arrays with environmental variables to aed.
-   wind     => aMetData%WindSpeed
-   rain     => aMetData%Rain
-   I_0      => aMetData%ShortWave
+   !# Provide pointers to arrays with meteorological variables
    air_temp => aMetData%AirTemp
    air_pres => aMetData%AirPres
    humidity => aMetData%RelHum
+   wind     => aMetData%WindSpeed
+   rain     => aMetData%Rain
+   evap     => aSurfData%Evap
+   I_0      => aMetData%ShortWave
 
-   evap => aSurfData%Evap
+   !# Set pointers to GLMs dynamic variables that will be updated later (in do_glm_wq)
+   lheights => theLake%Height
+   area     => theLake%LayerArea
+   temp     => theLake%Temp
+   salt     => theLake%Salinity
+   rho      => theLake%Density
+   cvel     => theLake%Umean
+   rad      => theLake%Light
+   extc     => theLake%ExtcCoefSW
+   layer_stress => theLake%LayerStress
 
    !# Allocate arrays for various data constructs
+   !# These will be calculated [approximated] from layers internally
+   !# during each time step.
 
    ALLOCATE(depth(MaxLayers),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (depth)'
    depth = one_
 
-   ALLOCATE(sed_zones(MaxLayers),stat=status)
-   IF (status /= 0) STOP 'allocate_memory(): Error allocating (sed_zones)'
-   sed_zones = zero_
-
    ALLOCATE(dz(MaxLayers),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (dz)'
    dz = zero_
 
-   !# Allocate array for local pressure.
-   !# This will be calculated [approximated] from layer depths internally
-   !# during each time step.
+   ALLOCATE(sed_zones(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (sed_zones)'
+   sed_zones = zero_
+
    ALLOCATE(pres(MaxLayers),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (pres)'
    pres = zero_
@@ -310,8 +310,6 @@ SUBROUTINE api_set_glm_env()
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (tss)'
    tss = zero_
 
-   !# Allocate array for photosynthetically active radiation (PAR).
-   !# This will be calculated internally during each time step.
    ALLOCATE(par(MaxLayers),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (par)'
    par = zero_
@@ -319,74 +317,83 @@ SUBROUTINE api_set_glm_env()
    ALLOCATE(nir(MaxLayers),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (nir)'
    nir = zero_
+
    ALLOCATE(uva(MaxLayers),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (uva)'
    uva = zero_
+
    ALLOCATE(uvb(MaxLayers),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (uvb)'
    uvb = zero_
 
+   matz = 0
+
    timestep = dt
-
-   env(1)%timestep  => timestep
-   env(1)%yearday   => yearday
-
-   env(1)%longitude => longitude
-   env(1)%latitude  => latitude
-
-  ! env(1)%active      = .true.
-
-   env(1)%I_0           => I_0(1)
-   env(1)%wind          => wind(1)
-   env(1)%air_temp      => air_temp(1)
-   env(1)%air_pres      => air_pres(1)
-   env(1)%rain          => rain(1)
-   env(1)%evap          => evap(1)
-   env(1)%humidity      => humidity(1)
-   env(1)%longwave      =>  rain(1) !longwave(1)
-   env(1)%bathy         =>  rain(1) !bathy(1)
-   env(1)%rainloss      =>  rain(1) !rainloss(1)
 
    env(1)%n_layers      = MaxLayers
 
+   env(1)%timestep  => timestep
+   env(1)%yearday   => yearday
+   env(1)%longitude => longitude
+   env(1)%latitude  => latitude
+  !env(1)%col_num   => colcol
+  
+  !env(1)%active      = .true.
+
+   env(1)%longwave      =>  rain(1) !longwave(1)
+   env(1)%air_temp      => air_temp(1)
+   env(1)%air_pres      => air_pres(1)
+   env(1)%humidity      => humidity(1)
+   env(1)%wind          => wind(1)
+   env(1)%rain          => rain(1)
+   env(1)%evap          => evap(1)
+   env(1)%I_0           => I_0(1)
+
+   env(1)%col_depth     => col_depth
+  !env(1)%col_area      => col_area
+   env(1)%height        => lheights
+   env(1)%depth         => depth
+   env(1)%area          => area
+   env(1)%dz            => dz
+
    env(1)%temp          => temp
    env(1)%salt          => salt
-   env(1)%rho           => rho
-   env(1)%dz            => dz
-   env(1)%height        => lheights
-   env(1)%area          => area
-   env(1)%depth         => depth
-   env(1)%pres          => pres
    env(1)%cvel          => cvel
+   env(1)%pres          => pres
+   env(1)%rho           => rho
    env(1)%rad           => rad
+
    env(1)%extc          => extc
    env(1)%par           => par
    env(1)%nir           => nir
    env(1)%uva           => uva
    env(1)%uvb           => uvb
+
    env(1)%tss           => tss
    env(1)%ss1           =>  tss !ss1
    env(1)%ss2           =>  tss !ss2
    env(1)%ss3           =>  tss !ss3
    env(1)%ss4           =>  tss !ss4
 
-   env(1)%layer_stress  => layer_stress(1)
-   env(1)%biodrag       =>  tss !bio_drag
    env(1)%ustar_bed     =>  tss !ustar_bed
    env(1)%wv_uorb       =>  tss !wv_uorb
    env(1)%wv_t          =>  tss !wv_t
-!  env(1)%vvel          =>  tss !vvel
-
-   env(1)%bioextc       =>  tss
-   env(1)%solarshade    =>  rain(1) 
-   env(1)%windshade     =>  rain(1)
-   env(1)%rainloss      =>  rain(1)
-   env(1)%bathy         =>  rain(1)
+   env(1)%layer_stress  => layer_stress(1)
+  !env(1)%dz_benthic    =>  ...
 
    env(1)%sed_zones     => sed_zones
    env(1)%sed_zone      => sed_zones(1)
-   env(1)%col_depth     => col_depth
-!  env(1)%col_num       => 1 !col_num
+   env(1)%mat_id        => matz
+
+   env(1)%bathy         =>  rain(1) !bathy(1)
+  !env(1)%datum         =>  ...
+
+   env(1)%biodrag       =>  tss !bio_drag
+   env(1)%bioextc       =>  tss
+   env(1)%solarshade    =>  rain(1) 
+   env(1)%windshade     =>  rain(1)
+   env(1)%rainloss      =>  rain(1) !rainloss(1)
+
 
    CALL aed_set_model_env(env, 1)
 
@@ -440,6 +447,8 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
    dat(1)%cc_diag_hz => cc_diag_hz
 
    CALL aed_set_model_data(dat, 1, MaxLayers)
+   CALL aed_check_model_setup
+
 END SUBROUTINE api_set_glm_data
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
