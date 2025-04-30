@@ -187,7 +187,7 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
    theZones%znir = 0.
    theZones%zuva = 0.
    theZones%zuvb = 0.
-   theZones%z_sed_zones = 1.
+   theZones(1)%z_sed_zones = 1.
    theZones%zvel = 0.
 
    ! Populate the 1st layer in each zone structure, with the zone-averaged quantity

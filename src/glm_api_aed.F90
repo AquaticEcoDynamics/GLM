@@ -161,7 +161,7 @@ MODULE glm_api_aed
    AED_REAL,TARGET :: col_num = 1
 
    AED_REAL,DIMENSION(:),POINTER :: sed_zones
-   INTEGER,TARGET :: matz
+   AED_REAL,TARGET :: matz
 
    AED_REAL,DIMENSION(:),POINTER :: rain
    AED_REAL,DIMENSION(:),POINTER :: evap
