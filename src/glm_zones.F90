@@ -231,7 +231,7 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
       ! Finalise zone averaged information (1st layer in each zone structure reserved for zavg)
       z_cc(zon,1,1:nvars) = z_cc(zon,1,1:nvars)/zcount(zon)  ! water column state vars
       z_diag(zon,1,:)     = z_diag(zon,1,:)/zcount(zon)      ! water column diag vars
-     !z_diag_hz(zon,:)  = z_diag_hz(zon,:)/zcount(zon)       ! benthic diag vars
+     !z_diag_hz(zon,:)    = z_diag_hz(zon,:)/zcount(zon)     ! benthic diag vars
 
       ! Set the water column above a zone, to the respective water layer values
       z_cc(zon,2:wlev,1:nvars) = x_cc(2:wlev,1:nvars)        ! water column state vars
@@ -311,7 +311,6 @@ SUBROUTINE copy_from_zone(n_aed_vars,x_cc, x_diag, x_diag_hz, wlev)
 
    ! Loop down through water layers
    DO lev=wlev,1,-1
-
       ! Check if zone boundary is in this water layer range
       IF ( zon .GT. 1 ) THEN
          IF (lev .GT. 1) THEN
@@ -340,15 +339,15 @@ SUBROUTINE copy_from_zone(n_aed_vars,x_cc, x_diag, x_diag_hz, wlev)
                !print *,'zav', i, TRIM(tvar%name),tvar%zavg
                IF ( tvar%diag ) THEN
                   IF ( .NOT.  tvar%sheet ) THEN
-                  j = j + 1
-                  !print*, "j1", j
+                     j = j + 1
+                     !print*, "j1", j
                      IF ( tvar%zavg ) THEN
-                     !print*, "here1 split",j
-                     x_diag(lev, j) = z_diag(zon,1, j) * scale
-                     !print*, "lev", lev
-                     !print*, "xdiag", x_diag(lev, j)
-                     !print*, "z_diag", z_diag(zon, j)
-                     !print*, "scale", scale
+                        !print*, "here1 split",j
+                        x_diag(lev, j) = z_diag(zon,1, j) * scale
+                        !print*, "lev", lev
+                        !print*, "xdiag", x_diag(lev, j)
+                        !print*, "z_diag", z_diag(zon, j)
+                        !print*, "scale", scale
                      ENDIF
                   ENDIF
                ENDIF
@@ -414,72 +413,70 @@ SUBROUTINE copy_from_zone(n_aed_vars,x_cc, x_diag, x_diag_hz, wlev)
      ! If not column_benthic_var_averaging, set single-value to selected zone (e.g. bottom)
      x_diag_hz = z_diag_hz(water_column_zone,:)
    ENDIF
-
-
 END SUBROUTINE copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 !###############################################################################
 SUBROUTINE copy_from_zone_og(x_cc, x_diag, x_diag_hz, wlev)
-   !-------------------------------------------------------------------------------
-   !ARGUMENTS
-      AED_REAL,DIMENSION(:,:),INTENT(inout) :: x_cc
-      AED_REAL,DIMENSION(:,:),INTENT(inout) :: x_diag
-      AED_REAL,DIMENSION(:),INTENT(inout) :: x_diag_hz
-      INTEGER,INTENT(in) :: wlev
-   !
-   !LOCALS
-      INTEGER  :: zon, lev, v_start, v_end
-      AED_REAL :: scale, area
-      LOGICAL  :: splitZone
-   !
-   !-------------------------------------------------------------------------------
-   !BEGIN
-      v_start = nvars+1 ; v_end = nvars+nbenv
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   AED_REAL,DIMENSION(:,:),INTENT(inout) :: x_cc
+   AED_REAL,DIMENSION(:,:),INTENT(inout) :: x_diag
+   AED_REAL,DIMENSION(:),INTENT(inout) :: x_diag_hz
+   INTEGER,INTENT(in) :: wlev
+!
+!LOCALS
+   INTEGER  :: zon, lev, v_start, v_end
+   AED_REAL :: scale, area
+   LOGICAL  :: splitZone
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   v_start = nvars+1 ; v_end = nvars+nbenv
 
-      zon = n_zones
-      DO lev=wlev,1,-1
-         IF ( zon .GT. 1 ) THEN
-            IF (lev .GT. 1) THEN
-               splitZone = lheights(lev-1) < zone_heights(zon-1)
-            ELSE
-               splitZone = 0.0 < zone_heights(zon-1)
-            ENDIF
+   zon = n_zones
+   DO lev=wlev,1,-1
+      IF ( zon .GT. 1 ) THEN
+         IF (lev .GT. 1) THEN
+            splitZone = lheights(lev-1) < zone_heights(zon-1)
          ELSE
-            splitZone = .FALSE.
+            splitZone = 0.0 < zone_heights(zon-1)
+         ENDIF
+      ELSE
+         splitZone = .FALSE.
+      ENDIF
+
+      IF (splitZone) THEN
+         IF (lev .GT. 1) THEN
+            scale = (zone_heights(zon-1) - lheights(lev-1)) / (lheights(lev) - lheights(lev-1))
+         ELSE
+            scale = (zone_heights(zon-1) - 0.0) / (lheights(lev) - 0.0)
          ENDIF
 
-         IF (splitZone) THEN
-            IF (lev .GT. 1) THEN
-               scale = (zone_heights(zon-1) - lheights(lev-1)) / (lheights(lev) - lheights(lev-1))
-            ELSE
-               scale = (zone_heights(zon-1) - 0.0) / (lheights(lev) - 0.0)
-            ENDIF
+         WHERE(z_diag(zon,lev,:) /= 0.) &
+            x_diag(lev,:) = z_diag(zon,lev,:) * scale
+         x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end) * scale
 
-            WHERE(z_diag(zon,lev,:) /= 0.) &
-               x_diag(lev,:) = z_diag(zon,lev,:) * scale
-            x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end) * scale
+         zon = zon - 1
 
-            zon = zon - 1
-
-            WHERE(z_diag(zon,lev,:) /= 0.) &
-               x_diag(lev,:) = x_diag(lev,:) + (z_diag(zon,lev,:) * (1.0 - scale))
-            x_cc(lev,v_start:v_end) = x_cc(lev,v_start:v_end) + &
-                                      z_cc(zon,lev,v_start:v_end) * (1.0 - scale)
-         ELSE
-            WHERE(z_diag(zon,lev,:) /= 0.) &
-               x_diag(lev,:) = z_diag(zon,lev,:)
-            x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end)
-         ENDIF
-      ENDDO
-      ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
-      area = SUM(theZones(1:n_zones)%zarea)
-      DO zon=1,n_zones
-         x_diag_hz = x_diag_hz + (z_diag_hz(zon,:) * (theZones(zon)%zarea/area))
-      ENDDO
-   END SUBROUTINE copy_from_zone_og
-   !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+         WHERE(z_diag(zon,lev,:) /= 0.) &
+            x_diag(lev,:) = x_diag(lev,:) + (z_diag(zon,lev,:) * (1.0 - scale))
+         x_cc(lev,v_start:v_end) = x_cc(lev,v_start:v_end) + &
+                                   z_cc(zon,lev,v_start:v_end) * (1.0 - scale)
+      ELSE
+         WHERE(z_diag(zon,lev,:) /= 0.) &
+            x_diag(lev,:) = z_diag(zon,lev,:)
+         x_cc(lev,v_start:v_end) = z_cc(zon,lev,v_start:v_end)
+      ENDIF
+   ENDDO
+   ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
+   area = SUM(theZones(1:n_zones)%zarea)
+   DO zon=1,n_zones
+      x_diag_hz = x_diag_hz + (z_diag_hz(zon,:) * (theZones(zon)%zarea/area))
+   ENDDO
+END SUBROUTINE copy_from_zone_og
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 !###############################################################################

@@ -354,7 +354,7 @@ extern AED_REAL yearday;   //# day of year
 // DEBUGGING
 extern LOGICAL dbg_mix;   //# debug output from mixer
 extern LOGICAL no_evap;   //# turn off evaporation
-extern int      quiet;     //# turn down output messages
+extern int     quiet;     //# turn down output messages
 
 
 /******************************************************************************/

@@ -42,6 +42,7 @@ MODULE glm_api_zones
    USE ISO_C_BINDING
 
    USE glm_types
+   USE aed_common
    USE aed_zones
 
    IMPLICIT NONE
@@ -55,7 +56,7 @@ MODULE glm_api_zones
 
    AED_REAL,DIMENSION(:),POINTER :: lheights
 
-   INTEGER :: nvars, nbenv, nvdiag, nvdiag_hz
+   INTEGER :: nvars, nbenv, nvdiag, nvdiag_hz, n_aed_vars
 
    PUBLIC n_zones, lheights
    PUBLIC api_set_glm_zones, api_copy_from_zone, api_copy_to_zone, api_calc_zone_areas
@@ -85,6 +86,7 @@ SUBROUTINE api_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)           &
    nbenv = numBenV
    nvdiag = numDiagV
    nvdiag_hz = numDiagHzV
+   n_aed_vars = numVars + numBenV + numDiagV + numDiagHzV
 
    lheights => theLake%Height
 
@@ -199,7 +201,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
       aedZones(zon)%z_env%z_nir = 0.
       aedZones(zon)%z_env%z_uva = 0.
       aedZones(zon)%z_env%z_uvb = 0.
-      aedZones(zon)%z_env%z_sed_zones = 1.
+      aedZones(zon)%z_env%z_sed_zones = zon
       aedZones(zon)%z_env%z_vel = 0.
    ENDDO
 
@@ -211,7 +213,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
       IF ( lev > 1 .AND. wheights(lev) > aedZones(zon)%z_env(1)%z_height ) THEN
          zon = zon + 1
          IF (zon > n_zones) STOP 'Water level height is higher than highest zone height'
-         aedZones(zon)%z_env(1)%z_sed_zones = zon
+!        aedZones(zon)%z_env(1)%z_sed_zones = zon
       ENDIF
 
       ! Pelagic variables need zonifying, in case benthic people want them
@@ -238,7 +240,11 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
    DO zon=1,a_zones
       z_cc(1:nvars,:,zon) = z_cc(1:nvars,:,zon)/zcount(zon)
       z_diag(:,:,zon)     = z_diag(:,:,zon)/zcount(zon)
-      z_diag_hz(:,zon)    = z_diag_hz(:,zon)/zcount(zon)
+    ! z_diag_hz(:,zon)    = z_diag_hz(:,zon)/zcount(zon)
+
+      ! Set the water column above a zone, to the respective water layer values
+      z_cc(1:nvars,2:wlev,zon) = x_cc(1:nvars,2:wlev) ! water column state vars
+      z_diag(:,2:wlev,zon)     = x_diag(:,2:wlev)     ! water column diag vars
    ENDDO
 
    DO zon=1,a_zones
@@ -293,6 +299,117 @@ END SUBROUTINE api_copy_to_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
+#if 1
+!###############################################################################
+SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, x_diag_hz, wlev)
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   TYPE(api_zone_t),DIMENSION(:),INTENT(in) :: aedZones
+   INTEGER,INTENT(in) :: n_zones
+!
+   AED_REAL,DIMENSION(:),  POINTER,INTENT(in) :: wheights
+   AED_REAL,DIMENSION(:,:),POINTER,INTENT(inout) :: x_cc
+   AED_REAL,DIMENSION(:),  POINTER,INTENT(inout) :: x_cc_hz
+   AED_REAL,DIMENSION(:,:),POINTER,INTENT(inout) :: x_diag
+   AED_REAL,DIMENSION(:),  POINTER,INTENT(inout) :: x_diag_hz
+!
+   INTEGER,INTENT(in) :: wlev
+!
+!LOCALS
+   INTEGER  :: zon, lev, v_start, v_end, i, j
+   AED_REAL :: scale, area
+   LOGICAL  :: splitZone
+   TYPE(aed_variable_t),POINTER :: tvar
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   v_start = nvars+1 ; v_end = nvars+nbenv
+   zon = n_zones
+
+   ! Loop down through water layers
+   DO lev=wlev,1,-1
+      ! Check if zone boundary is in this water layer range
+      IF ( zon .GT. 1 ) THEN
+         IF (lev .GT. 1) THEN
+            splitZone = wheights(lev-1) < aedZones(zon-1)%z_env(1)%z_height
+         ELSE
+            splitZone = 0.0 < aedZones(zon-1)%z_env(1)%z_height
+         ENDIF
+      ELSE
+         splitZone = .FALSE.
+      ENDIF
+
+      ! Set water layer variables, based on zone infomration, where variable is flagged for zavg
+      IF (splitZone) THEN
+         ! Compute layer fraction
+         IF (lev .GT. 1) THEN
+            scale = (aedZones(zon-1)%z_env(1)%z_height - wheights(lev-1)) / (wheights(lev) - wheights(lev-1))
+         ELSE
+            scale = (aedZones(zon-1)%z_env(1)%z_height - 0.0) / (wheights(lev) - 0.0)
+         ENDIF
+
+         ! Select the diag vars that have zavg == true, and assign to layer
+         ! (for first zone in the layer)
+         j = 0
+         DO i=1,n_aed_vars
+            IF ( aed_get_var(i, tvar) ) THEN
+               IF ( tvar%diag ) THEN
+                  IF ( .NOT.  tvar%sheet ) THEN
+                     j = j + 1
+                     IF ( tvar%zavg ) THEN
+                        x_diag(j,lev) = z_diag(j,1,zon) * scale
+                     ENDIF
+                  ENDIF
+               ENDIF
+            ENDIF
+         ENDDO
+         x_cc(v_start:v_end,lev) = z_cc(v_start:v_end,lev,zon) * scale
+
+         zon = zon - 1
+         j = 0
+         DO i=1,n_aed_vars
+            IF ( aed_get_var(i, tvar) ) THEN
+               IF ( tvar%diag ) THEN
+                  IF ( .NOT.  tvar%sheet ) THEN
+                     j = j + 1
+                     IF ( .NOT. tvar%zavg ) THEN
+                        x_diag(:,lev) = x_diag(:,lev) + (z_diag(:,lev,zon) * (1.0 - scale))
+                     ENDIF
+                  ENDIF
+               ENDIF
+            ENDIF
+         ENDDO
+         x_cc(v_start:v_end,lev) = x_cc(v_start:v_end,lev) + &
+                                   z_cc(v_start:v_end,lev,zon) * (1.0 - scale)
+      ELSE  ! Not a split layer - layer bounds are fully within zone
+         j = 0
+         DO i=1,n_aed_vars
+            IF ( aed_get_var(i, tvar) ) THEN
+               IF ( tvar%diag ) THEN
+                  IF ( .NOT.  tvar%sheet ) THEN
+                     j = j + 1
+                     IF ( tvar%zavg ) THEN
+                        x_diag(:,lev) = z_diag(:,lev,zon)
+                     ENDIF
+                  ENDIF
+               ENDIF
+            ENDIF
+         ENDDO
+         x_cc(v_start:v_end,lev) = z_cc(v_start:v_end,lev,zon)
+      ENDIF
+   ENDDO
+
+   ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
+   area = 0.
+   DO zon=1,n_zones
+      area = area + aedZones(zon)%z_env(1)%z_area
+   ENDDO
+   DO zon=1,n_zones
+      x_diag_hz = x_diag_hz + (z_diag_hz(:,zon) * (aedZones(zon)%z_env(1)%z_area/area))
+   ENDDO
+END SUBROUTINE api_copy_from_zone
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#else
 !###############################################################################
 SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, x_diag_hz, wlev)
 !-------------------------------------------------------------------------------
@@ -317,8 +434,10 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
 !BEGIN
    v_start = nvars+1 ; v_end = nvars+nbenv
 
+   ! Loop down through water layers
    zon = n_zones
    DO lev=wlev,1,-1
+      ! Check if zone boundary is in this water layer range
       IF ( zon .GT. 1 ) THEN
          IF (lev .GT. 1) THEN
             splitZone = wheights(lev-1) < aedZones(zon-1)%z_env(1)%z_height
@@ -329,6 +448,7 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
          splitZone = .FALSE.
       ENDIF
 
+      ! Set water layer variables, based on zone infomration, where variable is flagged for zavg
       IF (splitZone) THEN
          IF (lev .GT. 1) THEN
             scale = (aedZones(zon-1)%z_env(1)%z_height - wheights(lev-1)) / (wheights(lev) - wheights(lev-1))
@@ -363,6 +483,7 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
    ENDDO
 END SUBROUTINE api_copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#endif
 
 
 END MODULE glm_api_zones
