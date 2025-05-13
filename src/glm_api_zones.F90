@@ -67,11 +67,11 @@ CONTAINS
 
 
 !###############################################################################
-SUBROUTINE api_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)           &
+SUBROUTINE api_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV, nAEDvars) &
                                                BIND(C, name="api_set_glm_zones")
 !-------------------------------------------------------------------------------
 !ARGUMENTS
-   CINTEGER,INTENT(in) :: numVars, numBenV, numDiagV, numDiagHzV
+   CINTEGER,INTENT(in) :: numVars, numBenV, numDiagV, numDiagHzV, nAEDvars
 !
 !LOCALS
    INTEGER :: zon
@@ -86,7 +86,7 @@ SUBROUTINE api_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)           &
    nbenv = numBenV
    nvdiag = numDiagV
    nvdiag_hz = numDiagHzV
-   n_aed_vars = numVars + numBenV + numDiagV + numDiagHzV
+   n_aed_vars = nAEDvars
 
    lheights => theLake%Height
 
@@ -103,8 +103,8 @@ SUBROUTINE api_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)           &
    CALL api_set_zone_funcs(copy_to, copy_from, calc_areas)
 
    DO zon=1,n_zones
-      aedZones(zon)%z_env(1)%z_area = 0.
-      aedZones(zon)%z_env(1)%z_height = theZones(zon)%zheight
+      aedZones(zon)%z_env%z_area = 0.
+      aedZones(zon)%z_env%z_height = theZones(zon)%zheight
    ENDDO
 END SUBROUTINE api_set_glm_zones
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -135,28 +135,28 @@ SUBROUTINE api_calc_zone_areas(aedZones, n_zones, areas, wheights, wlev)
    surf = wheights(wlev)
 
    zon = 1
-   aedZones(1)%z_env(1)%z_area = areas(1)
+   aedZones(1)%z_env%z_area = areas(1)
    DO lev=2, wlev
-      IF ( wheights(lev) > aedZones(zon)%z_env(1)%z_height ) zon = zon + 1
+      IF ( wheights(lev) > aedZones(zon)%z_env%z_height ) zon = zon + 1
 
-      aedZones(zon)%z_env(1)%z_area = aedZones(zon)%z_env(1)%z_area + areas(lev) - areas(lev-1)
+      aedZones(zon)%z_env%z_area = aedZones(zon)%z_env%z_area + areas(lev) - areas(lev-1)
 
-      IF ( aedZones(zon)%z_env(1)%z_height > surf ) THEN
+      IF ( aedZones(zon)%z_env%z_height > surf ) THEN
          IF (.NOT. w_zones) THEN
             w_zones = .TRUE.
             IF ( zon > 1 ) THEN
-               aedZones(zon)%z_env(1)%z_pc_wet = surf / (aedZones(zon)%z_env(1)%z_height - aedZones(zon-1)%z_env(1)%z_height)
+               aedZones(zon)%z_env%z_pc_wet = surf / (aedZones(zon)%z_env%z_height - aedZones(zon-1)%z_env%z_height)
             ELSE
-               aedZones(zon)%z_env(1)%z_pc_wet = surf / aedZones(zon)%z_env(1)%z_height
+               aedZones(zon)%z_env%z_pc_wet = surf / aedZones(zon)%z_env%z_height
             ENDIF
          ENDIF
       ELSE
-         aedZones(zon)%z_env(1)%z_pc_wet = 1.0
+         aedZones(zon)%z_env%z_pc_wet = 1.0
       ENDIF
    ENDDO
 
    DO zon=1, n_zones
-      aedZones(zon)%z_env(1)%z_pres = -aedZones(zon)%z_env(1)%z_height
+      aedZones(zon)%z_env%z_pres = -aedZones(zon)%z_env%z_height
    ENDDO
 END SUBROUTINE api_calc_zone_areas
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -210,7 +210,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
    w_zones = .FALSE.
    zon = 1
    DO lev=1,wlev
-      IF ( lev > 1 .AND. wheights(lev) > aedZones(zon)%z_env(1)%z_height ) THEN
+      IF ( lev > 1 .AND. wheights(lev) > aedZones(zon)%z_env%z_height ) THEN
          zon = zon + 1
          IF (zon > n_zones) STOP 'Water level height is higher than highest zone height'
 !        aedZones(zon)%z_env(1)%z_sed_zones = zon
@@ -225,13 +225,13 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
       z_diag(:,lev,zon)     = z_diag(:,lev,zon) + x_diag(:,lev)
       z_diag_hz(:,zon)      = z_diag_hz(:,zon) + x_diag_hz(:)
 
-      aedZones(zon)%z_env(1)%z_temp         = aedZones(zon)%z_env(1)%z_temp + theLake(lev)%Temp
-      aedZones(zon)%z_env(1)%z_salt         = aedZones(zon)%z_env(1)%z_salt + theLake(lev)%Salinity
-      aedZones(zon)%z_env(1)%z_rho          = aedZones(zon)%z_env(1)%z_rho  + theLake(lev)%Density
-      aedZones(zon)%z_env(1)%z_rad          = aedZones(zon)%z_env(1)%z_rad  + theLake(lev)%Light
-      aedZones(zon)%z_env(1)%z_vel          = aedZones(zon)%z_env(1)%z_vel  + theLake(lev)%Umean
-      aedZones(zon)%z_env(1)%z_extc         = aedZones(zon)%z_env(1)%z_extc + theLake(lev)%ExtcCoefSW
-      aedZones(zon)%z_env(1)%z_layer_stress = aedZones(zon)%z_env(1)%z_layer_stress + theLake(lev)%LayerStress
+      aedZones(zon)%z_env%z_temp         = aedZones(zon)%z_env%z_temp + theLake(lev)%Temp
+      aedZones(zon)%z_env%z_salt         = aedZones(zon)%z_env%z_salt + theLake(lev)%Salinity
+      aedZones(zon)%z_env%z_rho          = aedZones(zon)%z_env%z_rho  + theLake(lev)%Density
+      aedZones(zon)%z_env%z_rad          = aedZones(zon)%z_env%z_rad  + theLake(lev)%Light
+      aedZones(zon)%z_env%z_vel          = aedZones(zon)%z_env%z_vel  + theLake(lev)%Umean
+      aedZones(zon)%z_env%z_extc         = aedZones(zon)%z_env%z_extc + theLake(lev)%ExtcCoefSW
+      aedZones(zon)%z_env%z_layer_stress = aedZones(zon)%z_env%z_layer_stress + theLake(lev)%LayerStress
 
       zcount(zon) = zcount(zon) + 1
    ENDDO
@@ -249,50 +249,50 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
 
    DO zon=1,a_zones
       IF (zcount(zon) /= 0) THEN
-         aedZones(zon)%z_env(1)%z_temp         = aedZones(zon)%z_env(1)%z_temp / zcount(zon)
-         aedZones(zon)%z_env(1)%z_salt         = aedZones(zon)%z_env(1)%z_salt / zcount(zon)
-         aedZones(zon)%z_env(1)%z_rho          = aedZones(zon)%z_env(1)%z_rho  / zcount(zon)
-         aedZones(zon)%z_env(1)%z_rad          = aedZones(zon)%z_env(1)%z_rad  / zcount(zon)
-         aedZones(zon)%z_env(1)%z_vel          = aedZones(zon)%z_env(1)%z_vel  / zcount(zon)
-         aedZones(zon)%z_env(1)%z_extc         = aedZones(zon)%z_env(1)%z_extc / zcount(zon)
-         aedZones(zon)%z_env(1)%z_layer_stress = aedZones(zon)%z_env(1)%z_layer_stress / zcount(zon)
+         aedZones(zon)%z_env%z_temp         = aedZones(zon)%z_env%z_temp / zcount(zon)
+         aedZones(zon)%z_env%z_salt         = aedZones(zon)%z_env%z_salt / zcount(zon)
+         aedZones(zon)%z_env%z_rho          = aedZones(zon)%z_env%z_rho  / zcount(zon)
+         aedZones(zon)%z_env%z_rad          = aedZones(zon)%z_env%z_rad  / zcount(zon)
+         aedZones(zon)%z_env%z_vel          = aedZones(zon)%z_env%z_vel  / zcount(zon)
+         aedZones(zon)%z_env%z_extc         = aedZones(zon)%z_env%z_extc / zcount(zon)
+         aedZones(zon)%z_env%z_layer_stress = aedZones(zon)%z_env%z_layer_stress / zcount(zon)
       ELSE
-         aedZones(zon)%z_env(1)%z_temp         = 0.
-         aedZones(zon)%z_env(1)%z_salt         = 0.
-         aedZones(zon)%z_env(1)%z_rho          = 0.
-         aedZones(zon)%z_env(1)%z_rad          = 0.
-         aedZones(zon)%z_env(1)%z_vel          = 0.
-         aedZones(zon)%z_env(1)%z_extc         = 0.
-         aedZones(zon)%z_env(1)%z_layer_stress = 0.
+         aedZones(zon)%z_env%z_temp         = 0.
+         aedZones(zon)%z_env%z_salt         = 0.
+         aedZones(zon)%z_env%z_rho          = 0.
+         aedZones(zon)%z_env%z_rad          = 0.
+         aedZones(zon)%z_env%z_vel          = 0.
+         aedZones(zon)%z_env%z_extc         = 0.
+         aedZones(zon)%z_env%z_layer_stress = 0.
       ENDIF
 
-      aedZones(zon)%z_env(1)%z_dz = 0.
+      aedZones(zon)%z_env%z_dz = 0.
    ENDDO
 
    surf = wheights(wlev)
-   IF ( surf > aedZones(1)%z_env(1)%z_height ) THEN
-      aedZones(1)%z_env(1)%z_depth = aedZones(1)%z_env(1)%z_height
-      aedZones(1)%z_env(1)%z_dz = aedZones(1)%z_env(1)%z_height
+   IF ( surf > aedZones(1)%z_env%z_height ) THEN
+      aedZones(1)%z_env%z_depth = aedZones(1)%z_env%z_height
+      aedZones(1)%z_env%z_dz = aedZones(1)%z_env%z_height
    ELSE
-      aedZones(1)%z_env(1)%z_depth = surf
-      aedZones(1)%z_env(1)%z_dz = surf
+      aedZones(1)%z_env%z_depth = surf
+      aedZones(1)%z_env%z_dz = surf
       w_zones = .TRUE.
    ENDIF
 
    DO zon=2,a_zones
-      aedZones(zon)%z_env(1)%z_sed_zones = zon
+      aedZones(zon)%z_env%z_sed_zones = zon
       IF ( .NOT. w_zones ) THEN
-          IF ( surf > aedZones(zon)%z_env(1)%z_height ) THEN
-             aedZones(zon)%z_env(1)%z_depth = aedZones(zon)%z_env(1)%z_height
-             aedZones(zon)%z_env(1)%z_dz =  aedZones(zon)%z_env(1)%z_height - aedZones(zon-1)%z_env(1)%z_height
+          IF ( surf > aedZones(zon)%z_env%z_height ) THEN
+             aedZones(zon)%z_env%z_depth = aedZones(zon)%z_env%z_height
+             aedZones(zon)%z_env%z_dz =  aedZones(zon)%z_env%z_height - aedZones(zon-1)%z_env%z_height
           ELSE
-             aedZones(zon)%z_env(1)%z_depth = surf
-             aedZones(zon)%z_env(1)%z_dz = surf - aedZones(zon-1)%z_env(1)%z_height
+             aedZones(zon)%z_env%z_depth = surf
+             aedZones(zon)%z_env%z_dz = surf - aedZones(zon-1)%z_env%z_height
              w_zones = .TRUE.
           ENDIF
       ELSE
-         aedZones(zon)%z_env(1)%z_depth = surf
-         aedZones(zon)%z_env(1)%z_dz = surf - aedZones(zon-1)%z_env(1)%z_height
+         aedZones(zon)%z_env%z_depth = surf
+         aedZones(zon)%z_env%z_dz = surf - aedZones(zon-1)%z_env%z_height
       ENDIF
    ENDDO
 END SUBROUTINE api_copy_to_zone
@@ -320,9 +320,13 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
    AED_REAL :: scale, area
    LOGICAL  :: splitZone
    TYPE(aed_variable_t),POINTER :: tvar
+
+   LOGICAL  :: column_benthic_var_averaging = .false.
+   INTEGER  :: water_column_zone = 1
 !
 !-------------------------------------------------------------------------------
 !BEGIN
+!print*,"api_copy_from_zone",n_zones,wlev,n_aed_vars,nvars, nbenv, nvdiag, nvdiag_hz
    v_start = nvars+1 ; v_end = nvars+nbenv
    zon = n_zones
 
@@ -331,9 +335,9 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
       ! Check if zone boundary is in this water layer range
       IF ( zon .GT. 1 ) THEN
          IF (lev .GT. 1) THEN
-            splitZone = wheights(lev-1) < aedZones(zon-1)%z_env(1)%z_height
+            splitZone = wheights(lev-1) < aedZones(zon-1)%z_env%z_height
          ELSE
-            splitZone = 0.0 < aedZones(zon-1)%z_env(1)%z_height
+            splitZone = 0.0 < aedZones(zon-1)%z_env%z_height
          ENDIF
       ELSE
          splitZone = .FALSE.
@@ -343,9 +347,9 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
       IF (splitZone) THEN
          ! Compute layer fraction
          IF (lev .GT. 1) THEN
-            scale = (aedZones(zon-1)%z_env(1)%z_height - wheights(lev-1)) / (wheights(lev) - wheights(lev-1))
+            scale = (aedZones(zon-1)%z_env%z_height - wheights(lev-1)) / (wheights(lev) - wheights(lev-1))
          ELSE
-            scale = (aedZones(zon-1)%z_env(1)%z_height - 0.0) / (wheights(lev) - 0.0)
+            scale = (aedZones(zon-1)%z_env%z_height - 0.0) / (wheights(lev) - 0.0)
          ENDIF
 
          ! Select the diag vars that have zavg == true, and assign to layer
@@ -400,13 +404,18 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
    ENDDO
 
    ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
-   area = 0.
-   DO zon=1,n_zones
-      area = area + aedZones(zon)%z_env(1)%z_area
-   ENDDO
-   DO zon=1,n_zones
-      x_diag_hz = x_diag_hz + (z_diag_hz(:,zon) * (aedZones(zon)%z_env(1)%z_area/area))
-   ENDDO
+   IF (column_benthic_var_averaging) THEN
+      area = 0.
+      DO zon=1,n_zones
+         area = area + aedZones(zon)%z_env%z_area
+      ENDDO
+      DO zon=1,n_zones
+         x_diag_hz = x_diag_hz + (z_diag_hz(:,zon) * (aedZones(zon)%z_env%z_area/area))
+      ENDDO
+   ELSE
+     ! If not column_benthic_var_averaging, set single-value to selected zone (e.g. bottom)
+     x_diag_hz = z_diag_hz(:,water_column_zone)
+   ENDIF
 END SUBROUTINE api_copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #else
@@ -440,9 +449,9 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
       ! Check if zone boundary is in this water layer range
       IF ( zon .GT. 1 ) THEN
          IF (lev .GT. 1) THEN
-            splitZone = wheights(lev-1) < aedZones(zon-1)%z_env(1)%z_height
+            splitZone = wheights(lev-1) < aedZones(zon-1)%z_env%z_height
          ELSE
-            splitZone = 0.0 < aedZones(zon-1)%z_env(1)%z_height
+            splitZone = 0.0 < aedZones(zon-1)%z_env%z_height
          ENDIF
       ELSE
          splitZone = .FALSE.
@@ -451,9 +460,9 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
       ! Set water layer variables, based on zone infomration, where variable is flagged for zavg
       IF (splitZone) THEN
          IF (lev .GT. 1) THEN
-            scale = (aedZones(zon-1)%z_env(1)%z_height - wheights(lev-1)) / (wheights(lev) - wheights(lev-1))
+            scale = (aedZones(zon-1)%z_env%z_height - wheights(lev-1)) / (wheights(lev) - wheights(lev-1))
          ELSE
-            scale = (aedZones(zon-1)%z_env(1)%z_height - 0.0) / (wheights(lev) - 0.0)
+            scale = (aedZones(zon-1)%z_env%z_height - 0.0) / (wheights(lev) - 0.0)
          ENDIF
 
          WHERE(z_diag(:,lev,zon) /= 0.) &
@@ -476,10 +485,10 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
    ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
    area = 0.
    DO zon=1,n_zones
-      area = area + aedZones(zon)%z_env(1)%z_area
+      area = area + aedZones(zon)%z_env%z_area
    ENDDO
    DO zon=1,n_zones
-      x_diag_hz = x_diag_hz + (z_diag_hz(:,zon) * (aedZones(zon)%z_env(1)%z_area/area))
+      x_diag_hz = x_diag_hz + (z_diag_hz(:,zon) * (aedZones(zon)%z_env%z_area/area))
    ENDDO
 END SUBROUTINE api_copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

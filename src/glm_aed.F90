@@ -1200,7 +1200,7 @@ CONTAINS
                ENDIF
             ENDIF
          ENDDO
-         !print*,"Calling ben for zone ",zone_var,zon,z_sed_zones(zon)
+         !print*,"Calling ben for zone ",zon,zone_var,z_sed_zones(zon)
 
          !# (1) ZONE COLUMN UPDATING
          zlev = 0
@@ -1225,9 +1225,7 @@ CONTAINS
          IF ( benthic_mode .EQ. 3 ) THEN
             !# Zone is able to operated on by riparian and dry methods
             CALL aed_calculate_riparian(column_sed, zlev, theZones(zon)%z_pc_wet)
-            IF (theZones(zon)%z_pc_wet < 0.01 ) THEN
-               CALL aed_calculate_dry(column_sed, zlev)
-            ENDIF
+            IF (theZones(zon)%z_pc_wet < 0.01 ) CALL aed_calculate_dry(column_sed, zlev)
 
             !# update feedback arrays to host model, to reduce rain (or if -ve then add flow)
             CALL aed_rain_loss(column_sed, 1, localrainl(zon));
@@ -1248,14 +1246,13 @@ CONTAINS
          !# They are stored in flux_ben (benthic vars) and flux_pel (water vars)
          flux_pel_pre = flux_pel
 
-!        print*,"Calling ben for zone ",zone_var,zon,z_sed_zones(zon)
+         !print*,"Calling ben for zone ",zon,zone_var!,z_sed_zones(zon)
          CALL aed_calculate_benthic(column_sed, zon, .TRUE.)
 
          !# Record benthic fluxes in the zone array
          flux_zon(zon, :) = flux_ben(:)
 
-         !# Now we have to find out the water column flux that occured in
-         !# aed_calculate_zone_column, aed_calculate_riparian & aed_calculate_benthic
+         !# Now we have to find out the water column flux that occured and
          !# (incremented in flux_pel) and then disaggregate it to relevant layers
          flux_pel_z(zon,:) = flux_pel(zon,:)-flux_pel_pre(zon,:)
       ENDDO
@@ -1296,12 +1293,11 @@ CONTAINS
       !# bottom flux into pelagic over bottom box (i.e., divide by layer height).
       !# scaled to proportion of area that is "bottom"
       DO lev=1,wlev
-         if(lev>1)flux_pel(lev, :) = flux_pel(lev, :) * (area(lev)-area(lev-1))/area(lev)
+         IF (lev > 1) flux_pel(lev, :) = flux_pel(lev, :) * (area(lev)-area(lev-1))/area(lev)
          DO v=v_start,v_end
            IF ( cc(1, v) .GE. 0.0 ) flux_pel(lev, v) = max(-1.0 * cc(lev, v), flux_pel(lev, v)/dz(lev))
          END DO
       ENDDO
-
    ELSE
       !# Sediment zones are not simulated and therefore just operate on the bottom-most
       !# GLM layer as the "benthos". If benthic_mode=1 then benthic fluxes will also be

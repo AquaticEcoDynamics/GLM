@@ -414,7 +414,7 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
 !-------------------------------------------------------------------------------
 !BEGIN
    IF (n_zones .GT. 0) &
-      CALL api_set_glm_zones(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
+      CALL api_set_glm_zones(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet, n_aed_vars)
 
    !# Now that we know how many vars we need, we can allocate space for them
    ALLOCATE(cc((n_vars + n_vars_ben), MaxLayers),stat=status)
@@ -591,7 +591,7 @@ SUBROUTINE api_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
    IF ( benthic_mode .GT. 1 ) THEN
       zon = 1
       DO lev=1,wlev
-         IF (lheights(lev) .GT. aedZones(zon)%z_env(1)%z_height) THEN  !CAB ???
+         IF (lheights(lev) .GT. aedZones(zon)%z_env%z_height) THEN  !CAB ???
             sed_zones(lev) = zon * ( area(lev) - pa ) / area(lev)
             pa = area(lev)
             zon = zon+1
