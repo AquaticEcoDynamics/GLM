@@ -298,6 +298,9 @@ void do_model(int jstart, int nsave)
     SWold = MetOld.ShortWave;
 
     jday = jstart - 1;
+#if PLOTS
+    today = jday;
+#endif
 
     write_output(jday, SecsPerDay, nsave, stepnum);
     /**************************************************************************
