@@ -337,7 +337,7 @@ SUBROUTINE copy_from_zone(n_aed_vars,x_cc, x_diag, x_diag_hz, wlev)
          DO i=1,n_aed_vars
             IF ( aed_get_var(i, tvar) ) THEN
                !print *,'zav', i, TRIM(tvar%name),tvar%zavg
-               IF ( tvar%diag ) THEN
+               IF ( tvar%var_type == V_DIAGNOSTIC ) THEN
                   IF ( .NOT.  tvar%sheet ) THEN
                      j = j + 1
                      !print*, "j1", j
@@ -364,7 +364,7 @@ SUBROUTINE copy_from_zone(n_aed_vars,x_cc, x_diag, x_diag_hz, wlev)
          j = 0
          DO i=1,n_aed_vars
             IF ( aed_get_var(i, tvar) ) THEN
-               IF ( tvar%diag ) THEN
+               IF ( tvar%var_type == V_DIAGNOSTIC ) THEN
                   IF ( .NOT.  tvar%sheet ) THEN
                      j = j + 1
                      IF ( tvar%zavg ) THEN
@@ -386,7 +386,7 @@ SUBROUTINE copy_from_zone(n_aed_vars,x_cc, x_diag, x_diag_hz, wlev)
          j = 0
          DO i=1,n_aed_vars
             IF ( aed_get_var(i, tvar) ) THEN
-               IF ( tvar%diag ) THEN
+               IF ( tvar%var_type == V_DIAGNOSTIC ) THEN
                   IF ( .NOT.  tvar%sheet ) THEN
                      j = j + 1
                      IF ( tvar%zavg ) THEN

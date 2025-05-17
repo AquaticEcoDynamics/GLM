@@ -282,7 +282,7 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
 #if DEBUG
    DO i=1,n_aed_vars
       IF ( aed_get_var(i, tvar) ) THEN
-         print *,"AED var ", i, tvar%sheet, tvar%diag, tvar%extern, TRIM(tvar%name)
+         print *,"AED var ", i, tvar%sheet, tvar%var_type, TRIM(tvar%name)
       ELSE
          print *,"AED var ", i, " is empty"
       ENDIF
@@ -324,7 +324,7 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    j = 0
    DO i=1,n_aed_vars
       IF ( aed_get_var(i, tvar) ) THEN
-         IF ( .NOT. (tvar%sheet .OR. tvar%diag .OR. tvar%extern) ) THEN
+         IF ( .NOT. tvar%sheet .AND. tvar%var_type == V_STATE ) THEN
             j = j + 1
             names(j) = TRIM(tvar%name)
             min_(j) = tvar%minimum
@@ -338,7 +338,7 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    j = 0
    DO i=1,n_aed_vars
       IF ( aed_get_var(i, tvar) ) THEN
-         IF ( tvar%sheet .AND. .NOT. (tvar%diag .OR. tvar%extern) ) THEN
+         IF ( tvar%sheet .AND. tvar%var_type == V_STATE ) THEN
             j = j + 1
             bennames(j) = TRIM(tvar%name)
             min_(n_vars+j) = tvar%minimum
@@ -352,7 +352,7 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    j = 0
    DO i=1,n_aed_vars
       IF ( aed_get_var(i, tvar) ) THEN
-         IF ( tvar%diag ) THEN
+         IF ( tvar%var_type == V_DIAGNOSTIC ) THEN
             IF ( .NOT.  tvar%sheet ) THEN
                j = j + 1
                print "(7X,'D(',I4,') water column diagnostic   > ',A)",j , TRIM(tvar%name)
@@ -365,7 +365,7 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    j = 0
    DO i=1,n_aed_vars
       IF ( aed_get_var(i, tvar) ) THEN
-         IF ( tvar%diag ) THEN
+         IF ( tvar%var_type == V_DIAGNOSTIC ) THEN
             IF (tvar%sheet ) THEN
                j = j + 1
                !print *,"     D(",j,") AED diagnostic 2Dvariable: ", TRIM(tvar%name)
@@ -384,7 +384,7 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    v = 0 ; sv = 0;
    DO av=1,n_aed_vars
       IF ( .NOT.  aed_get_var(av, tvar) ) STOP "     ERROR getting variable info"
-      IF ( .NOT. ( tvar%extern .OR. tvar%diag) ) THEN  !# neither global nor diagnostic variable
+      IF ( tvar%var_type == V_STATE ) THEN  !# neither global nor diagnostic variable
          IF ( tvar%sheet ) THEN
             sv = sv + 1
             cc(:, n_vars+sv) = tvar%initial
@@ -469,7 +469,7 @@ CINTEGER FUNCTION aed_is_var(id,i_vname,len) BIND(C, name=_WQ_IS_VAR)
    v = 0; sv = 0; d = 0; sd = 0
    DO i=1,n_aed_vars
       IF ( aed_get_var(i, tvar) ) THEN
-         IF ( .NOT. (tvar%diag .OR. tvar%extern) ) THEN
+         IF ( tvar%var_type == V_STATE ) THEN
             IF ( tvar%sheet ) THEN ; sv=sv+1; ELSE ; v=v+1 ; ENDIF
             IF ( TRIM(tvar%name) == vname ) THEN
                IF (tvar%sheet) THEN
@@ -485,7 +485,7 @@ CINTEGER FUNCTION aed_is_var(id,i_vname,len) BIND(C, name=_WQ_IS_VAR)
                ENDIF
                RETURN
             ENDIF
-         ELSEIF ( tvar%diag ) THEN
+         ELSEIF ( tvar%var_type == V_DIAGNOSTIC ) THEN
             IF ( tvar%sheet ) THEN ; sd=sd+1; ELSE ; d=d+1 ; ENDIF
             IF ( TRIM(tvar%name) == vname ) THEN
                IF (tvar%sheet) THEN
@@ -575,7 +575,7 @@ SUBROUTINE check_data
    DO av=1,n_aed_vars
       IF ( .NOT.  aed_get_var(av, tvar) ) STOP "Error getting variable info"
 
-      IF ( tvar%extern ) THEN !# global variable
+      IF ( tvar%var_type == V_EXTERNAL ) THEN !# global variable
          ev = ev + 1
          SELECT CASE (tvar%name)
             CASE ( 'temperature' ) ; tvar%found = .true.
@@ -608,13 +608,13 @@ SUBROUTINE check_data
             CASE ( 'timestep' )    ; tvar%found = .true.
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
          END SELECT
-      ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
+      ELSEIF ( tvar%var_type == V_DIAGNOSTIC ) THEN  !# Diagnostic variable
          IF ( tvar%sheet ) THEN
             sd = sd + 1
          ELSE
             d = d + 1
          ENDIF
-      ELSE    !# state variable
+      ELSEIF ( tvar%var_type == V_STATE ) THEN    !# state variable
          IF ( tvar%sheet ) THEN
             sv = sv + 1
          ELSE
@@ -659,7 +659,7 @@ SUBROUTINE define_column(column, top, flux_pel, flux_atm, flux_ben)
    DO av=1,n_aed_vars
       IF ( .NOT.  aed_get_var(av, tvar) ) STOP "Error getting variable info"
 
-      IF ( tvar%extern ) THEN !# global variable
+      IF ( tvar%var_type == V_EXTERNAL ) THEN !# global variable
          ev = ev + 1
          SELECT CASE (tvar%name)
             CASE ( 'temperature' ) ; column(av)%cell => temp(:)
@@ -692,7 +692,7 @@ SUBROUTINE define_column(column, top, flux_pel, flux_atm, flux_ben)
             CASE ( 'timestep' )    ; column(av)%cell_sheet => timestep
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//TRIM(tvar%name)//" not found.")
          END SELECT
-      ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
+      ELSEIF ( tvar%var_type == V_DIAGNOSTIC ) THEN  !# Diagnostic variable
          IF ( tvar%sheet ) THEN
             sd = sd + 1
             column(av)%cell_sheet => cc_diag_hz(sd)
@@ -700,7 +700,7 @@ SUBROUTINE define_column(column, top, flux_pel, flux_atm, flux_ben)
             d = d + 1
             column(av)%cell => cc_diag(:, d)
          ENDIF
-      ELSE    !# state variable
+      ELSEIF ( tvar%var_type == V_STATE ) THEN    !# state variable
          IF ( tvar%sheet ) THEN
             sv = sv + 1
             IF ( tvar%bot ) THEN
@@ -748,7 +748,7 @@ SUBROUTINE check_states(column, wlev)
       v = 0
       DO i=1,n_aed_vars
          IF ( aed_get_var(i, tv) ) THEN
-            IF ( .NOT. (tv%diag .OR. tv%extern) ) THEN
+            IF ( tv%var_type == V_STATE ) THEN
                v = v + 1
                IF ( repair_state ) THEN
 #if DEBUG
@@ -850,7 +850,7 @@ SUBROUTINE aed_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
       v = 0
       DO i=1,n_aed_vars
          IF ( aed_get_var(i, tv) ) THEN
-            IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern) ) THEN
+            IF ( .NOT. tv%sheet .AND. tv%var_type == V_STATE ) THEN
                v = v + 1
                ws(:,i) = zero_
                ! only for state_vars that are not sheet
@@ -872,7 +872,7 @@ SUBROUTINE aed_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
       v = 0
       DO i=1,n_aed_vars
          IF ( aed_get_var(i, tv) ) THEN
-            IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern) ) THEN
+            IF ( .NOT. tv%sheet .AND. tv%var_type == V_STATE ) THEN
                v = v + 1
                !# only for state_vars that are not sheet, and also non-zero ws
                IF ( .NOT. isnan(tv%mobility) .AND. SUM(ABS(ws(1:wlev,i)))>zero_ ) THEN
@@ -952,12 +952,12 @@ SUBROUTINE aed_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
   !    v = 0; d = 0
   !    DO i=1,n_aed_vars
   !       IF ( aed_get_var(i, tv) ) THEN
-  !          IF ( .NOT. (tv%diag .OR. tv%extern) ) THEN
+  !          IF ( tv%var_type == V_STATE ) THEN
   !             v = v + 1
   !             WRITE(*,'(1X,"VarLims: ",I0,1X,"<=> ",f15.8,f15.8," : ",A," (",A,")")') &
   !                                        v,MINVAL(cc(:,v)),MAXVAL(cc(:,v)),TRIM(tv%name),TRIM(tv%units)
   !             !print *,'VarLims',v,TRIM(tv%name),MINVAL(cc(v,:)),MAXVAL(cc(v,:))
-  !          ELSE IF ( tv%diag  ) THEN
+  !          ELSE IF ( tv%var_type == V_DIAGNOSTIC  ) THEN
   !             d = d + 1
   !             WRITE(*,'(1X,"DiagLim: ",I0,1X,"<=> ",f15.8,f15.8," : ",A," (",A,")")') &
   !                                        d,MINVAL(cc_diag(:,d)),MAXVAL(cc_diag(:,d)),TRIM(tv%name),TRIM(tv%units)
@@ -988,7 +988,7 @@ CONTAINS
    DO av=1,n_aed_vars
       IF ( .NOT.  aed_get_var(av, tvar) ) STOP "Error getting variable info"
 
-      IF ( tvar%extern ) THEN !# global "environment" variables
+      IF ( tvar%var_type == V_EXTERNAL ) THEN !# global "environment" variables
          ev = ev + 1
          SELECT CASE (tvar%name)
             CASE ( 'temperature' ) ; column_sed(av)%cell => theZones(:)%ztemp
@@ -1021,7 +1021,7 @@ CONTAINS
             CASE ( 'timestep' )    ; column_sed(av)%cell_sheet => timestep
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
          END SELECT
-      ELSEIF ( tvar%diag ) THEN  !# Diagnostic variables
+      ELSEIF ( tvar%var_type == V_DIAGNOSTIC ) THEN  !# Diagnostic variables
          IF ( tvar%sheet ) THEN
             sd = sd + 1
             column_sed(av)%cell_sheet => z_diag_hz(zon,sd)
@@ -1029,7 +1029,7 @@ CONTAINS
             d = d + 1
             column_sed(av)%cell => z_diag(zon, bot:top, d)     ! limit to layers above zone (instead of ":")
          ENDIF
-      ELSE    !# State variables
+      ELSEIF ( tvar%var_type == V_STATE ) THEN    !# State variables
          IF ( tvar%sheet ) THEN
             sv = sv + 1
             IF ( tvar%bot ) THEN
@@ -1093,12 +1093,12 @@ CONTAINS
             DO av=1,n_aed_vars
                IF ( .NOT. aed_get_var(av, tvar) ) STOP "Error getting variable info"
 
-               IF ( tvar%diag ) THEN  !# Diagnostic variable
+               IF ( tvar%var_type == V_DIAGNOSTIC ) THEN  !# Diagnostic variable
                   IF ( tvar%sheet ) THEN
                      sd = sd + 1
                      column_sed(av)%cell_sheet => z_diag_hz(zon,sd)
                   ENDIF
-               ELSEIF ( .NOT. tvar%extern ) THEN !# State variable
+               ELSEIF ( tvar%var_type == V_STATE ) THEN !# State variable
                   IF ( tvar%sheet ) THEN
                      sv = sv + 1
                      IF ( tvar%bot ) THEN
@@ -1186,12 +1186,12 @@ CONTAINS
          DO av=1,n_aed_vars
             IF ( .NOT. aed_get_var(av, tvar) ) STOP "Error getting variable info"
 
-            IF ( tvar%diag ) THEN  !# Diagnostic variable
+            IF ( tvar%var_type == V_DIAGNOSTIC ) THEN  !# Diagnostic variable
                IF ( tvar%sheet ) THEN
                   sd = sd + 1
                   column_sed(av)%cell_sheet => z_diag_hz(zon,sd)
                ENDIF
-            ELSEIF ( .NOT. tvar%extern ) THEN !# State variable
+            ELSEIF ( tvar%var_type == V_STATE ) THEN !# State variable
                IF ( tvar%sheet ) THEN
                   sv = sv + 1
                   IF ( tvar%bot ) THEN
@@ -1451,7 +1451,7 @@ SUBROUTINE aed_init_glm_output(ncid,x_dim,y_dim,z_dim,zone_dim,time_dim) BIND(C,
 !  v = 0; d = 0
    DO i=1,n_aed_vars
       IF ( aed_get_var(i, tv) ) THEN
-         IF ( .NOT. (tv%sheet .OR. tv%extern) ) THEN
+         IF ( .NOT. tv%sheet .AND. (tv%var_type == V_DIAGNOSTIC .OR. tv%var_type == V_STATE) ) THEN
             !# only for state and diag vars that are not sheet
             externalid(i) = NEW_NC_VARIABLE(ncid, TRIM(tv%name), LEN_TRIM(tv%name), NF90_REALTYPE, 4, dims(1:4))
             CALL set_nc_attributes(ncid, externalid(i), MYTRIM(tv%units), MYTRIM(tv%longname) PARAM_FILLVALUE)
@@ -1467,7 +1467,7 @@ SUBROUTINE aed_init_glm_output(ncid,x_dim,y_dim,z_dim,zone_dim,time_dim) BIND(C,
 !  v = 0; d = 0
    DO i=1,n_aed_vars
       IF ( aed_get_var(i, tv) ) THEN
-         IF ( tv%sheet .AND. .NOT. tv%extern ) THEN
+         IF ( tv%sheet .AND. (tv%var_type == V_DIAGNOSTIC .OR. tv%var_type == V_STATE) ) THEN
             !# only for state and diag sheet vars
             externalid(i) = NEW_NC_VARIABLE(ncid, TRIM(tv%name), LEN_TRIM(tv%name), NF90_REALTYPE, 3, dims(1:3))
             CALL set_nc_attributes(ncid, externalid(i), MYTRIM(tv%units), MYTRIM(tv%longname) PARAM_FILLVALUE)
@@ -1486,7 +1486,7 @@ SUBROUTINE aed_init_glm_output(ncid,x_dim,y_dim,z_dim,zone_dim,time_dim) BIND(C,
 !     v = 0; d = 0
       DO i=1,n_aed_vars
          IF ( aed_get_var(i, tv) ) THEN
-            IF ( tv%sheet .AND. .NOT. tv%extern ) THEN
+            IF ( tv%sheet .AND. (tv%var_type == V_STATE .OR. tv%var_type == V_DIAGNOSTIC) ) THEN
                !# only for state and diag sheet vars
                zexternalid(i) = NEW_NC_VARIABLE(ncid, TRIM(tv%name)//"_Z", LEN_TRIM(tv%name)+2, NF90_REALTYPE, 4, dims(1:4))
                CALL set_nc_attributes(ncid, zexternalid(i), MYTRIM(tv%units), MYTRIM(tv%longname) PARAM_FILLVALUE)
@@ -1526,7 +1526,7 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
    v = 0; d = 0; sv = 0; sd = 0
    DO i=1,n_aed_vars
       IF ( aed_get_var(i, tv) ) THEN
-         IF ( tv%diag ) THEN
+         IF ( tv%var_type == V_DIAGNOSTIC ) THEN
             !# Process and store diagnostic variables.
             IF ( tv%sheet ) THEN
                sd = sd + 1
@@ -1567,7 +1567,7 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                   CALL write_csv_point_avg(j, tv%name, len_trim(tv%name), cc_diag(:, d), NULCSTR, 0, last=last)
                ENDDO
             ENDIF
-         ELSE IF ( .NOT. tv%extern ) THEN  ! not diag
+         ELSE IF ( tv%var_type == V_STATE ) THEN  ! not diag
             IF ( tv%sheet ) THEN
                sv = sv + 1
                !# Store benthic biogeochemical state variables.
@@ -1658,7 +1658,7 @@ INTEGER FUNCTION WQVar_Index(name)
    v = 0
    DO i=1, n_aed_vars
       IF ( aed_get_var(i, tv) ) THEN
-         IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern) ) THEN
+         IF ( .NOT. tv%sheet .AND. tv%var_type == V_STATE ) THEN
             v = v + 1
             IF ( name .EQ. tv%name ) THEN
                WQVar_Index = v

@@ -507,7 +507,7 @@ CINTEGER FUNCTION api_is_var(id,i_vname,len)            BIND(C, name=_WQ_IS_VAR)
    v = 0; sv = 0; d = 0; sd = 0
    DO i=1,n_aed_vars
       IF ( aed_get_var(i, tvar) ) THEN
-         IF ( .NOT. (tvar%diag .OR. tvar%extern) ) THEN
+         IF ( tvar%var_type == V_STATE ) THEN
             IF ( tvar%sheet ) THEN ; sv=sv+1; ELSE ; v=v+1 ; ENDIF
             IF ( TRIM(tvar%name) == vname ) THEN
                IF (tvar%sheet) THEN
@@ -519,7 +519,7 @@ CINTEGER FUNCTION api_is_var(id,i_vname,len)            BIND(C, name=_WQ_IS_VAR)
                ENDIF
                RETURN
             ENDIF
-         ELSEIF ( tvar%diag ) THEN
+         ELSEIF ( tvar%var_type == V_DIAGNOSTIC ) THEN
             IF ( tvar%sheet ) THEN ; sd=sd+1; ELSE ; d=d+1 ; ENDIF
             IF ( TRIM(tvar%name) == vname ) THEN
                IF (tvar%sheet) THEN
@@ -667,7 +667,7 @@ SUBROUTINE api_init_glm_output(ncid,x_dim,y_dim,z_dim,zone_dim,time_dim)       &
 !  v = 0; d = 0
    DO i=1,n_aed_vars
       IF ( aed_get_var(i, tv) ) THEN
-         IF ( .NOT. (tv%sheet .OR. tv%extern) ) THEN
+         IF ( .NOT. tv%sheet .AND. (tv%var_type == V_DIAGNOSTIC .OR. tv%var_type == V_STATE) ) THEN
             !# only for state and diag vars that are not sheet
             externalid(i) = NEW_NC_VARIABLE(ncid, TRIM(tv%name), LEN_TRIM(tv%name), NF90_REALTYPE, 4, dims(1:4))
             CALL set_nc_attributes(ncid, externalid(i), MYTRIM(tv%units), MYTRIM(tv%longname) PARAM_FILLVALUE)
@@ -683,7 +683,7 @@ SUBROUTINE api_init_glm_output(ncid,x_dim,y_dim,z_dim,zone_dim,time_dim)       &
 !  v = 0; d = 0
    DO i=1,n_aed_vars
       IF ( aed_get_var(i, tv) ) THEN
-         IF ( tv%sheet .AND. .NOT. tv%extern ) THEN
+         IF ( tv%sheet .AND. (tv%var_type == V_DIAGNOSTIC .OR. tv%var_type == V_STATE) ) THEN
             !# only for state and diag sheet vars
             externalid(i) = NEW_NC_VARIABLE(ncid, TRIM(tv%name), LEN_TRIM(tv%name), NF90_REALTYPE, 3, dims(1:3))
             CALL set_nc_attributes(ncid, externalid(i), MYTRIM(tv%units), MYTRIM(tv%longname) PARAM_FILLVALUE)
@@ -702,7 +702,7 @@ SUBROUTINE api_init_glm_output(ncid,x_dim,y_dim,z_dim,zone_dim,time_dim)       &
 !     v = 0; d = 0
       DO i=1,n_aed_vars
          IF ( aed_get_var(i, tv) ) THEN
-            IF ( tv%sheet .AND. .NOT. tv%extern ) THEN
+            IF ( tv%sheet .AND. (tv%var_type == V_DIAGNOSTIC .OR. tv%var_type == V_STATE) ) THEN
                !# only for state and diag sheet vars
                zexternalid(i) = NEW_NC_VARIABLE(ncid, TRIM(tv%name)//"_Z", LEN_TRIM(tv%name)+2, NF90_REALTYPE, 4, dims(1:4))
                CALL set_nc_attributes(ncid, zexternalid(i), MYTRIM(tv%units), MYTRIM(tv%longname) PARAM_FILLVALUE)
@@ -740,7 +740,7 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
    v = 0; d = 0; sv = 0; sd = 0
    DO i=1,n_aed_vars
       IF ( aed_get_var(i, tv) ) THEN
-         IF ( tv%diag ) THEN
+         IF ( tv%var_type == V_DIAGNOSTIC ) THEN
             !# Process and store diagnostic variables.
             IF ( tv%sheet ) THEN
                sd = sd + 1
@@ -777,7 +777,7 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                   CALL write_csv_point_avg(j, tv%name, len_trim(tv%name), cc_diag(d, :), NULCSTR, 0, last=last)
                ENDDO
             ENDIF
-         ELSE IF ( .NOT. tv%extern ) THEN  ! not diag
+         ELSE IF ( tv%var_type == V_STATE ) THEN  ! not diag
             IF ( tv%sheet ) THEN
                sv = sv + 1
                !# Store benthic biogeochemical state variables.

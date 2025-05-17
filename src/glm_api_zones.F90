@@ -357,7 +357,7 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
          j = 0
          DO i=1,n_aed_vars
             IF ( aed_get_var(i, tvar) ) THEN
-               IF ( tvar%diag ) THEN
+               IF ( tvar%var_type == V_DIAGNOSTIC ) THEN
                   IF ( .NOT.  tvar%sheet ) THEN
                      j = j + 1
                      IF ( tvar%zavg ) THEN
@@ -373,7 +373,7 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
          j = 0
          DO i=1,n_aed_vars
             IF ( aed_get_var(i, tvar) ) THEN
-               IF ( tvar%diag ) THEN
+               IF ( tvar%var_type == V_DIAGNOSTIC ) THEN
                   IF ( .NOT.  tvar%sheet ) THEN
                      j = j + 1
                      IF ( .NOT. tvar%zavg ) THEN
@@ -389,7 +389,7 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
          j = 0
          DO i=1,n_aed_vars
             IF ( aed_get_var(i, tvar) ) THEN
-               IF ( tvar%diag ) THEN
+               IF ( tvar%var_type == V_DIAGNOSTIC ) THEN
                   IF ( .NOT.  tvar%sheet ) THEN
                      j = j + 1
                      IF ( tvar%zavg ) THEN
