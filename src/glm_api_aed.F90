@@ -395,7 +395,7 @@ SUBROUTINE api_set_glm_env()
    env(1)%rainloss      =>  rain(1) !rainloss(1)
 
 
-   CALL aed_set_model_env(env, 1)
+   CALL aed_set_model_env(env, MaxLayers, 1)
 
 END SUBROUTINE api_set_glm_env
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
