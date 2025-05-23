@@ -470,7 +470,7 @@ print *,'HI0',num_particle_groups
 
 print *,'HI'
 
-   CALL aed_ptm_init(num_particle_groups,num_particles,ptm_bla,n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
+   CALL aed_ptm_init(num_particle_groups,num_particles,ptm_bla,n_vars,n_vars_ben,n_vars_diag,n_vars_diag_sheet,MaxLayers)
 
 print *,'BYE', num_particles
 

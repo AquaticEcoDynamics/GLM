@@ -290,7 +290,7 @@ void do_ptm_update()
         for (p = 0; p < max_particle_num; p++) {
           if (_PTM_Stat(pg,p,STAT)>0) {
 
-            printf("void do_ptm_update() %d %f \n"  , _PTM_Stat(pg,p,STAT),_PTM_Vars(pg,p,HGHT));
+            // printf("void do_ptm_update() %d %f \n"  , _PTM_Stat(pg,p,STAT),_PTM_Vars(pg,p,HGHT));
 
             // Capture current height of particle to calculate probability of settling below
             prev_height = _PTM_Vars(pg,p,HGHT);
@@ -501,7 +501,7 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
     height_range = upper_height - lower_height;
     n = 0;
 
-    pg = 1;
+    pg = 0;
     // For each new particle, initialise their properties and height
     for (p = 0 ; p < max_particle_num; p++) {
         if(n == new_particles){
@@ -708,6 +708,8 @@ void ptm_update_layerid()
             for (i = botmLayer; i < NumLayers; i++) {
                 if (_PTM_Vars(pg,p,HGHT)<Lake[i].Height) {
                     _PTM_Stat(pg,p,LAYR) = i;
+                    _PTM_Stat(pg,p,IDX3) = i;
+                    _PTM_Stat(pg,p,IDX2) = 1;
                     break; // get out of layer loop
                 }
             }
