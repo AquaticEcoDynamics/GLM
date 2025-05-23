@@ -290,7 +290,7 @@ void do_ptm_update()
         for (p = 0; p < max_particle_num; p++) {
           if (_PTM_Stat(pg,p,STAT)>0) {
 
-            printf("void do_ptm_update() %d %f \n"  , _PTM_Stat(pg,p,STAT),_PTM_Vars(pg,p,HGHT));
+            //printf("void do_ptm_update() %d %f \n"  , _PTM_Stat(pg,p,STAT),_PTM_Vars(pg,p,HGHT));
 
             // Capture current height of particle to calculate probability of settling below
             prev_height = _PTM_Vars(pg,p,HGHT);
@@ -301,9 +301,9 @@ void do_ptm_update()
             K_above = Lake[_PTM_Stat(pg,p+1,LAYR)].Epsilon;
 
             // determine whether to assume molecular diffusion K
-            if (K_z < 1E-6) K_z = 1E-6;
+            if (K_z < ptm_diffusivity) K_z = ptm_diffusivity;
 
-            if (K_above < 1E-6) K_above = 1E-6;
+            if (K_above < ptm_diffusivity) K_above = ptm_diffusivity;
 
             if(_PTM_Stat(pg,p,LAYR) == surfLayer){
                 K_prime_z = 0;

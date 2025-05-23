@@ -61,7 +61,7 @@ static size_t start_r[1],edges_r[1];
 static int lon_id,lat_id,z_id,H_id,V_id,TV_id,Taub_id,NS_id,time_id;
 static int SL_id,HICE_id,HSNOW_id,HWICE_id, AvgSurfTemp_id;
 static int precip_id,evap_id,rho_id,rad_id,extc_id,i0_id,wnd_id;
-static int temp_id, salt_id, umean_id, uorb_id, restart_id, Mixer_Count_id;
+static int temp_id, salt_id, umean_id, uorb_id, restart_id, Mixer_Count_id, epsilon_id;
 
 //# from lake.csv
 static int SA_id, VSnow_id,VBIce_id,VWIce_id, TotInVol_id, TotOutVol_id;
@@ -192,19 +192,20 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     dims[1] = z_dim;
     dims[0] = time_dim;
 
-    check_nc_error(nc_def_var(ncid, "z",     NC_REALTYPE, 4, dims, &z_id));
-    check_nc_error(nc_def_var(ncid, "H",     NC_REALTYPE, 4, dims, &H_id));
-    check_nc_error(nc_def_var(ncid, "V",     NC_REALTYPE, 4, dims, &V_id));
-    check_nc_error(nc_def_var(ncid, "salt",  NC_REALTYPE, 4, dims, &salt_id));
-    check_nc_error(nc_def_var(ncid, "temp",  NC_REALTYPE, 4, dims, &temp_id));
+    check_nc_error(nc_def_var(ncid, "z",       NC_REALTYPE, 4, dims, &z_id));
+    check_nc_error(nc_def_var(ncid, "H",       NC_REALTYPE, 4, dims, &H_id));
+    check_nc_error(nc_def_var(ncid, "V",       NC_REALTYPE, 4, dims, &V_id));
+    check_nc_error(nc_def_var(ncid, "salt",    NC_REALTYPE, 4, dims, &salt_id));
+    check_nc_error(nc_def_var(ncid, "temp",    NC_REALTYPE, 4, dims, &temp_id));
 
-    check_nc_error(nc_def_var(ncid, "dens",  NC_REALTYPE, 4, dims, &rho_id));
-    check_nc_error(nc_def_var(ncid, "radn",  NC_REALTYPE, 4, dims, &rad_id));
-    check_nc_error(nc_def_var(ncid, "extc",  NC_REALTYPE, 4, dims, &extc_id));
+    check_nc_error(nc_def_var(ncid, "dens",    NC_REALTYPE, 4, dims, &rho_id));
+    check_nc_error(nc_def_var(ncid, "radn",    NC_REALTYPE, 4, dims, &rad_id));
+    check_nc_error(nc_def_var(ncid, "extc",    NC_REALTYPE, 4, dims, &extc_id));
 
-    check_nc_error(nc_def_var(ncid, "umean", NC_REALTYPE, 4, dims, &umean_id));
-    check_nc_error(nc_def_var(ncid, "uorb",  NC_REALTYPE, 4, dims, &uorb_id));
-    check_nc_error(nc_def_var(ncid, "taub",  NC_REALTYPE, 4, dims, &Taub_id));
+    check_nc_error(nc_def_var(ncid, "umean",   NC_REALTYPE, 4, dims, &umean_id));
+    check_nc_error(nc_def_var(ncid, "uorb",    NC_REALTYPE, 4, dims, &uorb_id));
+    check_nc_error(nc_def_var(ncid, "taub",    NC_REALTYPE, 4, dims, &Taub_id));
+    check_nc_error(nc_def_var(ncid, "epsilon", NC_REALTYPE, 4, dims, &epsilon_id));
 
     /**************************************************************************
      * assign attributes                                                      *
@@ -270,20 +271,21 @@ f0, fsum,u_f,u0,u_avg" PARAM_FILLVALUE);
     set_nc_attributes(ncid, zL_id,        "unknown", "z_L"                  PARAM_FILLVALUE);
 
     //# x,y,z,t
-    set_nc_attributes(ncid, z_id,      "meters",  "layer heights"   PARAM_FILLVALUE);
-    set_nc_attributes(ncid, H_id,      "meters",  "layer heights"   PARAM_FILLVALUE);
-    set_nc_attributes(ncid, V_id,      "m3",      "layer volume"    PARAM_FILLVALUE);
-    set_nc_attributes(ncid, salt_id,   "g/kg",    "salinity"        PARAM_FILLVALUE);
-    set_nc_attributes(ncid, temp_id,   "celsius", "temperature"     PARAM_FILLVALUE);
+    set_nc_attributes(ncid, z_id,       "meters",  "layer heights"   PARAM_FILLVALUE);
+    set_nc_attributes(ncid, H_id,       "meters",  "layer heights"   PARAM_FILLVALUE);
+    set_nc_attributes(ncid, V_id,       "m3",      "layer volume"    PARAM_FILLVALUE);
+    set_nc_attributes(ncid, salt_id,    "g/kg",    "salinity"        PARAM_FILLVALUE);
+    set_nc_attributes(ncid, temp_id,    "celsius", "temperature"     PARAM_FILLVALUE);
 
-    set_nc_attributes(ncid, extc_id,   "unknown", "extc_coef"       PARAM_FILLVALUE);
-    set_nc_attributes(ncid, rho_id,    "unknown", "density"         PARAM_FILLVALUE);
-    set_nc_attributes(ncid, rad_id,    "unknown", "solar radiation" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, extc_id,    "unknown", "extc_coef"       PARAM_FILLVALUE);
+    set_nc_attributes(ncid, rho_id,     "unknown", "density"         PARAM_FILLVALUE);
+    set_nc_attributes(ncid, rad_id,     "unknown", "solar radiation" PARAM_FILLVALUE);
 
-    set_nc_attributes(ncid, umean_id,  "m/s",     "mean velocity"    PARAM_FILLVALUE);
-    set_nc_attributes(ncid, uorb_id,   "m/s",     "orbital velocity" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, umean_id,   "m/s",     "mean velocity"    PARAM_FILLVALUE);
+    set_nc_attributes(ncid, uorb_id,    "m/s",     "orbital velocity" PARAM_FILLVALUE);
 
-    set_nc_attributes(ncid, Taub_id,   "N/m2",    "layer stress"    PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Taub_id,    "N/m2",    "layer stress"    PARAM_FILLVALUE);
+    set_nc_attributes(ncid, epsilon_id, "m2/s",    "diffusivity"     PARAM_FILLVALUE);
 
     //# global attributes
     nc_put_att(ncid, NC_GLOBAL, "Title", NC_CHAR, strlen(title), title);
@@ -318,7 +320,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
 {
     AED_REAL temp_time, LakeVolume;
     AED_REAL *heights, *vols, *salts, *temps, *dens, *qsw, *extc_coef;
-    AED_REAL *u_mean, *u_orb, *taub, *restart_variables;
+    AED_REAL *u_mean, *u_orb, *taub, *restart_variables, *epsilon;
     int i, littoralLayer = 0, iret = NC_NOERR;
 
     if (ncid == -1) return;
@@ -395,6 +397,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     u_mean    = malloc(nlev*sizeof(AED_REAL));
     u_orb     = malloc(nlev*sizeof(AED_REAL));
     taub      = malloc(nlev*sizeof(AED_REAL));
+    epsilon   = malloc(nlev*sizeof(AED_REAL));
 
     for (i = 0; i < wlev; i++) {
         heights[i] = Lake[i].Height;
@@ -407,6 +410,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
         u_mean[i] = Lake[i].Umean;
         u_orb[i] = Lake[i].Uorb;
         taub[i] = Lake[i].LayerStress;
+        epsilon[i] = Lake[i].Epsilon;
     }
     for (i = wlev; i < nlev; i++) {
         heights[i] = NC_FILLER;
@@ -419,6 +423,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
         u_mean[i] = NC_FILLER;
         u_orb[i] = NC_FILLER;
         taub[i] = NC_FILLER;
+        epsilon[i] = NC_FILLER;
     }
     if ( littoral_sw ) {
         littoralLayer = wlev;
@@ -432,24 +437,26 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
         u_mean[littoralLayer] = NC_FILLER;
         u_orb[littoralLayer] = NC_FILLER;
         taub[littoralLayer] = NC_FILLER;
+        epsilon[littoralLayer] = NC_FILLER;
     }
 
-    check_nc_error(nc_put_vara(ncid,     z_id, start, edges, heights));
-    check_nc_error(nc_put_vara(ncid,     H_id, start, edges, heights));
-    check_nc_error(nc_put_vara(ncid,     V_id, start, edges, vols));
-    check_nc_error(nc_put_vara(ncid,  salt_id, start, edges, salts));
-    check_nc_error(nc_put_vara(ncid,  temp_id, start, edges, temps));
-    check_nc_error(nc_put_vara(ncid,   rho_id, start, edges, dens));
-    check_nc_error(nc_put_vara(ncid,   rad_id, start, edges, qsw));
-    check_nc_error(nc_put_vara(ncid,  extc_id, start, edges, extc_coef));
-    check_nc_error(nc_put_vara(ncid, umean_id, start, edges, u_mean));
-    check_nc_error(nc_put_vara(ncid,  uorb_id, start, edges, u_orb));
-    check_nc_error(nc_put_vara(ncid,  Taub_id, start, edges, taub));
+    check_nc_error(nc_put_vara(ncid,       z_id, start, edges, heights));
+    check_nc_error(nc_put_vara(ncid,       H_id, start, edges, heights));
+    check_nc_error(nc_put_vara(ncid,       V_id, start, edges, vols));
+    check_nc_error(nc_put_vara(ncid,    salt_id, start, edges, salts));
+    check_nc_error(nc_put_vara(ncid,    temp_id, start, edges, temps));
+    check_nc_error(nc_put_vara(ncid,     rho_id, start, edges, dens));
+    check_nc_error(nc_put_vara(ncid,     rad_id, start, edges, qsw));
+    check_nc_error(nc_put_vara(ncid,    extc_id, start, edges, extc_coef));
+    check_nc_error(nc_put_vara(ncid,   umean_id, start, edges, u_mean));
+    check_nc_error(nc_put_vara(ncid,    uorb_id, start, edges, u_orb));
+    check_nc_error(nc_put_vara(ncid,    Taub_id, start, edges, taub));
+    check_nc_error(nc_put_vara(ncid, epsilon_id, start, edges, epsilon));
 
     free(heights); free(vols); free(salts);
     free(temps);  free(dens); free(qsw);
     free(extc_coef); free(u_mean); free(u_orb);
-    free(taub); free(restart_variables);
+    free(taub); free(restart_variables); free(epsilon);
 
     check_nc_error(nc_sync(ncid));
 }
