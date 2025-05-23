@@ -205,6 +205,8 @@ SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    CHARACTER(len=80) :: fname
 
    TYPE(aed_coupling_t) :: conf
+
+   LOGICAL :: do_particle_bgc = .true.
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -231,6 +233,8 @@ SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    conf%friction = friction
 
    conf%Kw = Kw
+
+   conf%do_particle_bgc = do_particle_bgc
 
    CALL aed_set_coupling(conf)
 
