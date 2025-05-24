@@ -587,6 +587,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL  ptm_diffusivity;
     extern AED_REAL  settling_velocity;
     extern AED_REAL  settling_efficiency;
+    extern LOGICAL   do_particle_bgc;
     //==========================================================================
     NAMELIST particles[] = {
           { "particles",         TYPE_START,            NULL                  },
@@ -602,6 +603,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "ptm_diffusivity",   TYPE_DOUBLE,           &ptm_diffusivity      },
           { "settling_velocity", TYPE_DOUBLE,           &settling_velocity    },
           { "settling_efficiency", TYPE_DOUBLE,         &settling_efficiency  },
+          { "do_particle_bgc",   TYPE_BOOL,             &do_particle_bgc      },
           { NULL,                TYPE_END,              NULL                  }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/

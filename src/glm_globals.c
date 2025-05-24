@@ -256,6 +256,7 @@ LOGICAL ptm_sw = FALSE;
 int max_particle_num = 10000;  //# max number of particles
 ParticleDataType *Particle = NULL;
 AED_REAL settling_velocity = 0.;
+LOGICAL do_particle_bgc = FALSE;
 int init_particle_num = 10;
 AED_REAL settling_efficiency = 1.;
 AED_REAL *inflow_conc = 0;    //# number of particles per cubic meter in the inflow

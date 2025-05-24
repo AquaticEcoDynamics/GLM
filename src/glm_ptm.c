@@ -749,7 +749,7 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prim
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-static int h_id, m_id, d_id, dn_id, vv_id, stat_id, flag_id;
+static int h_id, m_id, d_id, dn_id, vv_id, var_id, stat_id, flag_id;
 static int set_no_p = -1;
 static size_t start[2],edges[2];
 
@@ -762,7 +762,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
 {
 //LOCALS
     int p,pg;
-    AED_REAL *p_height, *mass, *diam, *density, *vvel;
+    AED_REAL *p_height, *mass, *diam, *density, *vvel, *var;
     int *status, *flag;
 
 /*----------------------------------------------------------------------------*/
@@ -779,6 +779,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
     diam  = malloc(max_particle_num*sizeof(AED_REAL));
     density  = malloc(max_particle_num*sizeof(AED_REAL));
     vvel  = malloc(max_particle_num*sizeof(AED_REAL));
+    var  = malloc(max_particle_num*sizeof(AED_REAL));
 
     status  = malloc(max_particle_num*sizeof(int));
     flag  = malloc(max_particle_num*sizeof(int));
@@ -789,6 +790,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
         diam[p]     = _PTM_Vars(pg,p,DIAM);  // Particle[p].Diam;    REAL
         density[p]  = _PTM_Vars(pg,p,DENS);  //Particle[p].Density;  REAL
         vvel[p]     = _PTM_Vars(pg,p,VVEL);  //Particle[p].vvel;     REAL
+        var[p]      = _PTM_Vars(pg,p,VVEL+1);  //Particle[p].Status;   INT
         status[p]   = _PTM_Stat(pg,p,STAT);  //Particle[p].Status;   INT
         flag[p]     = _PTM_Stat(pg,p,FLAG);  //Particle[p].Flag;     INT
     }
@@ -798,6 +800,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
     nc_put_vara(ncid, d_id, start, edges, diam);
     nc_put_vara(ncid, dn_id, start, edges, density);
     nc_put_vara(ncid, vv_id, start, edges, vvel);
+    nc_put_vara(ncid, var_id, start, edges, var);
     nc_put_vara(ncid, stat_id, start, edges, status);
     nc_put_vara(ncid, flag_id, start, edges, flag);
 
@@ -806,6 +809,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
     free(diam);
     free(density);
     free(vvel);
+    free(var);
     free(status);
     free(flag);
 
@@ -846,6 +850,9 @@ void ptm_init_glm_output(int ncid, int time_dim)
 
    check_nc_error(nc_def_var(ncid, "particle_vvel", NC_REALTYPE, 2, dims, &vv_id));
    set_nc_attributes(ncid, vv_id, "m/s", "Settling Velocity of Particle" PARAM_FILLVALUE);
+
+   check_nc_error(nc_def_var(ncid, "particle_var1", NC_REALTYPE, 2, dims, &var_id));
+   set_nc_attributes(ncid, var_id, "???", "Property of Particle" PARAM_FILLVALUE);
 
    check_nc_error(nc_def_var(ncid, "particle_status", NC_INT, 2, dims, &stat_id));
    nc_put_att(ncid, stat_id, "long_name", NC_CHAR, 18, "Status of Particle");

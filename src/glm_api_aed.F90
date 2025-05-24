@@ -179,7 +179,7 @@ MODULE glm_api_aed
    INTEGER,DIMENSION(:),ALLOCATABLE :: zexternalid
    INTEGER,DIMENSION(:),ALLOCATABLE :: plot_id_v, plot_id_sv, plot_id_d, plot_id_sd
 
-   INTEGER :: n_aed_vars, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
+   INTEGER :: n_aed_vars, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet, n_ptm_vars
 
    CHARACTER(len=64) :: NULCSTR = ""
 
@@ -206,7 +206,7 @@ SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
 
    TYPE(aed_coupling_t) :: conf
 
-   LOGICAL :: do_particle_bgc = .true.
+   LOGICAL :: do_particle_bgc = .true. ! REMVE THIS LATER AND GET FROM GLOBALS
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -240,7 +240,7 @@ SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
 
    CALL api_set_glm_env()
 
-   n_aed_vars = aed_configure_models(fname, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
+   n_aed_vars = aed_configure_models(fname, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet, n_ptm_vars)
 
    NumWQ_Vars  = n_vars
    NumWQ_Ben   = n_vars_ben
@@ -474,7 +474,7 @@ print *,'HI0',num_particle_groups
 
 print *,'HI'
 
-   CALL aed_ptm_init(num_particle_groups,num_particles,ptm_bla,n_vars,n_vars_ben,n_vars_diag,n_vars_diag_sheet,MaxLayers)
+   CALL aed_ptm_init(num_particle_groups,num_particles,ptm_bla,n_ptm_vars,MaxLayers)
 
 print *,'BYE', num_particles
 
