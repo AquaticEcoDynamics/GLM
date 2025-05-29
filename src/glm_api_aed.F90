@@ -134,6 +134,9 @@ MODULE glm_api_aed
    AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: cc_diag
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_diag_hz
 
+   LOGICAL,TARGET :: actv = .TRUE.
+   INTEGER,TARGET :: botidx = 1, topidx
+
    !# Arrays for work, vertical movement, and cross-boundary fluxes
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: dz
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: tss
@@ -212,7 +215,8 @@ SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
 !BEGIN
    CALL make_string(fname, i_fname, len)
 
-   conf%MaxLayers = MaxLayers
+   conf%glm_style_zones = .TRUE.
+
    conf%par_fraction =  0.450
    conf%nir_fraction =  0.510
    conf%uva_fraction =  0.035
@@ -334,7 +338,9 @@ SUBROUTINE api_set_glm_env()
 
    timestep = dt
 
-   env(1)%n_layers      = MaxLayers
+   env(1)%n_layers  =  MaxLayers
+   env(1)%bot_idx   => botidx
+   env(1)%top_idx   => topidx
 
    env(1)%timestep  => timestep
    env(1)%yearday   => yearday
@@ -342,7 +348,7 @@ SUBROUTINE api_set_glm_env()
    env(1)%latitude  => latitude
   !env(1)%col_num   => colcol
   
-  !env(1)%active      = .true.
+   env(1)%active    => actv !# .true.
 
    env(1)%longwave      =>  rain(1) !longwave(1)
    env(1)%air_temp      => air_temp(1)
@@ -399,7 +405,7 @@ SUBROUTINE api_set_glm_env()
    env(1)%rainloss      =>  rain(1) !rainloss(1)
 
 
-   CALL aed_set_model_env(env, MaxLayers, 1)
+   CALL aed_set_model_env(env, 1, MaxLayers)
 
 END SUBROUTINE api_set_glm_env
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -604,6 +610,7 @@ SUBROUTINE api_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
          ENDIF
       ENDDO
    ENDIF
+   topidx = wlev ; botidx = 1
 
    !# Calculate local pressure
    pres(1:wlev) = -lheights(1:wlev)
