@@ -749,7 +749,7 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prim
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-static int h_id, m_id, d_id, dn_id, vv_id, par_id, tem_id, no3_id, c_id, n_id, chl_id, num_id, cdiv_id, topt_id, lnalphachl_id, mu_c_id, fit_id, stat_id, flag_id;
+static int h_id, m_id, d_id, dn_id, vv_id, par_id, tem_id, no3_id, frp_id, c_id, n_id, pho_id, chl_id, num_id, cdiv_id, topt_id, lnalphachl_id, mu_c_id, fit_id, stat_id, flag_id;
 static int set_no_p = -1;
 static size_t start[2],edges[2];
 
@@ -762,7 +762,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
 {
 //LOCALS
     int p,pg;
-    AED_REAL *p_height, *mass, *diam, *density, *vvel, *par, *tem, *no3, *c, *n, *chl, *num, *cdiv, *topt, *lnalphachl, *mu_c, *fit;
+    AED_REAL *p_height, *mass, *diam, *density, *vvel, *par, *tem, *no3, *frp, *c, *n, *pho, *chl, *num, *cdiv, *topt, *lnalphachl, *mu_c, *fit;
     int *status, *flag;
 
 /*----------------------------------------------------------------------------*/
@@ -782,8 +782,10 @@ void ptm_write_glm(int ncid, int max_particle_num)
     par  = malloc(max_particle_num*sizeof(AED_REAL));
     tem  = malloc(max_particle_num*sizeof(AED_REAL));
     no3  = malloc(max_particle_num*sizeof(AED_REAL));
+    frp  = malloc(max_particle_num*sizeof(AED_REAL));
     c  = malloc(max_particle_num*sizeof(AED_REAL));
     n  = malloc(max_particle_num*sizeof(AED_REAL));
+    pho  = malloc(max_particle_num*sizeof(AED_REAL));
     chl  = malloc(max_particle_num*sizeof(AED_REAL));
     num  = malloc(max_particle_num*sizeof(AED_REAL));
     cdiv  = malloc(max_particle_num*sizeof(AED_REAL));
@@ -804,15 +806,17 @@ void ptm_write_glm(int ncid, int max_particle_num)
         par[p]              = _PTM_Vars(pg,p,VVEL+2);  //PAR experienced by particle;       REAL //ML why is it +2?
         tem[p]              = _PTM_Vars(pg,p,VVEL+3);  //temp experienced by particle;      REAL
         no3[p]              = _PTM_Vars(pg,p,VVEL+4);  //NO3 experienced by particle;       REAL
-        c[p]                = _PTM_Vars(pg,p,VVEL+5);  //internal particle C;               REAL
-        n[p]                = _PTM_Vars(pg,p,VVEL+6);  //internal particle N;               REAL
-        chl[p]              = _PTM_Vars(pg,p,VVEL+7);  //internal particle chl;             REAL
-        num[p]              = _PTM_Vars(pg,p,VVEL+8);  //number of cells in particle;       REAL
-        cdiv[p]             = _PTM_Vars(pg,p,VVEL+9);  //internal C threshold for division; REAL
-        topt[p]             = _PTM_Vars(pg,p,VVEL+10);  //particle temperature optimum;      REAL
-        lnalphachl[p]       = _PTM_Vars(pg,p,VVEL+11); //ln alpha chl of particle;          REAL
-        mu_c[p]             = _PTM_Vars(pg,p,VVEL+12); //mu_c of particle;                  REAL
-        fit[p]              = _PTM_Vars(pg,p,VVEL+13); //fitness of particle;               REAL
+        frp[p]              = _PTM_Vars(pg,p,VVEL+5);  //FRP experienced by particle;       REAL
+        c[p]                = _PTM_Vars(pg,p,VVEL+6);  //internal particle C;               REAL
+        n[p]                = _PTM_Vars(pg,p,VVEL+7);  //internal particle N;               REAL
+        pho[p]              = _PTM_Vars(pg,p,VVEL+8);  //internal particle P;               REAL
+        chl[p]              = _PTM_Vars(pg,p,VVEL+9);  //internal particle chl;             REAL
+        num[p]              = _PTM_Vars(pg,p,VVEL+10);  //number of cells in particle;       REAL
+        cdiv[p]             = _PTM_Vars(pg,p,VVEL+11);  //internal C threshold for division; REAL
+        topt[p]             = _PTM_Vars(pg,p,VVEL+12);  //particle temperature optimum;      REAL
+        lnalphachl[p]       = _PTM_Vars(pg,p,VVEL+13); //ln alpha chl of particle;          REAL
+        mu_c[p]             = _PTM_Vars(pg,p,VVEL+14); //mu_c of particle;                  REAL
+        fit[p]              = _PTM_Vars(pg,p,VVEL+15); //fitness of particle;               REAL
         status[p]           = _PTM_Stat(pg,p,STAT);    //Particle[p].Status;                INT
         flag[p]             = _PTM_Stat(pg,p,FLAG);    //Particle[p].Flag;                  INT
     }
@@ -825,8 +829,10 @@ void ptm_write_glm(int ncid, int max_particle_num)
     nc_put_vara(ncid, par_id, start, edges, par);
     nc_put_vara(ncid, tem_id, start, edges, tem);
     nc_put_vara(ncid, no3_id, start, edges, no3);
+    nc_put_vara(ncid, frp_id, start, edges, frp);
     nc_put_vara(ncid, c_id, start, edges, c);
     nc_put_vara(ncid, n_id, start, edges, n);
+    nc_put_vara(ncid, pho_id, start, edges, pho);
     nc_put_vara(ncid, chl_id, start, edges, chl);
     nc_put_vara(ncid, num_id, start, edges, num);
     nc_put_vara(ncid, cdiv_id, start, edges, cdiv);
@@ -845,8 +851,10 @@ void ptm_write_glm(int ncid, int max_particle_num)
     free(par);
     free(tem);
     free(no3);
+    free(frp);
     free(c);
     free(n);
+    free(pho);
     free(chl);
     free(num);
     free(cdiv);
@@ -904,11 +912,17 @@ void ptm_init_glm_output(int ncid, int time_dim)
    check_nc_error(nc_def_var(ncid, "particle_no3", NC_REALTYPE, 2, dims, &no3_id));
    set_nc_attributes(ncid, no3_id, "mmolN", "particle layer NO3" PARAM_FILLVALUE);
 
+   check_nc_error(nc_def_var(ncid, "particle_frp", NC_REALTYPE, 2, dims, &frp_id));
+   set_nc_attributes(ncid, frp_id, "mmolP", "particle layer FRP" PARAM_FILLVALUE);
+
    check_nc_error(nc_def_var(ncid, "particle_c", NC_REALTYPE, 2, dims, &c_id));
    set_nc_attributes(ncid, c_id, "pmolC/cell", "cell C concentration" PARAM_FILLVALUE);
 
    check_nc_error(nc_def_var(ncid, "particle_n", NC_REALTYPE, 2, dims, &n_id));
    set_nc_attributes(ncid, n_id, "pmolN/cell", "cell N concentration" PARAM_FILLVALUE);
+
+   check_nc_error(nc_def_var(ncid, "particle_pho", NC_REALTYPE, 2, dims, &pho_id));
+   set_nc_attributes(ncid, pho_id, "pmolP/cell", "cell P concentration" PARAM_FILLVALUE);
 
    check_nc_error(nc_def_var(ncid, "particle_chl", NC_REALTYPE, 2, dims, &chl_id));
    set_nc_attributes(ncid, chl_id, "pgChl", "cell Chl concentration" PARAM_FILLVALUE);
