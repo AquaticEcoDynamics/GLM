@@ -279,7 +279,7 @@ void do_ptm_update()
     // Update settling/migration velocity  ! Will overwrite AED
     for (p = 0; p < max_particle_num; p++) {
         if (_PTM_Stat(pg,p,STAT)>0) {
-           _PTM_Vars(pg,p,VVEL) = get_settling_velocity(settling_velocity);
+           //_PTM_Vars(pg,p,VVEL) = get_settling_velocity(settling_velocity);
         }
     }
 
