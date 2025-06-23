@@ -790,7 +790,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
         diam[p]     = _PTM_Vars(pg,p,DIAM);  // Particle[p].Diam;    REAL
         density[p]  = _PTM_Vars(pg,p,DENS);  //Particle[p].Density;  REAL
         vvel[p]     = _PTM_Vars(pg,p,VVEL);  //Particle[p].vvel;     REAL
-        var[p]      = _PTM_Vars(pg,p,VVEL+1);  //Particle[p].Status;   INT
+        var[p]      = _PTM_Vars(pg,p,HGHT+1);  //Particle[p].Status;   INT
         status[p]   = _PTM_Stat(pg,p,STAT);  //Particle[p].Status;   INT
         flag[p]     = _PTM_Stat(pg,p,FLAG);  //Particle[p].Flag;     INT
     }

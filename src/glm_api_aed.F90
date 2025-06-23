@@ -605,6 +605,9 @@ SUBROUTINE api_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
       ENDDO
    ENDIF
 
+print *,'---'
+print *,'RAD,',rad(1:wlev)
+
    !# Calculate local pressure
    pres(1:wlev) = -lheights(1:wlev)
 
