@@ -53,6 +53,14 @@ char *all_plots_name = NULL;
 extern char glm_nml_file[];
 extern void run_model(void);
 
+/*----------------------------------------------------------------------------*/
+static char *plot_filename()
+{
+    static char nam[256];
+    strcpy(nam, "GLM.png");
+    return nam;
+}
+
 /******************************************************************************/
 #ifdef PLOTS
 int _main_(int argc, char *argv[])
@@ -100,10 +108,11 @@ int main(int argc, char *argv[])
         }
 #endif
         else if (strcmp(*argv, "--saveall") == 0) {
-            if ( saveall == 0) saveall = 1;
+            saveall = TRUE;
         }
         else if (strcmp(*argv, "--save-all-in-one") == 0) {
-            saveall = 2;
+            saveall = TRUE;
+            all_plots_name = plot_filename();
             if ( argc > 1 && strncmp(argv[1], "--", 2) != 0 ) {
                 argv++; argc--;
                 all_plots_name = *argv;
