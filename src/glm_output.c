@@ -71,7 +71,7 @@ void wq_write_glm(int ncid, int wlev, int nlev, int *lvl, int point_nlevs)
 
 extern AED_REAL XLW, XCO, XEV, QSW;
 
-static int plot_id[10];
+static int plot_id[16];
 
 /******************************************************************************
  * Initialise output streams                                                  *
@@ -198,6 +198,7 @@ int _intern_is_var(const char *v)
         if (strcasecmp("dens", v) == 0) return 5;
         if (strcasecmp("uorb", v) == 0) return 6;
         if (strcasecmp("taub", v) == 0) return 7;
+        if (strcasecmp("area", v) == 0) return 8;
     }
     return 0;
 }

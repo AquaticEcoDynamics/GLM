@@ -58,9 +58,9 @@ static size_t start[4],edges[4];
 static size_t start_r[1],edges_r[1];
 
 //# variable ids
-static int lon_id,lat_id,z_id,H_id,V_id,TV_id,Taub_id,NS_id,time_id;
-static int SL_id,HICE_id,HSNOW_id,HWICE_id, AvgSurfTemp_id;
-static int precip_id,evap_id,rho_id,rad_id,extc_id,i0_id,wnd_id;
+static int lon_id, lat_id, z_id, H_id, V_id, A_id, TV_id, Taub_id, NS_id, time_id;
+static int SL_id, HICE_id, HSNOW_id, HWICE_id, AvgSurfTemp_id;
+static int precip_id, evap_id, rho_id, rad_id, extc_id, i0_id, wnd_id;
 static int temp_id, salt_id, umean_id, uorb_id, restart_id, Mixer_Count_id, epsilon_id;
 
 //# from lake.csv
@@ -195,6 +195,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_var(ncid, "z",       NC_REALTYPE, 4, dims, &z_id));
     check_nc_error(nc_def_var(ncid, "H",       NC_REALTYPE, 4, dims, &H_id));
     check_nc_error(nc_def_var(ncid, "V",       NC_REALTYPE, 4, dims, &V_id));
+    check_nc_error(nc_def_var(ncid, "A",       NC_REALTYPE, 4, dims, &A_id));
     check_nc_error(nc_def_var(ncid, "salt",    NC_REALTYPE, 4, dims, &salt_id));
     check_nc_error(nc_def_var(ncid, "temp",    NC_REALTYPE, 4, dims, &temp_id));
 
@@ -274,6 +275,7 @@ f0, fsum,u_f,u0,u_avg" PARAM_FILLVALUE);
     set_nc_attributes(ncid, z_id,       "meters",  "layer heights"   PARAM_FILLVALUE);
     set_nc_attributes(ncid, H_id,       "meters",  "layer heights"   PARAM_FILLVALUE);
     set_nc_attributes(ncid, V_id,       "m3",      "layer volume"    PARAM_FILLVALUE);
+    set_nc_attributes(ncid, A_id,       "m2",      "layer area"      PARAM_FILLVALUE);
     set_nc_attributes(ncid, salt_id,    "g/kg",    "salinity"        PARAM_FILLVALUE);
     set_nc_attributes(ncid, temp_id,    "celsius", "temperature"     PARAM_FILLVALUE);
 
@@ -319,7 +321,7 @@ f0, fsum,u_f,u0,u_avg" PARAM_FILLVALUE);
 void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep)
 {
     AED_REAL temp_time, LakeVolume;
-    AED_REAL *heights, *vols, *salts, *temps, *dens, *qsw, *extc_coef;
+    AED_REAL *heights, *vols, *area, *salts, *temps, *dens, *qsw, *extc_coef;
     AED_REAL *u_mean, *u_orb, *taub, *restart_variables, *epsilon;
     int i, littoralLayer = 0, iret = NC_NOERR;
 
@@ -389,6 +391,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
 
     heights   = malloc(nlev*sizeof(AED_REAL));
     vols      = malloc(nlev*sizeof(AED_REAL));
+    area      = malloc(nlev*sizeof(AED_REAL));
     salts     = malloc(nlev*sizeof(AED_REAL));
     temps     = malloc(nlev*sizeof(AED_REAL));
     dens      = malloc(nlev*sizeof(AED_REAL));
@@ -401,6 +404,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
 
     for (i = 0; i < wlev; i++) {
         heights[i] = Lake[i].Height;
+        area[i] = Lake[i].LayerArea;
         vols[i] = Lake[i].LayerVol;
         salts[i] = Lake[i].Salinity;
         temps[i] = Lake[i].Temp;
@@ -443,6 +447,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     check_nc_error(nc_put_vara(ncid,       z_id, start, edges, heights));
     check_nc_error(nc_put_vara(ncid,       H_id, start, edges, heights));
     check_nc_error(nc_put_vara(ncid,       V_id, start, edges, vols));
+    check_nc_error(nc_put_vara(ncid,       A_id, start, edges, area));
     check_nc_error(nc_put_vara(ncid,    salt_id, start, edges, salts));
     check_nc_error(nc_put_vara(ncid,    temp_id, start, edges, temps));
     check_nc_error(nc_put_vara(ncid,     rho_id, start, edges, dens));
@@ -453,7 +458,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     check_nc_error(nc_put_vara(ncid,    Taub_id, start, edges, taub));
     check_nc_error(nc_put_vara(ncid, epsilon_id, start, edges, epsilon));
 
-    free(heights); free(vols); free(salts);
+    free(heights); free(vols); free(area); free(salts);
     free(temps);  free(dens); free(qsw);
     free(extc_coef); free(u_mean); free(u_orb);
     free(taub); free(restart_variables); free(epsilon);

@@ -61,6 +61,10 @@ int plotstep = 0;
 AED_REAL psubday = 1;
 char * plots_nml_name = "plots.nml";
 
+static int nanim = 0;
+static char **avars = NULL;
+static char **afnam = NULL;
+
 
 /******************************************************************************/
 void init_plots(int jstart, int ndays, AED_REAL crest)
@@ -100,6 +104,13 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
           { "max_z",          TYPE_DOUBLE|MASK_LIST, &max_z             },
           { "min_y",          TYPE_DOUBLE|MASK_LIST, &min_y             },
           { "max_y",          TYPE_DOUBLE|MASK_LIST, &max_y             },
+          { NULL,             TYPE_END,              NULL               }
+    };
+    NAMELIST animate[] = {
+          { "animate",        TYPE_START,            NULL               },
+          { "nanim",          TYPE_INT,              &nanim             },
+          { "vars",           TYPE_STR|MASK_LIST,    &avars             },
+          { "fnames",         TYPE_STR|MASK_LIST,    &afnam             },
           { NULL,             TYPE_END,              NULL               }
     };
 
@@ -266,6 +277,7 @@ void do_internal_plots(const int plot_id[])
         if ( (j=plot_id[4]) >= 0 ) plot_value(theplots[j], todayish, Lake[i].Height, Lake[i].Density);
         if ( (j=plot_id[5]) >= 0 ) plot_value(theplots[j], todayish, Lake[i].Height, Lake[i].Uorb);
         if ( (j=plot_id[6]) >= 0 ) plot_value(theplots[j], todayish, Lake[i].Height, Lake[i].LayerStress);
+        if ( (j=plot_id[7]) >= 0 ) plot_value(theplots[j], todayish, Lake[i].Height, Lake[i].LayerArea);
     }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
