@@ -112,6 +112,7 @@ MODULE glm_aed
 
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: depth
    AED_REAL,TARGET :: col_depth
+   AED_REAL,TARGET :: col_num = 1
 
    !# Arrays for environmental variables not supplied externally.
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: par
@@ -245,7 +246,7 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    tv = aed_provide_sheet_global( 'air_temp', 'air temperature', 'celsius' )
    tv = aed_provide_sheet_global( 'humidity', 'relative humidity', '-' )
    !longwave
-   !col_num
+   tv = aed_provide_sheet_global( 'col_num',   'column number', '' )
    !col_depth
    tv = aed_provide_sheet_global( 'col_depth', 'lake depth', 'meters' )
    tv = aed_provide_sheet_global( 'evap',      'evaporation', 'm/s' )
@@ -596,6 +597,7 @@ SUBROUTINE check_data
             CASE ( 'par_sf' )      ; tvar%found = .true.
             CASE ( 'taub' )        ; tvar%found = .true.
             CASE ( 'col_depth' )   ; tvar%found = .true.
+            CASE ( 'col_num' )     ; tvar%found = .true.
             CASE ( 'evap' )        ; tvar%found = .true.
             CASE ( 'layer_area' )  ; tvar%found = .true.
             CASE ( 'rain' )        ; tvar%found = .true.
@@ -679,6 +681,7 @@ SUBROUTINE define_column(column, top, flux_pel, flux_atm, flux_ben)
             CASE ( 'wind_speed' )  ; column(av)%cell_sheet => wnd
             CASE ( 'par_sf' )      ; column(av)%cell_sheet => I_0
             CASE ( 'taub' )        ; column(av)%cell_sheet => bottom_stress
+            CASE ( 'col_num' )     ; column(av)%cell_sheet => col_num
             CASE ( 'col_depth' )   ; column(av)%cell_sheet => col_depth
             CASE ( 'evap' )        ; column(av)%cell_sheet => evap
             CASE ( 'layer_area' )  ; column(av)%cell => area(:)
@@ -1008,6 +1011,7 @@ CONTAINS
             CASE ( 'wind_speed' )  ; column_sed(av)%cell_sheet => wnd
             CASE ( 'par_sf' )      ; column_sed(av)%cell_sheet => I_0
             CASE ( 'taub' )        ; column_sed(av)%cell_sheet => bottom_stress
+            CASE ( 'col_num' )     ; column_sed(av)%cell_sheet => col_num
             CASE ( 'col_depth' )   ; column_sed(av)%cell_sheet => col_depth
             CASE ( 'evap' )        ; column_sed(av)%cell_sheet => evap
             CASE ( 'layer_area' )  ; column_sed(av)%cell => theZones(:)%zarea

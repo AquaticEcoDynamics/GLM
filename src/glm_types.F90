@@ -210,19 +210,17 @@ MODULE glm_types
    !================================================================
    !# variables in C code of GLM
    !----------------------------------------------------------------
-   TYPE(CINTEGER),BIND(C, name="MaxLayers") :: MaxLayers
-   TYPE(C_PTR),BIND(C, name="Lake")         :: cLake
-   TYPE(CINTEGER),BIND(C, name="n_zones")   :: n_zones
-   TYPE(C_PTR),BIND(C, name="theZones")     :: cZones
+   TYPE(CINTEGER),BIND(C, name="MaxLayers")   :: MaxLayers
+   TYPE(C_PTR),BIND(C, name="Lake")           :: cLake
+   TYPE(CINTEGER),BIND(C, name="n_zones")     :: n_zones
+   TYPE(C_PTR),BIND(C, name="theZones")       :: cZones
 
-   TYPE(C_PTR),BIND(C, name="pMetData")     :: cMetData
-   TYPE(C_PTR),BIND(C, name="pSurfData")    :: cSurfData
+   TYPE(C_PTR),BIND(C, name="pMetData")       :: cMetData
+   TYPE(C_PTR),BIND(C, name="pSurfData")      :: cSurfData
 
    TYPE(LakeDataType),   DIMENSION(:),POINTER :: theLake
    TYPE(MetDataType),                 POINTER :: MetData   !# Meteorological data
-   TYPE(MetDataType),    DIMENSION(:),POINTER :: aMetData  !# Meteorological data
    TYPE(SurfaceDataType),             POINTER :: SurfData  !# Surface Data
-   TYPE(SurfaceDataType),DIMENSION(:),POINTER :: aSurfData !# Surface Data
    TYPE(ZoneType),       DIMENSION(:),POINTER :: theZones
 
    TYPE(CLOGICAL),BIND(C, name="mobility_off")     :: mobility_off
@@ -238,12 +236,12 @@ MODULE glm_types
    TYPE(CINTEGER),BIND(C, name="ode_method")       :: ode_method
    TYPE(CINTEGER),BIND(C, name="benthic_mode")     :: benthic_mode
 
-   TYPE(AED_REAL),BIND(C, name="rain_factor") :: rain_factor
-   TYPE(AED_REAL),BIND(C, name="sw_factor")   :: sw_factor
-   TYPE(AED_REAL),BIND(C, name="friction")    :: friction
+   TYPE(AED_REAL),BIND(C, name="rain_factor")      :: rain_factor
+   TYPE(AED_REAL),BIND(C, name="sw_factor")        :: sw_factor
+   TYPE(AED_REAL),BIND(C, name="friction")         :: friction
 
-   TYPE(AED_REAL),BIND(C, name="Kw") :: Kw
-   TYPE(AED_REAL),BIND(C, name="dt") :: dt
+   TYPE(AED_REAL),BIND(C, name="Kw")               :: Kw
+   TYPE(AED_REAL),BIND(C, name="dt")               :: dt
 
    TYPE(AED_REAL),TARGET,BIND(C, name="yearday")   :: yearday
    TYPE(AED_REAL),TARGET,BIND(C, name="timestep")  :: timestep
@@ -297,9 +295,7 @@ SUBROUTINE glm_init_fortran_support() BIND(C, name="glm_init_fortran_support")
 !-------------------------------------------------------------------------------
 !BEGIN
    CALL C_F_POINTER(cLake, theLake, [MaxLayers]);
-   CALL C_F_POINTER(cMetData, aMetData, [1])
    CALL C_F_POINTER(cMetData, MetData)
-   CALL C_F_POINTER(cSurfData, aSurfData, [1])
    CALL C_F_POINTER(cSurfData, SurfData)
    CALL C_F_POINTER(cZones, theZones, [n_zones]);
 END SUBROUTINE glm_init_fortran_support

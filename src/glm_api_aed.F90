@@ -160,19 +160,24 @@ MODULE glm_api_aed
    AED_REAL,DIMENSION(:),POINTER :: layer_stress
    AED_REAL,DIMENSION(:),POINTER :: cvel
 
+   AED_REAL,TARGET :: col_area
+
    AED_REAL,TARGET :: col_depth
-   AED_REAL,TARGET :: col_num = 1
+   INTEGER,TARGET  :: col_num = 1
 
    AED_REAL,DIMENSION(:),POINTER :: sed_zones
    AED_REAL,TARGET :: matz
 
-   AED_REAL,DIMENSION(:),POINTER :: rain
-   AED_REAL,DIMENSION(:),POINTER :: evap
-   AED_REAL,DIMENSION(:),POINTER :: air_temp
-   AED_REAL,DIMENSION(:),POINTER :: humidity
-   AED_REAL,DIMENSION(:),POINTER :: I_0
-   AED_REAL,DIMENSION(:),POINTER :: wind
-   AED_REAL,DIMENSION(:),POINTER :: air_pres
+   AED_REAL,POINTER :: rain
+   AED_REAL,POINTER :: evap
+   AED_REAL,POINTER :: air_temp
+   AED_REAL,POINTER :: humidity
+   AED_REAL,POINTER :: I_0
+   AED_REAL,POINTER :: longwave
+   AED_REAL,POINTER :: wind
+   AED_REAL,POINTER :: air_pres
+
+   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: feedback
 
 !  CHARACTER(len=48),ALLOCATABLE :: names(:)
 !  CHARACTER(len=48),ALLOCATABLE :: bennames(:)
@@ -275,13 +280,14 @@ SUBROUTINE api_set_glm_env()
 !BEGIN
 
    !# Provide pointers to arrays with meteorological variables
-   air_temp => aMetData%AirTemp
-   air_pres => aMetData%AirPres
-   humidity => aMetData%RelHum
-   wind     => aMetData%WindSpeed
-   rain     => aMetData%Rain
-   evap     => aSurfData%Evap
-   I_0      => aMetData%ShortWave
+   air_temp => MetData%AirTemp
+   air_pres => MetData%AirPres
+   humidity => MetData%RelHum
+   wind     => MetData%WindSpeed
+   rain     => MetData%Rain
+   evap     => SurfData%Evap
+   I_0      => MetData%ShortWave
+   longwave => MetData%LongWave
 
    !# Set pointers to GLMs dynamic variables that will be updated later (in do_glm_wq)
    lheights => theLake%Height
@@ -334,6 +340,10 @@ SUBROUTINE api_set_glm_env()
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (uvb)'
    uvb = zero_
 
+   ALLOCATE(feedback(MaxLayers),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (feedback)'
+   feedback = zero_
+
    matz = 0
 
    timestep = dt
@@ -346,21 +356,21 @@ SUBROUTINE api_set_glm_env()
    env(1)%yearday   => yearday
    env(1)%longitude => longitude
    env(1)%latitude  => latitude
-  !env(1)%col_num   => colcol
+   env(1)%col_num   => col_num
   
    env(1)%active    => actv !# .true.
 
-   env(1)%longwave      =>  rain(1) !longwave(1)
-   env(1)%air_temp      => air_temp(1)
-   env(1)%air_pres      => air_pres(1)
-   env(1)%humidity      => humidity(1)
-   env(1)%wind          => wind(1)
-   env(1)%rain          => rain(1)
-   env(1)%evap          => evap(1)
-   env(1)%I_0           => I_0(1)
+   env(1)%longwave      => longwave
+   env(1)%air_temp      => air_temp
+   env(1)%air_pres      => air_pres
+   env(1)%humidity      => humidity
+   env(1)%wind          => wind
+   env(1)%rain          => rain
+   env(1)%evap          => evap
+   env(1)%I_0           => I_0
 
    env(1)%col_depth     => col_depth
-  !env(1)%col_area      => col_area
+   env(1)%col_area      => col_area
    env(1)%height        => lheights
    env(1)%depth         => depth
    env(1)%area          => area
@@ -385,9 +395,9 @@ SUBROUTINE api_set_glm_env()
    env(1)%ss3           =>  tss !ss3
    env(1)%ss4           =>  tss !ss4
 
-   env(1)%ustar_bed     =>  tss !ustar_bed
-   env(1)%wv_uorb       =>  tss !wv_uorb
-   env(1)%wv_t          =>  tss !wv_t
+   env(1)%ustar_bed     => feedback !ustar_bed
+   env(1)%wv_uorb       => feedback !wv_uorb
+   env(1)%wv_t          => feedback !wv_t
    env(1)%layer_stress  => layer_stress(1)
   !env(1)%dz_benthic    =>  ...
 
@@ -395,15 +405,14 @@ SUBROUTINE api_set_glm_env()
    env(1)%sed_zone      => sed_zones(1)
    env(1)%mat_id        => matz
 
-   env(1)%bathy         =>  rain(1) !bathy(1)
+   env(1)%bathy         =>  feedback(1) !bathy(1)
   !env(1)%datum         =>  ...
 
-   env(1)%biodrag       =>  tss !bio_drag
-   env(1)%bioextc       =>  tss
-   env(1)%solarshade    =>  rain(1) 
-   env(1)%windshade     =>  rain(1)
-   env(1)%rainloss      =>  rain(1) !rainloss(1)
-
+   env(1)%biodrag       =>  feedback !bio_drag
+   env(1)%bioextc       =>  feedback
+   env(1)%solarshade    =>  feedback(1)
+   env(1)%windshade     =>  feedback(1)
+   env(1)%rainloss      =>  feedback(1) !rainloss(1)
 
    CALL aed_set_model_env(env, 1, MaxLayers)
 
@@ -591,6 +600,7 @@ SUBROUTINE api_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
 !BEGIN
    col_depth = lheights(wlev)
    surf = lheights(wlev)
+   col_area = area(wlev)
    !# re-compute the layer heights and depths
    dz(1) = lheights(1)
    depth(1) = surf - lheights(1)
