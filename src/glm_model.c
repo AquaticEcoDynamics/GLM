@@ -302,7 +302,7 @@ void do_model(int jstart, int nsave)
     today = jday;
 #endif
 
-    write_output(jday, SecsPerDay, nsave, stepnum);
+//  write_output(jday, SecsPerDay, nsave, stepnum);
     /**************************************************************************
      * Loop over all days                                                     *
      **************************************************************************/
@@ -480,7 +480,7 @@ void do_model_non_avg(int jstart, int nsave)
 
     jday = jstart - 1;
 
-    write_output(jday, SecsPerDay, nsave, stepnum);
+//  write_output(jday, SecsPerDay, nsave, stepnum);
     /**************************************************************************
      * Loop over all days                                                     *
      **************************************************************************/
@@ -636,7 +636,7 @@ void do_model_coupled(int step_start, int step_end,
     cDays = step_end - step_start + 1;
     jday = step_start - 1;
 
-     write_output(jday, SecsPerDay, nsave, stepnum);
+//   write_output(jday, SecsPerDay, nsave, stepnum);
     /**************************************************************************
      * Loop over all days                                                     *
      **************************************************************************/
@@ -726,8 +726,6 @@ void do_model_coupled(int step_start, int step_end,
 #if PLOTS
             plotstep++;
             today = -1;
-
-
 #endif
         }
 
@@ -780,9 +778,8 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
      **************************************************************************/
     iclock = startTOD;
     last_step = stepnum + ((stoptime - iclock) / noSecs);
-    if(stepnum == 0){
-    write_step = stepnum + nsave;
-    }
+    if(stepnum == 0) write_step = stepnum + nsave;
+
     //if ( iclock != 0 ) {
     //    int t = mod(((stoptime - iclock) / noSecs), nsave);
     //    if ( t != 0 ) write_step = stepnum + t;
@@ -835,10 +832,10 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
             //# Do deep mixing integrations
             //# If reservoir is mixed (NumLayers<3) then skip deep mixing
             if (NumLayers > 3) do_deep_mixing();
+        }
 
             //# Check mixed layers for volume
             check_layer_thickness();
-        }
         fix_radiation(Light_Surface);
 
         //# Calculate the percent benthic area where the light level is greater

@@ -46,6 +46,7 @@
 
 #include "namelist.h"
 #include "libplot.h"
+#include "plotter.h"
 
 #ifdef XPLOTS
     int xdisp = 0;
@@ -64,12 +65,14 @@ char * plots_nml_name = "plots.nml";
 static int nanim = 0;
 static char **avars = NULL;
 static char **afnam = NULL;
+static char *anim_name[MAX_PLOTS];
 
 
 /******************************************************************************/
 void init_plots(int jstart, int ndays, AED_REAL crest)
 {
-    int        maxx, maxy, width, height,i,w,h,acrs;
+    int        maxx, maxy, width, height;
+    int        i, j, w, h, acrs;
     int        plot_width, plot_height;
     int        namlst;
     char     **title;
@@ -82,6 +85,7 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
     char      *label_font = NULL;
     int        tsz, lsz;
     int        default_t = FALSE;
+    extern int anim_delay;
 
     NAMELIST plots_window[] = {
           { "plots_window",   TYPE_START,            NULL               },
@@ -111,6 +115,7 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
           { "nanim",          TYPE_INT,              &nanim             },
           { "vars",           TYPE_STR|MASK_LIST,    &avars             },
           { "fnames",         TYPE_STR|MASK_LIST,    &afnam             },
+          { "anim_delay",     TYPE_INT,              &anim_delay        },
           { NULL,             TYPE_END,              NULL               }
     };
 
@@ -167,6 +172,18 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
             max_z[0] = 30.0; max_z[1] = 0.6; max_z[2] = 0.0;
 
             default_t = TRUE;
+        }
+
+        for (i = 0; i < nplots; i++) anim_name[i] = NULL;
+        if ( get_namelist(namlst, animate) == 0 ) {
+            for (j = 0; j < nanim; j++) {
+                for (i = 0; i < nplots; i++) {
+                    if ( strcmp(vars[i], avars[j]) == 0 ) {
+                        anim_name[i] = afnam[j];
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -249,6 +266,9 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
         }
         set_plot_version(theplots[i], glm_vers);
         set_plot_varname(theplots[i], vars[i]);
+
+        if ( anim_name[i] != NULL )
+            set_plot_animation(theplots[i], anim_name[i]);
     }
     free(glm_vers);
     if (default_t) {

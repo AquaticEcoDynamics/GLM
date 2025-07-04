@@ -399,14 +399,14 @@ SUBROUTINE api_set_glm_env()
    env(1)%wv_uorb       => feedback !wv_uorb
    env(1)%wv_t          => feedback !wv_t
    env(1)%layer_stress  => layer_stress(1)
-  !env(1)%dz_benthic    =>  ...
+!  env(1)%dz_benthic    =>  ...
 
    env(1)%sed_zones     => sed_zones
    env(1)%sed_zone      => sed_zones(1)
    env(1)%mat_id        => matz
 
    env(1)%bathy         =>  feedback(1) !bathy(1)
-  !env(1)%datum         =>  ...
+!  env(1)%datum         =>  ...
 
    env(1)%biodrag       =>  feedback !bio_drag
    env(1)%bioextc       =>  feedback

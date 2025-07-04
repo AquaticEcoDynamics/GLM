@@ -219,45 +219,45 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    IF ( aed_init_core('.') /= 0 ) STOP "     ERROR: Initialisation of aed_core failed"
    CALL aed_print_version
 
-   tv = aed_provide_global( 'temperature', 'temperature' , 'celsius' )
-   tv = aed_provide_global( 'salinity', 'salinity' , 'g/Kg' )
-   tv = aed_provide_global( 'density', 'density' , '' )
-   tv = aed_provide_global( 'layer_ht', 'layer heights' , 'meters' )
-   tv = aed_provide_global( 'layer_area', 'layer area' , 'm2' )
-   tv = aed_provide_sheet_global( 'rain', 'rainfall' , 'm/s' )
+   tv = aed_provide_global('temperature', 'temperature',   'celsius' )
+   tv = aed_provide_global('salinity',    'salinity',      'g/Kg' )
+   tv = aed_provide_global('density',     'density',       '' )
+   tv = aed_provide_global('layer_ht',    'layer heights', 'meters' )
+   tv = aed_provide_global('layer_area',  'layer area',    'm2' )
+   tv = aed_provide_sheet_global('rain',  'rainfall',      'm/s' )
    !rainloss
    !material
    !bathy
-   tv = aed_provide_global( 'extc_coef', 'extinction coefficient' , '' )
-   tv = aed_provide_global( 'tss', 'tss' , '' )
+   tv = aed_provide_global( 'extc_coef', 'extinction coefficient' , '')
+   tv = aed_provide_global( 'tss',       'tss', '')
    !ss1, ss2, ss3, ss4
-   tv = aed_provide_global( 'cell_vel', 'layer velocity' , 'm/s' )
-   tv = aed_provide_global( 'nir', 'nir' , 'W/m2' )
-   tv = aed_provide_global( 'par', 'par' , 'W/m2' )
-   tv = aed_provide_global( 'uva', 'uva' , 'W/m2' )
-   tv = aed_provide_global( 'uvb', 'uvb' , 'W/m2' )
-   tv = aed_provide_global( 'pressure', 'pressure' , '' )
-   tv = aed_provide_global( 'depth', 'depth' , 'm' )
+   tv = aed_provide_global( 'cell_vel',  'layer velocity' , 'm/s')
+   tv = aed_provide_global( 'nir',       'nir',      'W/m2')
+   tv = aed_provide_global( 'par',       'par',      'W/m2')
+   tv = aed_provide_global( 'uva',       'uva',      'W/m2')
+   tv = aed_provide_global( 'uvb',       'uvb',      'W/m2')
+   tv = aed_provide_global( 'pressure',  'pressure', '')
+   tv = aed_provide_global( 'depth',     'depth',    'm')
 
-   tv = aed_provide_sheet_global( 'sed_zone', 'sediment zone' , '' )
-   tv = aed_provide_sheet_global( 'wind_speed', 'wind speed' , 'm/s' )
-   tv = aed_provide_sheet_global( 'par_sf', 'par_sf' , '' )
-   tv = aed_provide_sheet_global( 'taub', 'layer stress' , 'N/m2' )
-   tv = aed_provide_sheet_global( 'air_temp', 'air temperature', 'celsius' )
-   tv = aed_provide_sheet_global( 'humidity', 'relative humidity', '-' )
+   tv = aed_provide_sheet_global( 'sed_zone',   'sediment zone',     '')
+   tv = aed_provide_sheet_global( 'wind_speed', 'wind speed',        'm/s')
+   tv = aed_provide_sheet_global( 'par_sf',     'par_sf',            '')
+   tv = aed_provide_sheet_global( 'taub',       'layer stress',      'N/m2')
+   tv = aed_provide_sheet_global( 'air_temp',   'air temperature',   'celsius')
+   tv = aed_provide_sheet_global( 'humidity',   'relative humidity', '-')
    !longwave
-   tv = aed_provide_sheet_global( 'col_num',   'column number', '' )
+   tv = aed_provide_sheet_global( 'col_num',    'column number', '')
    !col_depth
-   tv = aed_provide_sheet_global( 'col_depth', 'lake depth', 'meters' )
-   tv = aed_provide_sheet_global( 'evap',      'evaporation', 'm/s' )
+   tv = aed_provide_sheet_global( 'col_depth',  'lake depth',  'meters')
+   tv = aed_provide_sheet_global( 'evap',       'evaporation', 'm/s')
    ! added for oasim
-   tv = aed_provide_sheet_global( 'longitude', 'longitude', 'radians' )
-   tv = aed_provide_sheet_global( 'latitude',  'latitude',  'radians' )
-   tv = aed_provide_sheet_global( 'yearday',   'yearday',   'day' )
-   tv = aed_provide_sheet_global( 'timestep',  'timestep',  'seconds' )
+   tv = aed_provide_sheet_global( 'longitude',  'longitude', 'radians')
+   tv = aed_provide_sheet_global( 'latitude',   'latitude',  'radians')
+   tv = aed_provide_sheet_global( 'yearday',    'yearday',   'day')
+   tv = aed_provide_sheet_global( 'timestep',   'timestep',  'seconds')
 
    ! new var air_pressure
-   tv = aed_provide_sheet_global( 'air_pres',  'air_pressure',  'Pa' )
+   tv = aed_provide_sheet_global( 'air_pres',  'air_pressure',  'Pa')
 
    !# Create model tree
    print *,"     Processing aed_models config from ",TRIM(fname)

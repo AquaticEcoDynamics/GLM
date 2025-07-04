@@ -157,6 +157,7 @@ SUBROUTINE api_calc_zone_areas(aedZones, n_zones, areas, wheights, wlev)
 
    DO zon=1, n_zones
       aedZones(zon)%z_env%z_pres = -aedZones(zon)%z_env%z_height
+      aedZones(zon)%z_env%z_col_area = -aedZones(zon)%z_env%z_area
    ENDDO
 END SUBROUTINE api_calc_zone_areas
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

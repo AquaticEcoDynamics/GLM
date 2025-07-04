@@ -1621,7 +1621,8 @@ void initialise_lake(int namlst)
         }
 
         if (the_heights[num_heights-1] > MaxHeight) {
-            fprintf(stderr, "     ERROR: initial first height of %f is greater than maximum height of %f \n", the_heights[num_heights-1], MaxHeight);
+            fprintf(stderr, "     ERROR: initial first height of %f is greater than maximum height of %f \n",
+                                                 the_heights[num_heights-1], MaxHeight);
             exit(1);
         }
         num_depths = num_heights;
