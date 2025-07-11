@@ -1239,12 +1239,12 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                                        Lake[surfLayer].LayerVol,
                                        Lake[surfLayer].Density,
                                        MetData.AirTemp, rainvol+snowvol,
-                                       calculate_density(MetData.AirTemp, zero+0.001));
+                                       calculate_density(MetData.AirTemp, MAX(zero,salt_fall)));
         Lake[surfLayer].Salinity = combine(Lake[surfLayer].Salinity,
                                        Lake[surfLayer].LayerVol,
                                        Lake[surfLayer].Density,
-                                       zero+0.001, rainvol+snowvol,
-                                       calculate_density(MetData.AirTemp, zero+0.001));
+                                       MAX(zero,salt_fall), rainvol+snowvol,
+                                       calculate_density(MetData.AirTemp, MAX(zero,salt_fall)));
         for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
             _WQ_Vars(wqidx, surfLayer) = combine_vol(_WQ_Vars(wqidx, surfLayer),
                                                      Lake[surfLayer].LayerVol,
@@ -1263,7 +1263,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     }
 
 
-     //fprintf(stdout, "###12 %f\n", Lake[5].Temp);
+    // fprintf(stdout, "###12 %f\n", MAX(zero,salt_fall));
 
 
     //# Recalculate densities
