@@ -1207,7 +1207,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
         AED_REAL evap = MAX( SurfData.Evap*noSecs,-0.9*Lake[surfLayer].Height );
         
-        AED_REAL evapvol = MAX( evap,zero ) * Lake[surfLayer].LayerArea;
+        AED_REAL evapvol = MIN( evap,zero ) * Lake[surfLayer].LayerArea;
 
         AED_REAL rainvol = MAX( MetData.Rain,zero )
                              * (noSecs / SecsPerDay) * Lake[surfLayer].LayerArea;
