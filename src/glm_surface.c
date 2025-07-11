@@ -1204,44 +1204,62 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
      **************************************************************************/
     if (!ice) {
 
+
+        AED_REAL evap = MAX( SurfData.Evap*noSecs,-0.9*Lake[surfLayer].Height );
+        
+        AED_REAL evapvol = MAX( evap,zero ) * Lake[surfLayer].LayerArea;
+
         AED_REAL rainvol = MAX( MetData.Rain,zero )
-                         * (noSecs / SecsPerDay) * Lake[surfLayer].LayerArea;
+                             * (noSecs / SecsPerDay) * Lake[surfLayer].LayerArea;
 
+        AED_REAL snowvol = MAX( MetData.Snow,zero ) * (1./10.)
+                             * (noSecs / SecsPerDay) * Lake[surfLayer].LayerArea;
+
+        SurfData.dailyEvap += evapvol;
         SurfData.dailyRain += rainvol;
-        SurfData.dailyEvap += SurfData.Evap * noSecs * Lake[surfLayer].LayerArea;
+        SurfData.dailySnow += snowvol;
 
         //---------------------------------------------------------------------+
-        //# Dilution by rainfall and evapo-concentration. Note that evaporation
-        //  leaves consituents and rain can deposit them at a rate dependent
-        //  on the composition of rainfall.
+        //# Add rain directly to surface layer height 
         //---------------------------------------------------------------------+
-        Lake[surfLayer].Height += MAX( SurfData.Evap*noSecs,-0.9*Lake[surfLayer].Height )
-                                + rainvol / Lake[surfLayer].LayerArea;
+        Lake[surfLayer].Height += rainvol / Lake[surfLayer].LayerArea;
 
+        //---------------------------------------------------------------------+
+        //# Add snow directly to surface layer height, if there is no ice.
+        //  If there is ice, snow will be handled in the next block
+        //  Use 1:10 rule for snow water equivalent (SWE)
+        //---------------------------------------------------------------------+
+        Lake[surfLayer].Height += snowvol / Lake[surfLayer].LayerArea;
+
+        //---------------------------------------------------------------------+
+        //# Dilution by rainfall/snowfall. Note that rain can deposit   
+        //  consituents at a rate dependent on the composition of rainfall. # TBC
+        //---------------------------------------------------------------------+
         Lake[surfLayer].Temp = combine(Lake[surfLayer].Temp,
                                        Lake[surfLayer].LayerVol,
                                        Lake[surfLayer].Density,
-                                       MetData.AirTemp, rainvol,
+                                       MetData.AirTemp, rainvol+snowvol,
                                        calculate_density(MetData.AirTemp, zero+0.001));
         Lake[surfLayer].Salinity = combine(Lake[surfLayer].Salinity,
                                        Lake[surfLayer].LayerVol,
                                        Lake[surfLayer].Density,
-                                       zero+0.001, rainvol,
+                                       zero+0.001, rainvol+snowvol,
                                        calculate_density(MetData.AirTemp, zero+0.001));
         for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
             _WQ_Vars(wqidx, surfLayer) = combine_vol(_WQ_Vars(wqidx, surfLayer),
                                                      Lake[surfLayer].LayerVol,
-                                                     zero, rainvol);
+                                                     zero, rainvol+snowvol);
+
+
+        resize_internals(1, surfLayer);  // recompute surflayer volume
 
         //---------------------------------------------------------------------+
-        //# Add snow directly to surface layer height if there is no ice.
-        //  If there is ice, snow will be handled in the next block
-        //  Use 1:10 rule for snow water equivalent
+        //# Evaporation and evapo-concentration, as evaporation leaves consituents 
         //---------------------------------------------------------------------+
-        Lake[surfLayer].Height += MAX( MetData.Snow, zero)
-                 * (1./10.) * (noSecs / SecsPerDay);
+        Lake[surfLayer].Height += evapvol / Lake[surfLayer].LayerArea;
 
         recalc_surface_salt();
+        //recalc_surface_wq();
     }
 
 
