@@ -62,7 +62,6 @@ MODULE glm_zones
    PUBLIC wq_set_glm_zones, copy_from_zone, copy_to_zone, calc_zone_areas
 
    PUBLIC z_cc, z_cc_hz, z_diag, z_diag_hz, theZones, theLake
-!  PUBLIC n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet, zone_var
 
 CONTAINS
 
@@ -78,7 +77,6 @@ SUBROUTINE wq_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)            &
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-
    nvars = numVars
    nbenv = numBenV
    nvdiag = numDiagV
@@ -92,7 +90,6 @@ SUBROUTINE wq_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)            &
    ALLOCATE(z_diag(n_zones, MaxLayers, numDiagV))       ; z_diag = 0.
    ALLOCATE(z_diag_hz(n_zones+1, numDiagHzV))           ; z_diag_hz = 0.
    theZones%zarea = 0.
-
 END SUBROUTINE wq_set_glm_zones
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -167,7 +164,6 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-
    ! Reset zone data structure to zero, for copying in information from main
    ! lake data structures. Note that z_cc(:,:,nvars+1:nvars_ben) is not zeroed
    ! as this is the benthic zone data we need to preserve
@@ -417,6 +413,7 @@ END SUBROUTINE copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
+#if 0
 !###############################################################################
 SUBROUTINE copy_from_zone_og(x_cc, x_diag, x_diag_hz, wlev)
 !-------------------------------------------------------------------------------
@@ -477,6 +474,7 @@ SUBROUTINE copy_from_zone_og(x_cc, x_diag, x_diag_hz, wlev)
    ENDDO
 END SUBROUTINE copy_from_zone_og
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#endif
 
 
 !###############################################################################

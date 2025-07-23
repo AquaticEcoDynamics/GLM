@@ -43,11 +43,6 @@
 #  if __GNUC__ < 8
 #    error   "You will need gfortran version 8 or better"
 #  endif
-#else
-#  ifndef isnan
-#    define isnan(x) ieee_is_nan(x)
-#    define HAVE_IEEE_ARITH
-#  endif
 #endif
 
 
@@ -55,6 +50,7 @@
 MODULE glm_aed2
 !
    USE ISO_C_BINDING
+   USE IEEE_ARITHMETIC
 
    USE aed2_util
    USE aed2_common
@@ -744,10 +740,6 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
 !-------------------------------------------------------------------------------
 ! Checks the current values of all state variables and repairs these
 !-------------------------------------------------------------------------------
-#ifdef HAVE_IEEE_ARITH
-!USES
-   USE IEEE_ARITHMETIC
-#endif
 !ARGUMENTS
    TYPE (aed2_column_t), INTENT(inout) :: column(:)
    TYPE (aed2_column_t), INTENT(inout) :: column_sed(:)
@@ -933,11 +925,6 @@ END SUBROUTINE calculate_fluxes
 !###############################################################################
 SUBROUTINE check_states(column, wlev)
 !-------------------------------------------------------------------------------
-#ifdef HAVE_IEEE_ARITH
-!USES
-   USE IEEE_ARITHMETIC
-#endif
-!
 !ARGUMENTS
    TYPE (aed2_column_t),INTENT(inout) :: column(:)
    INTEGER,INTENT(in) :: wlev
@@ -963,12 +950,12 @@ SUBROUTINE check_states(column, wlev)
                v = v + 1
                IF ( repair_state ) THEN
 #if DEBUG
-                  IF ( isnan(cc(lev, v)) ) last_naned = i
+                  IF ( ieee_is_nan(cc(lev, v)) ) last_naned = i
 #endif
-                  IF ( .NOT. isnan(min_(v)) ) THEN
+                  IF ( .NOT. ieee_is_nan(min_(v)) ) THEN
                      IF ( cc(lev, v) < min_(v) ) cc(lev, v) = min_(v)
                   ENDIF
-                  IF ( .NOT. isnan(max_(v)) ) THEN
+                  IF ( .NOT. ieee_is_nan(max_(v)) ) THEN
                      IF ( cc(lev, v) > max_(v) ) cc(lev, v) = max_(v)
                   ENDIF
                ENDIF
@@ -996,11 +983,6 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 !-------------------------------------------------------------------------------
 !                           wlev is the number of levels used;
 !-------------------------------------------------------------------------------
-#ifdef HAVE_IEEE_ARITH
-!USES
-   USE IEEE_ARITHMETIC
-#endif
-!
 !ARGUMENTS
    CINTEGER,INTENT(in) :: wlev
    CLOGICAL,INTENT(in) :: pIce
@@ -1064,7 +1046,7 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
               v = v + 1
               ws(:,i) = zero_
               ! only for state_vars that are not sheet
-              IF ( .NOT. isnan(tv%mobility) ) THEN
+              IF ( .NOT. ieee_is_nan(tv%mobility) ) THEN
                  ! default to ws that was set during initialisation
                  ws(1:wlev,i) = tv%mobility
                  IF(i == 14) print *,'ws',i,ws(1:wlev,i)
@@ -1087,7 +1069,7 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
             IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern)   ) THEN
                v = v + 1
                !# only for state_vars that are not sheet, and also non-zero ws
-               IF ( .NOT. isnan(tv%mobility) .AND. SUM(ABS(ws(1:wlev,i)))>zero_ ) THEN
+               IF ( .NOT. ieee_is_nan(tv%mobility) .AND. SUM(ABS(ws(1:wlev,i)))>zero_ ) THEN
                   min_C = tv%minimum
                   CALL doMobility(wlev, dt, dz, area, ws(:, i), min_C, cc(:, v))
                ENDIF

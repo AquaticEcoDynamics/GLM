@@ -223,30 +223,30 @@ MODULE glm_types
    TYPE(SurfaceDataType),             POINTER :: SurfData  !# Surface Data
    TYPE(ZoneType),       DIMENSION(:),POINTER :: theZones
 
-   TYPE(CLOGICAL),BIND(C, name="mobility_off")     :: mobility_off
-   TYPE(CLOGICAL),BIND(C, name="bioshade_feedback"):: bioshade_feedback
-   TYPE(CLOGICAL),BIND(C, name="repair_state")     :: repair_state
-   TYPE(CLOGICAL),BIND(C, name="do_plots")         :: do_plots = .FALSE.
-   TYPE(CLOGICAL),BIND(C, name="link_rain_loss")   :: link_rain_loss
-   TYPE(CLOGICAL),BIND(C, name="link_solar_shade") :: link_solar_shade
-   TYPE(CLOGICAL),BIND(C, name="link_bottom_drag") :: link_bottom_drag
-   TYPE(CLOGICAL),BIND(C, name="ice")              :: ice
+   TYPE(CLOGICAL),BIND(C, name="mobility_off")       :: mobility_off
+   TYPE(CLOGICAL),BIND(C, name="bioshade_feedback")  :: bioshade_feedback
+   TYPE(CLOGICAL),BIND(C, name="repair_state")       :: repair_state
+   TYPE(CLOGICAL),BIND(C, name="do_plots")           :: do_plots = .FALSE.
+   TYPE(CLOGICAL),BIND(C, name="link_rain_loss")     :: link_rain_loss
+   TYPE(CLOGICAL),BIND(C, name="link_solar_shade")   :: link_solar_shade
+   TYPE(CLOGICAL),BIND(C, name="link_bottom_drag")   :: link_bottom_drag
+   TYPE(CLOGICAL),BIND(C, name="ice")                :: ice
 
-   TYPE(CINTEGER),BIND(C, name="split_factor")     :: split_factor
-   TYPE(CINTEGER),BIND(C, name="ode_method")       :: ode_method
-   TYPE(CINTEGER),BIND(C, name="benthic_mode")     :: benthic_mode
+   TYPE(CINTEGER),BIND(C, name="split_factor")       :: split_factor
+   TYPE(CINTEGER),BIND(C, name="ode_method")         :: ode_method
+   TYPE(CINTEGER),BIND(C, name="benthic_mode")       :: benthic_mode
 
-   TYPE(AED_REAL),BIND(C, name="rain_factor")      :: rain_factor
-   TYPE(AED_REAL),BIND(C, name="sw_factor")        :: sw_factor
-   TYPE(AED_REAL),BIND(C, name="friction")         :: friction
+   TYPE(AED_REAL),TARGET,BIND(C, name="rain_factor") :: rain_factor
+   TYPE(AED_REAL),TARGET,BIND(C, name="sw_factor")   :: sw_factor
+   TYPE(AED_REAL),TARGET,BIND(C, name="friction")    :: friction
 
-   TYPE(AED_REAL),BIND(C, name="Kw")               :: Kw
-   TYPE(AED_REAL),BIND(C, name="dt")               :: dt
+   TYPE(AED_REAL),TARGET,BIND(C, name="Kw")          :: Kw
+   TYPE(AED_REAL),TARGET,BIND(C, name="dt")          :: dt
 
-   TYPE(AED_REAL),TARGET,BIND(C, name="yearday")   :: yearday
-   TYPE(AED_REAL),TARGET,BIND(C, name="timestep")  :: timestep
-   TYPE(AED_REAL),TARGET,BIND(C, name="Longitude") :: longitude
-   TYPE(AED_REAL),TARGET,BIND(C, name="Latitude")  :: latitude
+   TYPE(AED_REAL),TARGET,BIND(C, name="yearday")     :: yearday
+   TYPE(AED_REAL),TARGET,BIND(C, name="timestep")    :: timestep
+   TYPE(AED_REAL),TARGET,BIND(C, name="Longitude")   :: longitude
+   TYPE(AED_REAL),TARGET,BIND(C, name="Latitude")    :: latitude
 
 CONTAINS
 

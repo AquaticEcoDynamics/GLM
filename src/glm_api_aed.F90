@@ -30,6 +30,8 @@
 !#                                                                             #
 !###############################################################################
 
+#define DO_HZ 0
+
 #include "aed_api.h"
 
 #undef MISVAL
@@ -37,16 +39,7 @@
 #define _FORTRAN_SOURCE_ 1
 #endif
 
-#ifndef __GFORTRAN__
-#  ifndef isnan
-#    define isnan(x) ieee_is_nan(x)
-#  endif
-#endif
-
 #include "glm.h"
-
-#define LOCAL_VERS  0
-#define AS_IT_SHOULD_BE 0
 
 !-------------------------------------------------------------------------------
 MODULE glm_api_aed
@@ -57,30 +50,10 @@ MODULE glm_api_aed
    USE aed_util
    USE aed_common
    USE glm_types
-#if LOCAL_VERS
-   USE glm_api_api
-#else
    USE aed_api
-#endif
    USE aed_ptm
    USE aed_zones
    USE glm_api_zones
-
-#if LOCAL_VERS
-#  define aed_configure_models aed_configure_models_x
-#  define aed_run_model aed_run_model_x
-#  define aed_var_index aed_var_index_x
-#  define aed_clean_model aed_clean_model_x
-!#  define aed_coupling_t aed_coupling_t_x
-#  define aed_set_coupling aed_set_coupling_x
-!#  define aed_env_t aed_env_t_x
-#  define aed_set_model_env aed_set_model_env_x
-!  #define aed_data_t aed_data_t_x
-#  define aed_set_model_data aed_set_model_data_x
-!#  define aed_mobility_fn_t aed_mobility_fn_t_x
-#  define aed_set_mobility_fn aed_set_mobility_fn_x
-#endif
-
 
    IMPLICIT NONE
 
@@ -130,7 +103,8 @@ MODULE glm_api_aed
 
    !# Arrays for state and diagnostic variables
    AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: cc    !# water quality array - water  : nvars, nlayers
-   AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_hz !# water quality array - benthic: nvars
+!  AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_hz !# water quality array - benthic: nvars
+   AED_REAL,DIMENSION(:),  POINTER :: cc_hz !# water quality array - benthic: nvars
    AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: cc_diag
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_diag_hz
 
@@ -237,11 +211,11 @@ SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    conf%split_factor = split_factor
    conf%benthic_mode = benthic_mode
 
-   conf%rain_factor = rain_factor
-   conf%sw_factor = sw_factor
-   conf%friction = friction
+   conf%rain_factor => rain_factor
+   conf%sw_factor => sw_factor
+   conf%friction => friction
 
-   conf%Kw = Kw
+   conf%Kw => Kw
 
    conf%do_particle_bgc = do_particle_bgc
 
@@ -354,6 +328,7 @@ SUBROUTINE api_set_glm_env()
 
    env(1)%timestep  => timestep
    env(1)%yearday   => yearday
+
    env(1)%longitude => longitude
    env(1)%latitude  => latitude
    env(1)%col_num   => col_num
@@ -436,15 +411,23 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
       CALL api_set_glm_zones(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet, n_aed_vars)
 
    !# Now that we know how many vars we need, we can allocate space for them
-   ALLOCATE(cc((n_vars + n_vars_ben), MaxLayers),stat=status)
+#if DO_HZ
+   ALLOCATE(cc(n_vars, MaxLayers),stat=status)
+#else
+   ALLOCATE(cc((n_vars+n_vars_ben), MaxLayers),stat=status)
+#endif
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (cc)'
    cc = zero_         !# initialise to zero
 
    CALL set_c_wqvars_ptr(cc)
 
-!  ALLOCATE(cc_hz(n_vars_ben),stat=status)
-!  IF (status /= 0) STOP 'allocate_memory(): Error allocating (cc_hz)'
-!  cc_hz = zero_         !# initialise to zero
+#if DO_HZ
+   ALLOCATE(cc_hz(n_vars_ben),stat=status)
+   IF (status /= 0) STOP 'allocate_memory(): Error allocating (cc_hz)'
+   cc_hz = zero_         !# initialise to zero
+#else
+   cc_hz => cc(n_vars+1:n_vars+n_vars_ben, 1)
+#endif
 
    !# Allocate diagnostic variable array and set all values to zero.
    !# (needed because time-integrated/averaged variables will increment rather than set the array)
@@ -461,7 +444,11 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
    CALL set_c_wqdvars_ptr(cc_diag, cc_diag_hz, n_vars_diag, n_vars_diag_sheet)
 
    dat(1)%cc => cc
-!  dat(1)%cc_hz => cc_hz
+#if DO_HZ
+   dat(1)%cc_hz => cc_hz
+#else
+   dat(1)%cc_hz => cc(n_vars+1:n_vars+n_vars_ben, 1)
+#endif
    dat(1)%cc_diag => cc_diag
    dat(1)%cc_diag_hz => cc_diag_hz
 
@@ -482,7 +469,6 @@ SUBROUTINE api_set_glm_ptm(num_particle_groups,num_particles)    BIND(C, name=_W
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-
 print *,'HI0',num_particle_groups
 
    ALLOCATE(ptm_bla(num_particle_groups))
@@ -500,8 +486,6 @@ print *,'BYE', num_particles
 
    print *,'PTM : ', ptm_istat(1,5000,1)
    print *,'PTM : ', ptm_env(1,5000,1)
-
-
 END SUBROUTINE api_set_glm_ptm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -598,9 +582,11 @@ SUBROUTINE api_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
+   topidx = wlev ; botidx = 1
+   col_area = area(wlev)
+
    col_depth = lheights(wlev)
    surf = lheights(wlev)
-   col_area = area(wlev)
    !# re-compute the layer heights and depths
    dz(1) = lheights(1)
    depth(1) = surf - lheights(1)
@@ -608,10 +594,14 @@ SUBROUTINE api_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
       dz(lev) = lheights(lev) - lheights(lev-1)
       depth(lev) = surf - lheights(lev)
    ENDDO
+
+   !# Calculate local pressure
+   pres(1:wlev) = -lheights(1:wlev)
+
    IF ( benthic_mode .GT. 1 ) THEN
       zon = 1
       DO lev=1,wlev
-         IF (lheights(lev) .GT. aedZones(zon)%z_env%z_height) THEN  !CAB ???
+         IF (lheights(lev) .GT. aedZones(zon)%z_env%z_height) THEN
             sed_zones(lev) = zon * ( area(lev) - pa ) / area(lev)
             pa = area(lev)
             zon = zon+1
@@ -620,13 +610,6 @@ SUBROUTINE api_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
          ENDIF
       ENDDO
    ENDIF
-   topidx = wlev ; botidx = 1
-
-!print *,'---'
-!print *,'RAD,',rad(1:wlev)
-
-   !# Calculate local pressure
-   pres(1:wlev) = -lheights(1:wlev)
 
    doSurface = .NOT. pIce
 
@@ -784,8 +767,13 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                ENDIF
                DO j=1,point_nlevs
                   val_out = missing
+#if DO_HZ
+                  IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc_diag_hz(sd)
+                  IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc_diag_hz(sd)
+#else
                   IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc_diag(v, 1)
                   IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc_diag(v, 1)
+#endif
                   CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
                ENDDO
             ELSE  !# not sheet
@@ -808,19 +796,36 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                IF ( n_zones .GT. 0 ) THEN
                   CALL store_nc_array(ncid, zexternalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_cc(n_vars+sv, 1, 1:n_zones))
                ENDIF
+#if DO_HZ
+               CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc_hz(sv))
+#else
                CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc(n_vars+sv, 1))
+#endif
                IF ( do_plots .AND. plot_id_sv(sv).GE.0 ) THEN
                   IF ( n_zones .GT. 0 ) THEN
                      DO z=1,n_zones
+#if DO_HZ
+                        CALL put_glm_val_z(plot_id_sv(sv), z_cc_hz(sv, z), z)   !# does each coloured zone
+#else
                         CALL put_glm_val_z(plot_id_sv(sv), z_cc(n_vars+sv, 1, z), z)
+#endif
                      ENDDO
                   ENDIF
+#if DO_HZ
+                  CALL put_glm_val_s(plot_id_sv(sv), cc_hz(sv))                 !# does black sine
+#else
                   CALL put_glm_val_s(plot_id_sv(sv), cc(n_vars+sv, 1))
+#endif
                ENDIF
                DO j=1,point_nlevs
                   val_out = missing
-                  IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc(v, 1)
-                  IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc(v, 1)
+#if DO_HZ
+                  IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc_hz(sv)
+                  IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc_hz(sv)
+#else
+                  IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc(n_vars+sv, 1)
+                  IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc(n_vars+sv, 1)
+#endif
                   CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
                ENDDO
             ELSE     !# not sheet

@@ -151,6 +151,18 @@ static AED_REAL max_temp(LakeDataType *Lake, int count)
 
 
 /******************************************************************************/
+static AED_REAL sum_lake_salt()
+{
+    AED_REAL sum = 0.;
+    int i;
+    for (i = 0; i < NumLayers; i++)
+        sum += (Lake[i].LayerVol*Lake[i].Salinity);
+    return sum;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************/
 static AED_REAL sum_lake_layervol()
 {
     AED_REAL sum = 0.;
@@ -158,6 +170,56 @@ static AED_REAL sum_lake_layervol()
     for (i = 0; i < NumLayers; i++)
         sum += Lake[i].LayerVol;
     return sum;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************/
+static AED_REAL salt_inflow()
+{
+    int i;
+    AED_REAL totInfSal = 0.0;
+
+    for (i = 0; i < NumInf; i++) {
+        totInfSal += (Inflows[i].FlowRate * Inflows[i].SalInf);
+    }
+    return totInfSal;
+}
+
+static AED_REAL salt_outflow()
+{
+    int i, drawL = -1;
+    AED_REAL totOutfSal = 0.0;
+
+    // This is probably not right.  The DrawnFrom index is the first layer where
+    // the draw occurs, but if the draw is greater than the volume of that layer
+    // there may be other layers whose salinity is different...
+
+    for (i = 0; i < NumOut; i++) {
+        drawL = Outflows[i].DrawnFrom;
+        if ( drawL >= 0 )
+            totOutfSal += (Outflows[i].LastDrawn * Outflows[i].Factor * Lake[drawL].Salinity);
+    }
+
+    return totOutfSal;
+}
+
+static AED_REAL salt_overflow()
+{
+    AED_REAL totOverFSal = 0.0;
+
+     totOverFSal += (SurfData.dailyOverflow * Lake[surfLayer].Salinity);
+
+    return totOverFSal;
+}
+
+static AED_REAL salt_rain_in()
+{ //  ("Rain Salt",       SurfData.dailyRain,        NULL, FALSE);
+    AED_REAL totRainSal = 0.0;
+
+//  totRainSal += (MetData.Rain * MetData.Salinity);
+
+    return totRainSal;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -347,6 +409,12 @@ void write_diags(int jday, AED_REAL LakeNum)
     write_csv_lake("CD",              coef_wind_drag,            NULL, FALSE);
     write_csv_lake("CHE",             coef_wind_chwn,            NULL, FALSE);
     write_csv_lake("z/L",             SurfData.dailyzonL*(noSecs/SecsPerDay), NULL, TRUE);
+
+    write_csv_lake("Tot Salt",        sum_lake_salt(),           NULL, FALSE);
+    write_csv_lake("Tot Inflow Salt", salt_inflow(),             NULL, FALSE);
+    write_csv_lake("Tot Outflow Salt",salt_outflow(),            NULL, FALSE);
+    write_csv_lake("Overflow Salt",   salt_overflow(),           NULL, FALSE);
+    write_csv_lake("Rain Salt",       salt_rain_in(),            NULL, FALSE);
 
     write_glm_diag_ncdf(ncid, LakeNum, max_t, min_t, max_dt);
 }

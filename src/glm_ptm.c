@@ -105,7 +105,7 @@ void ptm_init_glm()
     AED_REAL lower_height;
 
     CINTEGER num_particle_groups;
-    int bla;
+//  int bla;
     int pg;
 
 /*----------------------------------------------------------------------------*/

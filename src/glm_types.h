@@ -144,12 +144,13 @@ typedef char filname[80];
        CINTEGER Type;            // outflow type
        AED_REAL Hcrit;           // outlet height when crit O2
        CINTEGER O2idx;           // O2 parameter idx in AED/FABM
-       char O2name;              // O2 parameter name in AED/FABM
        AED_REAL TARGETtemp;      // Isotherm for withdrawal switch 4
        AED_REAL OLev;            // distance below surface level
        AED_REAL OLen;            // basin length at the outlet
        AED_REAL OWid;            // basin width at the outlet
        AED_REAL Draw;            // outflow volumes
+       AED_REAL LastDrawn;       // outflow volume removed at last draw
+       CINTEGER DrawnFrom;       // layer index where last drawn
        AED_REAL Factor;          // scaling factor for outflow
        LOGICAL  FloatOff;        // Is this a floating offtake
    } OutflowDataType;

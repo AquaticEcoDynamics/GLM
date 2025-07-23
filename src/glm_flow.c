@@ -109,7 +109,7 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
     AED_REAL DeltaBot;       //# Lower half withdrawal layer thickness
     AED_REAL DeltaTop;       //# Upper half withdrawal layer thickness
     AED_REAL DeltaTotal;
-    AED_REAL DeltaAvg;          //#
+    AED_REAL DeltaAvg;       //#
     AED_REAL Delta_rho;      //# Density difference between outflow layer i above or below
     AED_REAL Delta_z;        //# Width over which density gradient is calculated
     AED_REAL Q_outf;         //# Flow rate of the outflow, converted to m3/s
@@ -132,6 +132,8 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
+    if (outf != NULL) outf->DrawnFrom = -1;       // layer index where last drawn
+
     if (HeightOfOutflow < 0 && outf->Type != 0 ) {
         fprintf(stderr, "HeightOfOutflow < 0; Outflow type is %d\n", outf->Type);
         exit(1);
@@ -141,11 +143,13 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
     for (i = botmLayer; i <= surfLayer; i++)
         if (Lake[i].Height >=  HeightOfOutflow) break;
 
+    //# Return if reservoir surface is below outlet level
+    if (i > surfLayer) return;
+
     Outflow_LayerNum = i;
 //  printf("HeightOfOutflow is %10.5f; Outflow type is %d in layer %d\n",HeightOfOutflow, outf->Type, Outflow_LayerNum);
 
-    //# Return if reservoir surface is below outlet level
-    if (i > surfLayer) return;
+    if (outf != NULL) outf->DrawnFrom = i;       // layer index where last drawn
 
     WidthAtOutflow = 0.;
     LenAtOutflow = 0.;
@@ -405,7 +409,6 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
     * Update layer heights                                                *
     **********************************************************************/
     resize_internals(2, botmLayer);
-
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

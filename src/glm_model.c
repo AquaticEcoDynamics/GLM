@@ -275,7 +275,7 @@ void do_model(int jstart, int nsave)
     AED_REAL Elev[MaxInf];
     int jday, ntot, stepnum, stoptime;
     int i, j;
-    AED_REAL day_fraction;
+    AED_REAL yearday, day_fraction;
 
     /*------------------------------------------------------------------------*/
 
@@ -309,6 +309,7 @@ void do_model(int jstart, int nsave)
     while (ntot < nDates) {
         ntot++;
         jday++;
+        yearday = day_of_year(jday);
 
         //# If it is the last day, adjust the stop time for the day if necessary
         if (ntot == nDates) stoptime = stopTOD;
@@ -439,7 +440,8 @@ void do_model(int jstart, int nsave)
         else
 #endif
           if (quiet < 2) {
-            printf("     Running day %8d, %4.2f%% of days complete%c", jday, ntot*100./nDates, EOLN);
+            printf("     Running day %8d [DoY %3ld], %4.2f%% of days complete%c",
+                   jday, lrint(trunc(yearday)), ntot*100./nDates, EOLN);
             fflush(stdout);
         }
     }   //# do while (ntot < nDates)
@@ -726,6 +728,8 @@ void do_model_coupled(int step_start, int step_end,
 #if PLOTS
             plotstep++;
             today = -1;
+
+
 #endif
         }
 

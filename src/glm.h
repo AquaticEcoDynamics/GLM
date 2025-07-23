@@ -36,7 +36,7 @@
 #define USE_FILLVALUE 1
 
 /* Actually pre-alpha V4.0.0 */
-#define GLM_VERSION  "3.9.016"
+#define GLM_VERSION  "3.9.017"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -67,12 +67,10 @@
 #  define CAED_REAL REAL(kind=C_DOUBLE)
 #  define NF90_REALTYPE NF90_DOUBLE
 #  define NC_FILLER NC_FILL_DOUBLE
-#  define IFIX IDINT
-#  define AMOD DMOD
-#  define ALOG10 DLOG10
-#  define EXP DEXP
-#  define AINT DINT
-#  define FLOAT
+
+#  ifndef FLOAT
+#    define FLOAT(x) (x)
+#  endif
 #  define DOUBLETYPE double precision
 #  define CINTEGER INTEGER(kind=C_INT32_T)
 #  define CSIZET   INTEGER(kind=C_SIZE_T)
