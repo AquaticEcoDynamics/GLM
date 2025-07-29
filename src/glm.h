@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2024 -  The University of Western Australia               *
+ * Copyright 2013 - 2025 - The University of Western Australia                *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -35,7 +35,7 @@
 #endif
 #define USE_FILLVALUE 1
 
-#define GLM_VERSION  "3.3.3"
+#define GLM_VERSION  "3.3.4"
 
 #define POINT         0
 #define Z_SHAPE       1

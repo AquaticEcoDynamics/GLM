@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2024 -  The University of Western Australia               *
+ * Copyright 2013 - 2025 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -54,8 +54,8 @@ int wq_calc = FALSE;
 
 AED_REAL Kw;      //# background light attenuation (m**-1)
 
-int Num_WQ_Vars;  //# number of water quality variables
-int Num_WQ_Ben;   //# number of benthic water quality variables
+int Num_WQ_Vars = 0;  //# number of water quality variables
+int Num_WQ_Ben = 0;   //# number of benthic water quality variables
 int atm_stab = 0; //# Account for non-neutral atmospheric stability
 
 //------------------------------------------------------------------------------

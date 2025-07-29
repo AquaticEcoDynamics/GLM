@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2024 -  The University of Western Australia               *
+ * Copyright 2013 - 2025 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -832,8 +832,12 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         }
     }
 
-    if ( n_zones > 0 ) {
+//  if ( n_zones > 0 ) {
+    {
         int err = FALSE;
+        int sz;
+        AED_REAL *tr;
+
         if ( zone_heights != NULL ) {
             if ( get_nml_listlen(namlst, "sediment", "zone_heights") < n_zones ) {
                 fprintf(stderr, "zone_heights list too short in sediment\n");
@@ -841,10 +845,13 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
             }
         }
         if ( sed_reflectivity != NULL ) {
-            if ( get_nml_listlen(namlst, "sediment", "sed_reflectivity") < n_zones ) {
+            if ( (sz=get_nml_listlen(namlst, "sediment", "sed_reflectivity")) < n_zones ) {
                 fprintf(stderr, "sed_reflectivity list too short in sediment\n");
                 err = TRUE;
             }
+            tr = malloc(sz * sizeof(AED_REAL));
+            memcpy(tr, sed_reflectivity, sz * sizeof(AED_REAL));
+            sed_reflectivity = tr;
         }
         if ( sed_roughness != NULL ) {
             if ( get_nml_listlen(namlst, "sediment", "sed_roughness") < n_zones ) {
@@ -853,22 +860,31 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
             }
         }
         if ( sed_temp_mean != NULL ) {
-            if ( get_nml_listlen(namlst, "sediment", "sed_temp_mean") < n_zones ) {
+            if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_mean")) < n_zones ) {
                 fprintf(stderr, "sed_temp_mean list too short in sediment\n");
                 err = TRUE;
             }
+            tr = malloc(sz * sizeof(AED_REAL));
+            memcpy(tr, sed_temp_mean, sz * sizeof(AED_REAL));
+            sed_temp_mean = tr;
         }
         if ( sed_temp_amplitude != NULL ) {
-            if ( get_nml_listlen(namlst, "sediment", "sed_temp_amplitude") < n_zones ) {
+            if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_amplitude")) < n_zones ) {
                 fprintf(stderr, "sed_temp_amplitude list too short in sediment\n");
                 err = TRUE;
             }
+            tr = malloc(sz * sizeof(AED_REAL));
+            memcpy(tr, sed_temp_amplitude, sz * sizeof(AED_REAL));
+            sed_temp_amplitude = tr;
         }
         if ( sed_temp_peak_doy != NULL ) {
-            if ( get_nml_listlen(namlst, "sediment", "sed_temp_peak_doy") < n_zones ) {
+            if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_peak_doy")) < n_zones ) {
                 fprintf(stderr, "sed_temp_peak_doy list too short in sediment\n");
                 err = TRUE;
             }
+            tr = malloc(sz * sizeof(AED_REAL));
+            memcpy(tr, sed_temp_peak_doy, sz * sizeof(AED_REAL));
+            sed_temp_peak_doy = tr;
         }
         if (err ) exit(1);
     }
@@ -1030,6 +1046,8 @@ for (i = 0; i < n_zones; i++) {
         fprintf(stderr, "     No 'outflow' config, assuming no outflows\n");
         NumOut = 0;
     } else {
+        LOGICAL need_free = FALSE;
+
         if ( num_outlet > MaxOut) {
             fprintf(stderr, "     ERROR: Too many outlets specified in 'outflow' config %d > %d\n", num_outlet, MaxOut);
             exit(1);
@@ -1038,6 +1056,7 @@ for (i = 0; i < n_zones; i++) {
         if (num_outlet<=0) num_outlet=1; // BEWARE: num_outlet is only used now for malloc
                                          // remove this if you use it for anything else!!
         if ( flt_off_sw == NULL ) {
+            need_free = TRUE;
             flt_off_sw = malloc(sizeof(LOGICAL)*num_outlet);
             for (i = 0; i < NumOut; i++) flt_off_sw[i] = FALSE;
         } else if ( outlet_type == NULL ) {
@@ -1087,7 +1106,8 @@ for (i = 0; i < n_zones; i++) {
             if (outflow_fl[i] != NULL) open_outflow_file(i, outflow_fl[i], timefmt_o);
 
         }
-        free(outlet_type);
+        if (need_free) free(flt_off_sw);
+//      free(outlet_type);
     }
     if ( outlet_crit != NULL ) { // only relevant if we have defined it.
         if ((crit_O2 < 0) || (crit_O2_dep < base_elev) || (crit_O2_days < 1)) {

@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2024 -  The University of Western Australia               *
+ * Copyright 2013 - 2025 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -1150,7 +1150,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
               for (z = 1; z < n_zones; z++) {
                   // call the dynamic soil/sediment temperature model
                   /*
-                  SoilTemp( &theZones[z].n_sedLayers,
+                  SoilTemp( &theZones[z].n_sed_layers,
                              sed_depths,
                              sed_vwc,
                              theZones[z].ztemp,

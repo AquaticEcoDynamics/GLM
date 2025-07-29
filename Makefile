@@ -11,7 +11,7 @@
 #                                                                             #
 #      http://aquatic.science.uwa.edu.au/                                     #
 #                                                                             #
-#  Copyright 2013 - 2024 -  The University of Western Australia               #
+#  Copyright 2013 - 2025 - The University of Western Australia                #
 #                                                                             #
 #   GLM is free software: you can redistribute it and/or modify               #
 #   it under the terms of the GNU General Public License as published by      #
@@ -100,8 +100,8 @@ ifeq ($(OSTYPE),Darwin)
   SHARED=-dynamiclib -undefined dynamic_lookup
   so_ext=dylib
 else ifeq ($(OSTYPE),Msys)
-  CINCLUDES+=-I../ancillary/windows/msys/include
-  LIBS+=-L../ancillary/windows/msys/lib
+  CINCLUDES+=-I../ancillary/windows/include
+  LIBS+=-L../ancillary/windows/lib
 else ifeq ($(OSTYPE),FreeBSD)
   FINCLUDES+=-I/usr/local/flang/include -I/usr/local/include
   CINCLUDES+=-I/usr/local/include

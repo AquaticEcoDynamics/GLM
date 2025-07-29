@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2013 - 2024 -  The University of Western Australia                #
+!# Copyright 2013 - 2025 - The University of Western Australia                 #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -43,11 +43,6 @@
 #  if __GNUC__ < 8
 #    error   "You will need gfortran version 8 or better"
 #  endif
-#else
-#  ifndef isnan
-#    define isnan(x) ieee_is_nan(x)
-#    define HAVE_IEEE_ARITH
-#  endif
 #endif
 
 
@@ -55,6 +50,7 @@
 MODULE glm_aed2
 !
    USE ISO_C_BINDING
+   USE IEEE_ARITHMETIC
 
    USE aed2_common
    USE glm_types
@@ -142,7 +138,7 @@ MODULE glm_aed2
    AED_REAL,ALLOCATABLE,DIMENSION(:) :: min_, max_
 
    INTEGER,ALLOCATABLE,DIMENSION(:) :: externalid
-#if PLOTS
+#ifdef PLOTS
    INTEGER,ALLOCATABLE,DIMENSION(:) :: plot_id_v, plot_id_sv, plot_id_d, plot_id_sd
 #endif
 
@@ -333,7 +329,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C,
    ALLOCATE(bennames(n_vars_ben),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (bennames)'
 
-#if PLOTS
+#ifdef PLOTS
    ALLOCATE(plot_id_v(n_vars))
    ALLOCATE(plot_id_sv(n_vars_ben))
    ALLOCATE(plot_id_d(n_vars_diag))
@@ -574,7 +570,7 @@ SUBROUTINE aed2_set_glm_data(Lake, MaxLayers, MetData, SurfData, dt_,          &
    extc_coef => theLake%ExtcCoefSW
    layer_stress => theLake%LayerStress
 
-   IF (benthic_mode .GT. 1) zz => z
+   IF (benthic_mode .GT. 1) lheights => z
    ALLOCATE(depth(MaxLayers))
    ALLOCATE(layer_area(MaxLayers))
    ALLOCATE(sed_zones(MaxLayers))
@@ -721,7 +717,7 @@ SUBROUTINE define_sed_column(column, top, flux_pel, flux_atm, flux_ben)
             CASE ( 'salinity' )    ; column(av)%cell => theZones%zsalt
             CASE ( 'density' )     ; column(av)%cell => theZones%zrho
             CASE ( 'layer_ht' )    ; column(av)%cell => theZones%zdz
-            CASE ( 'extc_coef' )   ; column(av)%cell => theZones%zextc_coef
+            CASE ( 'extc_coef' )   ; column(av)%cell => theZones%zextc
             CASE ( 'tss' )         ; column(av)%cell => theZones%ztss
             CASE ( 'par' )         ; column(av)%cell => theZones%zpar
             CASE ( 'nir' )         ; column(av)%cell => theZones%znir
@@ -856,10 +852,6 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
 !-------------------------------------------------------------------------------
 ! Checks the current values of all state variables and repairs these
 !-------------------------------------------------------------------------------
-#ifdef HAVE_IEEE_ARITH
-!USES
-   USE IEEE_ARITHMETIC
-#endif
 !ARGUMENTS
    TYPE (aed2_column_t), INTENT(inout) :: column(:)
    TYPE (aed2_column_t), INTENT(inout) :: column_sed(:)
@@ -960,7 +952,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
       DO lev=wlev,1,-1
         IF ( zon .GT. 1 ) THEN
           IF (lev .GT. 1) THEN
-            splitZone = zz(lev-1) < zone_heights(zon-1)
+            splitZone = lheights(lev-1) < zone_heights(zon-1)
           ELSE
             splitZone = 0.0 < zone_heights(zon-1)
           ENDIF
@@ -970,9 +962,9 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
 
         IF (splitZone) THEN
           IF (lev .GT. 1) THEN
-            scale = (zone_heights(zon-1) - zz(lev-1)) / (zz(lev) - zz(lev-1))
+            scale = (zone_heights(zon-1) - lheights(lev-1)) / (lheights(lev) - lheights(lev-1))
           ELSE
-            scale = (zone_heights(zon-1) - 0.0) / (zz(lev) - 0.0)
+            scale = (zone_heights(zon-1) - 0.0) / (lheights(lev) - 0.0)
           ENDIF
           flux_pel(lev,v_start:v_end) = flux_pel_z(zon,v_start:v_end) * scale
 
@@ -1045,11 +1037,6 @@ END SUBROUTINE calculate_fluxes
 !###############################################################################
 SUBROUTINE check_states(column, wlev)
 !-------------------------------------------------------------------------------
-#ifdef HAVE_IEEE_ARITH
-!USES
-   USE IEEE_ARITHMETIC
-#endif
-!
 !ARGUMENTS
    TYPE (aed2_column_t),INTENT(inout) :: column(:)
    INTEGER,INTENT(in) :: wlev
@@ -1075,12 +1062,12 @@ SUBROUTINE check_states(column, wlev)
                v = v + 1
                IF ( repair_state ) THEN
 #if DEBUG
-                  IF ( isnan(cc(lev, v)) ) last_naned = i
+                  IF ( ieee_is_nan(cc(lev, v)) ) last_naned = i
 #endif
-                  IF ( .NOT. isnan(min_(v)) ) THEN
+                  IF ( .NOT. ieee_is_nan(min_(v)) ) THEN
                      IF ( cc(lev, v) < min_(v) ) cc(lev, v) = min_(v)
                   ENDIF
-                  IF ( .NOT. isnan(max_(v)) ) THEN
+                  IF ( .NOT. ieee_is_nan(max_(v)) ) THEN
                      IF ( cc(lev, v) > max_(v) ) cc(lev, v) = max_(v)
                   ENDIF
                ENDIF
@@ -1108,11 +1095,6 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 !-------------------------------------------------------------------------------
 !                           wlev is the number of levels used;
 !-------------------------------------------------------------------------------
-#ifdef HAVE_IEEE_ARITH
-!USES
-   USE IEEE_ARITHMETIC
-#endif
-!
 !ARGUMENTS
    CINTEGER,INTENT(in) :: wlev
    CLOGICAL,INTENT(in) :: pIce
@@ -1176,7 +1158,7 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
               v = v + 1
               ws(:,i) = zero_
               ! only for state_vars that are not sheet
-              IF ( .NOT. isnan(tv%mobility) ) THEN
+              IF ( .NOT. ieee_is_nan(tv%mobility) ) THEN
                  ! default to ws that was set during initialisation
                  ws(1:wlev,i) = tv%mobility
                  IF(i == 14) print *,'ws',i,ws(1:wlev,i)
@@ -1199,7 +1181,7 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
             IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern)   ) THEN
                v = v + 1
                !# only for state_vars that are not sheet, and also non-zero ws
-               IF ( .NOT. isnan(tv%mobility) .AND. SUM(ABS(ws(1:wlev,i)))>zero_ ) THEN
+               IF ( .NOT. ieee_is_nan(tv%mobility) .AND. SUM(ABS(ws(1:wlev,i)))>zero_ ) THEN
                   min_C = tv%minimum
                   CALL doMobility(wlev, dt, dz, area, ws(:, i), min_C, cc(:, v))
                ENDIF

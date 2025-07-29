@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2024 -  The University of Western Australia               *
+ * Copyright 2013 - 2025 -  The University of Western Australia               *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -153,9 +153,9 @@ void do_deep_mixing()
             if (NSquared < 1.E-6 && vel < 1.E-6 && WaveNumSquared < 1.E-6) {
                 Lake[i].Epsilon = zero;
                 continue;
-            } else
+            } else {
                 Lake[i].Epsilon = coef_mix_hyp * dissipation / (NSquared + 0.600 * WaveNumSquared * vel * vel);
-
+            }
             if (flag && i == iTop) continue;
             if (Lake[i].Height > XMoment1) continue;
             if (delz_n2sigma_sq <= zero) {

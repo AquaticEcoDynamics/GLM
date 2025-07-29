@@ -6,10 +6,13 @@ bin
 *.so
 *.dylib
 *.i90
+*.u2d
 glm
 glm.app
+glm.exe
 glm+
 glm+.app
+glm+.exe
 Glm-Log.txt
 ._*
 .DS*
@@ -19,6 +22,7 @@ build-stamp
 debian/files
 debian/*.debhelper.log
 debian/*.substvars
+debian/control
 output.nc
 WQ_*.csv
 lake.csv
@@ -40,3 +44,5 @@ Examples/extra/wetland/lake.csv
 Examples/extra/wetland/outlet_00.csv
 Examples/extra/wetland/output.nc
 Examples/extra/wetland/overflow.csv
+.Rproj.user
+GLM.Rproj

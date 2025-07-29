@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2013 - 2024 -  The University of Western Australia                #
+!# Copyright 2013 - 2025 -  The University of Western Australia                #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -146,7 +146,7 @@ MODULE glm_types
       AED_REAL :: ztemp
       AED_REAL :: zrho
       AED_REAL :: zarea
-      AED_REAL :: zextc_coef
+      AED_REAL :: zextc
       AED_REAL :: zlayer_stress
       AED_REAL :: ztss
       AED_REAL :: zdz
@@ -160,7 +160,7 @@ MODULE glm_types
       AED_REAL :: z_sed_zones
       AED_REAL :: z_pc_wet
       AED_REAL :: heatflux
-      CINTEGER :: n_sedLayers;     !# number of sediment layers
+      CINTEGER :: n_sed_layers;     !# number of sediment layers
       TYPE(C_PTR) :: c_layers      !# array of sed layers
    END TYPE ZoneType
 
