@@ -1144,8 +1144,10 @@ void do_mixing()
                 _WQ_Vars(wqvidx,Meta_topLayer+1) = WQ_VarsM[wqvidx];
 
             //# redistribute particles in the mixed layer
-            if ( ptm_sw )
+            if ( ptm_sw && (Meta_topLayer >= botmLayer) ) {
+//              fprintf(stderr, "MaxLyers = %d Meta_topLayer = %d\n", MaxLayers, Meta_topLayer);
                 ptm_redistribute(Lake[Meta_topLayer+1].Height, Lake[Meta_topLayer].Height);
+            }
 
             //# reset the layer volume, density and area for the surface layer
             Lake[Meta_topLayer+1].Vol1 = Lake[surfLayer].Vol1;

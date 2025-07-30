@@ -1775,8 +1775,6 @@ void initialise_lake(int namlst)
         u_avg = restart_variables[16];
 
         Mixer_Count = restart_mixer_count;
-
-        free(restart_variables);
     }
 
 }
