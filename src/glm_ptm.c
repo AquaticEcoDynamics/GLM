@@ -67,6 +67,9 @@
 
 
 
+#define _PTM_Stat(grp,part,var) PTM_Stat[_IDX_3d(1,max_particle_num,4,grp,part,var)]
+#define _PTM_Vars(grp,part,var) PTM_Vars[_IDX_3d(1,max_particle_num,Num_WQ_Vars,grp,part,var)]
+
 AED_REAL get_settling_velocity(AED_REAL settling_velocity);
 AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel);
 
@@ -81,9 +84,9 @@ AED_REAL ptm_diffusivity=1e-6;
 
 // VARIABLES
 LOGICAL sed_deactivation = FALSE;
+CINTEGER num_particle_groups = 1;
 
 /*============================================================================*/
-
 
 /******************************************************************************
  *                                                                            *
@@ -104,15 +107,11 @@ void ptm_init_glm()
     AED_REAL upper_height;
     AED_REAL lower_height;
 
-    CINTEGER num_particle_groups;
 //  int bla;
     int pg;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
-
-    num_particle_groups = 1;
-
     printf("ptm_init_glm: num_particle_groups  %d \n",num_particle_groups);
 
     //NEW allocate AED ptm data structures, and GLM pointers
@@ -274,7 +273,7 @@ void do_ptm_update()
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
-    pg = 1;
+    pg = 0;
 
     // Update settling/migration velocity  ! Will overwrite AED
     for (p = 0; p < max_particle_num; p++) {
@@ -314,26 +313,26 @@ void do_ptm_update()
 
             _PTM_Vars(pg,p,HGHT) = random_walk(dt,_PTM_Vars(pg,p,HGHT), K_z, K_prime_z, _PTM_Vars(pg,p,VVEL));
 
-            if(prev_height > _PTM_Vars(pg,p,HGHT)){
+            if (prev_height > _PTM_Vars(pg,p,HGHT)){
 
                 // Get area at previous particle height
                 x1 = prev_height * 10.0;
                 y1 = x1 - (int)(x1 / 1.0) * 1.0;
                 ij1 = (int)(x1 - y1) - 1;
-                if(ij1 > Nmorph){
+                if(ij1 >= Nmorph){
                     y1 = y1 + (float)(ij1 - Nmorph);
                     ij1 = Nmorph - 1;
-                }
+                } else if (ij1 < 0 ) ij1 = 0;
                 a1 = MphLevelArea[ij1] + y1 * dMphLevelArea[ij1];
 
                 // Get area at depth of current particle height
                 x2 = _PTM_Vars(pg,p,HGHT) * 10.0;
                 y2 = x2 - (int)(x2 / 1.0) * 1.0;
                 ij2 = (int)(x2 - y2) - 1;
-                if(ij2 > Nmorph){
+                if(ij2 >= Nmorph){
                     y2 = y2 + (float)(ij2 - Nmorph);
                     ij2 = Nmorph - 1;
-                }
+                } else if (ij2 < 0 ) ij2 = 0;
                 a2 = MphLevelArea[ij2] + y2 * dMphLevelArea[ij2];
 
                 // Calculate proportional difference between two areas
@@ -412,7 +411,7 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
     // Get vertical range in the water column that mixed
     height_range = upper_height - lower_height;
 
-    pg = 1;
+    pg = 0;
     // Check for active particles in the height range
     for (p = 0; p < max_particle_num; p++) {
         if (_PTM_Stat(pg,p,STAT)>0) {
@@ -581,7 +580,7 @@ void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, i
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
-    pg = 1;
+    pg = 0;
     // For each particle, draw from Bernoulli distribution to see whether removed from layer
     layer_prop = delta_vol / layer_vol;
     for (p = 0; p < max_particle_num; p++) {
@@ -655,7 +654,7 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
     upper_height = shift_height + shift_amount;
 //  height_range = upper_height - lower_height;
 
-    pg = 1;
+    pg = 0;
     // Check for active particles in the impacted height range
     for (p = 0; p < max_particle_num; p++) {
         if (_PTM_Stat(pg,p,STAT)>0) {
@@ -702,7 +701,7 @@ void ptm_update_layerid()
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
-    pg = 1;
+    pg = 0;
     for (p = 0; p < max_particle_num; p++) {
         if (_PTM_Stat(pg,p,STAT)>0) {
             for (i = botmLayer; i < NumLayers; i++) {
@@ -768,7 +767,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
-    pg = 1;
+    pg = 0;
     set_no_p++;
 
     start[1] = 0;             edges[1] = max_particle_num;
@@ -803,6 +802,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
         diam[p]             = _PTM_Vars(pg,p,DIAM);    // Particle[p].Diam;                 REAL
         density[p]          = _PTM_Vars(pg,p,DENS);    //Particle[p].Density;               REAL
         vvel[p]             = _PTM_Vars(pg,p,VVEL);    //Particle[p].vvel;                  REAL
+                                         //  VVEL+1 = HGHT
         par[p]              = _PTM_Vars(pg,p,VVEL+2);  //PAR experienced by particle;       REAL //ML why is it +2?
         tem[p]              = _PTM_Vars(pg,p,VVEL+3);  //temp experienced by particle;      REAL
         no3[p]              = _PTM_Vars(pg,p,VVEL+4);  //NO3 experienced by particle;       REAL

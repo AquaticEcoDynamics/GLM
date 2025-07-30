@@ -58,7 +58,7 @@
 
 #include "glm_debug.h"
 
-#define _WQ_VarsTmp(i,j,k)  WQ_VarsTmp[_IDX_3d(Num_WQ_Vars,NumInf,MaxPar,i,j,k)]
+//#define _WQ_VarsTmp(i,j,k)  WQ_VarsTmp[_IDX_3d(Num_WQ_Vars,NumInf,MaxPar,i,j,k)]
 
 #if DEBUG
 #  define dbgprt(...) fprintf(stderr, __VA_ARGS__)

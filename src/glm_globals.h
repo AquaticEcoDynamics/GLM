@@ -373,9 +373,6 @@ void debug_initialisation_(int *which);
 #define _WQD_Vars(var,lyr) WQD_Vars[_IDX_2d(MaxLayers,Num_WQD_Vars,lyr,var)]
 #define _WQDS_Vars(var,lyr) WQDS_Vars[_IDX_2d(Num_WQDS_Vars,lyr,var)]
 
-#define _PTM_Stat(grp,part,var) PTM_Stat[_IDX_3d(1,max_particle_num,4,grp,part,var)]
-#define _PTM_Vars(grp,part,var) PTM_Vars[_IDX_3d(1,max_particle_num,Num_WQ_Vars,grp,part,var)]
-
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif
 
