@@ -62,7 +62,7 @@
 #include "glm_ptm.h"
 #include "glm_stress.h"
 #include "glm_balance.h"
-#if PLOTS
+#ifdef PLOTS
 #include <libplot.h>
 #include "glm_plot.h"
 #endif
@@ -163,7 +163,7 @@ void init_model(int *jstart, int *nsave)
 
     init_glm(jstart, out_dir, out_fn, nsave);
 
-#if PLOTS
+#ifdef PLOTS
     psubday = timestep * (*nsave) / SecsPerDay;
     plotstep = 0;
 #endif
@@ -275,7 +275,7 @@ void do_model(int jstart, int nsave)
     AED_REAL Elev[MaxInf];
     int jday, ntot, stepnum, stoptime;
     int i, j;
-    AED_REAL yearday, day_fraction;
+    AED_REAL day_fraction;
 
     /*------------------------------------------------------------------------*/
 
@@ -298,7 +298,7 @@ void do_model(int jstart, int nsave)
     SWold = MetOld.ShortWave;
 
     jday = jstart - 1;
-#if PLOTS
+#ifdef PLOTS
     today = jday;
 #endif
 
@@ -400,14 +400,14 @@ void do_model(int jstart, int nsave)
         // # Output is not written on the last time step in a daily in the subdaily loop
         if ( stepnum == write_step){
 
-#if PLOTS
+#ifdef PLOTS
             today = jday;
 #endif
             write_output(jday, SecsPerDay, nsave, stepnum);
             write_diags(jday, calculate_lake_number());
             write_balance(jday);
             write_step += nsave;
-#if PLOTS
+#ifdef PLOTS
             plotstep++;
             today = -1;
 #endif
@@ -565,7 +565,7 @@ void do_model_non_avg(int jstart, int nsave)
         // # after including the inflow and outflows.
         // # Output is not written on the last time step in a daily in the subdaily loop
         if (stepnum == write_step) {
-#if PLOTS
+#ifdef PLOTS
             today = jday;
 #endif
             write_output(jday, SecsPerDay, nsave, stepnum);
@@ -574,7 +574,7 @@ void do_model_non_avg(int jstart, int nsave)
             write_step += nsave;
 
             //if ( write_step > last_step ) write_step = last_step;
-#if PLOTS
+#ifdef PLOTS
             plotstep++;
             today = -1;
 #endif
@@ -716,7 +716,7 @@ void do_model_coupled(int step_start, int step_end,
         // # after including the inflow and outflows.
         // # Output is not written on the last time step in a daily in the subdaily loop
         if (stepnum == write_step) {
-#if PLOTS
+#ifdef PLOTS
             today = jday;
 #endif
             write_output(jday, SecsPerDay, nsave, stepnum);
@@ -725,7 +725,7 @@ void do_model_coupled(int step_start, int step_end,
             write_step += nsave;
 
             //if ( write_step > last_step ) write_step = last_step;
-#if PLOTS
+#ifdef PLOTS
             plotstep++;
             today = -1;
 
@@ -865,12 +865,12 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
 
         if ( stepnum == write_step && (iclock +  noSecs) != SecsPerDay && stepnum != last_step) {
 
-#if PLOTS
+#ifdef PLOTS
             today = jday;
 #endif
             write_output(jday, iclock, nsave, stepnum);
             write_step += nsave;
-#if PLOTS
+#ifdef PLOTS
 //if (++n_steps_done > END_STEPS) { int i; for (i = 0; i < NumLayers; i++) show_l_line(2, Lake[i].Height); flush_all_plots(); }
             plotstep++;
             today = -1;
@@ -893,7 +893,7 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
      **************************************************************************/
 //  printf("end subdaily loop\n");
 
-#if PLOTS
+#ifdef PLOTS
     plotstep = 0;
 #endif
 

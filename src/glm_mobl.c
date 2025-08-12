@@ -47,11 +47,11 @@
 
 
 /******************************************************************************/
-static AED_REAL Rising(AED_REAL *Y, AED_REAL *cc,
+static AED_REAL Rising(AED_REAL *Y, AED_REAL *mcc,
                                     const AED_REAL *ww, const AED_REAL *vols,
                                     const AED_REAL *A,  const AED_REAL *mins,
                                               AED_REAL dt, int start, int end);
-static AED_REAL Sinking(AED_REAL *Y, AED_REAL *cc,
+static AED_REAL Sinking(AED_REAL *Y, AED_REAL *mcc,
                                      const AED_REAL *ww, const AED_REAL *vols,
                                      const AED_REAL *A,  const AED_REAL *mins,
                                               AED_REAL dt, int start, int end);
@@ -62,13 +62,13 @@ static AED_REAL Sinking(AED_REAL *Y, AED_REAL *cc,
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-void doMobility(const int *N_in,        // number of vertical layers
+void doMobility(const CINTEGER *N_in,   // number of vertical layers
               const AED_REAL *dt_in,    // time step (s)
               const AED_REAL *h,        // array of layer thicknesses (m)
               const AED_REAL *A,        // array of layer areas (m^2)
               const AED_REAL *ww,       // array of vertical mobility speeds (m/s)
               const AED_REAL *min_C_in, // minimum concentration (mmol/m^3)
-              AED_REAL *cc)             // array of cell concentrations (mmol/m^3)
+              AED_REAL *mcc)            // array of cell concentrations (mmol/m^3)
 {
     /**************************************************************************
      * Since this routine is called only from the fortran the arguments are   *
@@ -106,7 +106,7 @@ void doMobility(const int *N_in,        // number of vertical layers
         // for convenience
         vols[i] = (h[i] * A[i]);
         mins[i] = (min_C * vols[i]);
-        Y[i] = cc[i] * vols[i];
+        Y[i] = mcc[i] * vols[i];
 
         // look for the change of direction
         if ( sign != ( ww[i] > 0. ) ) { sign = !sign; dirChng = i-1; }
@@ -155,15 +155,15 @@ void doMobility(const int *N_in,        // number of vertical layers
              ******************************************************************/
             if ( ww[0] > 0. ) { // lower levels rising
                 if ( ww[N-1] < 0. ) { // top levels are sinking
-                    tmp = Sinking(Y, cc, ww, vols, A, mins, tdt, N-1, dirChng);
+                    tmp = Sinking(Y, mcc, ww, vols, A, mins, tdt, N-1, dirChng);
                     Y[dirChng-1] += tmp;
-                    cc[dirChng-1] = Y[dirChng-1] / vols[dirChng-1];
+                    mcc[dirChng-1] = Y[dirChng-1] / vols[dirChng-1];
                 }
-                Rising( Y, cc, ww, vols, A, mins, tdt, 0,   dirChng-1);
+                Rising( Y, mcc, ww, vols, A, mins, tdt, 0,   dirChng-1);
             } else { // lower levels sinking
-                Sinking(Y, cc, ww, vols, A, mins, tdt, dirChng-1, 0);
+                Sinking(Y, mcc, ww, vols, A, mins, tdt, dirChng-1, 0);
                 if ( ww[N-1] > 0. )   // top levels are rising
-                    Rising( Y, cc, ww, vols, A, mins, tdt, dirChng,   N-1);
+                    Rising( Y, mcc, ww, vols, A, mins, tdt, dirChng,   N-1);
             }
         } while ( dt > 0. );
     }
@@ -187,7 +187,7 @@ void doMobility(const int *N_in,        // number of vertical layers
  *    1) add the amount moved from previous cell to current cell              *
  *    2) fix concentration                                                    *
  ******************************************************************************/
-AED_REAL Rising(AED_REAL *Y, AED_REAL *cc,
+AED_REAL Rising(AED_REAL *Y, AED_REAL *mcc,
                              const AED_REAL *ww, const AED_REAL *vols,
                              const AED_REAL *A,  const AED_REAL *mins,
                                               AED_REAL dt, int start, int end)
@@ -198,17 +198,17 @@ AED_REAL Rising(AED_REAL *Y, AED_REAL *cc,
     // go from start to one below end
     for (i = start; i < end; i++) {
         // speed times time (=h) time area * concen = mass to move
-        mov = (ww[i] * dt) * A[i] * cc[i];
+        mov = (ww[i] * dt) * A[i] * mcc[i];
         //  if removing that much would bring it below min conc
         if ( (Y[i] + moved - mov) < mins[i] ) mov = Y[i] + moved - mins[i];
 
         Y[i] = Y[i] + moved - mov;
-        cc[i] = Y[i] / vols[i]; // return it to a concentration
+        mcc[i] = Y[i] / vols[i]; // return it to a concentration
         moved = mov; // for the next step
     }
     // nothing rises out of the end cell, but we still add that which came from below
     Y[end] += moved;
-    cc[end] = Y[end] / vols[end];
+    mcc[end] = Y[end] / vols[end];
 
     return 0.; // nothing has moved out of this cell
 }
@@ -223,7 +223,7 @@ AED_REAL Rising(AED_REAL *Y, AED_REAL *cc,
  *    4) fix concentration                                                    *
  *    5) compute the amount that will go to the next cell                     *
  ******************************************************************************/
-AED_REAL Sinking(AED_REAL *Y, AED_REAL *cc,
+AED_REAL Sinking(AED_REAL *Y, AED_REAL *mcc,
                               const AED_REAL *ww, const AED_REAL *vols,
                               const AED_REAL *A,  const AED_REAL *mins,
                                                AED_REAL dt, int start, int end)
@@ -233,12 +233,12 @@ AED_REAL Sinking(AED_REAL *Y, AED_REAL *cc,
 
     for (i = start; i > end; i--) {
         // speed times time (=h) time area * concen = mass to move
-        mov = (fabs(ww[i]) * dt) * A[i] * cc[i];
+        mov = (fabs(ww[i]) * dt) * A[i] * mcc[i];
         //  if removing that much would bring it below min conc
         if ( (Y[i] + moved - mov) < mins[i] ) mov = Y[i] + moved - mins[i];
 
         Y[i] = Y[i] + moved - mov;
-        cc[i] = Y[i] / vols[i]; // return it to a concentration
+        mcc[i] = Y[i] / vols[i]; // return it to a concentration
 
         // so now mov has how much has moved out of the cell, but not all
         // of that will go into the next cell

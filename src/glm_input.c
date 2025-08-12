@@ -84,8 +84,8 @@ static int rain_idx = -1, hum_idx  = -1, lwav_idx = -1, sw_idx   = -1,
            apres_idx = -1, evap_idx = -1;
 
 int lw_ind = 0;
-static int have_snow = FALSE, have_rain_conc = FALSE;
-static int have_fetch = FALSE;
+static CLOGICAL have_snow = FALSE, have_rain_conc = FALSE;
+static CLOGICAL have_fetch = FALSE;
 
 static int n_steps;
 

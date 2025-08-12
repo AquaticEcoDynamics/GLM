@@ -95,7 +95,7 @@ extern int ncid;
 /* from glm_surf.F90 */
 extern AED_REAL AvgSurfTemp;
 /*----------------------------------------------------------------------------*/
-extern int MaxLayers;   //# Maximum number of layers in this sim
+extern CINTEGER MaxLayers;   //# Maximum number of layers in this sim
 extern int NumLayers;   //# current number of layers
 extern LakeDataType *Lake;
 
@@ -112,6 +112,7 @@ extern AED_REAL Kw;            //# background light attenuation (m**-1)
 extern int wq_calc;            //# are we doing water quality calcs
 extern int Num_WQ_Vars;        //# number of water quality variables
 extern int Num_WQ_Ben;         //# number of benthic water quality variables
+extern int Tot_WQ_Vars;        //# nVars + nBen
 extern int Num_WQD_Vars;       //# number of water quality diagnostic variables
 extern int Num_WQDS_Vars;      //# number of water quality diagnostic "sheet" variables
 extern AED_REAL *WQ_Vars;      //# water quality array : [nlayers, nvars]
@@ -149,8 +150,8 @@ extern OutflowDataType Outflows[]; //# Array of Outflows
 extern int O2crit;
 extern int O2critdep;
 extern int O2critdays;
-extern LOGICAL MIXwithdraw;
-extern LOGICAL COUPLoxy;
+extern CLOGICAL MIXwithdraw;
+extern CLOGICAL COUPLoxy;
 extern AED_REAL WithdrawalTemp;
 extern AED_REAL fac_range_upper, fac_range_lower;
 extern AED_REAL MINlaketemp;
@@ -158,10 +159,10 @@ extern AED_REAL MINlaketemp;
 extern AED_REAL crest_width;
 extern AED_REAL crest_factor;
 
-extern LOGICAL single_layer_draw;
+extern CLOGICAL single_layer_draw;
 extern AED_REAL outflow_thick_limit;
 
-extern LOGICAL evap_from_file;
+extern CLOGICAL evap_from_file;
 extern AED_REAL f_evap_ts_prop;
 
 /*----------------------------------------------------------------------------*/
@@ -175,7 +176,7 @@ extern SurfaceDataType SurfData; //# Surface Data
 extern MetDataType MetData;      //# Meteorological data
 extern AED_REAL runoff_coef;
 extern AED_REAL rain_threshold;
-extern LOGICAL catchrain;
+extern CLOGICAL catchrain;
 extern int atm_stab;         //# Account for non-neutral atmospheric stability
 extern AED_REAL coef_wind_drag;   //# = 0.0013;
 extern AED_REAL coef_wind_chwn;   //# = 0.0013;
@@ -200,7 +201,7 @@ extern CLOGICAL link_solar_shade;
 extern CLOGICAL link_bottom_drag;
 extern CLOGICAL ice;
 
-extern LOGICAL  use_met_atm_pres;
+extern CLOGICAL use_met_atm_pres;
 extern AED_REAL biodrag;
 
 extern AED_REAL salt_fall;
@@ -230,7 +231,7 @@ extern AED_REAL coef_wind_stir; //# wind stirring
 extern AED_REAL coef_mix_hyp;   //# efficiency of hypolimnetic mixing
 extern AED_REAL coef_mix_shreq; //# unsteady effects
 
-extern LOGICAL  non_avg;
+extern CLOGICAL non_avg;
 extern int      deep_mixing;          //# = 0 => off > 0 => on
 extern int      surface_mixing;
 
@@ -295,7 +296,7 @@ extern AED_REAL avg_surf_temp_thres;
 
 /*----------------------------------------------------------------------------*/
 // SEDIMENT
-extern LOGICAL sed_heat_sw;
+extern CLOGICAL sed_heat_sw;
 extern int      sed_heat_model;
 extern AED_REAL sed_heat_Ksoil;
 extern AED_REAL sed_temp_depth;
@@ -314,7 +315,7 @@ extern AED_REAL *L_gw;   //# turn off evaporation
 
 /*----------------------------------------------------------------------------*/
 // FETCH
-extern LOGICAL   fetch_sw;
+extern CLOGICAL  fetch_sw;
 extern int       fetch_ndirs;
 extern AED_REAL *fetch_dirs;
 extern AED_REAL *fetch_scale;
@@ -328,15 +329,15 @@ extern char     *fetch_fws;
 
 /*----------------------------------------------------------------------------*/
 // LITTORAL
-extern LOGICAL littoral_sw;
+extern CLOGICAL littoral_sw;
 
 //------------------------------------------------------------------------------
 // PARTICLE TRANSPORT MODEL
-extern LOGICAL ptm_sw;
+extern CLOGICAL ptm_sw;
 extern int max_particle_num;   //# number of particles
 extern ParticleDataType *Particle;
 extern AED_REAL settling_velocity;
-extern LOGICAL do_particle_bgc;
+extern CLOGICAL do_particle_bgc;
 extern int init_particle_num;
 extern AED_REAL settling_efficiency;
 extern AED_REAL *inflow_conc;    //# concentration of particles per ?? in the inflow
@@ -353,8 +354,8 @@ extern AED_REAL yearday;   //# day of year
 
 /*----------------------------------------------------------------------------*/
 // DEBUGGING
-extern LOGICAL dbg_mix;   //# debug output from mixer
-extern LOGICAL no_evap;   //# turn off evaporation
+extern CLOGICAL dbg_mix;  //# debug output from mixer
+extern CLOGICAL no_evap;  //# turn off evaporation
 extern int     quiet;     //# turn down output messages
 
 
@@ -368,10 +369,16 @@ void debug_print_lake(void);
 void debug_initialisation(int which);
 void debug_initialisation_(int *which);
 
-#define _WQ_Vars(var,lyr) WQ_Vars[_IDX_2d(MaxLayers,Num_WQ_Vars,lyr,var)]
-//#define _WQS_Vars(var,lyr) WQ_Vars[_IDX_2d(MaxLayers,Num_WQ_Vars,lyr,var)]
-#define _WQD_Vars(var,lyr) WQD_Vars[_IDX_2d(MaxLayers,Num_WQD_Vars,lyr,var)]
-#define _WQDS_Vars(var,lyr) WQDS_Vars[_IDX_2d(Num_WQDS_Vars,lyr,var)]
+//# NB: The order of array indeices has been reversed as of V4 
+// #  define _WQ_Vars(var,lyr) WQ_Vars[_IDX_2d(MaxLayers,Tot_WQ_Vars,lyr,var)]
+// //#define _WQS_Vars(var,lyr) WQ_Vars[_IDX_2d(MaxLayers,Tot_WQ_Vars,lyr,var)]
+// #  define _WQD_Vars(var,lyr) WQD_Vars[_IDX_2d(MaxLayers,Num_WQD_Vars,lyr,var)]
+// #  define _WQDS_Vars(var,lyr) WQDS_Vars[_IDX_2d(Num_WQDS_Vars,lyr,var)]
+
+#  define _WQ_Vars(var,lyr) WQ_Vars[_IDX_2d(Tot_WQ_Vars,MaxLayers,var,lyr)]
+//#define _WQS_Vars(var,lyr) WQ_Vars[_IDX_2d(Tot_WQ_Vars,MaxLayers,var,lyr)]
+#  define _WQD_Vars(var,lyr) WQD_Vars[_IDX_2d(Num_WQD_Vars,MaxLayers,var,lyr)]
+#  define _WQDS_Vars(var,lyr) WQDS_Vars[_IDX_2d(Num_WQDS_Vars,var,lyr)]
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif

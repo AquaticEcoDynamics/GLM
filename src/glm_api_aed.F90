@@ -30,8 +30,6 @@
 !#                                                                             #
 !###############################################################################
 
-#define DO_HZ 0
-
 #include "aed_api.h"
 
 #undef MISVAL
@@ -252,7 +250,6 @@ SUBROUTINE api_set_glm_env()
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-
    !# Provide pointers to arrays with meteorological variables
    air_temp => MetData%AirTemp
    air_pres => MetData%AirPres
@@ -390,7 +387,6 @@ SUBROUTINE api_set_glm_env()
    env(1)%rainloss      =>  feedback(1) !rainloss(1)
 
    CALL aed_set_model_env(env, 1, MaxLayers)
-
 END SUBROUTINE api_set_glm_env
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -411,23 +407,13 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
       CALL api_set_glm_zones(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet, n_aed_vars)
 
    !# Now that we know how many vars we need, we can allocate space for them
-#if DO_HZ
-   ALLOCATE(cc(n_vars, MaxLayers),stat=status)
-#else
    ALLOCATE(cc((n_vars+n_vars_ben), MaxLayers),stat=status)
-#endif
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (cc)'
    cc = zero_         !# initialise to zero
 
    CALL set_c_wqvars_ptr(cc)
 
-#if DO_HZ
-   ALLOCATE(cc_hz(n_vars_ben),stat=status)
-   IF (status /= 0) STOP 'allocate_memory(): Error allocating (cc_hz)'
-   cc_hz = zero_         !# initialise to zero
-#else
    cc_hz => cc(n_vars+1:n_vars+n_vars_ben, 1)
-#endif
 
    !# Allocate diagnostic variable array and set all values to zero.
    !# (needed because time-integrated/averaged variables will increment rather than set the array)
@@ -443,18 +429,14 @@ SUBROUTINE api_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
 
    CALL set_c_wqdvars_ptr(cc_diag, cc_diag_hz, n_vars_diag, n_vars_diag_sheet)
 
-   dat(1)%cc => cc
-#if DO_HZ
-   dat(1)%cc_hz => cc_hz
-#else
+   dat(1)%cc => cc(1:n_vars, :)
    dat(1)%cc_hz => cc(n_vars+1:n_vars+n_vars_ben, 1)
-#endif
    dat(1)%cc_diag => cc_diag
    dat(1)%cc_diag_hz => cc_diag_hz
 
    CALL aed_set_model_data(dat, 1, MaxLayers)
-   CALL aed_check_model_setup
 
+   CALL aed_check_model_setup
 END SUBROUTINE api_set_glm_data
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -543,17 +525,17 @@ END FUNCTION api_is_var
 
 
 !###############################################################################
-SUBROUTINE doMobilityF(N,dt,h,A,ww,min_C,cc)
+SUBROUTINE doMobilityF(N,dt,h,A,ww,min_C,mcc)
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
 !ARGUMENTS
-   INTEGER,INTENT(in)     :: N       !# number of vertical layers
+   CINTEGER,INTENT(in)    :: N       !# number of vertical layers
    AED_REAL,INTENT(in)    :: dt      !# time step (s)
    AED_REAL,INTENT(in)    :: h(*)    !# layer thickness (m)
    AED_REAL,INTENT(in)    :: A(*)    !# layer areas (m2)
    AED_REAL,INTENT(in)    :: ww(*)   !# vertical speed (m/s)
    AED_REAL,INTENT(in)    :: min_C   !# minimum allowed cell concentration
-   AED_REAL,INTENT(inout) :: cc(*)   !# cell concentration
+   AED_REAL,INTENT(inout) :: mcc(*)  !# cell concentration
 !
 !LOCALS
    CINTEGER :: NC
@@ -561,7 +543,8 @@ SUBROUTINE doMobilityF(N,dt,h,A,ww,min_C,cc)
 !-------------------------------------------------------------------------------
 !BEGIN
    NC = N
-   CALL doMobility(NC,dt,h,A,ww,min_C,cc)
+!  CALL doMobility(NC,dt,h,A,ww,min_C,mcc)
+   CALL doMobility(NC,dt,h,area,ww,min_C,mcc)
 END SUBROUTINE doMobilityF
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -767,13 +750,8 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                ENDIF
                DO j=1,point_nlevs
                   val_out = missing
-#if DO_HZ
-                  IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc_diag_hz(sd)
-                  IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc_diag_hz(sd)
-#else
                   IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc_diag(v, 1)
                   IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc_diag(v, 1)
-#endif
                   CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
                ENDDO
             ELSE  !# not sheet
@@ -796,36 +774,19 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                IF ( n_zones .GT. 0 ) THEN
                   CALL store_nc_array(ncid, zexternalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_cc(n_vars+sv, 1, 1:n_zones))
                ENDIF
-#if DO_HZ
-               CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc_hz(sv))
-#else
                CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc(n_vars+sv, 1))
-#endif
                IF ( do_plots .AND. plot_id_sv(sv).GE.0 ) THEN
                   IF ( n_zones .GT. 0 ) THEN
                      DO z=1,n_zones
-#if DO_HZ
-                        CALL put_glm_val_z(plot_id_sv(sv), z_cc_hz(sv, z), z)   !# does each coloured zone
-#else
-                        CALL put_glm_val_z(plot_id_sv(sv), z_cc(n_vars+sv, 1, z), z)
-#endif
+                        CALL put_glm_val_z(plot_id_sv(sv), z_cc_hz(sv, z), z)
                      ENDDO
                   ENDIF
-#if DO_HZ
-                  CALL put_glm_val_s(plot_id_sv(sv), cc_hz(sv))                 !# does black sine
-#else
-                  CALL put_glm_val_s(plot_id_sv(sv), cc(n_vars+sv, 1))
-#endif
+                  CALL put_glm_val_s(plot_id_sv(sv), cc_hz(sv))
                ENDIF
                DO j=1,point_nlevs
                   val_out = missing
-#if DO_HZ
                   IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc_hz(sv)
                   IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc_hz(sv)
-#else
-                  IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc(n_vars+sv, 1)
-                  IF ((lvl(j) .EQ. 0)    .AND. tv%bot) val_out = cc(n_vars+sv, 1)
-#endif
                   CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
                ENDDO
             ELSE     !# not sheet

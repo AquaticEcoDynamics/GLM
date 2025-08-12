@@ -35,8 +35,8 @@
 #include "glm.h"
 
 typedef void (*set_c_wqvars_ptr_t)(AED_REAL *iwqvars);
-typedef void (*Mobility_t)(int *N, AED_REAL *dt, AED_REAL *h, AED_REAL *A,
-                         AED_REAL *ww, AED_REAL *min_C, AED_REAL *cc);
+typedef void (*Mobility_t)(CINTEGER *N, AED_REAL *dt, AED_REAL *h, AED_REAL *A,
+                         AED_REAL *ww, AED_REAL *min_C, AED_REAL *mcc);
 
 typedef void (*define_mode_on_t)(int *ncid);
 typedef void (*define_mode_off_t)(int *ncid);

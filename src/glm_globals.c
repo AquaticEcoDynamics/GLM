@@ -39,7 +39,6 @@
 
 #define DEBUG_GLOBS 0
 
-//int MaxLayers;   //# Maximum number of layers in this sim (now in fortran types)
 int NumLayers;   //# current number of layers
 LakeDataType *Lake = NULL;
 
@@ -52,10 +51,9 @@ AED_REAL VMax;    //# maximum layer volume
 
 int wq_calc = FALSE;
 
-AED_REAL Kw;      //# background light attenuation (m**-1)
-
 int Num_WQ_Vars = 0;   //# number of water quality variables
 int Num_WQ_Ben = 0;    //# number of benthic water quality variables
+int Tot_WQ_Vars = 0;   //# nVars+nBen
 int Num_WQD_Vars = 0;  //# number of diagnostic water quality variables
 int Num_WQDS_Vars = 0; //# number of diagnostic benthic water quality variables
 int atm_stab = 0;      //# Account for non-neutral atmospheric stability
@@ -83,8 +81,8 @@ OutflowDataType Outflows[MaxOut];  //# Array of Outflows
 int O2crit;
 int O2critdep;
 int O2critdays;
-LOGICAL MIXwithdraw = FALSE;
-LOGICAL COUPLoxy = FALSE;
+CLOGICAL MIXwithdraw = FALSE;
+CLOGICAL COUPLoxy = FALSE;
 AED_REAL WithdrawalTemp;
 AED_REAL fac_range_upper = -1, fac_range_lower = -1;
 AED_REAL MINlaketemp;
@@ -92,10 +90,10 @@ AED_REAL MINlaketemp;
 AED_REAL crest_width = 6.0;
 AED_REAL crest_factor = 0.61;
 
-LOGICAL single_layer_draw = FALSE;
+CLOGICAL single_layer_draw = FALSE;
 AED_REAL outflow_thick_limit = 100.0;
 
-LOGICAL evap_from_file = FALSE;   // do we have evap values coming from a file
+CLOGICAL evap_from_file = FALSE;   // do we have evap values coming from a file
 AED_REAL f_evap_ts_prop = 0.0;     // proportional value for daily evap for this timestep
 
 //------------------------------------------------------------------------------
@@ -147,12 +145,12 @@ AED_REAL coef_wind_stir = 0.23; //# wind stirring
 AED_REAL coef_mix_hyp = 0.5;    //# efficiency of hypolimnetic mixing
 AED_REAL coef_mix_shreq = 1.0;  //# unsteady effects
 
-LOGICAL non_avg = FALSE;
+CLOGICAL non_avg = FALSE;
 int deep_mixing = 2;
 int surface_mixing = 1;
 
 //
-LOGICAL catchrain = FALSE;
+CLOGICAL catchrain = FALSE;
 AED_REAL rain_threshold = 0.04;
 AED_REAL runoff_coef = 0.3;
 
@@ -164,16 +162,7 @@ int       n_bands = 2;
 AED_REAL  *light_extc = NULL;
 AED_REAL  *energy_frac = NULL;
 
-//CLOGICAL mobility_off      = FALSE;
-//CLOGICAL bioshade_feedback = FALSE;
-//CLOGICAL repair_state      = FALSE;
-//CLOGICAL do_plots          = FALSE;
-//CLOGICAL link_rain_loss    = FALSE;
-//CLOGICAL link_solar_shade  = FALSE;
-//CLOGICAL link_bottom_drag  = FALSE;
-//CLOGICAL ice               = FALSE;
-
-LOGICAL use_met_atm_pres = TRUE;
+CLOGICAL use_met_atm_pres = TRUE;
 
 AED_REAL biodrag = 0.0;
 
@@ -212,7 +201,7 @@ AED_REAL avg_surf_temp_thres = 0.0;   //# average surface temperature threshold 
 
 //------------------------------------------------------------------------------
 // SEDIMENT
-LOGICAL  sed_heat_sw        = FALSE;
+CLOGICAL  sed_heat_sw       = FALSE;
 int      sed_heat_model     = 0;
 //AED_REAL sed_temp_mean        = 9.7;
 //AED_REAL sed_temp_amplitude   = 2.7;
@@ -234,7 +223,7 @@ AED_REAL *L_gw = NULL;   //# turn off evaporation
 
 //------------------------------------------------------------------------------
 // FETCH
-LOGICAL     fetch_sw = FALSE;
+CLOGICAL    fetch_sw = FALSE;
 int         fetch_ndirs = 0;
 AED_REAL   *fetch_dirs = NULL;
 AED_REAL   *fetch_scale = NULL;
@@ -248,15 +237,15 @@ char *      fetch_fws = NULL;
 
 //------------------------------------------------------------------------------
 // LITTORAL
-LOGICAL littoral_sw        = FALSE;
+CLOGICAL littoral_sw        = FALSE;
 
 //------------------------------------------------------------------------------
 // PARTICLE TRANSPORT MODEL
-LOGICAL ptm_sw = FALSE;
+CLOGICAL ptm_sw = FALSE;
 int max_particle_num = 10000;  //# max number of particles
 ParticleDataType *Particle = NULL;
 AED_REAL settling_velocity = 0.;
-LOGICAL do_particle_bgc = FALSE;
+CLOGICAL do_particle_bgc = FALSE;
 int init_particle_num = 10;
 AED_REAL settling_efficiency = 1.;
 AED_REAL *inflow_conc = 0;    //# number of particles per cubic meter in the inflow
@@ -272,8 +261,6 @@ AED_REAL timezone_r = 0.0, timezone_m = 0.0, timezone_i = 0.0, timezone_o = 0.0;
 
 int nDays;          //# number of days to simulate
 int noSecs;
-//AED_REAL timestep;
-//AED_REAL yearday;   //# day of year
 
 //------------------------------------------------------------------------------
 
@@ -282,7 +269,7 @@ AED_REAL *WQS_Vars = NULL;  //# water quality benthic array, [nvars]
 AED_REAL *WQD_Vars = NULL;  //# water quality diagnostics array, [nlayers, nvars]
 AED_REAL *WQDS_Vars = NULL;  //# water quality diagnostic benthic array, [nvars]
 
-int       n_zones = 0;
+CINTEGER  n_zones = 0;
 ZoneType *theZones = NULL;
 
 int *PTM_Stat = NULL;  //# water quality array, [nlayers, nvars]
@@ -291,8 +278,8 @@ AED_REAL *PTM_Vars = NULL;  //# water quality array, [nlayers, nvars]
 //------------------------------------------------------------------------------
 //  These for debugging
 //------------------------------------------------------------------------------
-LOGICAL dbg_mix = FALSE;   //# debug output from mixer
-LOGICAL no_evap = FALSE;   //# turn off evaporation
+CLOGICAL dbg_mix = FALSE;   //# debug output from mixer
+CLOGICAL no_evap = FALSE;   //# turn off evaporation
 int      quiet   = 0;       //# turn down output messages
 
 void set_c_wqvars_ptr(AED_REAL *iwqv) { WQ_Vars = iwqv; }

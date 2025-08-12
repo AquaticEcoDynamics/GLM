@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2013 - 2025 -  The University of Western Australia                #
+!# Copyright 2013 - 2025 - The University of Western Australia                 #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -257,7 +257,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,NumWQ_Vars,NumWQ_Ben) BIND(C, name=_WQ_INIT
    NumWQ_Vars = n_vars
    NumWQ_Ben  = n_vars_ben
    !# Now that we know how many vars we need, we can allocate space for them
-   ALLOCATE(cc(MaxLayers, (n_vars + n_vars_ben)),stat=status)
+   ALLOCATE(cc((n_vars + n_vars_ben), MaxLayers),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (CC)'
    cc = 0.         !# initialise to zero
 
@@ -332,17 +332,17 @@ SUBROUTINE aed2_init_glm(i_fname,len,NumWQ_Vars,NumWQ_Ben) BIND(C, name=_WQ_INIT
       IF ( .NOT. ( tvar%extern .OR. tvar%diag) ) THEN  !# neither global nor diagnostic variable
          IF ( tvar%sheet ) THEN
             sv = sv + 1
-            cc(:, n_vars+sv) = tvar%initial
+            cc(n_vars+sv, :) = tvar%initial
          ELSE
             v = v + 1
-            cc(:, v) = tvar%initial
+            cc(v, :) = tvar%initial
          ENDIF
       ENDIF
    ENDDO
 
    !# Allocate diagnostic variable array and set all values to zero.
    !# (needed because time-integrated/averaged variables will increment rather than set the array)
-   ALLOCATE(cc_diag(MaxLayers, n_vars_diag),stat=rc)
+   ALLOCATE(cc_diag(n_vars_diag, MaxLayers),stat=rc)
    IF (rc /= 0) STOP 'allocate_memory(): Error allocating (cc_diag)'
    cc_diag = zero_
 
@@ -355,7 +355,7 @@ SUBROUTINE aed2_init_glm(i_fname,len,NumWQ_Vars,NumWQ_Ben) BIND(C, name=_WQ_INIT
    !# Allocate array with vertical movement rates (m/s, positive for upwards),
    !# and set these to the values provided by the model.
    !# allocated for all vars even though only state vars entries will be used
-   ALLOCATE(ws(MaxLayers, n_aed2_vars),stat=rc)
+   ALLOCATE(ws(n_aed2_vars, MaxLayers),stat=rc)
    IF (rc /= 0) STOP 'allocate_memory(): Error allocating (ws)'
    ws = zero_
 
@@ -635,9 +635,9 @@ SUBROUTINE define_sed_column(column, top, flux_pel, flux_atm, flux_ben)
          IF ( tvar%sheet ) THEN
             sv = sv + 1
             IF ( tvar%bot ) THEN
-               column(av)%cell_sheet => z_cc(zon, 1, n_vars+sv)
+               column(av)%cell_sheet => z_cc(n_vars+sv, 1, zon)
             ELSEIF ( tvar%top ) THEN
-               column(av)%cell_sheet => z_cc(zon, top, n_vars+sv)
+               column(av)%cell_sheet => z_cc(n_vars+sv, top, zon)
             ENDIF
             column(av)%flux_ben => flux_ben(n_vars+sv)
             column(av)%flux_atm => flux_atm(n_vars+sv)
@@ -645,7 +645,7 @@ SUBROUTINE define_sed_column(column, top, flux_pel, flux_atm, flux_ben)
             v = v + 1
             column(av)%cell => z_cc(zon, :, v)
             column(av)%flux_atm => flux_atm(v)
-            column(av)%flux_pel => flux_pel(:, v)
+            column(av)%flux_pel => flux_pel(v, :)
             column(av)%flux_ben => flux_ben(v)
          ENDIF
       ENDIF
@@ -709,16 +709,16 @@ SUBROUTINE define_column(column, top, cc, cc_diag, flux_pel, flux_atm, flux_ben)
             column(av)%cell_sheet => cc_diag_hz(sd)
          ELSE
             d = d + 1
-            column(av)%cell => cc_diag(:, d)
+            column(av)%cell => cc_diag(d, :)
          ENDIF
       ELSE    !# state variable
          IF ( tvar%sheet ) THEN
             sv = sv + 1
             IF ( tvar%bot ) THEN
-               column(av)%cell_sheet => cc(1, n_vars+sv)
+               column(av)%cell_sheet => cc(n_vars+sv, 1)
 !            print *,'av',av,sv
             ELSEIF ( tvar%top ) THEN
-               column(av)%cell_sheet => cc(top, n_vars+sv)
+               column(av)%cell_sheet => cc(n_vars+sv, top)
             ENDIF
             column(av)%flux_ben => flux_ben(n_vars+sv)
             column(av)%flux_atm => flux_atm(n_vars+sv)
@@ -726,7 +726,7 @@ SUBROUTINE define_column(column, top, cc, cc_diag, flux_pel, flux_atm, flux_ben)
             v = v + 1
             column(av)%cell => cc(:, v)
             column(av)%flux_atm => flux_atm(v)
-            column(av)%flux_pel => flux_pel(:, v)
+            column(av)%flux_pel => flux_pel(v, :)
             column(av)%flux_ben => flux_ben(v)
          ENDIF
       ENDIF
@@ -784,18 +784,16 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
          !# If multiple benthic zones, we must update the benthic variable pointer for the new zone
          IF ( zone_var .GE. 1 ) THEN
             column_sed(zone_var)%cell_sheet => theZones(zon)%z_sed_zones
-    !       !MH WE NEED A COLUMN TO CC VAR MAP FOR BENTHIC GUYS
-            !CAB Yes, a map (or 2 maps) would be better, but QnD since this all needs reworking
             sv = 0 ; sd = 0
             DO av=1,n_aed2_vars
                IF ( .NOT. aed2_get_var(av, tvar) ) STOP "Error getting variable info"
                IF ( .NOT. tvar%extern .AND. tvar%sheet ) THEN
                   IF ( tvar%diag ) THEN
                      sd = sd + 1
-                     column(av)%cell_sheet => z_diag_hz(zon, sd)
+                     column(av)%cell_sheet => z_diag_hz(sd, zon)
                   ELSE
                      sv = sv + 1
-                     column(av)%cell_sheet => z_cc(zon, 1, n_vars+sv)
+                     column(av)%cell_sheet => z_cc(n_vars+sv, 1, zon)
                   ENDIF
                ENDIF
             ENDDO
@@ -870,7 +868,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
       !# scaled to proportion of area that is "bottom"
       DO lev=1,wlev
          if(lev>1)flux_pel(lev, :) = flux_pel(lev, :) * (area(lev)-area(lev-1))/area(lev)
-         flux_pel(lev, :) = max(-1.0 * cc(lev, :), flux_pel(lev, :)/dz(lev))
+         flux_pel(:, lev) = max(-1.0 * cc(:, lev), flux_pel(:, lev)/dz(lev))
       ENDDO
    ELSE
       !# Sediment zones are not simulated and therefore just operate on the bottom-most
@@ -885,7 +883,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
       !# Limit flux out of bottom layers to concentration of that layer
       !# i.e. don't flux out more than is there
       !# & distribute bottom flux into pelagic over bottom box (i.e., divide by layer height).
-      flux_pel(1, :) = max(-1.0 * cc(1, :), flux_pel(1, :)/dz(1))
+      flux_pel(:, 1) = max(-1.0 * cc(:, 1), flux_pel(:, 1)/dz(1))
 
       IF ( benthic_mode .EQ. 1 ) THEN
 !$OMP DO
@@ -897,8 +895,8 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
             !# i.e. don't flux out more than is there
             !# & distribute bottom flux into pelagic over bottom box (i.e., divide by layer height).
             !# scaled to proportion of area that is "bottom"
-            flux_pel(lev, :) = max(-1.0 * cc(lev, :), flux_pel(lev, :)/dz(lev))
-            flux_pel(lev, :) = flux_pel(lev, :) * (area(lev)-area(lev-1))/area(lev)
+            flux_pel(:, lev) = max(-1.0 * cc(:, lev), flux_pel(:, lev)/dz(lev))
+            flux_pel(:, lev) = flux_pel(:, lev) * (area(lev)-area(lev-1))/area(lev)
          ENDDO
 !$OMP END DO
       ENDIF
@@ -950,13 +948,13 @@ SUBROUTINE check_states(column, wlev)
                v = v + 1
                IF ( repair_state ) THEN
 #if DEBUG
-                  IF ( ieee_is_nan(cc(lev, v)) ) last_naned = i
+                  IF ( ieee_is_nan(cc(v, lev)) ) last_naned = i
 #endif
                   IF ( .NOT. ieee_is_nan(min_(v)) ) THEN
-                     IF ( cc(lev, v) < min_(v) ) cc(lev, v) = min_(v)
+                     IF ( cc(v, lev) < min_(v) ) cc(lev, v) = min_(v)
                   ENDIF
                   IF ( .NOT. ieee_is_nan(max_(v)) ) THEN
-                     IF ( cc(lev, v) > max_(v) ) cc(lev, v) = max_(v)
+                     IF ( cc(v, lev) > max_(v) ) cc(lev, v) = max_(v)
                   ENDIF
                ENDIF
             ENDIF
@@ -996,8 +994,8 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    TYPE (aed2_column_t) :: column(n_aed2_vars)
    TYPE (aed2_column_t) :: column_sed(n_aed2_vars)
    AED_REAL :: flux_ben(n_vars+n_vars_ben), flux_atm(n_vars+n_vars_ben)
-   AED_REAL :: flux(wlev, n_vars+n_vars_ben)
-   AED_REAL :: flux_zone(n_zones, n_vars+n_vars_ben)
+   AED_REAL :: flux(n_vars+n_vars_ben, wlev)
+   AED_REAL :: flux_zone(n_vars+n_vars_ben, n_zones)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -1044,19 +1042,19 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
         IF ( aed2_get_var(i, tv) ) THEN
            IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern) ) THEN
               v = v + 1
-              ws(:,i) = zero_
+              ws(i, :) = zero_
               ! only for state_vars that are not sheet
               IF ( .NOT. ieee_is_nan(tv%mobility) ) THEN
                  ! default to ws that was set during initialisation
-                 ws(1:wlev,i) = tv%mobility
-                 IF(i == 14) print *,'ws',i,ws(1:wlev,i)
+                 ws(i, 1:wlev) = tv%mobility
+                 IF(i == 14) print *,'ws',i,ws(i, 1:wlev)
               ENDIF
            ENDIF
         ENDIF
      ENDDO
       DO i = 1, wlev
          ! update ws for modules that use the mobility method
-         CALL aed2_mobility(column, i, ws(i,:))
+         CALL aed2_mobility(column, i, ws(:, i))
       ENDDO
 
       !# (3) Calculate source/sink terms due to the settling or rising of
@@ -1069,9 +1067,9 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
             IF ( .NOT. (tv%sheet .OR. tv%diag .OR. tv%extern)   ) THEN
                v = v + 1
                !# only for state_vars that are not sheet, and also non-zero ws
-               IF ( .NOT. ieee_is_nan(tv%mobility) .AND. SUM(ABS(ws(1:wlev,i)))>zero_ ) THEN
+               IF ( .NOT. ieee_is_nan(tv%mobility) .AND. SUM(ABS(ws(i, 1:wlev)))>zero_ ) THEN
                   min_C = tv%minimum
-                  CALL doMobility(wlev, dt, dz, area, ws(:, i), min_C, cc(:, v))
+                  CALL doMobility(wlev, dt, dz, area, ws(i, :), min_C, cc(v, :))
                ENDIF
             ENDIF
          ENDIF
@@ -1103,7 +1101,7 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
       !# Update the water column layers
       DO v = 1, n_vars
          DO lev = 1, wlev
-            cc(lev, v) = cc(lev, v) + dt_eff*flux(lev, v)
+            cc(v, lev) = cc(v, lev) + dt_eff*flux(v, lev)
          ENDDO
       ENDDO
       !# Now update benthic variables, depending on whether zones are simulated
@@ -1113,12 +1111,12 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
             ! Loop through each sediment zone
             DO zon = 1, n_zones
                ! Update the main cc_sed data array with the
-               z_cc(zon, 1, v) = z_cc(zon, 1, v)+ dt_eff*flux_zone(zon, v)
+               z_cc(v, 1, zon) = z_cc(v, 1, zon)+ dt_eff*flux_zone(v, zon)
             ENDDO
          ENDDO
       ELSE
          DO v = n_vars+1, n_vars+n_vars_ben
-            cc(1, v) = cc(1, v) + dt_eff*flux_ben(v)
+            cc(v, 1) = cc(v, 1) + dt_eff*flux_ben(v)
          ENDDO
       ENDIF
 
@@ -1168,7 +1166,6 @@ SUBROUTINE update_light(column, nlev)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-
    localext = zero_; localext_up = zero_
 
    ! Surface Kd
@@ -1179,16 +1176,13 @@ SUBROUTINE update_light(column, nlev)
 
    ! Now set the top of subsequent layers, down to the bottom
    DO i = (nlev-1),1,-1
-
       localext_up = localext
       CALL aed2_light_extinction(column, i, localext)
 
       par(i) = par(i+1) * EXP( -(Kw + localext_up) * dz(i+1) )
 
       IF (bioshade_feedback) extc(i) = Kw + localext
-
    ENDDO
-
 END SUBROUTINE update_light
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1336,29 +1330,29 @@ SUBROUTINE aed2_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE
                sv = sv + 1
                !# Store benthic biogeochemical state variables.
                IF ( n_zones .GT. 0 ) THEN
-                  CALL store_nc_array(ncid, externalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_cc(1:n_zones, 1, n_vars+sv))
+                  CALL store_nc_array(ncid, externalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_cc(n_vars+sv, 1, 1:n_zones))
                ELSE
-                  CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc(1, n_vars+sv))
+                  CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc(n_vars+sv, 1))
                ENDIF
 #ifdef PLOTS
                IF ( do_plots .AND. plot_id_sv(sv).GE.0 ) THEN
                   IF ( n_zones .GT. 0 ) THEN
                      DO z=1,n_zones
-                        CALL put_glm_val_z(plot_id_sv(sv), z_cc(z, 1, n_vars+sv), z)
+                        CALL put_glm_val_z(plot_id_sv(sv), z_cc(n_vars+sv, 1, z), z)
                      ENDDO
                   ENDIF
-                  CALL put_glm_val_s(plot_id_sv(sv), cc(1, n_vars+sv))
+                  CALL put_glm_val_s(plot_id_sv(sv), cc(n_vars+sv, 1))
                ENDIF
 #endif
             ELSE
                v = v + 1
                !# Store pelagic biogeochemical state variables.
-               CALL store_nc_array(ncid, externalid(i), XYZT_SHAPE, wlev, nlev, array=cc(:, v))
+               CALL store_nc_array(ncid, externalid(i), XYZT_SHAPE, wlev, nlev, array=cc(v, :))
 #ifdef PLOTS
-               IF ( do_plots .AND. plot_id_v(v).GE.0 ) CALL put_glm_val(plot_id_v(v), cc(1:wlev, v))
+               IF ( do_plots .AND. plot_id_v(v).GE.0 ) CALL put_glm_val(plot_id_v(v), cc(v, 1:wlev))
 #endif
                DO j=1,point_nlevs
-                  IF (lvl(j) .GE. 0) THEN ; val_out = cc(lvl(j)+1, v)
+                  IF (lvl(j) .GE. 0) THEN ; val_out = cc(v, lvl(j)+1)
                   ELSE                    ; val_out = missing     ; ENDIF
                   CALL write_csv_point(j, tv%name, len_trim(tv%name), val_out, NULCSTR, 0, last=last)
                ENDDO

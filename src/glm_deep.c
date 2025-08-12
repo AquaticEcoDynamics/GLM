@@ -65,7 +65,9 @@ extern AED_REAL coef_mix_hyp;
 static int count = 0;
 #endif
 
-#define _Scalars(i,j)     Scalars[_IDX_2d(MaxLayers,Num_WQ_Vars+2,i,j)]
+// NB reversed order of array indices!
+//#define _Scalars(i,j)     Scalars[_IDX_2d(MaxLayers,Tot_WQ_Vars+2,i,j)]
+#  define _Scalars(i,j)     Scalars[_IDX_2d(Tot_WQ_Vars+2,MaxLayers,j,i)]
 
 /*============================================================================*/
 static void join_scalar_colums(AED_REAL *Scalars);
@@ -111,7 +113,7 @@ void do_deep_mixing()
     //# Set the local time step
     RTimeStep = noSecs;
 
-    Scalars = calloc(MaxLayers*(Num_WQ_Vars+2), sizeof(AED_REAL));
+    Scalars = calloc(MaxLayers*(Tot_WQ_Vars+2), sizeof(AED_REAL));
     tot_diffusivity = calloc(MaxLayers, sizeof(AED_REAL));
 
     //# Set up array of diffusable species
@@ -203,7 +205,7 @@ void do_deep_mixing()
         //# Update T, S and WQ
         Lake[i].Temp = _Scalars(i,0);
         Lake[i].Salinity = _Scalars(i,1) / Lake[i].Density;
-        for (j = 2; j < Num_WQ_Vars+2; j++)
+        for (j = 2; j < Tot_WQ_Vars+2; j++)
             _WQ_Vars(j-2,i) = _Scalars(i,j);
 
         //# Calculate the new densities
@@ -501,7 +503,7 @@ static void join_scalar_colums(AED_REAL *Scalars)
         _Scalars(i,0) = Lake[i].Temp;
         _Scalars(i,1) = Lake[i].Salinity*Lake[i].Density;
 
-        for (j = 2; j < Num_WQ_Vars+2; j++)
+        for (j = 2; j < Tot_WQ_Vars+2; j++)
             _Scalars(i,j) = _WQ_Vars(j-2,i);
     }
 }

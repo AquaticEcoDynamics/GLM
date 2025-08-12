@@ -1187,10 +1187,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
      * Precipitation, evaporation in the absence of ice
      **************************************************************************/
     if (!ice) {
-
-
         AED_REAL evap = MAX( SurfData.Evap*noSecs,-0.9*Lake[surfLayer].Height );
-        
+
         AED_REAL evapvol = MIN( evap,zero ) * Lake[surfLayer].LayerArea;
 
         AED_REAL rainvol = MAX( MetData.Rain,zero )
@@ -1234,8 +1232,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                                                      Lake[surfLayer].LayerVol,
                                                      zero, rainvol+snowvol);
 
-
-        resize_internals(1, surfLayer);  // recompute surflayer volume
+//      resize_internals(1, surfLayer);  // recompute surflayer volume
 
         //---------------------------------------------------------------------+
         //# Evaporation and evapo-concentration, as evaporation leaves consituents 
@@ -1244,6 +1241,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
         recalc_surface_salt();
         //recalc_surface_wq();
+        resize_internals(1, surfLayer);  // recompute surflayer volume
     }
 
     //# Recalculate densities

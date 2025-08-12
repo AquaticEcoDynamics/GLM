@@ -66,7 +66,7 @@
 static AED_REAL   base_elev;
 static AED_REAL   crest_elev;
 static AED_REAL   max_elev;
-extern LOGICAL    seepage;
+extern CLOGICAL   seepage;
 extern AED_REAL   seepage_rate;
 
 char glm_nml_file[256] = DEFAULT_GLM_NML;
@@ -94,8 +94,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     AED_REAL        min_layer_thick = 0.1;
     AED_REAL        max_layer_thick = 0.1;
 //  extern int      density_model;
-//  extern LOGICAL  littoral_sw;
-//  extern LOGICAL  non_avg;
+//  extern CLOGICAL littoral_sw;
+//  extern CLOGICAL non_avg;
     //==========================================================================
     NAMELIST glm_setup[] = {
           { "glm_setup",         TYPE_START,            NULL                  },
@@ -183,19 +183,19 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%NAMELIST output ---------------------------------------------------*/
     char           *out_dir = NULL;
     char           *out_fn  = NULL;
-//  LOGICAL         out_lkn;
+//  CLOGICAL        out_lkn;
 //  int             nsave;
     int             csv_point_nlevs   = 0;
-    LOGICAL        *csv_point_frombot = NULL;
+    CLOGICAL       *csv_point_frombot = NULL;
     char           *csv_point_fname   = NULL;
     AED_REAL       *csv_point_at      = NULL;
     int             csv_point_nvars   = 0;
     char          **csv_point_vars    = NULL;
-    LOGICAL        *csv_point_depth_avg = NULL;
+    CLOGICAL       *csv_point_depth_avg = NULL;
     AED_REAL       *csv_point_zone_upper = NULL;
     AED_REAL       *csv_point_zone_lower = NULL;
     char           *csv_lake_fname    = NULL;
-    LOGICAL         csv_outlet_allinone = FALSE;
+    CLOGICAL        csv_outlet_allinone = FALSE;
     char           *csv_outlet_fname  = NULL;
     int             csv_outlet_nvars  = 0;
     char          **csv_outlet_vars   = NULL;
@@ -226,14 +226,14 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- * %%NAMELIST meteorology --------------------------------------------*/
-    LOGICAL         met_sw = FALSE;  // Include surface meteorological forcing
+    CLOGICAL        met_sw = FALSE;  // Include surface meteorological forcing
     char           *lw_type = NULL;  // Type LW measurement (LW_IN/LW_CC/LW_NET)
-    LOGICAL         rain_sw = FALSE; // Rainfall composition
-    LOGICAL         snow_sw = FALSE; // Snowfall
+    CLOGICAL        rain_sw = FALSE; // Rainfall composition
+    CLOGICAL        snow_sw = FALSE; // Snowfall
     char           *meteo_fl = NULL; // Name of meteorology input file
 //  int             lw_ind;          // type of longwave radiation - now in glm_input
-//  LOGICAL         atm_stab;        // Account for non-neutral atmospheric stability
-//  LOGICAL         subdaily;        //
+//  CLOGICAL        atm_stab;        // Account for non-neutral atmospheric stability
+//  CLOGICAL        subdaily;        //
 //  extern AED_REAL CD;
 //  extern AED_REAL CE;
 //  extern AED_REAL CH;
@@ -254,10 +254,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern int      albedo_mode;
     extern int      cloud_mode;
     extern int      light_mode;
-//  extern LOGICAL  link_solar_shade;
-//  extern LOGICAL  link_rain_loss;
-//  extern LOGICAL  link_bottom_drag;
-//  extern LOGICAL  use_met_atm_pres;
+//  extern CLOGICAL link_solar_shade;
+//  extern CLOGICAL link_rain_loss;
+//  extern CLOGICAL link_bottom_drag;
+//  extern CLOGICAL use_met_atm_pres;
     char           *timefmt_m = NULL;
     extern AED_REAL timezone_m;
     //==========================================================================
@@ -328,7 +328,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%NAMELIST inflow ---------------------------------------------------*/
     int             num_inflows    = 0;
     char          **names_of_strms = NULL;
-    LOGICAL        *subm_flag      = NULL;
+    CLOGICAL       *subm_flag      = NULL;
     AED_REAL       *subm_elev      = NULL;
     AED_REAL       *strm_hf_angle  = NULL;
     AED_REAL       *strmbd_slope   = NULL;
@@ -363,7 +363,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     /*-- %%NAMELIST outflow --------------------------------------------------*/
     int             num_outlet     = 0;
-    LOGICAL        *flt_off_sw     = NULL;
+    CLOGICAL       *flt_off_sw     = NULL;
     int            *outlet_type    = NULL;
     int             crit_O2        = -1;
     int             crit_O2_dep    = -1;
@@ -373,10 +373,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     int             O2idx          = 0;
     AED_REAL       *target_temp    = NULL;
     AED_REAL        min_lake_temp  = 0.0;
-    LOGICAL         mix_withdraw   = FALSE;
+    CLOGICAL        mix_withdraw   = FALSE;
     extern AED_REAL outflow_thick_limit;
-//  extern LOGICAL  single_layer_draw;
-    LOGICAL         coupl_oxy_sw   = FALSE;
+//  extern CLOGICAL single_layer_draw;
+    CLOGICAL        coupl_oxy_sw   = FALSE;
     extern AED_REAL fac_range_upper;
     extern AED_REAL fac_range_lower;
     AED_REAL       *outl_elvs    = NULL;
@@ -506,7 +506,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- %%NAMELIST fetch ----------------------------------------------------*/
-    extern LOGICAL     fetch_sw;
+    extern CLOGICAL    fetch_sw;
     extern int         fetch_ndirs;
     extern AED_REAL   *fetch_dirs;
     extern AED_REAL   *fetch_scale;
@@ -529,7 +529,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 //  int              benthic_mode;
 //  int              n_zones;
     AED_REAL        *zone_heights = NULL;
-    extern LOGICAL   sed_heat_sw;
+    extern CLOGICAL  sed_heat_sw;
     extern int       sed_heat_model;
     extern AED_REAL  sed_heat_Ksoil;
     extern AED_REAL  sed_temp_depth;
@@ -575,8 +575,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- %%NAMELIST particle model -------------------------------------------*/
-//  extern LOGICAL   ptm_sw;
-//  extern LOGICAL   sed_deactivation;
+//  extern CLOGICAL  ptm_sw;
+//  extern CLOGICAL  sed_deactivation;
     extern int       num_particle_grp;
     extern int       max_particle_num;
     extern int       init_particle_num;
@@ -587,7 +587,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL  ptm_diffusivity;
     extern AED_REAL  settling_velocity;
     extern AED_REAL  settling_efficiency;
-    extern LOGICAL   do_particle_bgc;
+    extern CLOGICAL  do_particle_bgc;
     //==========================================================================
     NAMELIST particles[] = {
           { "particles",         TYPE_START,            NULL                  },
@@ -609,8 +609,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- %%NAMELIST debugging ------------------------------------------------*/
-//  extern LOGICAL dbg_mix;   //# debug output from mixer
-//  extern LOGICAL no_evap;   //# turn off evaporation
+//  extern CLOGICAL dbg_mix;   //# debug output from mixer
+//  extern CLOGICAL no_evap;   //# turn off evaporation
     //==========================================================================
     NAMELIST debugging[] = {
           { "debugging",         TYPE_START,            NULL                  },
@@ -742,7 +742,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( csv_outlet_nvars > MaxCSVOutVars ) { fprintf(stderr, "csv_outlet_nvars must be < %d\n", MaxCSVOutVars); exit(1); }
 
     if ( csv_point_frombot == NULL && csv_point_nlevs > 0) {
-        csv_point_frombot = calloc(csv_point_nlevs, sizeof(LOGICAL));
+        csv_point_frombot = calloc(csv_point_nlevs, sizeof(CLOGICAL));
         for (i = 0; i < csv_point_nlevs; i++) csv_point_frombot[i] = TRUE;
     }
 
@@ -757,7 +757,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         }
     }
     if ( csv_point_depth_avg == NULL && csv_point_nlevs > 0) {
-        csv_point_depth_avg = calloc(csv_point_nlevs, sizeof(LOGICAL));
+        csv_point_depth_avg = calloc(csv_point_nlevs, sizeof(CLOGICAL));
         for (i = 0; i < csv_point_nlevs; i++) csv_point_depth_avg[i] = FALSE;
     }
 
@@ -1099,7 +1099,7 @@ for (i = 0; i < n_zones; i++) {
         fprintf(stderr, "     No 'outflow' config, assuming no outflows\n");
         NumOut = 0;
     } else {
-        LOGICAL need_free = FALSE;
+        CLOGICAL need_free = FALSE;
 
         if ( num_outlet > MaxOut) {
             fprintf(stderr, "     ERROR: Too many outlets specified in 'outflow' config %d > %d\n", num_outlet, MaxOut);
@@ -1110,7 +1110,7 @@ for (i = 0; i < n_zones; i++) {
                                          // remove this if you use it for anything else!!
         if ( flt_off_sw == NULL ) {
             need_free = TRUE;
-            flt_off_sw = malloc(sizeof(LOGICAL)*num_outlet);
+            flt_off_sw = malloc(sizeof(CLOGICAL)*num_outlet);
             for (i = 0; i < NumOut; i++) flt_off_sw[i] = FALSE;
         } else if ( outlet_type == NULL ) {
             outlet_type = malloc(sizeof(int)*num_outlet);
@@ -1225,8 +1225,9 @@ for (i = 0; i < n_zones; i++) {
 
         prime_wq(wq_lib);
         wq_init_glm(wq_nml_file, &l, &Num_WQ_Vars, &Num_WQ_Ben); // Reads WQ namelist file
+        Tot_WQ_Vars = Num_WQ_Vars + Num_WQ_Ben;
         fprintf(stdout, "     WQ plugin active: included Num_WQ_Vars = %d\n", Num_WQ_Vars);
-        if ( Num_WQ_Vars > MaxVars ) {
+        if ( Tot_WQ_Vars > MaxVars ) {
             fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", MaxVars);
             exit(1);
         }
@@ -1608,6 +1609,8 @@ void initialise_lake(int namlst)
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
+    CLOGICAL need_free = FALSE;
+
     int i, j, min_layers;
     int nx, np, nz;
     int *idx = NULL;
@@ -1696,6 +1699,7 @@ void initialise_lake(int namlst)
 
     if (restart_variables == NULL) {
         restart_variables = calloc(17, sizeof(AED_REAL));
+        need_free = TRUE;
 
         // Now interpolate into at least min_layers
         while (NumLayers <= min_layers) {
@@ -1775,8 +1779,9 @@ void initialise_lake(int namlst)
         u_avg = restart_variables[16];
 
         Mixer_Count = restart_mixer_count;
-    }
 
+        if (need_free) free(restart_variables);
+    }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

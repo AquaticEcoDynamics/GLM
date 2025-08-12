@@ -30,8 +30,6 @@
 !#                                                                             #
 !###############################################################################
 
-#define DO_HZ 0
-
 #undef MISVAL
 #ifndef _FORTRAN_SOURCE_
 #define _FORTRAN_SOURCE_ 1
@@ -58,9 +56,11 @@ MODULE glm_api_zones
 
    AED_REAL,DIMENSION(:),POINTER :: lheights
 
-   INTEGER :: nvars, nbenv, nvdiag, nvdiag_hz, n_aed_vars
+   AED_REAL,DIMENSION(:),POINTER :: zone_heights
+   INTEGER :: n_aed_vars
+   INTEGER :: nvars, nbenv, nvdiag, nvdiag_hz
 
-   PUBLIC n_zones, lheights
+   PUBLIC n_zones, zone_heights, lheights
    PUBLIC api_set_glm_zones, api_copy_from_zone, api_copy_to_zone, api_calc_zone_areas
 
    PUBLIC z_cc, z_cc_hz, z_diag, z_diag_hz, theZones, theLake
@@ -92,15 +92,10 @@ SUBROUTINE api_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV, nAEDvars) &
 
    lheights => theLake%Height
 
-#if DO_HZ
-   ALLOCATE(z_cc(numVars, MaxLayers, n_zones))  ; z_cc = 0.
-   ALLOCATE(z_cc_hz(numBenV, n_zones))          ; z_cc_hz = 0.
-#else
-   ALLOCATE(z_cc(numVars+numBenV, MaxLayers, n_zones))  ; z_cc = 0.
-   ALLOCATE(z_cc_hz(numVars+numBenV, n_zones))          ; z_cc_hz = 0.
-#endif
-   ALLOCATE(z_diag(numDiagV, MaxLayers, n_zones))       ; z_diag = 0.
-   ALLOCATE(z_diag_hz(numDiagHzV, n_zones+1))           ; z_diag_hz = 0.
+   ALLOCATE(z_cc(numVars, MaxLayers, n_zones))    ; z_cc = 0.
+   ALLOCATE(z_cc_hz(numBenV, n_zones))            ; z_cc_hz = 0.
+   ALLOCATE(z_diag(numDiagV, MaxLayers, n_zones)) ; z_diag = 0.
+   ALLOCATE(z_diag_hz(numDiagHzV, n_zones+1))     ; z_diag_hz = 0.
 
    CALL aed_init_zones(n_zones, 1, z_cc, z_cc_hz, z_diag, z_diag_hz)
 
@@ -113,6 +108,8 @@ SUBROUTINE api_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV, nAEDvars) &
       aedZones(zon)%z_env%z_area = 0.
       aedZones(zon)%z_env%z_height = theZones(zon)%zheight
    ENDDO
+   theZones%zarea = 0.
+   zone_heights => theZones%zheight
 END SUBROUTINE api_set_glm_zones
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -194,12 +191,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
 !-------------------------------------------------------------------------------
 !BEGIN
    DO zon=1,n_zones
-#if DO_HZ
-      z_cc(:,:,zon) = 0.
-      z_cc_hz(:,zon) = 0.
-#else
       z_cc(1:nvars,:,zon) = 0.
-#endif
       z_diag(:,:,zon) = 0.
       z_diag_hz(:,zon) = 0.
 
@@ -227,11 +219,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
          zon = zon + 1
          IF (zon > n_zones) STOP 'Water level height is higher than highest zone height'
 !        aedZones(zon)%z_env(1)%z_sed_zones = zon
-#if DO_HZ
-         !# only do this once for every zone, not every level.
-         z_cc_hz(:,zon) = z_cc_hz(:,zon) + x_cc_hz(:)
-#endif
-         z_diag_hz(:,zon) = z_diag_hz(:,zon) + x_diag_hz(:)
+!        z_diag_hz(:,zon) = z_diag_hz(:,zon) + x_diag_hz(:)
       ENDIF
 
       ! Pelagic variables need zonifying, in case benthic people want them
@@ -240,7 +228,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
       ! Ideally this average would be based on volume weighting
 
       z_cc(1:nvars,lev,zon) = z_cc(1:nvars,lev,zon) + x_cc(1:nvars,lev)
-      z_diag(:,lev,zon)     = z_diag(:,lev,zon) + x_diag(:,lev)
+!     z_diag(:,lev,zon)     = z_diag(:,lev,zon) + x_diag(:,lev)
 
       aedZones(zon)%z_env%z_temp         = aedZones(zon)%z_env%z_temp + theLake(lev)%Temp
       aedZones(zon)%z_env%z_salt         = aedZones(zon)%z_env%z_salt + theLake(lev)%Salinity
@@ -256,11 +244,8 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
 
    DO zon=1,a_zones
       z_cc(1:nvars,:,zon) = z_cc(1:nvars,:,zon)/zcount(zon)
-#if DO_HZ
-    ! z_cc_hz(:,zon)      = z_cc_hz(:,zon)/zcount(zon)
-#endif
       z_diag(:,:,zon)     = z_diag(:,:,zon)/zcount(zon)
-    ! z_diag_hz(:,zon)    = z_diag_hz(:,zon)/zcount(zon)
+!     z_diag_hz(:,zon)    = z_diag_hz(:,zon)/zcount(zon)
 
       ! Set the water column above a zone, to the respective water layer values
       z_cc(1:nvars,2:wlev,zon) = x_cc(1:nvars,2:wlev) ! water column state vars
@@ -335,24 +320,16 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
    INTEGER,INTENT(in) :: wlev
 !
 !LOCALS
-#if DO_HZ
    INTEGER  :: zon, lev, i, j
-#else
-   INTEGER  :: zon, lev, v_start, v_end, i, j
-#endif
-   AED_REAL :: scale, area
+   AED_REAL :: scale
    LOGICAL  :: splitZone
    TYPE(aed_variable_t),POINTER :: tvar
 
-   LOGICAL  :: column_benthic_var_averaging = .false.
+!  LOGICAL  :: column_benthic_var_averaging = .false.
    INTEGER  :: water_column_zone = 1
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-!print*,"api_copy_from_zone",n_zones,wlev,n_aed_vars,nvars, nbenv, nvdiag, nvdiag_hz
-#if !DO_HZ
-   v_start = nvars+1 ; v_end = nvars+nbenv
-#endif
    zon = n_zones
 
    ! Loop down through water layers
@@ -392,12 +369,12 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
                ENDIF
             ENDIF
          ENDDO
-#if DO_HZ
+         ! Select the benthic vars (implicitly all zavg == true), and assign to layer
+         ! (for first zone in the layer)
          x_cc_hz(:) = z_cc_hz(:,zon) * scale
-#else
-         x_cc(v_start:v_end,lev) = z_cc(v_start:v_end,lev,zon) * scale
-#endif
 
+         ! Select the diag vars that have zavg == true, and assign to layer
+         ! (for second zone in the layer)
          zon = zon - 1
          j = 0
          DO i=1,n_aed_vars
@@ -412,13 +389,11 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
                ENDIF
             ENDIF
          ENDDO
-#if DO_HZ
+         ! Select the benthic vars (implicitly all zavg == true), and assign to layer
+         ! (for first zone in the layer)
          x_cc_hz(:) = x_cc_hz(:) + z_cc_hz(:,zon) * (1.0 - scale)
-#else
-         x_cc(v_start:v_end,lev) = x_cc(v_start:v_end,lev) + &
-                                   z_cc(v_start:v_end,lev,zon) * (1.0 - scale)
-#endif
       ELSE  ! Not a split layer - layer bounds are fully within zone
+         ! Select the diag vars that have zavg == true, and assign to layer
          j = 0
          DO i=1,n_aed_vars
             IF ( aed_get_var(i, tvar) ) THEN
@@ -432,27 +407,26 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
                ENDIF
             ENDIF
          ENDDO
-#if DO_HZ
+         ! Select the benthic vars (implicitly all zavg == true), and assign to layer
          x_cc_hz(:) = z_cc_hz(:,zon)
-#else
-         x_cc(v_start:v_end,lev) = z_cc(v_start:v_end,lev,zon)
-#endif
       ENDIF
    ENDDO
 
-   ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
-   IF (column_benthic_var_averaging) THEN
-      area = 0.
-      DO zon=1,n_zones
-         area = area + aedZones(zon)%z_env%z_area
-      ENDDO
-      DO zon=1,n_zones
-         x_diag_hz = x_diag_hz + (z_diag_hz(:,zon) * (aedZones(zon)%z_env%z_area/area))
-      ENDDO
-   ELSE
+! CAB since column_benthic_var_averaging is always false, theres not much point in this test
+!  ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
+!  IF (column_benthic_var_averaging) THEN
+!     area = 0.
+!     DO zon=1,n_zones
+!        area = area + aedZones(zon)%z_env%z_area
+!     ENDDO
+!     DO zon=1,n_zones
+!        x_diag_hz = x_diag_hz + (z_diag_hz(:,zon) * (aedZones(zon)%z_env%z_area/area))
+!     ENDDO
+!  ELSE
       ! If not column_benthic_var_averaging, set single-value to selected zone (e.g. bottom)
       x_diag_hz = z_diag_hz(:,water_column_zone)
-   ENDIF
+!  ENDIF
+!print*,"Z2 cc(:,1) = ", x_cc(:,1), z_cc(:,1,1)
 END SUBROUTINE api_copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

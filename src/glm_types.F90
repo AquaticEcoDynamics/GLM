@@ -223,14 +223,14 @@ MODULE glm_types
    TYPE(SurfaceDataType),             POINTER :: SurfData  !# Surface Data
    TYPE(ZoneType),       DIMENSION(:),POINTER :: theZones
 
-   TYPE(CLOGICAL),BIND(C, name="mobility_off")       :: mobility_off
-   TYPE(CLOGICAL),BIND(C, name="bioshade_feedback")  :: bioshade_feedback
-   TYPE(CLOGICAL),BIND(C, name="repair_state")       :: repair_state
-   TYPE(CLOGICAL),BIND(C, name="do_plots")           :: do_plots = .FALSE.
-   TYPE(CLOGICAL),BIND(C, name="link_rain_loss")     :: link_rain_loss
-   TYPE(CLOGICAL),BIND(C, name="link_solar_shade")   :: link_solar_shade
-   TYPE(CLOGICAL),BIND(C, name="link_bottom_drag")   :: link_bottom_drag
-   TYPE(CLOGICAL),BIND(C, name="ice")                :: ice
+   TYPE(CLOGICAL),BIND(C, name="mobility_off")       :: mobility_off      = .FALSE.
+   TYPE(CLOGICAL),BIND(C, name="bioshade_feedback")  :: bioshade_feedback = .TRUE.
+   TYPE(CLOGICAL),BIND(C, name="repair_state")       :: repair_state      = .TRUE.
+   TYPE(CLOGICAL),BIND(C, name="do_plots")           :: do_plots          = .FALSE.
+   TYPE(CLOGICAL),BIND(C, name="link_rain_loss")     :: link_rain_loss    = .FALSE.
+   TYPE(CLOGICAL),BIND(C, name="link_solar_shade")   :: link_solar_shade  = .FALSE.
+   TYPE(CLOGICAL),BIND(C, name="link_bottom_drag")   :: link_bottom_drag  = .FALSE.
+   TYPE(CLOGICAL),BIND(C, name="ice")                :: ice               = .FALSE.
 
    TYPE(CINTEGER),BIND(C, name="split_factor")       :: split_factor
    TYPE(CINTEGER),BIND(C, name="ode_method")         :: ode_method
@@ -241,7 +241,7 @@ MODULE glm_types
    TYPE(AED_REAL),TARGET,BIND(C, name="friction")    :: friction
 
    TYPE(AED_REAL),TARGET,BIND(C, name="Kw")          :: Kw
-   TYPE(AED_REAL),TARGET,BIND(C, name="dt")          :: dt
+   TYPE(AED_REAL),TARGET,BIND(C, name="dt")          :: dt = 0.
 
    TYPE(AED_REAL),TARGET,BIND(C, name="yearday")     :: yearday
    TYPE(AED_REAL),TARGET,BIND(C, name="timestep")    :: timestep

@@ -61,10 +61,6 @@ typedef char filname[80];
  ******************************************************************************/
 #define _IDX_2d(di,dj,      i,j)                                                         (((di) * (j)) + (i))
 
-//#define _IDX_3d(di,dj,dk,   i,j,k)                         ((dk * dj * i) + (dk * j) + k)
-//#define _IDX_4d(di,dj,dk,dl,i,j,k,l)  ((dl * dk * dj * i) + (dl * dk * j) + (dl * k) + l)
-
-// These two were wrong, but never used so never tested - hopefully they are now correct, but still not tested
 #define _IDX_3d(di,dj,dk,   i,j,k)                                 (((di) * (dj) * (k)) + ((di) * (j)) + (i))
 #define _IDX_4d(di,dj,dk,dl,i,j,k,l)  (((di) * (dj) * (dk) * (l)) + ((di) * (dj) * (k)) + ((di) * (j)) + (i))
 
@@ -256,7 +252,7 @@ typedef char filname[80];
        AED_REAL z_sed_zones;
        AED_REAL z_pc_wet;
        AED_REAL heatflux;
-       CINTEGER n_sed_layers;      // number of sediment layers
+       CINTEGER n_sed_layers;    // number of sediment layers
        SedLayerType *layers;
    } ZoneType;
 
@@ -280,20 +276,20 @@ typedef char filname[80];
    typedef struct partgroup {
        CINTEGER NP;                             // number of particles in group
                                                 // number of particles
-       CINTEGER ptmid_stat, ptmid_col, ptmid_3d, ptmid_layer;              // ISTAT index values; descriptions?
+       CINTEGER ptmid_stat, ptmid_col, ptmid_3d, ptmid_layer; // ISTAT index values; descriptions?
        CINTEGER id_bed_layer, id_motility;                    // ISTAT index values; descriptions?
-       CINTEGER ptmid_age, ptmid_state;                             // TSTAT index valuess; descriptions?
-       CINTEGER ptmid_wvel, ptmid_pvel, ptmid_nu, ptmid_vvel;               // PROP index values; descriptions?
-       CINTEGER ptmid_wsel, ptmid_wdep, ptmid_pdep;                   // PROP index values; descriptions?
-       CINTEGER i_next;
-                                             // next particle index
-       CINTEGER *istat[4][NPart];                         // Particle Integer Status/Cell-index variables (4,NPart)
-       AED_REAL *tstat[2][NPart];                         // Particle Time/Age Vector (2,Npart)
-       AED_REAL *xyz[NPart];                              // particle position vector (assuming length NPart)
-       AED_REAL *prop[12][NPart];                         // Particle Property Vector (12,Npart)
-       AED_REAL *vars[12][NPart];                            // Particle Conserved Variable Vector (NU,NP) but written as NPart for now b/c don't know what NU, NP are
+       CINTEGER ptmid_age, ptmid_state;                       // TSTAT index valuess; descriptions?
+       CINTEGER ptmid_wvel, ptmid_pvel, ptmid_nu, ptmid_vvel; // PROP index values; descriptions?
+       CINTEGER ptmid_wsel, ptmid_wdep, ptmid_pdep;           // PROP index values; descriptions?
+       CINTEGER i_next;              // next particle index
+       CINTEGER *istat[4][NPart];    // Particle Integer Status/Cell-index variables (4,NPart)
+       AED_REAL *tstat[2][NPart];    // Particle Time/Age Vector (2,Npart)
+       AED_REAL *xyz[NPart];         // particle position vector (assuming length NPart)
+       AED_REAL *prop[12][NPart];    // Particle Property Vector (12,Npart)
+       AED_REAL *vars[12][NPart];    // Particle Conserved Variable Vector (NU,NP) but
+                                     //   written as NPart for now b/c don't know what NU, NP are
    } partgroup;
-    /*
+/*
     typedef struct partgroup_p {
        CINTEGER idx, grp;
    } partgroup_p;
@@ -301,7 +297,7 @@ typedef char filname[80];
        CINTEGER count, n;
        partgroup_p prt[NPart];
    } partgroup_cell;
-    */
+*/
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif

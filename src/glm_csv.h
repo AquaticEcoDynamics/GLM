@@ -103,7 +103,7 @@ void glm_close_csv_output(void);
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 void configure_csv(int point_nlevs, AED_REAL *point_at, const char *point_fname,
-                  LOGICAL *point_frombot, int point_nvars, int *point_depth_avg,
+            CLOGICAL *point_frombot, int point_nvars, CLOGICAL *point_depth_avg,
                     AED_REAL *point_zone_upper, AED_REAL *point_zone_lower,
                     const char *lake_fname);
 

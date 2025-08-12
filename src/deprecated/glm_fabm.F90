@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2013 - 2025 -  The University of Western Australia                #
+!# Copyright 2013 - 2025 - The University of Western Australia                 #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -118,7 +118,7 @@ MODULE glm_fabm
    TYPE (type_model),POINTER :: model
 
    !# Arrays for state and diagnostic variables
-   AED_REAL,ALLOCATABLE,DIMENSION(:,:) :: cc !# water quality array: nlayers, nvars
+   AED_REAL,ALLOCATABLE,DIMENSION(:,:) :: cc !# water quality array: nvars, nlayers
    AED_REAL,ALLOCATABLE,DIMENSION(:,:) :: cc_diag
    AED_REAL,ALLOCATABLE,DIMENSION(:)   :: cc_diag_hz
 
@@ -145,6 +145,7 @@ MODULE glm_fabm
    INTEGER :: n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
 
    AED_REAL,ALLOCATABLE :: dz(:)         !# layer thickness
+
 !===============================================================================
 CONTAINS
 
@@ -261,7 +262,7 @@ SUBROUTINE fabm_init_glm(i_fname,len,NumWQVars,NumWQBen) BIND(C, name=_WQ_INIT_G
    dz = 0.  !# initialise to zero
 
    !# Now that we know how many vars we need, we can allocate space for them
-   ALLOCATE(cc(MaxLayers,TotWQVars))
+   ALLOCATE(cc(TotWQVars,MaxLayers))
    cc = 0.         !# initialise to zero
 
    CALL set_c_wqvars_ptr(cc)
@@ -297,17 +298,17 @@ SUBROUTINE fabm_init_glm(i_fname,len,NumWQVars,NumWQBen) BIND(C, name=_WQ_INIT_G
    !# in time are integrated simultaneously in multi-step algorithms. This currently can only be arranged
    !# By storing benthic values together with the pelagic, in a fully depth-explicit array.
    DO i=1,ubound(model%info%state_variables,1)
-      cc(:, i) = model%info%state_variables(i)%initial_value
-      CALL fabm_link_bulk_state_data(model,i,cc(:, i))
+      cc(i, :) = model%info%state_variables(i)%initial_value
+      CALL fabm_link_bulk_state_data(model,i,cc(i, :))
    ENDDO
    DO i=1,ubound(model%info%state_variables_ben,1)
-      cc(1, ubound(model%info%state_variables,1)+i) = model%info%state_variables_ben(i)%initial_value
-      CALL fabm_link_bottom_state_data(model,i,cc(1, ubound(model%info%state_variables,1)+i))
+      cc(ubound(model%info%state_variables,1)+i, 1) = model%info%state_variables_ben(i)%initial_value
+      CALL fabm_link_bottom_state_data(model,i,cc(ubound(model%info%state_variables,1)+i, 1))
    ENDDO
 
    !# Allocate diagnostic variable array and set all values to zero.
    !# (needed because time-integrated/averaged variables will increment rather than set the array)
-   ALLOCATE(cc_diag(MaxLayers,ubound(model%info%diagnostic_variables,1)),stat=rc)
+   ALLOCATE(cc_diag(ubound(model%info%diagnostic_variables,1),MaxLayers),stat=rc)
    IF (rc /= 0) STOP 'allocate_memory(): Error allocating (cc_diag)'
    cc_diag = _ZERO_
 
@@ -319,15 +320,15 @@ SUBROUTINE fabm_init_glm(i_fname,len,NumWQVars,NumWQBen) BIND(C, name=_WQ_INIT_G
 
    !# Allocate array with vertical movement rates (m/s, positive for upwards),
    !# and set these to the values provided by the model.
-   ALLOCATE(ws(MaxLayers,ubound(model%info%state_variables,1)),stat=rc)
+   ALLOCATE(ws(ubound(model%info%state_variables,1),MaxLayers),stat=rc)
    IF (rc /= 0) STOP 'allocate_memory(): Error allocating (ws)'
    ws = _ZERO_
    DO i=1,ubound(model%info%state_variables,1)
-      ws(:,i) = model%info%state_variables(i)%vertical_movement
+      ws(i,:) = model%info%state_variables(i)%vertical_movement
    ENDDO
 
    !# Allocate array for mass fluxes and initialize these to zero (no flux).
-   ALLOCATE(rhs_flux(MaxLayers,TotWQVars),stat=rc)
+   ALLOCATE(rhs_flux(TotWQVars,MaxLayers),stat=rc)
    IF (rc /= 0) STOP 'allocate_memory(): Error allocating (rhs_flux)'
    rhs_flux = _ZERO_
 
@@ -506,17 +507,17 @@ SUBROUTINE fabm_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    bottom_stress => layer_stress(1)
 
    DO i=1,ubound(model%info%state_variables,1)
-      CALL fabm_link_bulk_state_data(model,i,cc(:,i))
+      CALL fabm_link_bulk_state_data(model,i,cc(i, :))
    ENDDO
    DO i=1,ubound(model%info%state_variables_ben,1)
-      CALL fabm_link_bottom_state_data(model,i,cc(1, ubound(model%info%state_variables,1)+i))
+      CALL fabm_link_bottom_state_data(model,i,cc(ubound(model%info%state_variables,1)+i, 1))
    ENDDO
    cc_diag = 0.
    cc_diag_hz = 0.
 
    IF ( .NOT. mobility_off ) THEN
       !# Get updated vertical movement (m/s, positive for upwards) for biological state variables.
-      CALL fabm_get_vertical_movement(model,1,wlev,ws(1:wlev,:))
+      CALL fabm_get_vertical_movement(model,1,wlev,ws(:,1:wlev))
 
       !# (3) Calculate source/sink terms due to settling rising of state
       !# variables in the water column (note that settling into benthos
@@ -525,7 +526,7 @@ SUBROUTINE fabm_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
       DO i=1,ubound(model%info%state_variables,1)
          IF (model%info%state_variables(i)%vertical_movement .NE. _ZERO_) THEN
             min_C = model%info%state_variables(i)%minimum
-            CALL doMobility(wlev, dt, dz, area, ws(:, i), min_C, cc(:, i))
+            CALL doMobility(wlev, dt, dz, area, ws(i, :), min_C, cc(i, :))
          ENDIF
       ENDDO
    ENDIF
@@ -545,14 +546,14 @@ SUBROUTINE fabm_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
       CALL update_light(wlev,bioshade_feedback)
 
       !# Time-integrate one biological time step
-      CALL ode_solver(ode_method,ubound(cc,2),wlev,dt_eff,cc(:,:),right_hand_side_rhs,right_hand_side_ppdd)
+      CALL ode_solver(ode_method,ubound(cc,1),wlev,dt_eff,cc(:,:),right_hand_side_rhs,right_hand_side_ppdd)
 
       !# Provide FABM with (pointers to) updated state variables.
       DO i=1,ubound(model%info%state_variables,1)
-         CALL fabm_link_bulk_state_data(model,i,cc(:, i))
+         CALL fabm_link_bulk_state_data(model,i,cc(i, :))
       ENDDO
       DO i=1,ubound(model%info%state_variables_ben,1)
-         CALL fabm_link_bottom_state_data(model,i,cc(1, ubound(model%info%state_variables,1)+i))
+         CALL fabm_link_bottom_state_data(model,i,cc(ubound(model%info%state_variables,1)+i,1))
       ENDDO
 
       !# Repair state
@@ -625,10 +626,10 @@ SUBROUTINE right_hand_side_rhs(first,numc,nlev,cc,rhs)
 
    !# Provide FABM with (pointers to) the current state.
    DO i=1,ubound(model%info%state_variables,1)
-      CALL fabm_link_bulk_state_data(model,i,cc(:,i))
+      CALL fabm_link_bulk_state_data(model,i,cc(i,:))
    ENDDO
    DO i=1,ubound(model%info%state_variables_ben,1)
-      CALL fabm_link_bottom_state_data(model,i,cc(1,nvars+i))
+      CALL fabm_link_bottom_state_data(model,i,cc(nvars+i,1))
    ENDDO
 
    !# If this is not the first step in the (multi-step) integration scheme,
@@ -647,9 +648,9 @@ SUBROUTINE right_hand_side_rhs(first,numc,nlev,cc,rhs)
    !# (1) surface exchange
    !# Calculate temporal derivatives due to air water exchange.
    IF (.NOT. ice) THEN !# no surface exchange under ice cover
-      CALL fabm_get_surface_exchange(model,rhs_flux(nlev,:))
+      CALL fabm_get_surface_exchange(model,rhs_flux(:,nlev))
       !# Distribute surface flux into pelagic surface layer volume (i.e., divide by layer height).
-      rhs(nlev,:) = rhs(nlev,:) + rhs_flux(nlev,:)/dz(nlev)
+      rhs(:,nlev) = rhs(:,nlev) + rhs_flux(:,nlev)/dz(nlev)
    ENDIF
 
    !# (2) benthic flux
@@ -657,12 +658,12 @@ SUBROUTINE right_hand_side_rhs(first,numc,nlev,cc,rhs)
 
    bottom_stress => layer_stress(1)
          !# Calculate temporal derivatives due to benthic processes.
-   CALL fabm_do_benthos(model,rhs_flux(1, :),rhs(1, nvars+1:))
+   CALL fabm_do_benthos(model,rhs_flux(:, 1),rhs(nvars+1:,1))
    !# Limit flux out of bottom layers to concentration of that layer
    !# i.e. don't flux out more than is there
-   rhs_flux(1,:) = max(-1.0 * cc(1,:)*dz(1), rhs_flux(1,:))
+   rhs_flux(:,1) = max(-1.0 * cc(:,1)*dz(1), rhs_flux(:,1))
    !# Distribute bottom flux into pelagic over bottom box (i.e., divide by layer height).
-   rhs(1,:) = rhs(1,:) + rhs_flux(1,:)/dz(1)
+   rhs(:,1) = rhs(:,1) + rhs_flux(:,1)/dz(1)
 
    IF ( benthic_mode.EQ.1 ) THEN
       DO k=2,nlev
@@ -670,19 +671,19 @@ SUBROUTINE right_hand_side_rhs(first,numc,nlev,cc,rhs)
          bottom_stress => layer_stress(k)
 
          !# Calculate temporal derivatives due to benthic processes.
-         CALL fabm_do_benthos(model,rhs_flux(k, :),rhs(k, nvars+1:))
+         CALL fabm_do_benthos(model,rhs_flux(:, k),rhs(nvars+1:,k))
 
          !# Limit flux out of bottom layers to concentration of that layer
          !# i.e. don't flux out more than is there
-         rhs_flux(k, :) = max(-1.0 * cc(k, :)*dz(k)/dt_eff, rhs_flux(k, :))
+         rhs_flux(:, k) = max(-1.0 * cc(:, k)*dz(k)/dt_eff, rhs_flux(:, k))
 
          !# Distribute bottom flux into pelagic over bottom box (i.e., divide by layer height).
-         rhs(k,:) = rhs(k,:) + rhs_flux(k,:)/dz(k) * (area(k)-area(k-1))/area(k)
+         rhs(:, k) = rhs(:, k) + rhs_flux(:, k)/dz(k) * (area(k)-area(k-1))/area(k)
       ENDDO
    ENDIF
 
    !# Add pelagic sink and source terms for all depth levels.
-   CALL fabm_do(model,1,nlev,rhs(1:nlev,1:nvars))
+   CALL fabm_do(model,1,nlev,rhs(1:nvars, 1:nlev))
 END SUBROUTINE right_hand_side_rhs
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -711,10 +712,10 @@ SUBROUTINE right_hand_side_ppdd(first,numc,nlev,cc,pp,dd)
 
    !# Provide FABM with (pointers to) the current state.
    DO i=1,ubound(model%info%state_variables,1)
-      CALL fabm_link_bulk_state_data(model,i,cc(:,i))
+      CALL fabm_link_bulk_state_data(model,i,cc(i,:))
    ENDDO
    DO i=1,ubound(model%info%state_variables_ben,1)
-      CALL fabm_link_bottom_state_data(model,i,cc(1,nvars+i))
+      CALL fabm_link_bottom_state_data(model,i,cc(nvars+i, 1))
    ENDDO
 
    !# If this is not the first step in the (multi-step) integration scheme,
@@ -913,20 +914,20 @@ SUBROUTINE fabm_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE
 !-------------------------------------------------------------------------------
 !BEGIN
    DO i=1,ubound(model%info%state_variables,1)
-      CALL fabm_link_bulk_state_data(model,i,cc(:, i))
+      CALL fabm_link_bulk_state_data(model,i,cc(i, :))
    ENDDO
 
    !# Store pelagic biogeochemical state variables.
    DO n=1,ubound(model%info%state_variables,1)
       CALL store_nc_array(ncid,model%info%state_variables(n)%externalid,XYZT_SHAPE,wlev,nlev,array=cc(:, n))
       DO i=1,point_nlevs
-         IF (lvl(i) .GE. 0) THEN ; val_out = cc(lvl(i)+1, n)
+         IF (lvl(i) .GE. 0) THEN ; val_out = cc(n, lvl(i)+1)
          ELSE                    ; val_out = missing     ; ENDIF
          CALL write_csv_point(i,model%info%state_variables(n)%name,  &
                              len_trim(model%info%state_variables(n)%name), val_out,"",0,last=last)
       ENDDO
 #ifdef PLOTS
-      IF ( do_plots .AND. plot_id_v(n).GE.0 ) CALL put_glm_val(plot_id_v(n),cc(1:wlev, n))
+      IF ( do_plots .AND. plot_id_v(n).GE.0 ) CALL put_glm_val(plot_id_v(n),cc(n, 1:wlev))
 #endif
    ENDDO
 
@@ -948,16 +949,16 @@ SUBROUTINE fabm_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE
    !# Process and store diagnostic variables defined on the full domain.
    DO n=1,ubound(model%info%diagnostic_variables,1)
       !# Store diagnostic variable values.
-      CALL store_nc_array(ncid,model%info%diagnostic_variables(n)%externalid,XYZT_SHAPE,wlev,nlev,array=cc_diag(:, n))
+      CALL store_nc_array(ncid,model%info%diagnostic_variables(n)%externalid,XYZT_SHAPE,wlev,nlev,array=cc_diag(n, :))
       DO i=1,point_nlevs
-         IF (lvl(i) .GE. 0) THEN ; val_out = cc_diag(lvl(i)+1, n)
+         IF (lvl(i) .GE. 0) THEN ; val_out = cc_diag(n, lvl(i)+1)
          ELSE                    ; val_out = missing     ; ENDIF
          CALL write_csv_point(i,model%info%diagnostic_variables(n)%name,  &
                              len_trim(model%info%diagnostic_variables(n)%name), val_out,"",0,last=last)
       ENDDO
 #ifdef PLOTS
       IF ( do_plots .AND. plot_id_d(n).GE.0 ) &
-         CALL put_glm_val(plot_id_d(n),cc_diag(1:wlev, n))
+         CALL put_glm_val(plot_id_d(n),cc_diag(n, 1:wlev))
 #endif
    ENDDO
 

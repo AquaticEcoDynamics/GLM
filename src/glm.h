@@ -36,7 +36,7 @@
 #define USE_FILLVALUE 1
 
 /* Actually pre-alpha V4.0.0 */
-#define GLM_VERSION  "3.9.017"
+#define GLM_VERSION  "3.9.100"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -56,10 +56,6 @@
 
 !#  define surfLayer NumLayers
 #  define botmLayer 1
-
-!  This is how we sort out the differences in multidimensional array indexing
-#  define _IDX_2d(di,dj,i,j) (((di) * (j-1)) + (i-1) + 1)
-#  define WQ_INF_(a,i,j) a(_IDX_2d(MaxInf,MaxVars,i,j))
 
 #  ifndef AED_REAL
 #    define AED_REAL REAL(kind=C_DOUBLE)
@@ -95,8 +91,10 @@
   #define offshoreLayer (surfLayer+1)
 
 // This is how we sort out the differences in multidimensional array indexing
-  #define _IDX_2d(di,dj,i,j) (((di) * (j)) + (i))
-  #define WQ_INF_(a,i,j) a[_IDX_2d(MaxInf,MaxVars,i,j)]
+// the order of indeces has been reversed in this version of GLM, but generally
+//  the only lace you will know is in macros like this and when allocating arrays
+//#define WQ_INF_(a,i,j) a[_IDX_2d(MaxInf,MaxVars,i,j)]
+  #define WQ_INF_(a,i,j) a[_IDX_2d(MaxVars,MaxInf,j,i)]
 
   #define AMOD fmod
   typedef double AED_REAL;

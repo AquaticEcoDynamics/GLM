@@ -46,7 +46,7 @@ void ptm_update_layerid(void);
 void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, int max_particle_num);
 // void ptm_restart()
 
-extern int ptm_sw;
+extern CLOGICAL ptm_sw;
 extern AED_REAL settling_velocity;
 extern int init_particle_num;
 extern LOGICAL sed_deactivation;
