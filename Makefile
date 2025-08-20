@@ -228,22 +228,36 @@ ifeq ($(F90),ifort)
   FFLAGS+=-real-size 64
   FLIBS+=-L/opt/intel/lib
   FLIBS+=-lifcore -lsvml -lifport
-  FLIBS+=-limf -lintlc -liomp5  -lifport
+  FLIBS+=-limf -lintlc -liomp5 -lifport
   #EXTFFLAGS=-warn-no-unused-dummy-argument
 else ifeq ($(F90),ifx)
-  LINK=$(CC)
 # INCLUDES+=-I/opt/intel/oneapi/compiler/latest/include
+# LINK=$(CC)
   DEBUG_FFLAGS=-g -traceback -DDEBUG=1 -O0
   OMPFLAG=-qopenmp
   OPT_FFLAGS=-O3
-  FFLAGS=-warn all -module ${moddir} -static-intel -mp1 -stand f23 -warn nounused $(DEFINES) $(FINCLUDES)
-  ifeq ($(WITH_CHECKS),true)
-    FFLAGS+=-check all -check noarg_temp_created
+  ifeq ($(OSTYPE),Msys)
+#   LINK=$(FC) /link /nofor_main
+    LINK=$(FC) /nofor_main
+    FFLAGS=-fpp -warn=all -module=${moddir} -static-intel -mp1 -stand=f23 -warn=nounused $(DEFINES) $(FINCLUDES)
+    ifeq ($(WITH_CHECKS),true)
+      FFLAGS+=-check=all -check=noarg_temp_created
+    endif
+    FFLAGS+=-real-size=64 -fpscomp
+#   FLIBS+=-L"${CMPLR_ROOT}/lib"
+#   FLIBS+=-lifcore -lsvml_dispmt -lifport
+#   FLIBS+=-lmmds -lircmt -liomp5md -lifport
+#   FLIBS+=-lifmodintr -lbufferoverflow -lifconsol -lgcc
+  else
+    FFLAGS=-fpp -warn all -module ${moddir} -static-intel -mp1 -stand f23 -warn nounused $(DEFINES) $(FINCLUDES)
+    ifeq ($(WITH_CHECKS),true)
+      FFLAGS+=-check all -check=noarg_temp_created
+    endif
+    FFLAGS+=-real-size 64 -fpscomp
+    FLIBS+=-L/opt/intel/lib
+    FLIBS+=-lifcore -lsvml -lifport
+    FLIBS+=-limf -lintlc -liomp5 -lifport
   endif
-  FFLAGS+=-real-size 64 -fpscomp
-  FLIBS+=-L/opt/intel/lib
-  FLIBS+=-lifcore -lsvml -lifport
-  FLIBS+=-limf -lintlc -liomp5  -lifport
 else ifeq ($(F90),flang)
 # LINK=$(FC) -fno-fortran-main
   LINK=$(CC)
@@ -271,8 +285,12 @@ else
   EXTFFLAGS+=-Wno-unused-dummy-argument -Wno-unused-value
 endif
 
-#FFLAGS+=-fPIC
-FFLAGS+=-fPIE
+ifeq ($(F90),ifx)
+  ifneq ($(OSTYPE),Msys)
+    #FFLAGS+=-fPIC
+    FFLAGS+=-fPIE
+  endif
+endif
 
 ifneq ($(USE_DL),true)
   WQLIBS=$(AEDLIBS) $(FABMLIBS) $(AED2LIBS)
@@ -400,10 +418,10 @@ ${moddir}:
 	@mkdir ${moddir}
 
 glm: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS) $(RES)
-	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(RES) $(WQLIBS) $(LIBS) $(FLIBS)
+	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) /link $(RES) $(WQLIBS) $(LIBS) $(FLIBS)
 
 glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS) $(RESP)
-	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(RESP) $(WQLIBS) $(LIBS) $(FLIBS)
+	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) /link $(RESP) $(WQLIBS) $(LIBS) $(FLIBS)
 
 clean: ${objdir} ${moddir}
 	@touch ${objdir}/1.o ${moddir}/1.mod 1.t 1__genmod.f90 glm 1.${so_ext} glm_test_bird macos/glm.app macos/glm+.app

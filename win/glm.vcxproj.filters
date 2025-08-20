@@ -14,166 +14,164 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\glm_balance.c">
+    <ClCompile Include="..\src\glm_balance.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_bird.c">
+    <ClCompile Include="..\src\glm_bird.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_const.c">
+    <ClCompile Include="..\src\glm_const.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_csv.c">
+    <ClCompile Include="..\src\glm_csv.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_debug.c">
+    <ClCompile Include="..\src\glm_debug.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_deep.c">
+    <ClCompile Include="..\src\glm_deep.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_flow.c">
+    <ClCompile Include="..\src\glm_flow.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_globals.c">
+    <ClCompile Include="..\src\glm_globals.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_init.c">
+    <ClCompile Include="..\src\glm_init.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_input.c">
+    <ClCompile Include="..\src\glm_input.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_layers.c">
+    <ClCompile Include="..\src\glm_layers.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_lnum.c">
+    <ClCompile Include="..\src\glm_lnum.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_main.c">
+    <ClCompile Include="..\src\glm_main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_mixer.c">
+    <ClCompile Include="..\src\glm_mixer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_mixu.c">
+    <ClCompile Include="..\src\glm_mixu.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_mobl.c">
+    <ClCompile Include="..\src\glm_mobl.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_model.c">
+    <ClCompile Include="..\src\glm_model.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_ncdf.c">
+    <ClCompile Include="..\src\glm_ncdf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_output.c">
+    <ClCompile Include="..\src\glm_output.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_plot.c">
+    <ClCompile Include="..\src\glm_plot.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_stress.c">
+    <ClCompile Include="..\src\glm_stress.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_surface.c">
+    <ClCompile Include="..\src\glm_surface.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_util.c">
+    <ClCompile Include="..\src\glm_util.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_wqual.c">
+    <ClCompile Include="..\src\glm_wqual.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\glm_ptm.c">
+    <ClCompile Include="..\src\glm_ptm.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\glm.h">
+    <ClInclude Include="..\src\glm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_balance.h">
+    <ClInclude Include="..\src\glm_balance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_bird.h">
+    <ClInclude Include="..\src\glm_bird.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\libplot.h">
+    <ClInclude Include="..\src\libplot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_const.h">
+    <ClInclude Include="..\src\glm_const.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_csv.h">
+    <ClInclude Include="..\src\glm_csv.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_debug.h">
+    <ClInclude Include="..\src\glm_debug.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_deep.h">
+    <ClInclude Include="..\src\glm_deep.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_flow.h">
+    <ClInclude Include="..\src\glm_flow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_globals.h">
+    <ClInclude Include="..\src\glm_globals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_init.h">
+    <ClInclude Include="..\src\glm_init.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_input.h">
+    <ClInclude Include="..\src\glm_input.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_layers.h">
+    <ClInclude Include="..\src\glm_layers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_lnum.h">
+    <ClInclude Include="..\src\glm_lnum.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_mixer.h">
+    <ClInclude Include="..\src\glm_mixer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_mixu.h">
+    <ClInclude Include="..\src\glm_mixu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_mobl.h">
+    <ClInclude Include="..\src\glm_mobl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_ncdf.h">
+    <ClInclude Include="..\src\glm_ncdf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_output.h">
+    <ClInclude Include="..\src\glm_output.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_plot.h">
+    <ClInclude Include="..\src\glm_plot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_stress.h">
+    <ClInclude Include="..\src\glm_stress.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_surface.h">
+    <ClInclude Include="..\src\glm_surface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_types.h">
+    <ClInclude Include="..\src\glm_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_util.h">
+    <ClInclude Include="..\src\glm_util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\glm_ptm.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <ClInclude Include="..\src\glm_ptm.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\glm+.rc">
+    <ResourceCompile Include="glm.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\glm.ico">
+    <None Include="glm.ico">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

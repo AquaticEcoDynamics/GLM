@@ -44,7 +44,7 @@ OPV=$N1\,$N2\,$N3$N4
 
 for FILE in ./glm.rc ./glm+.rc ; do
   OFV=`grep FILEVERSION ${FILE} | sed 's/^[ \t]*//' | cut -f2 -d\ `
- echo OFV  = $OFV - OPV  = $OPV
+  echo OFV  = $OFV - OPV  = $OPV
 
   if [ "$OPV" != "$OFV" ] ; then # new version number
     echo sed -e "s/${OFV}/${OPV}/" -i${EXTN} ${FILE}
