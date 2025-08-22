@@ -957,13 +957,14 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
  *  a newly allocated memory block and free that ourselves when done.
             zone_heights = realloc(zone_heights, (n_zones+2)*sizeof(AED_REAL));
  */
-            {   AED_REAL *t = malloc((n_zones+2)*sizeof(AED_REAL));
+            if ( zone_heights != NULL ) {
+                AED_REAL *t = malloc((n_zones+2)*sizeof(AED_REAL));
                 *t = 0;
                 if ( t != NULL ) memcpy(t, zone_heights, n_zones*sizeof(AED_REAL));
                 zone_heights = t;
             }
 
-            if ( zone_heights == NULL) {
+            if ( zone_heights == NULL ) {
                 fprintf(stderr, "     Memory ERROR ...\n"); exit(1);
             }
             zone_heights[n_zones++] = (max_elev-base_elev)+1;
@@ -1112,10 +1113,12 @@ for (i = 0; i < n_zones; i++) {
             need_free = TRUE;
             flt_off_sw = malloc(sizeof(CLOGICAL)*num_outlet);
             for (i = 0; i < NumOut; i++) flt_off_sw[i] = FALSE;
-        } else if ( outlet_type == NULL ) {
+        }
+        if ( outlet_type == NULL ) {
             outlet_type = malloc(sizeof(int)*num_outlet);
             for (i = 0; i < NumOut; i++) outlet_type[i] = (flt_off_sw[i])?2:1;
         }
+
         for (i = 0; i < NumOut; i++) {
             // Outlet_type
 
@@ -1288,6 +1291,7 @@ for (i = 0; i < n_zones; i++) {
 
     get_namelist(namlst, debugging);
 
+    if ( zone_heights != NULL) { free(zone_heights); zone_heights = NULL; }
     close_namelist(namlst);  // Close the glm.nml file
 
 #if DEBUG

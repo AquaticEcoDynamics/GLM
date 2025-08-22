@@ -159,9 +159,9 @@ static int interpolate_layer_data(AED_REAL *iheight, AED_REAL *density)
 static void lnpe3(int NLayers, AED_REAL *iheight, AED_REAL *density,
                               AED_REAL *xpp, AED_REAL *zcp, AED_REAL *xmasspe3)
 {
-    DOUBLETYPE zcvp, ab, da, ht, dens, xvol, xvolp;
-    DOUBLETYPE xmassp, xpe, zcv, xmass;
-    int        i_pe3, ij, il, l, ibdep;
+    AED_REAL zcvp, ab, da, ht, dens, xvol, xvolp;
+    AED_REAL xmassp, xpe, zcv, xmass;
+    int      i_pe3, ij, il, l, ibdep;
 
 /*----------------------------------------------------------------------------*/
 

@@ -418,10 +418,10 @@ ${moddir}:
 	@mkdir ${moddir}
 
 glm: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS) $(RES)
-	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) /link $(RES) $(WQLIBS) $(LIBS) $(FLIBS)
+	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(RES) $(WQLIBS) $(LIBS) $(FLIBS)
 
 glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS) $(RESP)
-	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) /link $(RESP) $(WQLIBS) $(LIBS) $(FLIBS)
+	$(LINK) -o $@ $(EXTRALINKFLAGS) $(OBJS) $(RESP) $(WQLIBS) $(LIBS) $(FLIBS)
 
 clean: ${objdir} ${moddir}
 	@touch ${objdir}/1.o ${moddir}/1.mod 1.t 1__genmod.f90 glm 1.${so_ext} glm_test_bird macos/glm.app macos/glm+.app
