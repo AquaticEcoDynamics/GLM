@@ -621,6 +621,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     //-------------------------------------------------
+    _Bool err = FALSE;
     int i, j, k;
     int namlst;
 
@@ -853,18 +854,12 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     snow_rho_max       = 300.0;
     snow_rho_min       = 50.0;
 
-    if ( get_namelist(namlst, snowice) ) {
-         snow_sw = FALSE;
+    if ( (snow_sw = !get_namelist(namlst, snowice)) )
          fprintf(stderr,"     No 'snowice' section, setting defaults & assuming no snowfall\n");
-    } else
-         snow_sw = TRUE;
 
     //--------------------------------------------------------------------------
     // fetch
-    if ( get_namelist(namlst, fetch) )
-         fetch_sw = FALSE;
-    else
-         fetch_sw = TRUE;
+    fetch_sw = !get_namelist(namlst, fetch);
 
     //--------------------------------------------------------------------------
     // sediment heat
@@ -884,61 +879,63 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         }
     }
 
-//  if ( n_zones > 0 ) {
-    {
-        int err = FALSE;
-        int sz;
-        AED_REAL *tr;
-        if ( zone_heights != NULL ) {
-            if ( get_nml_listlen(namlst, "sediment", "zone_heights") < n_zones ) {
-                fprintf(stderr, "zone_heights list too short in sediment\n");
-                err = TRUE;
-            }
+    if ( zone_heights != NULL ) {
+        if ( get_nml_listlen(namlst, "sediment", "zone_heights") < n_zones ) {
+            fprintf(stderr, "zone_heights list too short in sediment\n");
+            err = TRUE;
         }
-        if ( sed_reflectivity != NULL ) {
-            if ( (sz=get_nml_listlen(namlst, "sediment", "sed_reflectivity")) < n_zones ) {
-                fprintf(stderr, "sed_reflectivity list too short in sediment\n");
-                err = TRUE;
-            }
-            tr = malloc(sz * sizeof(AED_REAL));
-            memcpy(tr, sed_reflectivity, sz * sizeof(AED_REAL));
-            sed_reflectivity = tr;
-        }
-        if ( sed_roughness != NULL ) {
-            if ( get_nml_listlen(namlst, "sediment", "sed_roughness") < n_zones ) {
-                fprintf(stderr, "sed_roughness list too short in sediment\n");
-                err = TRUE;
-            }
-        }
-        if ( sed_temp_mean != NULL ) {
-            if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_mean")) < n_zones ) {
-                fprintf(stderr, "sed_temp_mean list too short in sediment\n");
-                err = TRUE;
-            }
-            tr = malloc(sz * sizeof(AED_REAL));
-            memcpy(tr, sed_temp_mean, sz * sizeof(AED_REAL));
-            sed_temp_mean = tr;
-        }
-        if ( sed_temp_amplitude != NULL ) {
-            if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_amplitude")) < n_zones ) {
-                fprintf(stderr, "sed_temp_amplitude list too short in sediment\n");
-                err = TRUE;
-            }
-            tr = malloc(sz * sizeof(AED_REAL));
-            memcpy(tr, sed_temp_amplitude, sz * sizeof(AED_REAL));
-            sed_temp_amplitude = tr;
-        }
-        if ( sed_temp_peak_doy != NULL ) {
-            if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_peak_doy")) < n_zones ) {
-                fprintf(stderr, "sed_temp_peak_doy list too short in sediment\n");
-                err = TRUE;
-            }
-            tr = malloc(sz * sizeof(AED_REAL));
-            memcpy(tr, sed_temp_peak_doy, sz * sizeof(AED_REAL));
-            sed_temp_peak_doy = tr;
-        }
-        if (err ) exit(1);
     }
+    if ( sed_reflectivity != NULL ) {
+        AED_REAL *tr;
+        int sz;
+        if ( (sz = get_nml_listlen(namlst, "sediment", "sed_reflectivity")) < n_zones ) {
+            fprintf(stderr, "sed_reflectivity list too short in sediment\n");
+            err = TRUE;
+        }
+        tr = malloc(sz * sizeof(AED_REAL));
+        memcpy(tr, sed_reflectivity, sz * sizeof(AED_REAL));
+        sed_reflectivity = tr;
+    }
+    if ( sed_roughness != NULL ) {
+        if ( get_nml_listlen(namlst, "sediment", "sed_roughness") < n_zones ) {
+            fprintf(stderr, "sed_roughness list too short in sediment\n");
+            err = TRUE;
+        }
+    }
+    if ( sed_temp_mean != NULL ) {
+        AED_REAL *tr;
+        int sz;
+        if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_mean")) < n_zones ) {
+            fprintf(stderr, "sed_temp_mean list too short in sediment\n");
+            err = TRUE;
+        }
+        tr = malloc(sz * sizeof(AED_REAL));
+        memcpy(tr, sed_temp_mean, sz * sizeof(AED_REAL));
+        sed_temp_mean = tr;
+    }
+    if ( sed_temp_amplitude != NULL ) {
+        AED_REAL *tr;
+        int sz;
+        if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_amplitude")) < n_zones ) {
+            fprintf(stderr, "sed_temp_amplitude list too short in sediment\n");
+            err = TRUE;
+        }
+        tr = malloc(sz * sizeof(AED_REAL));
+        memcpy(tr, sed_temp_amplitude, sz * sizeof(AED_REAL));
+        sed_temp_amplitude = tr;
+    }
+    if ( sed_temp_peak_doy != NULL ) {
+        AED_REAL *tr;
+        int sz;
+        if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_peak_doy")) < n_zones ) {
+            fprintf(stderr, "sed_temp_peak_doy list too short in sediment\n");
+            err = TRUE;
+        }
+        tr = malloc(sz * sizeof(AED_REAL));
+        memcpy(tr, sed_temp_peak_doy, sz * sizeof(AED_REAL));
+        sed_temp_peak_doy = tr;
+    }
+    if (err) exit(1);
 
     if ( sed_reflectivity == NULL ) {
         int t_zones = 2;
@@ -947,31 +944,16 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     }
 
     if ( n_zones > 0 && zone_heights != NULL ) {
+        theZones = calloc(n_zones+2, sizeof(ZoneType)); // 2 extra, just in case we need them (see below)
+//      printf("     Sediment zones being set at %7.1f %7.1f %7.1f ... \n",zone_heights[0],zone_heights[1],zone_heights[2]);
+        for (i = 0; i < n_zones; i++) theZones[i].zheight = zone_heights[i];
+
         if ( zone_heights[n_zones-1] <= (max_elev-base_elev) ) {
             fprintf(stderr, "     WARNING last zone height is less than maximum depth\n");
             fprintf(stderr, "        ... adding an extra zone to compensate\n");
-/*
- *  The realloc was a problem for namelist reader because realloc
- *  may free the memory originally allocated if there was not enough to fill
- *  the request for extended memory. So instead we copy the original to
- *  a newly allocated memory block and free that ourselves when done.
-            zone_heights = realloc(zone_heights, (n_zones+2)*sizeof(AED_REAL));
- */
-            if ( zone_heights != NULL ) {
-                AED_REAL *t = malloc((n_zones+2)*sizeof(AED_REAL));
-                *t = 0;
-                if ( t != NULL ) memcpy(t, zone_heights, n_zones*sizeof(AED_REAL));
-                zone_heights = t;
-            }
 
-            if ( zone_heights == NULL ) {
-                fprintf(stderr, "     Memory ERROR ...\n"); exit(1);
-            }
-            zone_heights[n_zones++] = (max_elev-base_elev)+1;
+            theZones[n_zones++].zheight = (max_elev-base_elev)+1;
         }
-        theZones = calloc(n_zones, sizeof(ZoneType));
-//      printf("     Sediment zones being set at %7.1f %7.1f %7.1f ... \n",zone_heights[0],zone_heights[1],zone_heights[2]);
-        for (i = 0; i < n_zones; i++) theZones[i].zheight = zone_heights[i];
     }
 
     /**************************************************************************
@@ -1291,7 +1273,6 @@ for (i = 0; i < n_zones; i++) {
 
     get_namelist(namlst, debugging);
 
-    if ( zone_heights != NULL) { free(zone_heights); zone_heights = NULL; }
     close_namelist(namlst);  // Close the glm.nml file
 
 #if DEBUG

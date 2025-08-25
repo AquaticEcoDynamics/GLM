@@ -62,11 +62,7 @@ static char *plot_filename()
 }
 
 /******************************************************************************/
-#ifdef PLOTS
-int _main_(int argc, char *argv[])
-#else
 int main(int argc, char *argv[])
-#endif
 {
     char *nmlfile = NULL;
     int all_ok = 1, show_options = 0, show_vers = 0;
@@ -75,6 +71,8 @@ int main(int argc, char *argv[])
     srand ((unsigned int)time(NULL));
 
 #ifdef PLOTS
+    init_plotter_main(argv[0]);
+
     saveall = 0;
 #ifdef XPLOTS
     xdisp = 0;
