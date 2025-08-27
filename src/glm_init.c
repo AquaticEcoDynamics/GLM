@@ -896,30 +896,16 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     }
 
     if ( n_zones > 0 && zone_heights != NULL ) {
+        theZones = calloc(n_zones+2, sizeof(ZoneType)); // 2 extra, just in case we need them (see below)
+//      printf("     Sediment zones being set at %7.1f %7.1f %7.1f ... \n",zone_heights[0],zone_heights[1],zone_heights[2]);
+        for (i = 0; i < n_zones; i++) theZones[i].zheight = zone_heights[i];
+
         if ( zone_heights[n_zones-1] <= (max_elev-base_elev) ) {
             fprintf(stderr, "     WARNING last zone height is less than maximum depth\n");
             fprintf(stderr, "        ... adding an extra zone to compensate\n");
-/*
- *  The realloc was a problem for namelist reader because realloc
- *  may free the memory originally allocated if there was not enough to fill
- *  the request for extended memory. So instead we copy the original to
- *  a newly allocated memory block and free that ourselves when done.
-            zone_heights = realloc(zone_heights, (n_zones+2)*sizeof(AED_REAL));
- */
-            {   AED_REAL *t = malloc((n_zones+2)*sizeof(AED_REAL));
-                *t = 0;
-                if ( t != NULL ) memcpy(t, zone_heights, n_zones*sizeof(AED_REAL));
-                zone_heights = t;
-            }
 
-            if ( zone_heights == NULL) {
-                fprintf(stderr, "     Memory ERROR ...\n"); exit(1);
-            }
-            zone_heights[n_zones++] = (max_elev-base_elev)+1;
+            theZones[n_zones++].zheight = (max_elev-base_elev)+1;
         }
-        theZones = calloc(n_zones, sizeof(ZoneType));
-//      printf("     Sediment zones being set at %7.1f %7.1f %7.1f ... \n",zone_heights[0],zone_heights[1],zone_heights[2]);
-        for (i = 0; i < n_zones; i++) theZones[i].zheight = zone_heights[i];
     }
 
     /**************************************************************************
@@ -1047,6 +1033,7 @@ for (i = 0; i < n_zones; i++) {
         NumOut = 0;
     } else {
         LOGICAL need_free = FALSE;
+        LOGICAL need_free2 = FALSE;
 
         if ( num_outlet > MaxOut) {
             fprintf(stderr, "     ERROR: Too many outlets specified in 'outflow' config %d > %d\n", num_outlet, MaxOut);
@@ -1059,7 +1046,9 @@ for (i = 0; i < n_zones; i++) {
             need_free = TRUE;
             flt_off_sw = malloc(sizeof(LOGICAL)*num_outlet);
             for (i = 0; i < NumOut; i++) flt_off_sw[i] = FALSE;
-        } else if ( outlet_type == NULL ) {
+        }
+        if ( outlet_type == NULL ) {
+            need_free2 = TRUE;
             outlet_type = malloc(sizeof(int)*num_outlet);
             for (i = 0; i < NumOut; i++) outlet_type[i] = (flt_off_sw[i])?2:1;
         }
@@ -1107,7 +1096,7 @@ for (i = 0; i < n_zones; i++) {
 
         }
         if (need_free) free(flt_off_sw);
-//      free(outlet_type);
+        if (need_free2) free(outlet_type);
     }
     if ( outlet_crit != NULL ) { // only relevant if we have defined it.
         if ((crit_O2 < 0) || (crit_O2_dep < base_elev) || (crit_O2_days < 1)) {
@@ -1563,6 +1552,7 @@ void initialise_lake(int namlst)
     int i, j, min_layers;
     int nx, np, nz;
     int *idx = NULL;
+    int need_free = FALSE;
 
 /*----------------------------------------------------------------------------*/
     //-------------------------------------------------
@@ -1646,6 +1636,7 @@ void initialise_lake(int namlst)
     if (min_layers < 3) min_layers = 3;
 
     if (restart_variables == NULL) {
+        need_free = TRUE;
         restart_variables = calloc(17, sizeof(AED_REAL));
 
         // Now interpolate into at least min_layers
@@ -1722,7 +1713,7 @@ void initialise_lake(int namlst)
 
         Mixer_Count = restart_mixer_count;
 
-        free(restart_variables);
+        if (need_free) free(restart_variables);
     }
 
 }

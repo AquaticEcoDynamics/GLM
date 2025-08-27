@@ -53,16 +53,14 @@ extern char glm_nml_file[];
 extern void run_model(void);
 
 /******************************************************************************/
-#ifdef PLOTS
-int _main_(int argc, char *argv[])
-#else
 int main(int argc, char *argv[])
-#endif
 {
     char *nmlfile = NULL;
     int all_ok = 1, show_options = 0, show_vers = 0;
 
 #ifdef PLOTS
+    init_plotter_main(argv[0]);
+
     saveall = 0;
 #ifdef XPLOTS
     xdisp = 0;

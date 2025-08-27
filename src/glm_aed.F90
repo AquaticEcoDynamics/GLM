@@ -310,6 +310,8 @@ SUBROUTINE aed_init_glm(i_fname,len,MaxLayers,NumWQ_Vars,NumWQ_Ben,pKw) BIND(C, 
    tv = aed_provide_global( 'pressure', 'pressure' , '' )
    tv = aed_provide_global( 'depth', 'depth' , 'm' )
 
+   tv = aed_provide_global( 'sed_zones', 'sediment zones' , '' )
+
    tv = aed_provide_sheet_global( 'sed_zone', 'sediment zone' , '' )
    tv = aed_provide_sheet_global( 'wind_speed', 'wind speed' , 'm/s' )
    tv = aed_provide_sheet_global( 'par_sf', 'par_sf' , '' )
@@ -711,6 +713,7 @@ SUBROUTINE check_data
             CASE ( 'pressure' )    ; tvar%found = .true.
             CASE ( 'depth' )       ; tvar%found = .true.
             CASE ( 'sed_zone' )    ; tvar%found = .true.
+            CASE ( 'sed_zones' )   ; tvar%found = .true.
             CASE ( 'wind_speed' )  ; tvar%found = .true.
             CASE ( 'par_sf' )      ; tvar%found = .true.
             CASE ( 'taub' )        ; tvar%found = .true.
@@ -795,6 +798,7 @@ SUBROUTINE define_column(column, top, cc, cc_diag, flux_pel, flux_atm, flux_ben)
             CASE ( 'uvb' )         ; column(av)%cell => uvb(:)
             CASE ( 'pressure' )    ; column(av)%cell => pres(:)
             CASE ( 'depth' )       ; column(av)%cell => depth(:)
+            CASE ( 'sed_zones' )   ; column(av)%cell => sed_zones(:)
             CASE ( 'sed_zone' )    ; column(av)%cell_sheet => sed_zones(1)
             CASE ( 'wind_speed' )  ; column(av)%cell_sheet => wnd
             CASE ( 'par_sf' )      ; column(av)%cell_sheet => I_0
@@ -1109,6 +1113,7 @@ CONTAINS
             CASE ( 'uvb' )         ; column_sed(av)%cell => theZones(bot:top)%zuvb
             CASE ( 'pressure' )    ; column_sed(av)%cell => theZones(bot:top)%zpres
             CASE ( 'depth' )       ; column_sed(av)%cell => theZones(bot:top)%zdepth
+            CASE ( 'sed_zones' )   ; column_sed(av)%cell => theZones(bot:top)%z_sed_zones
             CASE ( 'sed_zone' )    ; column_sed(av)%cell_sheet => theZones(bot)%z_sed_zones; zone_var = av
             CASE ( 'wind_speed' )  ; column_sed(av)%cell_sheet => wnd
             CASE ( 'par_sf' )      ; column_sed(av)%cell_sheet => I_0
