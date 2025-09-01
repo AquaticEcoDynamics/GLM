@@ -272,22 +272,22 @@ f0, fsum,u_f,u0,u_avg" PARAM_FILLVALUE);
     set_nc_attributes(ncid, zL_id,        "unknown", "z_L"                  PARAM_FILLVALUE);
 
     //# x,y,z,t
-    set_nc_attributes(ncid, z_id,       "meters",  "layer heights"   PARAM_FILLVALUE);
-    set_nc_attributes(ncid, H_id,       "meters",  "layer heights"   PARAM_FILLVALUE);
-    set_nc_attributes(ncid, V_id,       "m3",      "layer volume"    PARAM_FILLVALUE);
-    set_nc_attributes(ncid, A_id,       "m2",      "layer area"      PARAM_FILLVALUE);
-    set_nc_attributes(ncid, salt_id,    "g/kg",    "salinity"        PARAM_FILLVALUE);
-    set_nc_attributes(ncid, temp_id,    "celsius", "temperature"     PARAM_FILLVALUE);
+    set_nc_attributes(ncid, z_id,       "meters",  "layer heights"    PARAM_FILLVALUE);
+    set_nc_attributes(ncid, H_id,       "meters",  "layer heights"    PARAM_FILLVALUE);
+    set_nc_attributes(ncid, V_id,       "m3",      "layer volume"     PARAM_FILLVALUE);
+    set_nc_attributes(ncid, A_id,       "m2",      "layer area"       PARAM_FILLVALUE);
+    set_nc_attributes(ncid, salt_id,    "g/kg",    "salinity"         PARAM_FILLVALUE);
+    set_nc_attributes(ncid, temp_id,    "celsius", "temperature"      PARAM_FILLVALUE);
 
-    set_nc_attributes(ncid, extc_id,    "unknown", "extc_coef"       PARAM_FILLVALUE);
-    set_nc_attributes(ncid, rho_id,     "unknown", "density"         PARAM_FILLVALUE);
-    set_nc_attributes(ncid, rad_id,     "unknown", "solar radiation" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, extc_id,    "unknown", "extc_coef"        PARAM_FILLVALUE);
+    set_nc_attributes(ncid, rho_id,     "unknown", "density"          PARAM_FILLVALUE);
+    set_nc_attributes(ncid, rad_id,     "unknown", "solar radiation"  PARAM_FILLVALUE);
 
     set_nc_attributes(ncid, umean_id,   "m/s",     "mean velocity"    PARAM_FILLVALUE);
     set_nc_attributes(ncid, uorb_id,    "m/s",     "orbital velocity" PARAM_FILLVALUE);
 
-    set_nc_attributes(ncid, Taub_id,    "N/m2",    "layer stress"    PARAM_FILLVALUE);
-    set_nc_attributes(ncid, epsilon_id, "m2/s",    "diffusivity"     PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Taub_id,    "N/m2",    "layer stress"     PARAM_FILLVALUE);
+    set_nc_attributes(ncid, epsilon_id, "m2/s",    "diffusivity"      PARAM_FILLVALUE);
 
     //# global attributes
     nc_put_att(ncid, NC_GLOBAL, "Title", NC_CHAR, strlen(title), title);
@@ -419,6 +419,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     for (i = wlev; i < nlev; i++) {
         heights[i] = NC_FILLER;
         vols[i] = NC_FILLER;
+        area[i] = NC_FILLER;
         salts[i] = NC_FILLER;
         temps[i] = NC_FILLER;
         dens[i] = NC_FILLER;

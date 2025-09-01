@@ -977,13 +977,12 @@ END SUBROUTINE check_states
 
 
 !###############################################################################
-SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
+SUBROUTINE aed2_do_glm(wlev) BIND(C, name=_WQ_DO_GLM)
 !-------------------------------------------------------------------------------
 !                           wlev is the number of levels used;
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    CINTEGER,INTENT(in) :: wlev
-   CLOGICAL,INTENT(in) :: pIce
 !
 !LOCALS
    TYPE(aed2_variable_t),POINTER :: tv
@@ -999,8 +998,6 @@ SUBROUTINE aed2_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   ice = pIce
-
    surf = z(wlev)
    !# re-compute the layer heights and depths
    dz(1) = z(1)

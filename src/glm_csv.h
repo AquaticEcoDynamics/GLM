@@ -48,7 +48,7 @@
         AED_REAL,INTENT(in)   :: val
         CCHARACTER,INTENT(in) :: cval(*)
         CINTEGER,INTENT(in)   :: vlen
-        CLOGICAL,INTENT(in)   :: last
+        FLOGICAL,INTENT(in)   :: last
      END SUBROUTINE write_csv_point
 
      SUBROUTINE write_csv_point_avg(f, name, len, vals, cval, vlen, last) BIND(C, name="write_csv_point_avg_")
@@ -62,7 +62,7 @@
         AED_REAL,INTENT(in)   :: vals(*)
         CCHARACTER,INTENT(in) :: cval(*)
         CINTEGER,INTENT(in)   :: vlen
-        CLOGICAL,INTENT(in)   :: last
+        FLOGICAL,INTENT(in)   :: last
      END SUBROUTINE write_csv_point_avg
 
      SUBROUTINE write_csv_lake(name,len,val,cval,vlen,last) BIND(C,name="write_csv_lake_")
@@ -72,7 +72,7 @@
         AED_REAL,INTENT(in)   :: val
         CCHARACTER,INTENT(in) :: cval(*)
         CINTEGER,INTENT(in)   :: vlen
-        CLOGICAL,INTENT(in)   :: last
+        FLOGICAL,INTENT(in)   :: last
      END SUBROUTINE write_csv_lake
 
      SUBROUTINE close_csv_point_output() BIND(C, name="close_csv_point_output")

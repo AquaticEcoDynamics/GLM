@@ -39,10 +39,8 @@
 
 #define DEBUG_GLOBS 0
 
-int NumLayers;   //# current number of layers
+CINTEGER NumLayers;   //# current number of layers
 LakeDataType *Lake = NULL;
-
-AED_REAL Latitude, Longitude;
 
 AED_REAL DMin;    //# minimum layer thickness
 AED_REAL DMax;    //# maximum layer thickness
@@ -56,7 +54,8 @@ int Num_WQ_Ben = 0;    //# number of benthic water quality variables
 int Tot_WQ_Vars = 0;   //# nVars+nBen
 int Num_WQD_Vars = 0;  //# number of diagnostic water quality variables
 int Num_WQDS_Vars = 0; //# number of diagnostic benthic water quality variables
-int atm_stab = 0;      //# Account for non-neutral atmospheric stability
+
+CLOGICAL atm_stab = 0; //# Account for non-neutral atmospheric stability
 
 //------------------------------------------------------------------------------
 
@@ -268,9 +267,6 @@ AED_REAL *WQ_Vars = NULL;  //# water quality array, [nlayers, nvars]
 AED_REAL *WQS_Vars = NULL;  //# water quality benthic array, [nvars]
 AED_REAL *WQD_Vars = NULL;  //# water quality diagnostics array, [nlayers, nvars]
 AED_REAL *WQDS_Vars = NULL;  //# water quality diagnostic benthic array, [nvars]
-
-CINTEGER  n_zones = 0;
-ZoneType *theZones = NULL;
 
 int *PTM_Stat = NULL;  //# water quality array, [nlayers, nvars]
 AED_REAL *PTM_Vars = NULL;  //# water quality array, [nlayers, nvars]

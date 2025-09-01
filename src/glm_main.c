@@ -39,7 +39,8 @@
 
 #ifdef PLOTS
    #include <libplot.h>
-   extern CLOGICAL do_plots, saveall;
+   extern FLOGICAL do_plots;
+   extern CLOGICAL saveall;
    extern char *plots_nml_name;
 #ifdef XPLOTS
    extern int xdisp;

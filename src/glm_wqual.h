@@ -36,7 +36,7 @@
 
 typedef void (*wq_init_glm_t)(char *fname, size_t *len, int *NumWQVars, int *NumWQBen);
 typedef void (*wq_set_glm_data_t)(void);
-typedef void (*wq_do_glm_t)(int *wlev, CLOGICAL *pIce);
+typedef void (*wq_do_glm_t)(int *wlev);
 typedef void (*wq_clean_glm_t)(void);
 typedef void (*wq_init_glm_output_t)(int *ncid, int *x_dim, int *y_dim, int *z_dim,
                                                           int *zone_dim, int *time_dim);
@@ -79,7 +79,7 @@ extern wq_set_glm_zones_t p_wq_set_glm_zones;
 
 void wq_init_glm(char *fname, size_t *len, int *NumWQVars, int *NumWQBen);
 void wq_set_glm_data(void);
-void wq_do_glm(int *wlev, CLOGICAL *pIce);
+void wq_do_glm(int *wlev);
 void wq_clean_glm(void);
 void wq_init_glm_output(int *ncid, int *x_dim, int *y_dim, int *z_dim, int *zone_dim, int *time_dim);
 void wq_write_glm_(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
@@ -92,7 +92,7 @@ void wq_inflow_update(AED_REAL *wqinf, int *nwqVars, AED_REAL *temp, AED_REAL *s
 #if FABM
 void fabm_init_glm(char *fname, size_t *len, int *NumWQVars, int *NumWQBen);
 void fabm_set_glm_data(void);
-void fabm_do_glm(int *wlev, CLOGICAL *pIce);
+void fabm_do_glm(int *wlev);
 void fabm_clean_glm(void);
 void fabm_init_glm_output(int *ncid, int *x_dim, int *y_dim, int *z_dim, int *zone_dim, int *time_dim);
 void fabm_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
@@ -104,7 +104,7 @@ int  fabm_is_var(int *id, const char *v, size_t *len);
 void api_init_glm(char *fname, size_t len, int *NumWQVars, int *NumWQBen);
 void api_set_glm_data(void);
 void api_set_glm_where(AED_REAL *Longitude, AED_REAL *Latitude, AED_REAL *yearday, AED_REAL *timestep);
-void api_do_glm(int *wlev, CLOGICAL *pIce);
+void api_do_glm(int *wlev);
 void api_clean_glm(void);
 void api_init_glm_output(int *ncid, int *x_dim, int *y_dim, int *z_dim, int *zone_dim, int *time_dim);
 void api_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
@@ -117,7 +117,7 @@ void api_set_glm_ptm(int *num_particle_groups, int *max_particle_num);
 #if AED
 void aed_init_glm(char *fname, size_t *len, int *NumWQVars, int *NumWQBen);
 void aed_set_glm_data(void);
-void aed_do_glm(int *wlev, CLOGICAL *pIce);
+void aed_do_glm(int *wlev);
 void aed_clean_glm(void);
 void aed_init_glm_output(int *ncid, int *x_dim, int *y_dim, int *z_dim, int *zone_dim, int *time_dim);
 void aed_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
@@ -129,7 +129,7 @@ void aed_update_inflow_wq(AED_REAL *wqinf, int *nwqVars, AED_REAL *temp, AED_REA
 #if AED2
 void aed2_init_glm(char *fname, size_t *len, int *NumWQVars, int *NumWQBen);
 void aed2_set_glm_data(void);
-void aed2_do_glm(int *wlev, CLOGICAL *pIce);
+void aed2_do_glm(int *wlev);
 void aed2_clean_glm(void);
 void aed2_init_glm_output(int *ncid, int *x_dim, int *y_dim, int *z_dim, int *zone_dim, int *time_dim);
 void aed2_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
@@ -147,14 +147,6 @@ void SoilTemp(int *m, const AED_REAL *depth, const AED_REAL *wv,
 #endif
 
 //void wq_set_glm_zones(int *numVars, int *numBenV, int *numDiagV, int *numDiagHzV);
-
-extern int ode_method;
-extern int split_factor;
-extern CLOGICAL bioshade_feedback;
-extern CLOGICAL repair_state;
-extern int benthic_mode;
-extern CLOGICAL no_zones;
-extern CLOGICAL do_plots;
 
 #endif
 

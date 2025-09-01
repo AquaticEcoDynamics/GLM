@@ -243,7 +243,7 @@ void check_layer_thickness(void)
                     _WQ_Vars(wqidx,j) = _WQ_Vars(wqidx,jold);
 
                 for (wqidx = 0; wqidx < Num_WQD_Vars; wqidx++)
-                    _WQD_Vars(wqidx,j)=_WQD_Vars(wqidx,jold);
+                    _WQD_Vars(wqidx,j) = _WQD_Vars(wqidx,jold);
 
                 Lake[j].LayerVol = Lake[jold].LayerVol;
                 Lake[j].Epsilon = Lake[jold].Epsilon;
@@ -263,10 +263,10 @@ void check_layer_thickness(void)
             Lake[k].Salinity = Lake[i].Salinity;
 
             for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
-                _WQ_Vars(wqidx,k)=_WQ_Vars(wqidx,i);
+                _WQ_Vars(wqidx,k) = _WQ_Vars(wqidx,i);
 
             for (wqidx = 0; wqidx < Num_WQD_Vars; wqidx++)
-                _WQD_Vars(wqidx,k)=_WQD_Vars(wqidx,i);
+                _WQD_Vars(wqidx,k) = _WQD_Vars(wqidx,i);
 
             Lake[k].Epsilon = Lake[i].Epsilon;
         }

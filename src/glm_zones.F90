@@ -167,7 +167,7 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
    ! Reset zone data structure to zero, for copying in information from main
    ! lake data structures. Note that z_cc(:,:,nvars+1:nvars_ben) is not zeroed
    ! as this is the benthic zone data we need to preserve
-   z_cc(:,:,1:nvars) = 0.
+   z_cc(1:nvars,:,:) = 0.
    z_diag(:,:,:) = 0.
 !  z_diag_hz(:,:) = 0.
 

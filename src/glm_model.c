@@ -857,7 +857,7 @@ int do_subdaily_loop(int stepnum, int jday, int stoptime, int nsave, AED_REAL SW
         /**********************************************************************
          *## Start Water Quality calls                                        *
          **********************************************************************/
-        if (wq_calc) wq_do_glm(&NumLayers, &ice);
+        if (wq_calc) wq_do_glm(&NumLayers);
 
         //# If an output write is requested for the last time step of the day
         //# then do not output in the subdaily.  Output writing is moved to the

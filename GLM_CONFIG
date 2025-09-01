@@ -11,7 +11,7 @@ export WITH_PLOTS=true
 export WITH_XPLOTS=true
 
 export CURDIR=`pwd`
-export CWD=`dirname $CURDIR`
+export CWD=`dirname ${CURDIR}`
 export FABMDIR=${CURDIR}/../fabm-git
 export PLOTDIR=${CURDIR}/../libplot
 export AED2DIR=${CURDIR}/../libaed2

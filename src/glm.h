@@ -36,7 +36,7 @@
 #define USE_FILLVALUE 1
 
 /* Actually pre-alpha V4.0.0 */
-#define GLM_VERSION  "3.9.100"
+#define GLM_VERSION  "3.9.101"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -70,7 +70,7 @@
 #  define DOUBLETYPE double precision
 #  define CINTEGER INTEGER(kind=C_INT32_T)
 #  define CSIZET   INTEGER(kind=C_SIZE_T)
-#  define CLOGICAL LOGICAL(kind=C_BOOL)
+#  define FLOGICAL LOGICAL(kind=C_BOOL)
 #  define CCHARACTER CHARACTER(C_CHAR)
 
 #  define stdin  5
@@ -101,7 +101,8 @@
   #define NC_REALTYPE NC_DOUBLE
   #define NC_FILLER NC_FILL_DOUBLE
   typedef double DOUBLETYPE;
-  typedef _Bool CLOGICAL;
+  typedef int CLOGICAL;
+  typedef _Bool FLOGICAL;
   typedef int32_t CINTEGER;
   typedef int8_t  CCHARACTER;
 

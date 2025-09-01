@@ -475,7 +475,7 @@ END SUBROUTINE fabm_set_glm_data
 
 
 !###############################################################################
-SUBROUTINE fabm_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
+SUBROUTINE fabm_do_glm(wlev) BIND(C, name=_WQ_DO_GLM)
 !-------------------------------------------------------------------------------
 !                           wlev is the number of levels used;
 !                           nlev is the total num levels in the array
@@ -483,7 +483,6 @@ SUBROUTINE fabm_do_glm(wlev, pIce) BIND(C, name=_WQ_DO_GLM)
    USE ode_solvers, ONLY : ode_solver
 !ARGUMENTS
    CINTEGER,INTENT(in) :: wlev
-   CLOGICAL,INTENT(in) :: pIce
 !
 !LOCALS
    AED_REAL :: min_C

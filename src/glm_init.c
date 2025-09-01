@@ -143,9 +143,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     int             lode_method = -1;
     int             lsplit_factor = 1;
     int             bsf = 0, rs = 0, mo = 0;
-//  CLOGICAL        bioshade_feedback;
-//  CLOGICAL        repair_state;
-//  CLOGICAL        mobility_off;
+//  FLOGICAL        bioshade_feedback;
+//  FLOGICAL        repair_state;
+//  FLOGICAL        mobility_off;
     //==========================================================================
     NAMELIST wq_setup[] = {
           { "wq_setup",          TYPE_START,            NULL                  },
@@ -232,8 +232,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     CLOGICAL        snow_sw = FALSE; // Snowfall
     char           *meteo_fl = NULL; // Name of meteorology input file
 //  int             lw_ind;          // type of longwave radiation - now in glm_input
-//  CLOGICAL        atm_stab;        // Account for non-neutral atmospheric stability
-//  CLOGICAL        subdaily;        //
+//  extern CLOGICAL atm_stab;        // Account for non-neutral atmospheric stability
+//  extern CLOGICAL subdaily;        //
+//  extern CLOGICAL catchrain;       //
 //  extern AED_REAL CD;
 //  extern AED_REAL CE;
 //  extern AED_REAL CH;
@@ -254,9 +255,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern int      albedo_mode;
     extern int      cloud_mode;
     extern int      light_mode;
-//  extern CLOGICAL link_solar_shade;
-//  extern CLOGICAL link_rain_loss;
-//  extern CLOGICAL link_bottom_drag;
+    CLOGICAL lss = FALSE, lrl = FALSE, lbd = FALSE;
+//  extern FLOGICAL link_solar_shade;
+//  extern FLOGICAL link_rain_loss;
+//  extern FLOGICAL link_bottom_drag;
 //  extern CLOGICAL use_met_atm_pres;
     char           *timefmt_m = NULL;
     extern AED_REAL timezone_m;
@@ -293,9 +295,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "runoff_coef",       TYPE_DOUBLE,           &runoff_coef          },
           { "time_fmt",          TYPE_STR,              &timefmt_m            },
           { "timezone",          TYPE_DOUBLE,           &timezone_m           },
-          { "link_solar_shade",  TYPE_BOOL,             &link_solar_shade     },
-          { "link_rain_loss",    TYPE_BOOL,             &link_rain_loss       },
-          { "link_bottom_drag",  TYPE_BOOL,             &link_bottom_drag     },
+          { "link_solar_shade",  TYPE_BOOL,             &lss                  },
+          { "link_rain_loss",    TYPE_BOOL,             &lrl                  },
+          { "link_bottom_drag",  TYPE_BOOL,             &lbd                  },
           { "use_met_atm_pres",  TYPE_BOOL,             &use_met_atm_pres     },
      //   { "snow_sw",           TYPE_BOOL,             &snow_sw              },
           { NULL,                TYPE_END,              NULL                  }
@@ -306,7 +308,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL   *light_extc;
     extern AED_REAL   *energy_frac;
     extern AED_REAL    Benthic_Imin;
-//  AED_REAL           Kw;
+//  extern AED_REAL    Kw;
     char              *Kw_file = NULL;
     //==========================================================================
     NAMELIST light[] = {
@@ -621,7 +623,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     //-------------------------------------------------
-    _Bool err = FALSE;
+    CLOGICAL err = FALSE;
     int i, j, k;
     int namlst;
 
@@ -814,6 +816,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( get_namelist(namlst, meteorology) ) {
         fprintf(stderr,"\n     ERROR reading 'meteorology' from namelist file %s\n", glm_nml_file);
         exit(1);
+    } else {
+        link_solar_shade = lss;
+        link_rain_loss = lrl;
+        link_bottom_drag = lbd;
     }
 
     if ( lw_type == NULL )
@@ -1060,7 +1066,8 @@ for (i = 0; i < n_zones; i++) {
 
     if ( get_namelist(namlst, groundwater) ) {
         if ( (num_inflows+gw_mode) > MaxInf ) {
-            fprintf(stderr, "     ERROR: Too many inflows specified in 'inflow' and 'groundwater' config %d+%d > %d\n", num_inflows, gw_mode, MaxInf);
+            fprintf(stderr, "     ERROR: Too many inflows specified in 'inflow' and 'groundwater' config %d+%d > %d\n",
+                                    num_inflows, gw_mode, MaxInf);
             exit(1);
         }
         for (i = 0; i < gw_mode; i++) {
@@ -1083,6 +1090,7 @@ for (i = 0; i < n_zones; i++) {
         NumOut = 0;
     } else {
         CLOGICAL need_free = FALSE;
+        CLOGICAL need_free2 = FALSE;
 
         if ( num_outlet > MaxOut) {
             fprintf(stderr, "     ERROR: Too many outlets specified in 'outflow' config %d > %d\n", num_outlet, MaxOut);
@@ -1097,6 +1105,7 @@ for (i = 0; i < n_zones; i++) {
             for (i = 0; i < NumOut; i++) flt_off_sw[i] = FALSE;
         }
         if ( outlet_type == NULL ) {
+            need_free2 = TRUE;
             outlet_type = malloc(sizeof(int)*num_outlet);
             for (i = 0; i < NumOut; i++) outlet_type[i] = (flt_off_sw[i])?2:1;
         }
@@ -1147,7 +1156,7 @@ for (i = 0; i < n_zones; i++) {
 
         }
         if (need_free) free(flt_off_sw);
-//      free(outlet_type);
+        if (need_free2) free(outlet_type);
     }
     if ( outlet_crit != NULL ) { // only relevant if we have defined it.
         if ((crit_O2 < 0) || (crit_O2_dep < base_elev) || (crit_O2_days < 1)) {
@@ -1594,11 +1603,10 @@ void initialise_lake(int namlst)
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
-    CLOGICAL need_free = FALSE;
-
     int i, j, min_layers;
     int nx, np, nz;
     int *idx = NULL;
+    CLOGICAL need_free = FALSE;
 
 /*----------------------------------------------------------------------------*/
     //-------------------------------------------------
@@ -1683,8 +1691,8 @@ void initialise_lake(int namlst)
     if (min_layers < 3) min_layers = 3;
 
     if (restart_variables == NULL) {
-        restart_variables = calloc(17, sizeof(AED_REAL));
         need_free = TRUE;
+        restart_variables = calloc(17, sizeof(AED_REAL));
 
         // Now interpolate into at least min_layers
         while (NumLayers <= min_layers) {
@@ -1737,7 +1745,7 @@ void initialise_lake(int namlst)
         ice = TRUE;
     }
 
-    if (deep_mixing == 1) {      //constant diffusivity over whole water column
+    if (deep_mixing == 1) {     // constant diffusivity over whole water column
         for (i = 0; i < NumLayers; i++)
           Lake[i].Epsilon = coef_mix_hyp;
     }

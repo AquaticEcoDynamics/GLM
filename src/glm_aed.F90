@@ -682,7 +682,7 @@ SUBROUTINE define_column(column, top)
             CASE ( 'uvb' )         ; column(av)%cell => uvb(:)
             CASE ( 'pressure' )    ; column(av)%cell => pres(:)
             CASE ( 'depth' )       ; column(av)%cell => depth(:)
-            CASE ( 'sed_zones' )   ; column(av)%cell => sed_zones
+            CASE ( 'sed_zones' )   ; column(av)%cell => sed_zones(:)
             CASE ( 'sed_zone' )    ; column(av)%cell_sheet => sed_zones(1)
             CASE ( 'wind_speed' )  ; column(av)%cell_sheet => wnd
             CASE ( 'par_sf' )      ; column(av)%cell_sheet => I_0
@@ -761,7 +761,7 @@ SUBROUTINE check_states(wlev)
                IF ( ieee_is_nan(cc(n_vars+sv, 1)) ) last_naned = i
 #endif
                IF ( .NOT. ieee_is_nan(tv%minimum) ) THEN
-                  IF ( cc(n_vars+sv, 1) < tv%minimum ) cc(v, 1) = tv%minimum
+                  IF ( cc(n_vars+sv, 1) < tv%minimum ) cc(n_vars+sv, 1) = tv%minimum
                ENDIF
                IF ( .NOT. ieee_is_nan(tv%maximum) ) THEN
                   IF ( cc(n_vars+sv, 1) > tv%maximum ) cc(n_vars+sv, 1) = tv%maximum
@@ -792,7 +792,7 @@ SUBROUTINE check_states(wlev)
       ELSE
          print*,"NaNs detected in CC unidentified var"
       ENDIF
-!     STOP
+   !  STOP
    ENDIF
 #endif
 END SUBROUTINE check_states
@@ -800,19 +800,18 @@ END SUBROUTINE check_states
 
 
 !###############################################################################
-SUBROUTINE aed_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
+SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
 !-------------------------------------------------------------------------------
 !                           wlev is the number of levels used;
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    CINTEGER,INTENT(in) :: wlev
-   CLOGICAL,INTENT(in) :: pIce
 !
 !LOCALS
    TYPE(aed_variable_t),POINTER :: tv
 
    AED_REAL :: min_C, surf
-   INTEGER  :: i, j, v, lev, zon, split
+   INTEGER  :: i, j, v, lev, split
 
    TYPE (aed_column_t) :: column(n_aed_vars)
    TYPE (aed_column_t) :: column_sed(n_aed_vars)
@@ -861,7 +860,6 @@ SUBROUTINE aed_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
          IF ( aed_get_var(i, tv) ) THEN
             IF ( .NOT. tv%sheet .AND. tv%var_type == V_STATE ) THEN
                v = v + 1
-               ws(:,i) = zero_
                ! only for state_vars that are not sheet
                IF ( .NOT. ieee_is_nan(tv%mobility) ) THEN
                   ! default to ws that was set during initialisation
@@ -896,6 +894,10 @@ SUBROUTINE aed_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
    ENDIF
 !stop
 
+   DO lev=1, wlev
+      CALL aed_equilibrate(column, lev)
+   ENDDO
+
    CALL check_states(wlev)
 
    DO split=1,split_factor
@@ -924,29 +926,21 @@ SUBROUTINE aed_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
       !# Now update benthic variables, depending on whether zones are simulated
       IF ( benthic_mode .GT. 1 ) THEN
          ! Loop through each sediment zone
-         DO zon = 1, n_zones
-            ! Loop through benthic state variables to update their mass
-            DO v = n_vars+1, n_vars+n_vars_ben
-               ! Update the main cc_sed data array with the
-               z_cc(v, 1, zon) = z_cc(v, 1, zon)+ dt_eff*flux_zon(v, zon)
-            ENDDO
-         ENDDO
+         z_cc(n_vars+1:n_vars+n_vars_ben, 1, 1:n_zones) = z_cc(n_vars+1:n_vars+n_vars_ben, 1, 1:n_zones) &
+                                                + dt_eff*flux_zon(n_vars+1:n_vars+n_vars_ben, 1:n_zones)
 
          !# Distribute cc-sed benthic properties back into main cc array
          CALL copy_from_zone(n_aed_vars, cc, cc_diag, cc_diag_hz, wlev)
       ELSE
-      !  DO v = n_vars+1, n_vars+n_vars_ben
-      !     cc(v, 1) = cc(v, 1) + dt_eff*flux_ben(v)
-      !  ENDDO
-         cc(n_vars+1:n_vars+n_vars_ben, 1) = &
-            cc(n_vars+1:n_vars+n_vars_ben, 1) + dt_eff*flux_ben(n_vars+1:n_vars+n_vars_ben)
+         cc(n_vars+1:n_vars+n_vars_ben, 1) = cc(n_vars+1:n_vars+n_vars_ben, 1) &
+                                 + dt_eff*flux_ben(n_vars+1:n_vars+n_vars_ben)
       ENDIF
 
      !CALL post_integration_update(column,wlev,flux_pel,flux_ben,flux_atm,flux_zon)
 
-      DO lev = 1, wlev
-         CALL aed_equilibrate(column, lev)
-      ENDDO
+!     DO lev=1, wlev
+!        CALL aed_equilibrate(column, lev)
+!     ENDDO
       !     aed_update  (aka aed_equilibrate)
       !       layer_map = (/ (i, i = wlev, 1, -1) /)
       !     aed_update_column (column,layer_map,)
@@ -1343,8 +1337,8 @@ CONTAINS
       DO lev=1,wlev
          CALL aed_calculate(column, lev)
       ENDDO
-      END SUBROUTINE calculate_fluxes
-      !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   END SUBROUTINE calculate_fluxes
+   !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 END SUBROUTINE aed_do_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1514,7 +1508,7 @@ SUBROUTINE aed_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
    INTEGER  :: z
 #endif
    AED_REAL :: val_out
-   CLOGICAL :: last = .FALSE.
+   FLOGICAL :: last = .FALSE.
 !
 !-------------------------------------------------------------------------------
 !BEGIN

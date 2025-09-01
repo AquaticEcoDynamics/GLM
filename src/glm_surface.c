@@ -665,7 +665,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         coef_wind_chwn = CH;
         coef_wind_drag = CD;
 
-        if (atm_stab>0) {
+        if ( atm_stab > 0 ) {
 //           non_neutral_converged =
                atmos_stability(&Q_latentheat,
                                &Q_sensibleheat,
@@ -1135,7 +1135,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
               for (z = 1; z < n_zones; z++) {
                   // call the dynamic soil/sediment temperature model
                   /*
-                  SoilTemp( &theZones[z].n_sedLayers,
+                  SoilTemp( &theZones[z].n_sed_layers,
                              sed_depths,
                              sed_vwc,
                              theZones[z].ztemp,
@@ -1575,7 +1575,7 @@ int atmos_stability(      AED_REAL *Q_latentheat,
         Q_latentheat_still = zero;
     }
 
-    if(atm_stab==2){
+    if ( atm_stab == 2 ) {
       // Assign free vs forced
       if (Q_sensible_still < *Q_sensible)
          *Q_sensible = Q_sensible_still;
@@ -1756,7 +1756,7 @@ int atmos_stability(      AED_REAL *Q_latentheat,
     printf("*Q_latentheat = %10.5f\n",*Q_latentheat);
 
     *zonL = zL;
-    if (atm_stab==3)
+    if ( atm_stab == 3 )
        return atmos_status;
 
     //# Limit minimum to still air value

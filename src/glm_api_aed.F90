@@ -247,6 +247,8 @@ SUBROUTINE api_set_glm_env()
    INTEGER :: status
 
    TYPE(aed_env_t) :: env(1)
+
+   PROCEDURE(aed_mobility_fn_t),POINTER :: doMobilityP
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -387,6 +389,9 @@ SUBROUTINE api_set_glm_env()
    env(1)%rainloss      =>  feedback(1) !rainloss(1)
 
    CALL aed_set_model_env(env, 1, MaxLayers)
+
+   doMobilityP => doMobilityF
+   CALL aed_set_mobility_fn(doMobilityP)
 END SUBROUTINE api_set_glm_env
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -550,18 +555,15 @@ END SUBROUTINE doMobilityF
 
 
 !###############################################################################
-SUBROUTINE api_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
+SUBROUTINE api_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    CINTEGER,INTENT(in) :: wlev
-   CLOGICAL,INTENT(in) :: pIce
 !
 !LOCALS
    LOGICAL :: doSurface
    INTEGER :: lev, zon
    AED_REAL :: surf, pa = 0.
-
-   PROCEDURE(aed_mobility_fn_t),POINTER :: doMobilityP
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -594,10 +596,7 @@ SUBROUTINE api_do_glm(wlev, pIce)                       BIND(C, name=_WQ_DO_GLM)
       ENDDO
    ENDIF
 
-   doSurface = .NOT. pIce
-
-   doMobilityP => doMobilityF
-   CALL aed_set_mobility_fn(doMobilityP)
+   doSurface = .NOT. ice
    CALL aed_run_model(1, wlev, doSurface)
 END SUBROUTINE api_do_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

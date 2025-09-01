@@ -137,9 +137,9 @@ typedef char filname[80];
    // Structured type for outflow vars
    // An outflow will be an allocated array of MaxOut of these
    typedef struct OutflowDataType {
-       CINTEGER Type;            // outflow type
+       int      Type;            // outflow type
        AED_REAL Hcrit;           // outlet height when crit O2
-       CINTEGER O2idx;           // O2 parameter idx in AED/FABM
+       int      O2idx;           // O2 parameter idx in AED/FABM
        AED_REAL TARGETtemp;      // Isotherm for withdrawal switch 4
        AED_REAL OLev;            // distance below surface level
        AED_REAL OLen;            // basin length at the outlet

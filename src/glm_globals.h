@@ -95,36 +95,27 @@ extern int ncid;
 /* from glm_surf.F90 */
 extern AED_REAL AvgSurfTemp;
 /*----------------------------------------------------------------------------*/
-extern CINTEGER MaxLayers;   //# Maximum number of layers in this sim
-extern int NumLayers;   //# current number of layers
-extern LakeDataType *Lake;
-
-
-extern AED_REAL Latitude, Longitude;
+extern CINTEGER NumLayers;   //# current number of layers
 
 extern AED_REAL DMin;    //# minimum layer thickness
 extern AED_REAL DMax;    //# maximum layer thickness
 extern AED_REAL VMin;    //# minimum layer volume
 extern AED_REAL VMax;    //# maximum layer volume
 
-extern AED_REAL Kw;            //# background light attenuation (m**-1)
+extern int wq_calc;         //# are we doing water quality calcs
+extern int Num_WQ_Vars;     //# number of water quality variables
+extern int Num_WQ_Ben;      //# number of benthic water quality variables
+extern int Tot_WQ_Vars;     //# nVars + nBen
+extern int Num_WQD_Vars;    //# number of water quality diagnostic variables
+extern int Num_WQDS_Vars;   //# number of water quality diagnostic "sheet" variables
 
-extern int wq_calc;            //# are we doing water quality calcs
-extern int Num_WQ_Vars;        //# number of water quality variables
-extern int Num_WQ_Ben;         //# number of benthic water quality variables
-extern int Tot_WQ_Vars;        //# nVars + nBen
-extern int Num_WQD_Vars;       //# number of water quality diagnostic variables
-extern int Num_WQDS_Vars;      //# number of water quality diagnostic "sheet" variables
-extern AED_REAL *WQ_Vars;      //# water quality array : [nlayers, nvars]
-//extern AED_REAL *WQS_Vars;      //# water quality benthics array : [nvars]
-extern AED_REAL *WQD_Vars;     //# water quality diagnostics array : [nlayers, nvars]
-extern AED_REAL *WQDS_Vars;    //# water quality sheet diagnostics array : [nvars]
+extern AED_REAL *WQ_Vars;   //# water quality array : [nvars, nlayers]
+extern AED_REAL *WQS_Vars;  //# water quality benthics array : [nvars]
+extern AED_REAL *WQD_Vars;  //# water quality diagnostics array : [nvars, nlayers]
+extern AED_REAL *WQDS_Vars; //# water quality sheet diagnostics array : [nvars]
 
-extern int *PTM_Stat;     //# water quality diagnostics array : [nlayers, nvars]
-extern AED_REAL *PTM_Vars;    //# water quality sheet diagnostics array : [nvars]
-
-extern int       n_zones;      //# number of sediment zones
-extern ZoneType *theZones;
+extern int *PTM_Stat;       //# water quality diagnostics array : [nlayers, nvars]
+extern AED_REAL *PTM_Vars;  //# water quality sheet diagnostics array : [nvars]
 
 /*----------------------------------------------------------------------------*/
 
@@ -177,7 +168,7 @@ extern MetDataType MetData;      //# Meteorological data
 extern AED_REAL runoff_coef;
 extern AED_REAL rain_threshold;
 extern CLOGICAL catchrain;
-extern int atm_stab;         //# Account for non-neutral atmospheric stability
+extern CLOGICAL atm_stab;         //# Account for non-neutral atmospheric stability
 extern AED_REAL coef_wind_drag;   //# = 0.0013;
 extern AED_REAL coef_wind_chwn;   //# = 0.0013;
 extern AED_REAL CD;               //# = 0.0013;
@@ -191,15 +182,6 @@ extern int      light_mode;
 extern int      n_bands;
 extern AED_REAL *light_extc;
 extern AED_REAL *energy_frac;
-
-extern CLOGICAL mobility_off;
-extern CLOGICAL bioshade_feedback;
-extern CLOGICAL repair_state;
-extern CLOGICAL do_plots;
-extern CLOGICAL link_rain_loss;
-extern CLOGICAL link_solar_shade;
-extern CLOGICAL link_bottom_drag;
-extern CLOGICAL ice;
 
 extern CLOGICAL use_met_atm_pres;
 extern AED_REAL biodrag;
@@ -358,6 +340,45 @@ extern CLOGICAL dbg_mix;  //# debug output from mixer
 extern CLOGICAL no_evap;  //# turn off evaporation
 extern int     quiet;     //# turn down output messages
 
+/*----------------------------------------------------------------------------*/
+// C-Fortran shared (see glm_types.F90
+extern CINTEGER MaxLayers;   //# Maximum number of layers in this sim
+extern LakeDataType *Lake;
+extern CINTEGER  n_zones;    //# number of sediment zones
+extern ZoneType *theZones;
+
+//extern C_PTR pMetData;
+//extern C_PTR pSurfData;
+
+//extern LakeDataType theLake;
+//extern MetDataType MetData;
+//extern SurfaceDataType SurfData;
+//extern ZoneType theZones;
+
+extern FLOGICAL mobility_off;
+extern FLOGICAL bioshade_feedback;
+extern FLOGICAL repair_state;
+extern FLOGICAL do_plots;
+extern FLOGICAL link_rain_loss;
+extern FLOGICAL link_solar_shade;
+extern FLOGICAL link_bottom_drag;
+extern FLOGICAL ice;
+
+extern CINTEGER split_factor;
+extern CINTEGER ode_method;
+extern CINTEGER benthic_mode;
+
+extern AED_REAL rain_factor;
+extern AED_REAL sw_factor;
+extern AED_REAL friction;
+
+extern AED_REAL Kw;
+extern AED_REAL dt;
+
+extern AED_REAL yearday;
+extern AED_REAL timestep;
+extern AED_REAL Longitude;
+extern AED_REAL Latitude;
 
 /******************************************************************************/
 void allocate_storage(void);
