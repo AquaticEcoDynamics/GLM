@@ -626,6 +626,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     CLOGICAL err = FALSE;
     int i, j, k;
     int namlst;
+    CLOGICAL free_me[4] = { 0, 0, 0, 0 };
 
 /*----------------------------------------------------------------------------*/
 
@@ -745,21 +746,25 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( csv_outlet_nvars > MaxCSVOutVars ) { fprintf(stderr, "csv_outlet_nvars must be < %d\n", MaxCSVOutVars); exit(1); }
 
     if ( csv_point_frombot == NULL && csv_point_nlevs > 0) {
+        free_me[0] = TRUE;
         csv_point_frombot = calloc(csv_point_nlevs, sizeof(CLOGICAL));
         for (i = 0; i < csv_point_nlevs; i++) csv_point_frombot[i] = TRUE;
     }
 
     if ( csv_point_depth_avg != NULL && csv_point_nlevs > 0) {
         if ( csv_point_zone_upper == NULL ) {
+            free_me[1] = TRUE;
             csv_point_zone_upper = calloc(csv_point_nlevs, sizeof(AED_REAL));
             for (i = 0; i < csv_point_nlevs; i++) csv_point_zone_upper[i] = NaN;
         }
         if ( csv_point_zone_lower == NULL ) {
+            free_me[2] = TRUE;
             csv_point_zone_lower = calloc(csv_point_nlevs, sizeof(AED_REAL));
             for (i = 0; i < csv_point_nlevs; i++) csv_point_zone_lower[i] = NaN;
         }
     }
     if ( csv_point_depth_avg == NULL && csv_point_nlevs > 0) {
+        free_me[3] = TRUE;
         csv_point_depth_avg = calloc(csv_point_nlevs, sizeof(CLOGICAL));
         for (i = 0; i < csv_point_nlevs; i++) csv_point_depth_avg[i] = FALSE;
     }
@@ -784,10 +789,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
                   csv_point_frombot, csv_point_nvars, csv_point_depth_avg,
                   csv_point_zone_upper, csv_point_zone_lower, csv_lake_fname);
 
-    free(csv_point_frombot);
-    free(csv_point_depth_avg);
-    free(csv_point_zone_upper);
-    free(csv_point_zone_lower);
+    if ( free_me[0] ) free(csv_point_frombot);
+    if ( free_me[1] ) free(csv_point_zone_upper);
+    if ( free_me[2] ) free(csv_point_zone_lower);
+    if ( free_me[3] ) free(csv_point_depth_avg);
 
     if ( wq_calc ) {
         for (i = 0; i < csv_outlet_nvars; i++)
