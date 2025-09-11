@@ -1,15 +1,10 @@
-glm (3.9.101-0) UNRELEASED; urgency=low
+glm (3.9.102-0) UNRELEASED; urgency=low
 
   * new version 3.9.011
   * new version 3.9.012
-  * new version 3.9.013
-  * new version 3.9.014
-  * new version 3.9.015
-  * new version 3.9.017
-  * new version 3.9.100
-  * new version 3.9.101
+  * new version 3.9.102
 
- -- Casper Boon <casper@guppy>  Tue, 26 Aug 2025 09:24:32 +0800
+ -- Casper Boon <casper@guppy>  Fri, 05 Sep 2025 11:08:27 +0800
 
 glm (3.1.0-0) UNRELEASED; urgency=low
 

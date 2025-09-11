@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -192,7 +192,7 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
     for (i = 0; i < max_plots; i++) theplots[i] = -1;
 
     glm_vers = malloc(strlen(GLM_VERSION) + 10);
-    sprintf(glm_vers, "GLM-%s", GLM_VERSION);
+    snprintf(glm_vers, strlen(GLM_VERSION) + 9, "GLM-%s", GLM_VERSION);
 
     maxx = width;
     maxy = height;

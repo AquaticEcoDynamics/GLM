@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 - The University of Western Australia                *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -36,7 +36,7 @@
 #define USE_FILLVALUE 1
 
 /* Actually pre-alpha V4.0.0 */
-#define GLM_VERSION  "3.9.101"
+#define GLM_VERSION  "3.9.102"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -50,7 +50,7 @@
 #define PATH_MAX  1024
 #endif
 
-#ifdef _FORTRAN_SOURCE_
+#ifndef __STDC__
 !-------------------------------------------------------------------------------
 !! Fortran version
 
@@ -145,13 +145,5 @@
 #define LW_CC    1
 #define LW_IN    2
 #define LW_NET   3
-
-#if 0
-#define POW(a,b) (exp( log(a) * (b) ))
-#define POW(a,b) pow(a,b)
-#define POW(a,b) ((a)**(b)) ! FORTRAN VERSION
-#define dbgprt(...) print __VA_ARGS__
-#define dbgprt(...) ! __VA_ARGS__
-#endif
 
 #endif

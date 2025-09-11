@@ -5,11 +5,11 @@
  * Developed by :                                                             *
  *     AquaticEcoDynamics (AED) Group                                         *
  *     School of Agriculture and Environment                                  *
- *     University of Western Australia                                        *
+ *     The University of Western Australia                                    *
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -1358,7 +1358,7 @@ void create_lake(int namlst)
     }
 
     if (base_elev != MISVAL ) {
-        fprintf(stderr, "     NOTE: value for base_elev is no longer used; A[1] is assumed.\n");
+        fprintf(stderr, "     NOTE: value for base_elev is no longer used; H[1] is assumed.\n");
     }
     if ( V != NULL ) {
         fprintf(stderr, "     NOTE: values for V are no longer used\n");

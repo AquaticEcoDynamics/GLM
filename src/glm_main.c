@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -45,6 +45,16 @@
 #ifdef XPLOTS
    extern int xdisp;
 #endif
+#endif
+#if API
+   #include <aed_api.h>
+#endif
+#if AED
+ #ifdef WITH_AED_PLUS
+   #include <aed+.h>
+ #else
+   #include <aed.h>
+ #endif
 #endif
 
 #include "glm_debug.h"
@@ -150,12 +160,12 @@ int main(int argc, char *argv[])
 # endif
 #endif
 
-    if (quiet < 10) {
-        printf("     \n");
+    if (quiet < 10 || show_vers || show_options ) {
+        printf("\n");
         printf("    -------------------------------------------------------\n");
         printf("    |  General Lake Model (GLM)   Version %-12s    |\n", GLM_VERSION);
         printf("    -------------------------------------------------------\n");
-        printf("     \n");
+        printf("\n");
 
 #ifdef __GNUC__
         printf("     glm built using gcc version %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
@@ -165,23 +175,37 @@ int main(int argc, char *argv[])
 #ifndef _WIN32
         printf("     build date %s\n", BUILDDATE);
 #endif
-        if (show_vers)  exit(0);
     }
-
-    if ( show_options ) {
-       printf("--help  : show this blurb\n");
-       printf("--nml <nmlfile> : get parameters from nmlfile\n");
+    if ( show_vers ) {
+        printf("\n");
+#if API
+        printf("        Includes API version %s\n", AED_API_VERSION);
+#endif
+#if AED
+        printf("        Includes AED version %s\n", AED_VERSION);
+#ifdef AED_PLUS_VERSION
+        printf("        Includes AED+ version %s\n", AED_PLUS_VERSION);
+#endif
+#endif
+    } else if ( show_options ) {
+        printf("\n");
+        printf("     --help  : show this blurb\n");
+        printf("     --version  : report version numbers\n");
+        printf("\n");
+        printf("     --nml <nmlfile> : get parameters from nmlfile\n");
+        printf("\n");
 #ifdef PLOTS
 #ifdef XPLOTS
-       printf("--xdisp : display temp/salt and selected others in x-window\n");
-       printf("--xdisp <plotsfile> : like --xdisp, but use <plotsfile> instead of plots.nml\n");
+        printf("     --xdisp : display temp/salt and selected others in x-window\n");
+        printf("     --xdisp <plotsfile> : like --xdisp, but use <plotsfile> instead of plots.nml\n");
 #endif
-       printf("--saveall : save plots to png files\n");
-       printf("--save-all-in-one : save all plots to png file\n");
-       printf("--save-all-in-one <destfile> : save all plots to png file <destfile>\n");
-
-       printf("--quiet   : less messages\n");
-       printf("--quiet <level> : set quiet level (1-10)\n");
+        printf("\n");
+        printf("     --saveall : save plots to png files\n");
+        printf("     --save-all-in-one : save all plots to png file\n");
+        printf("     --save-all-in-one <destfile> : save all plots to png file <destfile>\n");
+        printf("\n");
+        printf("     --quiet   : less messages\n");
+        printf("     --quiet <level> : set quiet level (1-10)\n");
 #endif
     } else if ( all_ok ) {
         if ( nmlfile != NULL ) strncpy(glm_nml_file, nmlfile, 256);

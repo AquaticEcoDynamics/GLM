@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -595,7 +595,7 @@ static int insert_inflow(int k, //# Inflow parcel counter
     for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
         WQ_VarsS[wqidx] = Inflows[iRiver].WQDown[k][wqidx];
 
-    mb_add_inflows(Inflows[iRiver].QDown[k], WQ_VarsS);
+    mb_add_inflows(Inflows[iRiver].QDown[k], Inflow_Temp, Inflow_Salinity, WQ_VarsS);
 
     Downflow_Depth = Inflows[iRiver].DDown[k];
 

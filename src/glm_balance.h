@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2019 - 2025 -  The University of Western Australia               *
+ * Copyright 2019-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -30,7 +30,7 @@
 #ifndef _GLM_BALANCE_H_
 #define _GLM_BALANCE_H_
 
-void mb_add_inflows(AED_REAL vol, AED_REAL *wq_vars);
+void mb_add_inflows(AED_REAL vol, AED_REAL inTemp, AED_REAL inSalt, AED_REAL *wq_vars);
 void mb_sub_outflows(int layer, AED_REAL subvol);
 
 void open_balance(const char *out_dir, const char *balance_fname,

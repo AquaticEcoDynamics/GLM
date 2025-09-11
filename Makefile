@@ -11,7 +11,7 @@
 #                                                                             #
 #      http://aquatic.science.uwa.edu.au/                                     #
 #                                                                             #
-#  Copyright 2013 - 2025 - The University of Western Australia                #
+#  Copyright 2013-2025 - The University of Western Australia                  #
 #                                                                             #
 #   GLM is free software: you can redistribute it and/or modify               #
 #   it under the terms of the GNU General Public License as published by      #
@@ -151,10 +151,12 @@ endif
 ifeq ($(AED),true)
   AEDWATDIR=../libaed-water
   FINCLUDES+=-I$(AEDWATDIR)/include -I$(AEDWATDIR)/mod
+  CINCLUDES+=-I$(AEDWATDIR)/include
   AEDLIBS=-L$(AEDWATDIR)/lib -laed-water
   ifeq ($(API),true)
     AEDAPIDIR=../libaed-api
     FINCLUDES+=-I$(AEDAPIDIR)/include -I$(AEDAPIDIR)/mod
+    CINCLUDES+=-I$(AEDAPIDIR)/include
     AEDLIBS+=-L$(AEDAPIDIR)/lib -laed-api
   endif
   ifdef AEDBENDIR
@@ -178,6 +180,7 @@ ifeq ($(AED),true)
     EXTFFLAGS+=-DNO_LGT
   endif
   ifdef AEDDEVDIR
+    EXTRA_FLAGS+=-DWITH_AED_PLUS
     AEDLIBS+=-L$(AEDDEVDIR)/lib -laed-dev
     ifdef PHREEQDIR
        AEDLIBS+=-L$(PHREEQDIR)/build -lPhreeqcRM
@@ -275,7 +278,7 @@ else
   LINK=$(FC)
   DEBUG_FFLAGS=-g -fbacktrace -DDEBUG=1
   OPT_FFLAGS=-O3
-  FFLAGS=-Wall -J ${moddir} -Wno-c-binding-type -ffree-line-length-none -std=f2008 $(DEFINES) $(FINCLUDES) -fall-intrinsics
+  FFLAGS=-Wall -J ${moddir} -Wno-c-binding-type -ffree-line-length-none -std=f2018 -fall-intrinsics $(DEFINES) $(FINCLUDES)
   ifeq ($(WITH_CHECKS),true)
     FFLAGS+=-fcheck=all,no-array-temps
   endif
@@ -438,7 +441,7 @@ distclean: clean
 	@/bin/rm -rf ${objdir} ${moddir} glm glm+ macos/glm.app macos/glm+.app
 
 ${objdir}/%.o: ${srcdir}/%.F90 ${incdir}/glm.h
-	$(FC) $(FFLAGS) $(EXTFFLAGS) -D_FORTRAN_SOURCE_ -c $< -o $@
+	$(FC) $(FFLAGS) $(EXTFFLAGS) -c $< -o $@
 
 ${objdir}/glm_main.o: ${srcdir}/glm_main.c ${incdir}/glm.h
 	$(CC) -DBUILDDATE=\"${BUILDDATE}\" $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
@@ -472,7 +475,7 @@ libglm_wq_fabm.${so_ext}: ${objdir}/glm_zones.o ${objdir}/glm_fabm.o ${objdir}/o
 # special needs dependancies
 
 ${objdir}/aed_external.o: ../libaed-water/src/aed_external.F90
-	$(FC) $(FFLAGS) $(EXTFFLAGS) -D_FORTRAN_SOURCE_ $(OMPFLAG) -c $< -o $@
+	$(FC) $(FFLAGS) $(EXTFFLAGS) $(OMPFLAG) -c $< -o $@
 
 ${objdir}/glm_globals.o: ${srcdir}/glm_globals.c ${incdir}/glm_globals.h ${incdir}/glm.h
 ${objdir}/glm_plugin.o: ${srcdir}/glm_plugin.c ${incdir}/glm_plugin.h ${incdir}/glm.h

@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2024 - 2025 - The University of Western Australia                 #
+!# Copyright 2024-2025 - The University of Western Australia                   #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -33,9 +33,6 @@
 #include "aed_api.h"
 
 #undef MISVAL
-#ifndef _FORTRAN_SOURCE_
-#define _FORTRAN_SOURCE_ 1
-#endif
 
 #include "glm.h"
 
@@ -771,9 +768,9 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                sv = sv + 1
                !# Store benthic biogeochemical state variables.
                IF ( n_zones .GT. 0 ) THEN
-                  CALL store_nc_array(ncid, zexternalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_cc(n_vars+sv, 1, 1:n_zones))
+                  CALL store_nc_array(ncid, zexternalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_cc_hz(sv, 1:n_zones))
                ENDIF
-               CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc(n_vars+sv, 1))
+               CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc_hz(sv))
                IF ( do_plots .AND. plot_id_sv(sv).GE.0 ) THEN
                   IF ( n_zones .GT. 0 ) THEN
                      DO z=1,n_zones

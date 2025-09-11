@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -32,7 +32,7 @@
 #ifndef _GLM_WQUAL_H_
 #define _GLM_WQUAL_H_
 
-#ifndef _FORTRAN_SOURCE_
+#ifdef __STDC__
 
 typedef void (*wq_init_glm_t)(char *fname, size_t *len, int *NumWQVars, int *NumWQBen);
 typedef void (*wq_set_glm_data_t)(void);

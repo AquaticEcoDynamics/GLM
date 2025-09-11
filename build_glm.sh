@@ -3,6 +3,7 @@
 if [ "$GLM_CONFIGURED" != "true" ] ; then
   . ./GLM_CONFIG
 fi
+export CWD=`pwd`
 
 case `uname` in
   "Darwin"|"Linux"|"FreeBSD")
@@ -67,13 +68,13 @@ while [ $# -gt 0 ] ; do
   shift
 done
 
-. ${CWD}/build_env.inc
-
 export F77=$FC
 export F90=$FC
 export F95=$FC
 
 export MPI=OPENMPI
+
+. ${CWD}/build_env.inc
 
 if [ "$AED2DIR" = "" ] ; then
   export AED2DIR=../libaed2
@@ -147,7 +148,7 @@ if [ "$OSTYPE" = "FreeBSD" ] ; then
   # ./fetch.sh
   # ${MAKE} || exit 1
 elif [ "$OSTYPE" = "Msys" ] ; then
-  if [ ! -d ancillary/windows ] ; then
+  if [ ! -d ancillary/windows/lib ] ; then
     echo making windows ancillary extras
     cd ancillary/windows
     ./build.sh || exit 1
@@ -177,12 +178,16 @@ ${CURDIR}/vers.sh $VERSION
 #${CURDIR}/vers.sh $VERSION
 cd "${CURDIR}"
 
+export LIBRARY_PATH=$LIB
 ${MAKE} AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR || exit 1
 if [ "${DAEDDEVDIR}" != "" ] ; then
   if [ -d "${DAEDDEVDIR}" ] ; then
     echo now build plus version
     /bin/rm obj/aed_external.o
-    ${MAKE} glm+ AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR AEDRIPDIR=$DAEDRIPDIR AEDLGTDIR=$DAEDLGTDIR AEDDEVDIR=$DAEDDEVDIR PHREEQDIR=$PHREEQDIR || exit 1
+    /bin/rm obj/glm_main.o
+    ${MAKE} glm+ WITH_AED_PLUS=1 AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR \
+                                 AEDRIPDIR=$DAEDRIPDIR AEDLGTDIR=$DAEDLGTDIR \
+                                 AEDDEVDIR=$DAEDDEVDIR PHREEQDIR=$PHREEQDIR || exit 1
   fi
 fi
 

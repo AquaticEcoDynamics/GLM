@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -44,6 +44,8 @@
 #define MaxVars       60     /* Maximum number of variables */
 #define MaxDif   (MaxVars+2) /* Maximum number of diffusing substances */
 #define NPart         10000  /* Maximum number of particles */
+
+#ifdef __STDC__
 
 typedef int  LOGICAL;
 typedef char varname[40];
@@ -298,8 +300,7 @@ typedef char filname[80];
        partgroup_p prt[NPart];
    } partgroup_cell;
 */
+#endif
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif
-
-

@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2013 - 2025 - The University of Western Australia                 #
+!# Copyright 2013-2025 - The University of Western Australia                   #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -33,9 +33,6 @@
 #include "aed.h"
 
 #undef MISVAL
-#ifndef _FORTRAN_SOURCE_
-#define _FORTRAN_SOURCE_ 1
-#endif
 
 #include "glm.h"
 

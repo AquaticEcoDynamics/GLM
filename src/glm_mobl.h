@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 - The University of Western Australia                *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -34,7 +34,13 @@
 
 #include "glm.h"
 
-#ifdef _FORTRAN_SOURCE_
+#ifdef __STDC__
+
+   void doMobility(const CINTEGER *N, const AED_REAL *dt,
+                         const AED_REAL *h,  const AED_REAL *A,
+                         const AED_REAL *ww, const AED_REAL *min_C, AED_REAL *mcc);
+
+#else
 !###############################################################################
 
   INTERFACE
@@ -55,12 +61,6 @@
 
   END INTERFACE
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#else
-
-   void doMobility(const CINTEGER *N, const AED_REAL *dt,
-                         const AED_REAL *h,  const AED_REAL *A,
-                         const AED_REAL *ww, const AED_REAL *min_C, AED_REAL *mcc);
-
 #endif
 
 #endif

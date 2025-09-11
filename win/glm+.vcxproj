@@ -73,8 +73,8 @@
   </ImportGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\ancillary\windows\include;..\..\libplot\include;..\..\libutil\include;..\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AED;PLOTS;XPLOTS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\ancillary\windows\include;..\..\libplot\include;..\..\libutil\include;..\..\libaed-water\include</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>AED;PLOTS;XPLOTS;_CRT_SECURE_NO_WARNINGS;__STDC__=1</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <CallingConvention>Cdecl</CallingConvention>
       <CompileAs>CompileAsC</CompileAs>
