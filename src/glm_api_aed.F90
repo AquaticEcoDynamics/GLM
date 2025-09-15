@@ -719,7 +719,7 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
    INTEGER  :: i, j, v, d, sv, sd
    INTEGER  :: z
    AED_REAL :: val_out
-   CLOGICAL :: last = .FALSE.
+   FLOGICAL :: last = .FALSE.
 !
 !-------------------------------------------------------------------------------
 !BEGIN
