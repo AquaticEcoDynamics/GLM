@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -79,4 +79,4 @@ const int      iSecsPerHr      = 3600;
 // Numeric / other
 const AED_REAL missing         = MISVAL;
 const AED_REAL zero            = 0.0;
-const AED_REAL NaN             = missing / zero;
+const AED_REAL NaN             = MISVAL / 0.0;

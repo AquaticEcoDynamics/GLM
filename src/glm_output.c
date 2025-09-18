@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -43,6 +43,7 @@
   #define S_ISDIR(mode) (mode & _S_IFDIR)
   #endif
   #define mkdir(path, mode) _mkdir(path)
+  #define stat _stat
 #endif
 
 
@@ -57,6 +58,7 @@
 #include "glm_csv.h"
 #include "glm_ncdf.h"
 #include "glm_wqual.h"
+#include "glm_ptm.h"
 #include "glm_plot.h"
 
 #ifdef PLOTS
@@ -70,7 +72,7 @@ void wq_write_glm(int ncid, int wlev, int nlev, int *lvl, int point_nlevs)
 
 extern AED_REAL XLW, XCO, XEV, QSW;
 
-static int plot_id[10];
+static int plot_id[16];
 
 /******************************************************************************
  * Initialise output streams                                                  *
@@ -83,14 +85,14 @@ void init_output(int jstart, const char *out_dir, const char *out_fn,
     struct stat sb;
     extern int startTOD;
 
-    if ( out_dir != NULL && stat(out_dir, &sb) ) {
-        fprintf(stderr, "Directory \"%s\" does not exist - attempting to create it\n", out_dir);
-        if ( mkdir(out_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) ) {
-            fprintf(stderr, "mkdir failed\n");
-            exit(1);
-        }
-    } else {
-        if ( ! S_ISDIR(sb.st_mode) ) {
+    if ( out_dir != NULL ) {
+        if ( stat(out_dir, &sb) ) {
+            fprintf(stderr, "Directory \"%s\" does not exist - attempting to create it\n", out_dir);
+            if ( mkdir(out_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) ) {
+                fprintf(stderr, "mkdir failed\n");
+                exit(1);
+            }
+        } else if ( ! S_ISDIR(sb.st_mode) ) {
             fprintf(stderr, "Name given in out_dir (%s) is not a directory\n", out_dir);
             exit(1);
         }
@@ -103,8 +105,12 @@ void init_output(int jstart, const char *out_dir, const char *out_fn,
 
     init_csv_output(out_dir);
 
-    //# Initialize WQ output (creates NetCDF variables)
+    //# Initialize WQ output (creates WQ NetCDF variables)
     if (wq_calc) wq_init_glm_output(&ncid, &x_dim, &y_dim, &z_dim, &zone_dim, &time_dim);
+
+    //# Initialize PTM output (creates PTM NetCDF variables)
+    if (ptm_sw) ptm_init_glm_output(ncid, time_dim);
+
 
 #ifdef PLOTS
     if ( do_plots ) {
@@ -146,6 +152,18 @@ static AED_REAL max_temp(LakeDataType *Lake, int count)
 
 
 /******************************************************************************/
+static AED_REAL sum_lake_salt()
+{
+    AED_REAL sum = 0.;
+    int i;
+    for (i = 0; i < NumLayers; i++)
+        sum += (Lake[i].LayerVol*Lake[i].Salinity);
+    return sum;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************/
 static AED_REAL sum_lake_layervol()
 {
     AED_REAL sum = 0.;
@@ -153,6 +171,56 @@ static AED_REAL sum_lake_layervol()
     for (i = 0; i < NumLayers; i++)
         sum += Lake[i].LayerVol;
     return sum;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************/
+static AED_REAL salt_inflow()
+{
+    int i;
+    AED_REAL totInfSal = 0.0;
+
+    for (i = 0; i < NumInf; i++) {
+        totInfSal += (Inflows[i].FlowRate * Inflows[i].SalInf);
+    }
+    return totInfSal;
+}
+
+static AED_REAL salt_outflow()
+{
+    int i, drawL = -1;
+    AED_REAL totOutfSal = 0.0;
+
+    // This is probably not right.  The DrawnFrom index is the first layer where
+    // the draw occurs, but if the draw is greater than the volume of that layer
+    // there may be other layers whose salinity is different...
+
+    for (i = 0; i < NumOut; i++) {
+        drawL = Outflows[i].DrawnFrom;
+        if ( drawL >= 0 && drawL < NumLayers )
+            totOutfSal += (Outflows[i].LastDrawn * Outflows[i].Factor * Lake[drawL].Salinity);
+    }
+
+    return totOutfSal;
+}
+
+static AED_REAL salt_overflow()
+{
+    AED_REAL totOverFSal = 0.0;
+
+     totOverFSal += (SurfData.dailyOverflow * Lake[surfLayer].Salinity);
+
+    return totOverFSal;
+}
+
+static AED_REAL salt_rain_in()
+{ //  ("Rain Salt",       SurfData.dailyRain,        NULL, FALSE);
+    AED_REAL totRainSal = 0.0;
+
+//  totRainSal += (MetData.Rain * MetData.Salinity);
+
+    return totRainSal;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -193,6 +261,7 @@ int _intern_is_var(const char *v)
         if (strcasecmp("dens", v) == 0) return 5;
         if (strcasecmp("uorb", v) == 0) return 6;
         if (strcasecmp("taub", v) == 0) return 7;
+        if (strcasecmp("area", v) == 0) return 8;
     }
     return 0;
 }
@@ -269,6 +338,10 @@ void write_output(int jday, int iclock, int nsave, int stepnum)
     if (wq_calc)
         wq_write_glm(ncid, NumLayers, MaxLayers, lvl, csv_point_nlevs);
 
+    //# outputs PTM to NetCDF
+    if (ptm_sw)
+        ptm_write_glm(ncid, max_particle_num);
+
     if (csv_point_nlevs > 0) {
         for (i = 0; i < csv_point_nlevs; i++) {
             if ( csv_point_depth_avg[i] )
@@ -337,6 +410,12 @@ void write_diags(int jday, AED_REAL LakeNum)
     write_csv_lake("CD",              coef_wind_drag,            NULL, FALSE);
     write_csv_lake("CHE",             coef_wind_chwn,            NULL, FALSE);
     write_csv_lake("z/L",             SurfData.dailyzonL*(noSecs/SecsPerDay), NULL, TRUE);
+
+    write_csv_lake("Tot Salt",        sum_lake_salt(),           NULL, FALSE);
+    write_csv_lake("Tot Inflow Salt", salt_inflow(),             NULL, FALSE);
+    write_csv_lake("Tot Outflow Salt",salt_outflow(),            NULL, FALSE);
+    write_csv_lake("Overflow Salt",   salt_overflow(),           NULL, FALSE);
+    write_csv_lake("Rain Salt",       salt_rain_in(),            NULL, FALSE);
 
     write_glm_diag_ncdf(ncid, LakeNum, max_t, min_t, max_dt);
 }
@@ -419,7 +498,7 @@ void close_output()
 #ifdef PLOTS
     if ( do_plots ) {
         extern char *all_plots_name;
-        if ( saveall > 1 && all_plots_name ) {
+        if ( saveall && all_plots_name ) {
             save_all_plots_named(all_plots_name);
             saveall = 0;
         }

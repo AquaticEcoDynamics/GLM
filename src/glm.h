@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 - The University of Western Australia                *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -35,7 +35,8 @@
 #endif
 #define USE_FILLVALUE 1
 
-#define GLM_VERSION  "3.3.5"
+/* Actually pre-alpha V4.0.0 */
+#define GLM_VERSION  "3.9.102"
 
 #define POINT         0
 #define Z_SHAPE       1
@@ -49,16 +50,12 @@
 #define PATH_MAX  1024
 #endif
 
-#ifdef _FORTRAN_SOURCE_
+#ifndef __STDC__
 !-------------------------------------------------------------------------------
 !! Fortran version
 
 !#  define surfLayer NumLayers
 #  define botmLayer 1
-
-!  This is how we sort out the differences in multidimensional array indexing
-#  define _IDX_2d(di,dj,i,j) (((di) * (j-1)) + (i-1) + 1)
-#  define WQ_INF_(a,i,j) a(_IDX_2d(MaxInf,MaxVars,i,j))
 
 #  ifndef AED_REAL
 #    define AED_REAL REAL(kind=C_DOUBLE)
@@ -66,16 +63,14 @@
 #  define CAED_REAL REAL(kind=C_DOUBLE)
 #  define NF90_REALTYPE NF90_DOUBLE
 #  define NC_FILLER NC_FILL_DOUBLE
-#  define IFIX IDINT
-#  define AMOD DMOD
-#  define ALOG10 DLOG10
-#  define EXP DEXP
-#  define AINT DINT
-#  define FLOAT
+
+#  ifndef FLOAT
+#    define FLOAT(x) (x)
+#  endif
 #  define DOUBLETYPE double precision
-#  define CINTEGER INTEGER(kind=C_INT)
+#  define CINTEGER INTEGER(kind=C_INT32_T)
 #  define CSIZET   INTEGER(kind=C_SIZE_T)
-#  define CLOGICAL LOGICAL(kind=C_BOOL)
+#  define FLOGICAL LOGICAL(kind=C_BOOL)
 #  define CCHARACTER CHARACTER(C_CHAR)
 
 #  define stdin  5
@@ -87,6 +82,8 @@
 //------------------------------------------------------------------------------
   // C Version of header
 
+# include <stdint.h>
+
   #define surfLayer (NumLayers-1)
   #define botmLayer 0
 
@@ -94,17 +91,22 @@
   #define offshoreLayer (surfLayer+1)
 
 // This is how we sort out the differences in multidimensional array indexing
-  #define _IDX_2d(di,dj,i,j) (((di) * (j)) + (i))
-  #define WQ_INF_(a,i,j) a[_IDX_2d(MaxInf,MaxVars,i,j)]
+// the order of indeces has been reversed in this version of GLM, but generally
+//  the only lace you will know is in macros like this and when allocating arrays
+//#define WQ_INF_(a,i,j) a[_IDX_2d(MaxInf,MaxVars,i,j)]
+  #define WQ_INF_(a,i,j) a[_IDX_2d(MaxVars,MaxInf,j,i)]
+//#define WQ_OUT_(a,i,j) a[_IDX_2d(MaxOut,MaxVars,i,j)]
+  #define WQ_OUT_(a,i,j) a[_IDX_2d(MaxOut,MaxVars,j,i)]
 
   #define AMOD fmod
   typedef double AED_REAL;
   #define NC_REALTYPE NC_DOUBLE
   #define NC_FILLER NC_FILL_DOUBLE
   typedef double DOUBLETYPE;
-// Although this should be an unsigned char, that appears to cause addressing issues so back to int for now
-//  typedef unsigned char CLOGICAL;
   typedef int CLOGICAL;
+  typedef _Bool FLOGICAL;
+  typedef int32_t CINTEGER;
+  typedef int8_t  CCHARACTER;
 
   #define TRUE  1
   #define FALSE 0
@@ -138,12 +140,6 @@
 
 
 #define MISVAL -9999.
-#ifndef NC_FILL_DOUBLE
-#define NC_FILL_DOUBLE    (9.9692099683868690d+36)
-#endif
-#ifndef NC_FILL_FLOAT
-#define NC_FILL_FLOAT     (9.9692099683868690e+36)
-#endif
 #ifndef _ZERO_
 #define _ZERO_ 0.
 #endif
@@ -152,11 +148,4 @@
 #define LW_IN    2
 #define LW_NET   3
 
-#if 0
-#define POW(a,b) (exp( log(a) * (b) ))
-#define POW(a,b) pow(a,b)
-#define POW(a,b) ((a)**(b)) ! FORTRAN VERSION
-#define dbgprt(...) print __VA_ARGS__
-#define dbgprt(...) ! __VA_ARGS__
-#endif
 #endif

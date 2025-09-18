@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -33,7 +33,39 @@
 #define MaxPointCSV    10
 #define MaxCSVOutVars   20
 
-#ifdef _FORTRAN_SOURCE_
+#ifdef __STDC__
+
+/*############################################################################*/
+
+extern AED_REAL csv_point_at[];
+extern CLOGICAL csv_point_frombot[];
+extern int csv_point_nlevs;
+extern int csv_lake_file;
+
+void init_csv_output(const char *out_dir);
+void write_csv_point(int f, const char *name, AED_REAL val, const char *cval, int last);
+void write_csv_point_(int *f, const char *name, int *len, AED_REAL *val, const char *cval, int *vlen, int *last);
+void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
+                                                    const char *cval, int last);
+void write_csv_lake(const char *name, AED_REAL val, const char *cval, int last);
+void write_csv_lake_(const char *name, int *len, AED_REAL *val, const char *cval, int *vlen, int *last);
+void glm_close_csv_output(void);
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+void configure_csv(int point_nlevs, AED_REAL *point_at, const char *point_fname,
+            CLOGICAL *point_frombot, int point_nvars, CLOGICAL *point_depth_avg,
+                    AED_REAL *point_zone_upper, AED_REAL *point_zone_lower,
+                    const char *lake_fname);
+
+void set_csv_point_varname(int which, const char *point_varnam);
+
+void configure_outfl_csv(int outlet_allinone, const char *outfl_fname,
+                                        int outfl_nvars, const char *ovrfl_fname);
+void set_csv_outfl_varname(int which, const char *outfl_varnam);
+void write_csv_outfl(int f, const char *name, AED_REAL val, const char *cval, int last);
+void write_csv_outfl_idx(int ofl, int var, AED_REAL val, const char *cval, int last);
+
+#else
 
   INTERFACE
 
@@ -48,7 +80,7 @@
         AED_REAL,INTENT(in)   :: val
         CCHARACTER,INTENT(in) :: cval(*)
         CINTEGER,INTENT(in)   :: vlen
-        CLOGICAL,INTENT(in)   :: last
+        FLOGICAL,INTENT(in)   :: last
      END SUBROUTINE write_csv_point
 
      SUBROUTINE write_csv_point_avg(f, name, len, vals, cval, vlen, last) BIND(C, name="write_csv_point_avg_")
@@ -62,7 +94,7 @@
         AED_REAL,INTENT(in)   :: vals(*)
         CCHARACTER,INTENT(in) :: cval(*)
         CINTEGER,INTENT(in)   :: vlen
-        CLOGICAL,INTENT(in)   :: last
+        FLOGICAL,INTENT(in)   :: last
      END SUBROUTINE write_csv_point_avg
 
      SUBROUTINE write_csv_lake(name,len,val,cval,vlen,last) BIND(C,name="write_csv_lake_")
@@ -72,7 +104,7 @@
         AED_REAL,INTENT(in)   :: val
         CCHARACTER,INTENT(in) :: cval(*)
         CINTEGER,INTENT(in)   :: vlen
-        CLOGICAL,INTENT(in)   :: last
+        FLOGICAL,INTENT(in)   :: last
      END SUBROUTINE write_csv_lake
 
      SUBROUTINE close_csv_point_output() BIND(C, name="close_csv_point_output")
@@ -82,41 +114,6 @@
      END SUBROUTINE close_csv_lake_output
 
   END INTERFACE
-#else
-
-/*############################################################################*/
-
-extern AED_REAL csv_point_at[];
-extern int csv_point_frombot[];
-extern int csv_point_nlevs;
-extern int csv_lake_file;
-
-void init_csv_output(const char *out_dir);
-void write_csv_point(int f, const char *name, AED_REAL val, const char *cval, int last);
-void write_csv_point_(int *f, const char *name, int *len, AED_REAL *val, const char *cval, int *vlen, int *last);
-void write_csv_point_avg(int p, const char *name, AED_REAL *vals,
-                                                    const char *cval, int last);
-void write_csv_lake(const char *name, AED_REAL val, const char *cval, int last);
-void write_csv_lake_(const char *name, int *len, AED_REAL *val, const char *cval, int *vlen, int *last);
-void glm_close_csv_output(void);
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
-/*
-void configure_csv(int point_nlevs, AED_REAL *point_at, const char *point_fname,
-                             int *point_frombot, int point_nvars, const char *lake_fname);
-*/
-void configure_csv(int point_nlevs, AED_REAL *point_at, const char *point_fname,
-                    int *point_frombot, int point_nvars, int *point_depth_avg,
-                    AED_REAL *point_zone_upper, AED_REAL *point_zone_lower,
-                    const char *lake_fname);
-
-void set_csv_point_varname(int which, const char *point_varnam);
-
-void configure_outfl_csv(int outlet_allinone, const char *outfl_fname,
-                                        int outfl_nvars, const char *ovrfl_fname);
-void set_csv_outfl_varname(int which, const char *outfl_varnam);
-void write_csv_outfl(int f, const char *name, AED_REAL val, const char *cval, int last);
-void write_csv_outfl_idx(int ofl, int var, AED_REAL val, const char *cval, int last);
 
 #endif
 

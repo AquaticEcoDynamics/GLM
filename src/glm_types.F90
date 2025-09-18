@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2013 - 2025 -  The University of Western Australia                #
+!# Copyright 2013-2025 - The University of Western Australia                   #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -160,11 +160,93 @@ MODULE glm_types
       AED_REAL :: z_sed_zones
       AED_REAL :: z_pc_wet
       AED_REAL :: heatflux
-      CINTEGER :: n_sed_layers;     !# number of sediment layers
+      CINTEGER :: n_sed_layers;    !# number of sediment layers
       TYPE(C_PTR) :: c_layers      !# array of sed layers
    END TYPE ZoneType
 
+   !#===========================================================#!
+   !# Structured type for Particle Transport Model (PTM)
+
+!  TYPE,BIND(C) :: ParticleDataType
+!      INTEGER  :: Status         ! indivdual particle status
+!      INTEGER  :: Flag           ! indivdual particle flag indicating if BED (1) or SCUM (2), or neither (0)
+!      AED_REAL :: Height
+!      AED_REAL :: Mass
+!      AED_REAL :: Diam
+!      AED_REAL :: Density
+!      AED_REAL :: Velocity
+!      AED_REAL :: vvel
+!      CINTEGER :: Layer
+!  END TYPE ParticleDataType
+
+   !#===========================================================#!
+   !# NEW structured type for Particle Transport Model (PTM), following AED API
+
+#if 0
+   TYPE,BIND(C) :: partgroup
+      INTEGER(KIND=4) :: NP                                ! Number of Particles
+      INTEGER(KIND=4) :: id_stat, id_i2, id_i3, id_layer   ! Particle ISTAT Index Values
+      INTEGER(KIND=4) :: id_bed_layer, id_motility         ! Particle ISTAT Index Values
+      INTEGER(KIND=4) :: id_uvw0, id_uvw, id_nu, id_wnd    ! Particle PROP Index Values
+      INTEGER(KIND=4) :: id_wsel, id_watd, id_partd        ! Particle PROP Index Values
+      INTEGER(KIND=4) :: id_age, id_state                  ! Particle TSTAT Index Values
+      INTEGER(KIND=4) :: i_next                            ! next particle index
+      INTEGER(KIND=4),POINTER,DIMENSION(:,:) :: istat      ! Particle Integer Status/Cell-index variables (4,NPart)
+      REAL(KIND=8),POINTER,DIMENSION(:,:) :: tstat         ! Particle Time/Age Vector (2,Npart)
+      REAL(KIND=8),POINTER,DIMENSION(:,:) :: xyz           ! particle position vector
+      REAL(KIND=4),POINTER,DIMENSION(:,:) :: prop          ! Particle Property Vector (12,Npart)
+      REAL(KIND=4),POINTER,DIMENSION(:,:) :: U             ! Particle Conserved Variable Vector (NU,NP)
+   END TYPE partgroup
+   TYPE,BIND(C) :: partgroup_p
+      INTEGER :: idx, grp
+   END TYPE partgroup_p
+   TYPE,BIND(C) :: partgroup_cell
+      INTEGER :: count, n
+      TYPE(partgroup_p),ALLOCATABLE,DIMENSION(:) :: prt
+   END TYPE partgroup_cell
+#endif
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+   !================================================================
+   !# variables in C code of GLM
+   !----------------------------------------------------------------
+   TYPE(CINTEGER),BIND(C, name="MaxLayers")   :: MaxLayers
+   TYPE(C_PTR),BIND(C, name="Lake")           :: cLake
+   TYPE(CINTEGER),BIND(C, name="n_zones")     :: n_zones
+   TYPE(C_PTR),BIND(C, name="theZones")       :: cZones
+
+   TYPE(C_PTR),BIND(C, name="pMetData")       :: cMetData
+   TYPE(C_PTR),BIND(C, name="pSurfData")      :: cSurfData
+
+   TYPE(LakeDataType),   DIMENSION(:),POINTER :: theLake
+   TYPE(MetDataType),                 POINTER :: MetData   !# Meteorological data
+   TYPE(SurfaceDataType),             POINTER :: SurfData  !# Surface Data
+   TYPE(ZoneType),       DIMENSION(:),POINTER :: theZones
+
+   TYPE(FLOGICAL),BIND(C, name="mobility_off")       :: mobility_off      = .FALSE.
+   TYPE(FLOGICAL),BIND(C, name="bioshade_feedback")  :: bioshade_feedback = .TRUE.
+   TYPE(FLOGICAL),BIND(C, name="repair_state")       :: repair_state      = .TRUE.
+   TYPE(FLOGICAL),BIND(C, name="do_plots")           :: do_plots          = .FALSE.
+   TYPE(FLOGICAL),BIND(C, name="link_rain_loss")     :: link_rain_loss    = .FALSE.
+   TYPE(FLOGICAL),BIND(C, name="link_solar_shade")   :: link_solar_shade  = .FALSE.
+   TYPE(FLOGICAL),BIND(C, name="link_bottom_drag")   :: link_bottom_drag  = .FALSE.
+   TYPE(FLOGICAL),BIND(C, name="ice")                :: ice               = .FALSE.
+
+   TYPE(CINTEGER),BIND(C, name="split_factor")       :: split_factor
+   TYPE(CINTEGER),BIND(C, name="ode_method")         :: ode_method
+   TYPE(CINTEGER),BIND(C, name="benthic_mode")       :: benthic_mode
+
+   TYPE(AED_REAL),TARGET,BIND(C, name="rain_factor") :: rain_factor
+   TYPE(AED_REAL),TARGET,BIND(C, name="sw_factor")   :: sw_factor
+   TYPE(AED_REAL),TARGET,BIND(C, name="friction")    :: friction
+
+   TYPE(AED_REAL),TARGET,BIND(C, name="Kw")          :: Kw
+   TYPE(AED_REAL),TARGET,BIND(C, name="dt")          :: dt = 0.
+
+   TYPE(AED_REAL),TARGET,BIND(C, name="yearday")     :: yearday
+   TYPE(AED_REAL),TARGET,BIND(C, name="timestep")    :: timestep
+   TYPE(AED_REAL),TARGET,BIND(C, name="Longitude")   :: longitude
+   TYPE(AED_REAL),TARGET,BIND(C, name="Latitude")    :: latitude
 
 CONTAINS
 
@@ -204,6 +286,19 @@ FUNCTION make_c_string(s1,s2) RESULT(len)
    ENDDO
    s1(len+1) = ACHAR(0)
 END FUNCTION make_c_string
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE glm_init_fortran_support() BIND(C, name="glm_init_fortran_support")
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   CALL C_F_POINTER(cLake, theLake, [MaxLayers]);
+   CALL C_F_POINTER(cMetData, MetData)
+   CALL C_F_POINTER(cSurfData, SurfData)
+   CALL C_F_POINTER(cZones, theZones, [n_zones]);
+END SUBROUTINE glm_init_fortran_support
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 END MODULE glm_types

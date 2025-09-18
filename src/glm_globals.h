@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -30,9 +30,10 @@
 #ifndef _GLM_GLOBALS_H_
 #define _GLM_GLOBALS_H_
 
-#ifdef _FORTRAN_SOURCE_
+#ifndef __STDC__
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-INTERFACE
+ INTERFACE
 
      SUBROUTINE set_c_wqvars_ptr(iwqvars) BIND(C, name="set_c_wqvars_ptr")
         USE ISO_C_BINDING
@@ -41,6 +42,33 @@ INTERFACE
 #       endif
         AED_REAL,INTENT(in) :: iwqvars(*)
      END SUBROUTINE set_c_wqvars_ptr
+
+     SUBROUTINE set_c_wqdvars_ptr(iwqdvars,iwqdsvars,nwqd,nwqds) BIND(C, name="set_c_wqdvars_ptr")
+        USE ISO_C_BINDING
+#       if defined( _WIN32 ) && USE_DL_LOADER
+        !DEC$ ATTRIBUTES DLLIMPORT :: set_c_wqvars_ptr
+#       endif
+        AED_REAL,INTENT(in) :: iwqdvars(*)
+        AED_REAL,INTENT(in) :: iwqdsvars(*)
+        CINTEGER,INTENT(in) :: nwqd
+        CINTEGER,INTENT(in) :: nwqds
+     END SUBROUTINE set_c_wqdvars_ptr
+
+     SUBROUTINE set_c_ptmstat_ptr(iptms) BIND(C, name="set_c_ptmstat_ptr")
+        USE ISO_C_BINDING
+#       if defined( _WIN32 ) && USE_DL_LOADER
+        !DEC$ ATTRIBUTES DLLIMPORT :: set_c_ptmstat_ptr
+#       endif
+        CINTEGER,INTENT(in) :: iptms(*)
+     END SUBROUTINE set_c_ptmstat_ptr
+
+     SUBROUTINE set_c_ptmenv_ptr(iptmv) BIND(C, name="set_c_ptmenv_ptr")
+        USE ISO_C_BINDING
+#       if defined( _WIN32 ) && USE_DL_LOADER
+        !DEC$ ATTRIBUTES DLLIMPORT :: set_c_ptmenv_ptr
+#       endif
+        AED_REAL,INTENT(in) :: iptmv(*)
+     END SUBROUTINE set_c_ptmenv_ptr
 
 # if DEBUG
      SUBROUTINE debug_print_lake() BIND(C, name="debug_print_lake")
@@ -52,8 +80,7 @@ INTERFACE
      END SUBROUTINE debug_initialisation
 # endif
 
-
-END INTERFACE
+ END INTERFACE
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #else
@@ -66,30 +93,29 @@ END INTERFACE
 extern int ncid;
 
 /* from glm_surf.F90 */
-extern int ice;
 extern AED_REAL AvgSurfTemp;
 /*----------------------------------------------------------------------------*/
-extern int MaxLayers;   //# Maximum number of layers in this sim
-extern int NumLayers;   //# current number of layers
-extern LakeDataType *Lake;
-
-
-extern AED_REAL Latitude, Longitude;
+extern CINTEGER NumLayers;   //# current number of layers
 
 extern AED_REAL DMin;    //# minimum layer thickness
 extern AED_REAL DMax;    //# maximum layer thickness
 extern AED_REAL VMin;    //# minimum layer volume
 extern AED_REAL VMax;    //# maximum layer volume
 
-extern AED_REAL Kw;            //# background light attenuation (m**-1)
+extern int wq_calc;         //# are we doing water quality calcs
+extern int Num_WQ_Vars;     //# number of water quality variables
+extern int Num_WQ_Ben;      //# number of benthic water quality variables
+extern int Tot_WQ_Vars;     //# nVars + nBen
+extern int Num_WQD_Vars;    //# number of water quality diagnostic variables
+extern int Num_WQDS_Vars;   //# number of water quality diagnostic "sheet" variables
 
-extern int wq_calc;            //# are we doing water quality calcs
-extern int Num_WQ_Vars;        //# number of water quality variables
-extern int Num_WQ_Ben;         //# number of benthic water quality variables
-extern AED_REAL *WQ_Vars;      //# water quality array : nlayers, nvars
+extern AED_REAL *WQ_Vars;   //# water quality array : [nvars, nlayers]
+extern AED_REAL *WQS_Vars;  //# water quality benthics array : [nvars]
+extern AED_REAL *WQD_Vars;  //# water quality diagnostics array : [nvars, nlayers]
+extern AED_REAL *WQDS_Vars; //# water quality sheet diagnostics array : [nvars]
 
-extern int       n_zones;      //# number of sediment zones
-extern ZoneType *theZones;
+extern int *PTM_Stat;       //# water quality diagnostics array : [nlayers, nvars]
+extern AED_REAL *PTM_Vars;  //# water quality sheet diagnostics array : [nvars]
 
 /*----------------------------------------------------------------------------*/
 
@@ -142,7 +168,7 @@ extern MetDataType MetData;      //# Meteorological data
 extern AED_REAL runoff_coef;
 extern AED_REAL rain_threshold;
 extern CLOGICAL catchrain;
-extern int atm_stab;         //# Account for non-neutral atmospheric stability
+extern CLOGICAL atm_stab;         //# Account for non-neutral atmospheric stability
 extern AED_REAL coef_wind_drag;   //# = 0.0013;
 extern AED_REAL coef_wind_chwn;   //# = 0.0013;
 extern AED_REAL CD;               //# = 0.0013;
@@ -157,10 +183,7 @@ extern int      n_bands;
 extern AED_REAL *light_extc;
 extern AED_REAL *energy_frac;
 
-extern LOGICAL  link_solar_shade;
-extern LOGICAL  link_rain_loss;
-extern LOGICAL  link_bottom_drag;
-extern LOGICAL  use_met_atm_pres;
+extern CLOGICAL use_met_atm_pres;
 extern AED_REAL biodrag;
 
 extern AED_REAL salt_fall;
@@ -190,7 +213,6 @@ extern AED_REAL coef_wind_stir; //# wind stirring
 extern AED_REAL coef_mix_hyp;   //# efficiency of hypolimnetic mixing
 extern AED_REAL coef_mix_shreq; //# unsteady effects
 
-extern CLOGICAL mobility_off;
 extern CLOGICAL non_avg;
 extern int      deep_mixing;          //# = 0 => off > 0 => on
 extern int      surface_mixing;
@@ -275,7 +297,7 @@ extern AED_REAL *L_gw;   //# turn off evaporation
 
 /*----------------------------------------------------------------------------*/
 // FETCH
-extern LOGICAL   fetch_sw;
+extern CLOGICAL  fetch_sw;
 extern int       fetch_ndirs;
 extern AED_REAL *fetch_dirs;
 extern AED_REAL *fetch_scale;
@@ -291,6 +313,19 @@ extern char     *fetch_fws;
 // LITTORAL
 extern CLOGICAL littoral_sw;
 
+//------------------------------------------------------------------------------
+// PARTICLE TRANSPORT MODEL
+extern CLOGICAL ptm_sw;
+extern int max_particle_num;   //# number of particles
+extern ParticleDataType *Particle;
+extern AED_REAL settling_velocity;
+extern CLOGICAL do_particle_bgc;
+extern int init_particle_num;
+extern AED_REAL settling_efficiency;
+extern AED_REAL *inflow_conc;    //# concentration of particles per ?? in the inflow
+
+extern partgroup *Particles;
+
 /*----------------------------------------------------------------------------*/
 // TIME
 extern AED_REAL timezone_r, timezone_m, timezone_i, timezone_o;
@@ -298,22 +333,84 @@ extern int nDays;          //# number of days to simulate
 extern AED_REAL timestep;
 extern int noSecs;
 extern AED_REAL yearday;   //# day of year
+/*----------------------------------------------------------------------------*/
+// HEAT PUMP SYSTEM
+extern int heat_pump_switch;                 //# enable/disable heat pump (0=off, 1=on, 2=heat flux mode) - add other heatflux type after
+extern int heat_pump_inflow_idx;             //# index of the heat pump inflow to be linked to the outflow
+extern int heat_pump_outflow_idx;            //# index of the heat pump outflow to be linked with the inflow
+extern AED_REAL heat_pump_temp_change;       //# temperature increase (°C)
+extern AED_REAL heat_pump_heat_flux;         //# heat flux input (W)
+extern AED_REAL heat_pump_dynamic_heat_flux; //# dynamic heat flux from CSV (W)
+extern AED_REAL heat_pump_current_heat_flux; //# current dynamic heat flux from CSV (W)
 
 /*----------------------------------------------------------------------------*/
 // DEBUGGING
-extern CLOGICAL dbg_mix;   //# debug output from mixer
-extern CLOGICAL no_evap;   //# turn off evaporation
-extern int      quiet;     //# turn down output messages
+extern CLOGICAL dbg_mix;  //# debug output from mixer
+extern CLOGICAL no_evap;  //# turn off evaporation
+extern int     quiet;     //# turn down output messages
 
+/*----------------------------------------------------------------------------*/
+// C-Fortran shared (see glm_types.F90
+extern CINTEGER MaxLayers;   //# Maximum number of layers in this sim
+extern LakeDataType *Lake;
+extern CINTEGER  n_zones;    //# number of sediment zones
+extern ZoneType *theZones;
+
+//extern C_PTR pMetData;
+//extern C_PTR pSurfData;
+
+//extern LakeDataType theLake;
+//extern MetDataType MetData;
+//extern SurfaceDataType SurfData;
+//extern ZoneType theZones;
+
+extern FLOGICAL mobility_off;
+extern FLOGICAL bioshade_feedback;
+extern FLOGICAL repair_state;
+extern FLOGICAL do_plots;
+extern FLOGICAL link_rain_loss;
+extern FLOGICAL link_solar_shade;
+extern FLOGICAL link_bottom_drag;
+extern FLOGICAL ice;
+
+extern CINTEGER split_factor;
+extern CINTEGER ode_method;
+extern CINTEGER benthic_mode;
+
+extern AED_REAL rain_factor;
+extern AED_REAL sw_factor;
+extern AED_REAL friction;
+
+extern AED_REAL Kw;
+extern AED_REAL dt;
+
+extern AED_REAL yearday;
+extern AED_REAL timestep;
+extern AED_REAL Longitude;
+extern AED_REAL Latitude;
 
 /******************************************************************************/
 void allocate_storage(void);
 void set_c_wqvars_ptr(AED_REAL *iwqvars);
+void set_c_wqdvars_ptr(AED_REAL *iwqd, AED_REAL *iwqds, int *nwqd, int *nwqds);
+void set_c_ptmstat_ptr(int *iptms);
+void set_c_ptmenv_ptr(AED_REAL *iptmv);
 void debug_print_lake(void);
 void debug_initialisation(int which);
 void debug_initialisation_(int *which);
 
-#define _WQ_Vars(var,lyr) WQ_Vars[_IDX_2d(MaxLayers,Num_WQ_Vars,lyr,var)]
+//# NB: The order of array indeices has been reversed as of V4 
+// #  define _WQ_Vars(var,lyr) WQ_Vars[_IDX_2d(MaxLayers,Tot_WQ_Vars,lyr,var)]
+// //#define _WQS_Vars(var,lyr) WQ_Vars[_IDX_2d(MaxLayers,Tot_WQ_Vars,lyr,var)]
+// #  define _WQD_Vars(var,lyr) WQD_Vars[_IDX_2d(MaxLayers,Num_WQD_Vars,lyr,var)]
+// #  define _WQDS_Vars(var,lyr) WQDS_Vars[_IDX_2d(Num_WQDS_Vars,lyr,var)]
+
+#  define _WQ_Vars(var,lyr) WQ_Vars[_IDX_2d(Tot_WQ_Vars,MaxLayers,var,lyr)]
+//#define _WQS_Vars(var,lyr) WQ_Vars[_IDX_2d(Tot_WQ_Vars,MaxLayers,var,lyr)]
+#  define _WQD_Vars(var,lyr) WQD_Vars[_IDX_2d(Num_WQD_Vars,MaxLayers,var,lyr)]
+#  define _WQDS_Vars(var,lyr) WQDS_Vars[_IDX_2d(Num_WQDS_Vars,var,lyr)]
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif
 
 /*============================================================================*/

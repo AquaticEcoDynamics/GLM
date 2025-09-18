@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -32,8 +32,8 @@
 
 #include "glm.h"
 
-AED_REAL do_outflows(int jday);
-AED_REAL do_overflow(int jday);
+AED_REAL do_outflows(int jday, AED_REAL day_fraction);
+AED_REAL do_overflow(int jday, AED_REAL day_fraction);
 AED_REAL do_inflows(void);
 
 #endif

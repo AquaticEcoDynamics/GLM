@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -43,6 +43,9 @@
 #define MaxInf        20     /* Maximum number of inflows */
 #define MaxVars       60     /* Maximum number of variables */
 #define MaxDif   (MaxVars+2) /* Maximum number of diffusing substances */
+#define NPart         10000  /* Maximum number of particles */
+
+#ifdef __STDC__
 
 typedef int  LOGICAL;
 typedef char varname[40];
@@ -58,10 +61,10 @@ typedef char filname[80];
  * a bit messy, but until we are all C we must live with the cards we are...  *
  *                                                                            *
  ******************************************************************************/
-#define _IDX_2d(di,dj,i,j) (((di) * (j)) + (i))
+#define _IDX_2d(di,dj,      i,j)                                                         (((di) * (j)) + (i))
 
-#define _IDX_3d(di,dj,dk,   i,j,k)                         ((dk * dj * i) + (dk * j) + k)
-#define _IDX_4d(di,dj,dk,dl,i,j,k,l)  ((dl * dk * dj * i) + (dl * dk * j) + (dl * k) + l)
+#define _IDX_3d(di,dj,dk,   i,j,k)                                 (((di) * (dj) * (k)) + ((di) * (j)) + (i))
+#define _IDX_4d(di,dj,dk,dl,i,j,k,l)  (((di) * (dj) * (dk) * (l)) + ((di) * (dj) * (k)) + ((di) * (j)) + (i))
 
 /******************************************************************************
  * Macros for max and min - the first are the "standard" macros but suffer    *
@@ -103,6 +106,7 @@ typedef char filname[80];
        AED_REAL Factor;          // scaling factor for inflow
        AED_REAL TemInf;          // inflow temperature
        AED_REAL SalInf;          // inflow salinity
+       AED_REAL ParticlesInf;    // inflow particles
        AED_REAL Dlwst;
        AED_REAL HFlow;
        AED_REAL TotIn;
@@ -120,30 +124,36 @@ typedef char filname[80];
        AED_REAL WQDown[MaxPar][MaxVars]; // downflow water quality
        AED_REAL WQInf[MaxVars];
 
-       int  iCnt;
-       int  NoIns;
-       int  InPar[MaxPar];
+       CINTEGER iCnt;
+       CINTEGER NoIns;
+       CINTEGER InPar[MaxPar];
 
-       LOGICAL  SubmFlag;        // Is this a submerged inflow
        AED_REAL SubmElev;        // elevation of inflow
+       LOGICAL  SubmFlag;        // Is this a submerged inflow
        LOGICAL  SubmElevDynamic; // Is this dynamic elevation
+
+       AED_REAL ParticleConc;    // particle concentration
    } InflowDataType;
 
    /*===========================================================*/
    // Structured type for outflow vars
    // An outflow will be an allocated array of MaxOut of these
    typedef struct OutflowDataType {
-       int Type;                 // outflow type
+       int      Type;            // outflow type
        AED_REAL Hcrit;           // outlet height when crit O2
-       int O2idx;                // O2 parameter idx in AED/FABM
-       char O2name;              // O2 parameter name in AED/FABM
+       int      O2idx;           // O2 parameter idx in AED/FABM
        AED_REAL TARGETtemp;      // Isotherm for withdrawal switch 4
        AED_REAL OLev;            // distance below surface level
        AED_REAL OLen;            // basin length at the outlet
        AED_REAL OWid;            // basin width at the outlet
        AED_REAL Draw;            // outflow volumes
+       AED_REAL LastDrawn;       // outflow volume removed at last draw
+       CINTEGER DrawnFrom;       // layer index where last drawn
        AED_REAL Factor;          // scaling factor for outflow
        LOGICAL  FloatOff;        // Is this a floating offtake
+       AED_REAL SubmElev;        // submerged outflow elevation (height from bottom)
+       LOGICAL  SubmElevDynamic; // Is this dynamic elevation from CSV
+       AED_REAL *WQ_Outflow;     // WQ variables collected from outflow layer
    } OutflowDataType;
 
    /*===========================================================*/
@@ -247,9 +257,53 @@ typedef char filname[80];
        AED_REAL z_sed_zones;
        AED_REAL z_pc_wet;
        AED_REAL heatflux;
-       int n_sed_layers;      // number of sediment layers
+       CINTEGER n_sed_layers;    // number of sediment layers
        SedLayerType *layers;
    } ZoneType;
+
+   /*===========================================================*/
+   // Structured type for Particle Transport Model (PTM)
+   typedef struct ParticleDataType {
+       CINTEGER Status;          // indivdual particle status (0 = dead, 1 = alive)
+       CINTEGER Flag;            // indivdual particle flag indicating BED (1), SCUM (2), or neither (0)
+       AED_REAL Height;          // height of particle (m)
+       AED_REAL Mass;            // mass of particle
+       AED_REAL Diam;            // diameter of particle
+       AED_REAL Density;         // density of particle
+       AED_REAL Velocity;        // velocity of particle
+       AED_REAL vvel;            // vertical velocity of particle (m/day)
+       CINTEGER Layer;           // layer of particle
+   } ParticleDataType;
+
+   /*===========================================================*/
+   // NEW Structured type for Particle Transport Model (PTM), following AED API
+
+   typedef struct partgroup {
+       CINTEGER NP;                             // number of particles in group
+                                                // number of particles
+       CINTEGER ptmid_stat, ptmid_col, ptmid_3d, ptmid_layer; // ISTAT index values; descriptions?
+       CINTEGER id_bed_layer, id_motility;                    // ISTAT index values; descriptions?
+       CINTEGER ptmid_age, ptmid_state;                       // TSTAT index valuess; descriptions?
+       CINTEGER ptmid_wvel, ptmid_pvel, ptmid_nu, ptmid_vvel; // PROP index values; descriptions?
+       CINTEGER ptmid_wsel, ptmid_wdep, ptmid_pdep;           // PROP index values; descriptions?
+       CINTEGER i_next;              // next particle index
+       CINTEGER *istat[4][NPart];    // Particle Integer Status/Cell-index variables (4,NPart)
+       AED_REAL *tstat[2][NPart];    // Particle Time/Age Vector (2,Npart)
+       AED_REAL *xyz[NPart];         // particle position vector (assuming length NPart)
+       AED_REAL *prop[12][NPart];    // Particle Property Vector (12,Npart)
+       AED_REAL *vars[12][NPart];    // Particle Conserved Variable Vector (NU,NP) but
+                                     //   written as NPart for now b/c don't know what NU, NP are
+   } partgroup;
+/*
+    typedef struct partgroup_p {
+       CINTEGER idx, grp;
+   } partgroup_p;
+   typedef struct partgroup_cell {
+       CINTEGER count, n;
+       partgroup_p prt[NPart];
+   } partgroup_cell;
+*/
+#endif
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif

@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -45,6 +45,7 @@
 #include "glm_bird.h"
 #include "glm_wqual.h"
 #include "glm_input.h"
+#include "glm_heatexchange.h"
 
 
 //#define dbgprt(...) fprintf(stderr, __VA_ARGS__)
@@ -56,6 +57,7 @@ typedef struct _inf_data_ {
     int flow_idx;
     int temp_idx;
     int salt_idx;
+    int particles_idx;
     int elev_idx;
     int in_vars[MaxVars];
     int wq_vars[MaxVars];
@@ -64,6 +66,8 @@ typedef struct _inf_data_ {
 typedef struct _out_data_ {
     int outf;
     int draw_idx;
+    int elev_idx;          // CSV column index for dynamic elevation
+    int heat_flux_idx;     // CSV column index for dynamic heat flux
 } OutflowDataT;
 
 typedef struct _withdrTemp_data_ {
@@ -83,8 +87,8 @@ static int rain_idx = -1, hum_idx  = -1, lwav_idx = -1, sw_idx   = -1,
            apres_idx = -1, evap_idx = -1;
 
 int lw_ind = 0;
-static int have_snow = FALSE, have_rain_conc = FALSE;
-static int have_fetch = FALSE;
+static CLOGICAL have_snow = FALSE, have_rain_conc = FALSE;
+static CLOGICAL have_fetch = FALSE;
 
 static int n_steps;
 
@@ -107,7 +111,7 @@ AED_REAL rain_factor = 1.0;
  ******************************************************************************/
 void read_daily_inflow(int julian, int NumInf, AED_REAL *flow,
                                                AED_REAL *temp, AED_REAL *salt,
-                                                   AED_REAL *elev, AED_REAL *wq)
+                                                  AED_REAL *elev, AED_REAL *wq)
 {
     int csv;
     int i,j,k;
@@ -203,14 +207,27 @@ void read_daily_kw(int julian, AED_REAL *kwout)
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-void read_daily_outflow(int julian, int NumOut, AED_REAL *draw)
+void read_daily_outflow(int julian, int NumOut, AED_REAL *draw, AED_REAL *elev, AED_REAL *heat_flux, AED_REAL *wq)
 {
     int csv, i;
 
     for (i = 0; i < NumOut; i++) {
-        csv = outf[i].outf;
-        find_day(csv, time_idx, julian);
-        draw[i] = get_csv_val_r(csv,outf[i].draw_idx);
+        if ( (csv = outf[i].outf) > -1 ) {
+            find_day(csv, time_idx, julian);
+            draw[i] = get_csv_val_r(csv, outf[i].draw_idx);
+            
+            // Read elevation if available (for Type 6 dynamic elevation)
+            if (outf[i].elev_idx >= 0) {
+                elev[i] = get_csv_val_r(csv, outf[i].elev_idx);
+            }
+            
+            // Read heat flux if available (for heat pump dynamic heat flux)
+            if (heat_flux != NULL && outf[i].heat_flux_idx >= 0) {
+                heat_flux[i] = get_csv_val_r(csv, outf[i].heat_flux_idx);
+            } else if (heat_flux != NULL) {
+                heat_flux[i] = 0.0; // Default to 0 if no heat flux column
+            }
+        }
     }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -599,10 +616,12 @@ void open_inflow_file(int idx, const char *fname, const char *timefmt)
     inf[idx].flow_idx = find_csv_var(inf[idx].inf,"flow");
     inf[idx].temp_idx = find_csv_var(inf[idx].inf,"temp");
     inf[idx].salt_idx = find_csv_var(inf[idx].inf,"salt");
-    if ( Inflows[idx].SubmFlag )
-        inf[idx].elev_idx = find_csv_var(inf[idx].inf,"elevation");
-    else
-        inf[idx].elev_idx = -1;
+    inf[idx].particles_idx = find_csv_var(inf[idx].inf,"particles");
+    if ( Inflows[idx].SubmFlag ) {
+        inf[idx].elev_idx = find_csv_var(inf[idx].inf,"elev");
+    } else {
+        inf[idx].elev_idx = -1;    
+    }
     Inflows[idx].SubmElevDynamic = (inf[idx].elev_idx >= 0);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -620,7 +639,8 @@ void index_inflow_file(int idx, int nvars, const char *vars[])
         k = 0;
         while ( (nm = get_csv_colname(inf[idx].inf, k)) != NULL ) {
             if ( k != inf[idx].flow_idx && k != inf[idx].temp_idx &&
-                 k != inf[idx].salt_idx && k != inf[idx].elev_idx ) {
+                 k != inf[idx].salt_idx && k != inf[idx].elev_idx &&
+                 k != inf[idx].particles_idx) {
                 sl = strlen(nm);
                 inf[idx].wq_vars[l] = wq_var_index_c(nm, &sl);
                 inf[idx].in_vars[l++] = k;
@@ -635,7 +655,8 @@ void index_inflow_file(int idx, int nvars, const char *vars[])
             else {
                 nm = vars[j];
                 if ( k != inf[idx].flow_idx && k != inf[idx].temp_idx &&
-                     k != inf[idx].salt_idx && k != inf[idx].elev_idx ) {
+                     k != inf[idx].salt_idx && k != inf[idx].elev_idx &&
+                     k != inf[idx].particles_idx) {
                     sl = strlen(nm);
                     inf[idx].wq_vars[l] = wq_var_index_c(nm, &sl);
                     inf[idx].in_vars[l++] = k;
@@ -697,7 +718,10 @@ void open_outflow_file(int idx, const char *fname, const char *timefmt)
 
     locate_time_column(outf[idx].outf, "outflow", fname);
 
-    outf[idx].draw_idx = find_csv_var(outf[idx].outf,"flow");
+    // Find required columns in outflow CSV file
+    outf[idx].draw_idx = find_csv_var(outf[idx].outf,"flow");  
+    outf[idx].elev_idx = find_csv_var(outf[idx].outf,"elev");           // Dynamic elevation column (for Type 6)
+    outf[idx].heat_flux_idx = find_csv_var(outf[idx].outf,"heat_flux"); // Dynamic heat flux column (for Type 6)
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

@@ -5,11 +5,11 @@
  * Developed by :                                                             *
  *     AquaticEcoDynamics (AED) Group                                         *
  *     School of Agriculture and Environment                                  *
- *     University of Western Australia                                        *
+ *     The University of Western Australia                                    *
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -43,15 +43,18 @@
 #include "glm_util.h"
 #include "glm_layers.h"
 #include "glm_wqual.h"
+#include "glm_ptm.h"
 #include "glm_lnum.h"
 #include "glm_bird.h"
 #include "glm_ncdf.h"
 #include "glm_balance.h"
+#include "glm_heatexchange.h"
 
 #include <aed_time.h>
 #include <namelist.h>
 
-#define DEFAULT_GLM_NML   "glm3.nml"
+#define DEFAULT_GLM_NML   "glm4.nml"
+#define DEFAULT_GLM_NML_3 "glm3.nml"
 #define DEFAULT_GLM_NML_2 "glm2.nml"
 #define DEFAULT_WQ_LIB    "aed"
 #define DEFAULT_WQ_NML    "aed.nml"
@@ -64,7 +67,7 @@
 static AED_REAL   base_elev;
 static AED_REAL   crest_elev;
 static AED_REAL   max_elev;
-extern LOGICAL    seepage;
+extern CLOGICAL   seepage;
 extern AED_REAL   seepage_rate;
 
 char glm_nml_file[256] = DEFAULT_GLM_NML;
@@ -140,9 +143,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     char           *wq_nml_file = DEFAULT_WQ_NML;
     int             lode_method = -1;
     int             lsplit_factor = 1;
-//  LOGICAL         bioshade_feedback;
-//  LOGICAL         repair_state;
-//  CLOGICAL        mobility_off;
+    int             bsf = 0, rs = 0, mo = 0;
+//  FLOGICAL        bioshade_feedback;
+//  FLOGICAL        repair_state;
+//  FLOGICAL        mobility_off;
     //==========================================================================
     NAMELIST wq_setup[] = {
           { "wq_setup",          TYPE_START,            NULL                  },
@@ -150,9 +154,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "wq_nml_file",       TYPE_STR,              &wq_nml_file          },
           { "ode_method",        TYPE_INT,              &lode_method          },
           { "split_factor",      TYPE_INT,              &lsplit_factor        },
-          { "bioshade_feedback", TYPE_BOOL,             &bioshade_feedback    },
-          { "repair_state",      TYPE_BOOL,             &repair_state         },
-          { "mobility_off",      TYPE_BOOL,             &mobility_off         },
+          { "bioshade_feedback", TYPE_BOOL,             &bsf                  },
+          { "repair_state",      TYPE_BOOL,             &rs                   },
+          { "mobility_off",      TYPE_BOOL,             &mo                   },
           { NULL,                TYPE_END,              NULL                  }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
@@ -161,7 +165,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     int             timefmt;
     char           *start = NULL;
     char           *stop  = NULL;
-    AED_REAL        dt = 0.0;      // timestep
+    extern AED_REAL dt;            // timestep
     int             num_days = 0;  // number of days to run the sim
 //  AED_REAL        timezone_r;
     //==========================================================================
@@ -180,19 +184,19 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%NAMELIST output ---------------------------------------------------*/
     char           *out_dir = NULL;
     char           *out_fn  = NULL;
-//  LOGICAL         out_lkn;
+//  CLOGICAL        out_lkn;
 //  int             nsave;
     int             csv_point_nlevs   = 0;
-    LOGICAL        *csv_point_frombot = NULL;
+    CLOGICAL       *csv_point_frombot = NULL;
     char           *csv_point_fname   = NULL;
     AED_REAL       *csv_point_at      = NULL;
     int             csv_point_nvars   = 0;
     char          **csv_point_vars    = NULL;
-    LOGICAL        *csv_point_depth_avg = NULL;
+    CLOGICAL       *csv_point_depth_avg = NULL;
     AED_REAL       *csv_point_zone_upper = NULL;
     AED_REAL       *csv_point_zone_lower = NULL;
     char           *csv_lake_fname    = NULL;
-    LOGICAL         csv_outlet_allinone = FALSE;
+    CLOGICAL        csv_outlet_allinone = FALSE;
     char           *csv_outlet_fname  = NULL;
     int             csv_outlet_nvars  = 0;
     char          **csv_outlet_vars   = NULL;
@@ -223,14 +227,15 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- * %%NAMELIST meteorology --------------------------------------------*/
-    LOGICAL         met_sw = FALSE;  // Include surface meteorological forcing
+    CLOGICAL        met_sw = FALSE;  // Include surface meteorological forcing
     char           *lw_type = NULL;  // Type LW measurement (LW_IN/LW_CC/LW_NET)
-    LOGICAL         rain_sw = FALSE; // Rainfall composition
-    LOGICAL         snow_sw = FALSE; // Snowfall
+    CLOGICAL        rain_sw = FALSE; // Rainfall composition
+    CLOGICAL        snow_sw = FALSE; // Snowfall
     char           *meteo_fl = NULL; // Name of meteorology input file
 //  int             lw_ind;          // type of longwave radiation - now in glm_input
-//  LOGICAL         atm_stab;        // Account for non-neutral atmospheric stability
-//  LOGICAL         subdaily;        //
+//  extern CLOGICAL atm_stab;        // Account for non-neutral atmospheric stability
+//  extern CLOGICAL subdaily;        //
+//  extern CLOGICAL catchrain;       //
 //  extern AED_REAL CD;
 //  extern AED_REAL CE;
 //  extern AED_REAL CH;
@@ -251,10 +256,11 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern int      albedo_mode;
     extern int      cloud_mode;
     extern int      light_mode;
-//  extern LOGICAL  link_solar_shade;
-//  extern LOGICAL  link_rain_loss;
-//  extern LOGICAL  link_bottom_drag;
-//  extern LOGICAL  use_met_atm_pres;
+    CLOGICAL lss = FALSE, lrl = FALSE, lbd = FALSE;
+//  extern FLOGICAL link_solar_shade;
+//  extern FLOGICAL link_rain_loss;
+//  extern FLOGICAL link_bottom_drag;
+//  extern CLOGICAL use_met_atm_pres;
     char           *timefmt_m = NULL;
     extern AED_REAL timezone_m;
     //==========================================================================
@@ -290,9 +296,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "runoff_coef",       TYPE_DOUBLE,           &runoff_coef          },
           { "time_fmt",          TYPE_STR,              &timefmt_m            },
           { "timezone",          TYPE_DOUBLE,           &timezone_m           },
-          { "link_solar_shade",  TYPE_BOOL,             &link_solar_shade     },
-          { "link_rain_loss",    TYPE_BOOL,             &link_rain_loss       },
-          { "link_bottom_drag",  TYPE_BOOL,             &link_bottom_drag     },
+          { "link_solar_shade",  TYPE_BOOL,             &lss                  },
+          { "link_rain_loss",    TYPE_BOOL,             &lrl                  },
+          { "link_bottom_drag",  TYPE_BOOL,             &lbd                  },
           { "use_met_atm_pres",  TYPE_BOOL,             &use_met_atm_pres     },
      //   { "snow_sw",           TYPE_BOOL,             &snow_sw              },
           { NULL,                TYPE_END,              NULL                  }
@@ -303,7 +309,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL   *light_extc;
     extern AED_REAL   *energy_frac;
     extern AED_REAL    Benthic_Imin;
-//  AED_REAL           Kw;
+//  extern AED_REAL    Kw;
     char              *Kw_file = NULL;
     //==========================================================================
     NAMELIST light[] = {
@@ -325,7 +331,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%NAMELIST inflow ---------------------------------------------------*/
     int             num_inflows    = 0;
     char          **names_of_strms = NULL;
-    LOGICAL        *subm_flag      = NULL;
+    CLOGICAL       *subm_flag      = NULL;
     AED_REAL       *subm_elev      = NULL;
     AED_REAL       *strm_hf_angle  = NULL;
     AED_REAL       *strmbd_slope   = NULL;
@@ -360,7 +366,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
     /*-- %%NAMELIST outflow --------------------------------------------------*/
     int             num_outlet     = 0;
-    LOGICAL        *flt_off_sw     = NULL;
+    CLOGICAL       *flt_off_sw     = NULL;
     int            *outlet_type    = NULL;
     int             crit_O2        = -1;
     int             crit_O2_dep    = -1;
@@ -370,10 +376,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     int             O2idx          = 0;
     AED_REAL       *target_temp    = NULL;
     AED_REAL        min_lake_temp  = 0.0;
-    LOGICAL         mix_withdraw   = FALSE;
+    CLOGICAL        mix_withdraw   = FALSE;
     extern AED_REAL outflow_thick_limit;
-    extern LOGICAL  single_layer_draw;
-    LOGICAL         coupl_oxy_sw   = FALSE;
+//  extern CLOGICAL single_layer_draw;
+    CLOGICAL        coupl_oxy_sw   = FALSE;
     extern AED_REAL fac_range_upper;
     extern AED_REAL fac_range_lower;
     AED_REAL       *outl_elvs    = NULL;
@@ -382,6 +388,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     char          **outflow_fl   = NULL;
     char           *withdrTemp_fl  = NULL;
     AED_REAL       *outflow_factor = NULL;
+    AED_REAL       *subm_elev_outflow = NULL;
+    CINTEGER       *elev_idx_outflow  = NULL;
+    char          **outflow_vars      = NULL;
+    int             outflow_varnum    = 0;
     char           *timefmt_o    = NULL;
     extern AED_REAL timezone_o;
     //==========================================================================
@@ -408,6 +418,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "outflow_fl",        TYPE_STR|MASK_LIST,    &outflow_fl           },
           { "withdrTemp_fl",     TYPE_STR,              &withdrTemp_fl        },
           { "outflow_factor",    TYPE_DOUBLE|MASK_LIST, &outflow_factor       },
+          { "outflow_vars",      TYPE_STR|MASK_LIST,    &outflow_vars         },
+          { "outflow_varnum",    TYPE_INT,              &outflow_varnum       },
+          { "subm_elev_outflow", TYPE_DOUBLE|MASK_LIST, &subm_elev_outflow    },
+          { "elev_idx_outflow",  TYPE_INT|MASK_LIST,    &elev_idx_outflow     },
           { "seepage",           TYPE_BOOL,             &seepage              },
           { "seepage_rate",      TYPE_DOUBLE,           &seepage_rate         },
           { "crest_width",       TYPE_DOUBLE,           &crest_width          },
@@ -503,7 +517,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- %%NAMELIST fetch ----------------------------------------------------*/
-    extern LOGICAL     fetch_sw;
+    extern CLOGICAL    fetch_sw;
     extern int         fetch_ndirs;
     extern AED_REAL   *fetch_dirs;
     extern AED_REAL   *fetch_scale;
@@ -571,6 +585,40 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
+    /*-- %%NAMELIST particle model -------------------------------------------*/
+//  extern CLOGICAL  ptm_sw;
+//  extern CLOGICAL  sed_deactivation;
+    extern int       num_particle_grp;
+    extern int       max_particle_num;
+    extern int       init_particle_num;
+    extern AED_REAL  *inflow_conc;
+    extern AED_REAL  init_depth_min;
+    extern AED_REAL  init_depth_max;
+    extern AED_REAL  ptm_time_step;
+    extern AED_REAL  ptm_diffusivity;
+    extern AED_REAL  settling_velocity;
+    extern AED_REAL  settling_efficiency;
+    extern CLOGICAL  do_particle_bgc;
+    //==========================================================================
+    NAMELIST particles[] = {
+          { "particles",         TYPE_START,            NULL                  },
+          { "ptm_sw",            TYPE_BOOL,             &ptm_sw               },
+          { "sed_deactivation",  TYPE_BOOL,             &sed_deactivation     },
+          { "num_particle_grp",  TYPE_INT,              &num_particle_grp     },
+          { "max_particle_num",  TYPE_INT,              &max_particle_num     },
+          { "init_particle_num", TYPE_INT,              &init_particle_num    },
+          { "inflow_conc",       TYPE_DOUBLE|MASK_LIST, &inflow_conc          },
+          { "init_depth_min",    TYPE_DOUBLE,           &init_depth_min       },
+          { "init_depth_max",    TYPE_DOUBLE,           &init_depth_max       },
+          { "ptm_time_step",     TYPE_DOUBLE,           &ptm_time_step        },
+          { "ptm_diffusivity",   TYPE_DOUBLE,           &ptm_diffusivity      },
+          { "settling_velocity", TYPE_DOUBLE,           &settling_velocity    },
+          { "settling_efficiency", TYPE_DOUBLE,         &settling_efficiency  },
+          { "do_particle_bgc",   TYPE_BOOL,             &do_particle_bgc      },
+          { NULL,                TYPE_END,              NULL                  }
+    };
+    /*-- %%END NAMELIST ------------------------------------------------------*/
+
     /*-- %%NAMELIST debugging ------------------------------------------------*/
 //  extern CLOGICAL dbg_mix;   //# debug output from mixer
 //  extern CLOGICAL no_evap;   //# turn off evaporation
@@ -582,10 +630,23 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { NULL,                TYPE_END,              NULL                  }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
+    //==========================================================================
+    NAMELIST heat_pump[] = {
+          { "heat_pump",              TYPE_START,            NULL                    },
+          { "heat_pump_switch",       TYPE_INT,              &heat_pump_switch       },
+          { "heat_pump_inflow_idx",   TYPE_INT,              &heat_pump_inflow_idx   },
+          { "heat_pump_outflow_idx",  TYPE_INT,              &heat_pump_outflow_idx  },
+          { "heat_pump_temp_change",  TYPE_DOUBLE,           &heat_pump_temp_change  },
+          { "heat_pump_heat_flux",    TYPE_DOUBLE,           &heat_pump_heat_flux    },
+          { NULL,                     TYPE_END,              NULL                    }
+    };
+    /*-- %%END NAMELIST ------------------------------------------------------*/
 
     //-------------------------------------------------
+    CLOGICAL err = FALSE;
     int i, j, k;
     int namlst;
+    CLOGICAL free_me[4] = { 0, 0, 0, 0 };
 
 /*----------------------------------------------------------------------------*/
 
@@ -594,11 +655,16 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( (namlst = open_namelist(glm_nml_file)) < 0 ) {
         fprintf(stderr,"\n     ERROR opening the glm namelist file %s\n", glm_nml_file);
         if (strcmp(glm_nml_file, DEFAULT_GLM_NML) == 0) {
-            fprintf(stderr, "     Trying %s\n", DEFAULT_GLM_NML_2);
-            strcpy(glm_nml_file, DEFAULT_GLM_NML_2);
+            fprintf(stderr, "     Trying %s\n", DEFAULT_GLM_NML_3);
+            strcpy(glm_nml_file, DEFAULT_GLM_NML_3);
             if ( (namlst = open_namelist(glm_nml_file)) < 0 ) {
                 fprintf(stderr,"\n     ERROR opening the glm namelist file %s\n", glm_nml_file);
-                exit(1);
+                fprintf(stderr, "     Trying %s\n", DEFAULT_GLM_NML_2);
+                strcpy(glm_nml_file, DEFAULT_GLM_NML_2);
+                if ( (namlst = open_namelist(glm_nml_file)) < 0 ) {
+                    fprintf(stderr,"\n     ERROR opening the glm namelist file %s\n", glm_nml_file);
+                    exit(1);
+                }
             }
         } else
             exit(1);
@@ -645,12 +711,22 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         split_factor      = 1;
         bioshade_feedback = TRUE;
         repair_state      = FALSE;
+        mobility_off      = FALSE;
         n_zones           = 0;
     } else {
         ode_method        = lode_method;
         split_factor      = lsplit_factor;
+        bioshade_feedback = (bsf != 0);
+        repair_state      = (rs != 0);
+        mobility_off      = (mo != 0);
     }
     if ( twq_lib != NULL ) strncpy(wq_lib, twq_lib, 128);
+
+    //-------------------------------------------------
+    ptm_sw   = FALSE;
+    if ( get_namelist(namlst, particles) ) {
+        fprintf(stderr, "No 'particles' config, assuming no particles\n");
+    }
 
     //-------------------------------------------------
     if ( get_namelist(namlst, time) ) {
@@ -690,22 +766,26 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( csv_outlet_nvars > MaxCSVOutVars ) { fprintf(stderr, "csv_outlet_nvars must be < %d\n", MaxCSVOutVars); exit(1); }
 
     if ( csv_point_frombot == NULL && csv_point_nlevs > 0) {
-        csv_point_frombot = calloc(csv_point_nlevs, sizeof(LOGICAL));
+        free_me[0] = TRUE;
+        csv_point_frombot = calloc(csv_point_nlevs, sizeof(CLOGICAL));
         for (i = 0; i < csv_point_nlevs; i++) csv_point_frombot[i] = TRUE;
     }
 
     if ( csv_point_depth_avg != NULL && csv_point_nlevs > 0) {
         if ( csv_point_zone_upper == NULL ) {
+            free_me[1] = TRUE;
             csv_point_zone_upper = calloc(csv_point_nlevs, sizeof(AED_REAL));
             for (i = 0; i < csv_point_nlevs; i++) csv_point_zone_upper[i] = NaN;
         }
         if ( csv_point_zone_lower == NULL ) {
+            free_me[2] = TRUE;
             csv_point_zone_lower = calloc(csv_point_nlevs, sizeof(AED_REAL));
             for (i = 0; i < csv_point_nlevs; i++) csv_point_zone_lower[i] = NaN;
         }
     }
     if ( csv_point_depth_avg == NULL && csv_point_nlevs > 0) {
-        csv_point_depth_avg = calloc(csv_point_nlevs, sizeof(LOGICAL));
+        free_me[3] = TRUE;
+        csv_point_depth_avg = calloc(csv_point_nlevs, sizeof(CLOGICAL));
         for (i = 0; i < csv_point_nlevs; i++) csv_point_depth_avg[i] = FALSE;
     }
 
@@ -729,10 +809,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
                   csv_point_frombot, csv_point_nvars, csv_point_depth_avg,
                   csv_point_zone_upper, csv_point_zone_lower, csv_lake_fname);
 
-    free(csv_point_frombot);
-    free(csv_point_depth_avg);
-    free(csv_point_zone_upper);
-    free(csv_point_zone_lower);
+    if ( free_me[0] ) free(csv_point_frombot);
+    if ( free_me[1] ) free(csv_point_zone_upper);
+    if ( free_me[2] ) free(csv_point_zone_lower);
+    if ( free_me[3] ) free(csv_point_depth_avg);
 
     if ( wq_calc ) {
         for (i = 0; i < csv_outlet_nvars; i++)
@@ -761,6 +841,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( get_namelist(namlst, meteorology) ) {
         fprintf(stderr,"\n     ERROR reading 'meteorology' from namelist file %s\n", glm_nml_file);
         exit(1);
+    } else {
+        link_solar_shade = lss;
+        link_rain_loss = lrl;
+        link_bottom_drag = lbd;
     }
 
     if ( lw_type == NULL )
@@ -801,18 +885,12 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     snow_rho_max       = 300.0;
     snow_rho_min       = 50.0;
 
-    if ( get_namelist(namlst, snowice) ) {
-         snow_sw = FALSE;
+    if ( (snow_sw = !get_namelist(namlst, snowice)) )
          fprintf(stderr,"     No 'snowice' section, setting defaults & assuming no snowfall\n");
-    } else
-         snow_sw = TRUE;
 
     //--------------------------------------------------------------------------
     // fetch
-    if ( get_namelist(namlst, fetch) )
-         fetch_sw = FALSE;
-    else
-         fetch_sw = TRUE;
+    fetch_sw = !get_namelist(namlst, fetch);
 
     //--------------------------------------------------------------------------
     // sediment heat
@@ -832,62 +910,63 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         }
     }
 
-//  if ( n_zones > 0 ) {
-    {
-        int err = FALSE;
-        int sz;
-        AED_REAL *tr;
-
-        if ( zone_heights != NULL ) {
-            if ( get_nml_listlen(namlst, "sediment", "zone_heights") < n_zones ) {
-                fprintf(stderr, "zone_heights list too short in sediment\n");
-                err = TRUE;
-            }
+    if ( zone_heights != NULL ) {
+        if ( get_nml_listlen(namlst, "sediment", "zone_heights") < n_zones ) {
+            fprintf(stderr, "zone_heights list too short in sediment\n");
+            err = TRUE;
         }
-        if ( sed_reflectivity != NULL ) {
-            if ( (sz=get_nml_listlen(namlst, "sediment", "sed_reflectivity")) < n_zones ) {
-                fprintf(stderr, "sed_reflectivity list too short in sediment\n");
-                err = TRUE;
-            }
-            tr = malloc(sz * sizeof(AED_REAL));
-            memcpy(tr, sed_reflectivity, sz * sizeof(AED_REAL));
-            sed_reflectivity = tr;
-        }
-        if ( sed_roughness != NULL ) {
-            if ( get_nml_listlen(namlst, "sediment", "sed_roughness") < n_zones ) {
-                fprintf(stderr, "sed_roughness list too short in sediment\n");
-                err = TRUE;
-            }
-        }
-        if ( sed_temp_mean != NULL ) {
-            if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_mean")) < n_zones ) {
-                fprintf(stderr, "sed_temp_mean list too short in sediment\n");
-                err = TRUE;
-            }
-            tr = malloc(sz * sizeof(AED_REAL));
-            memcpy(tr, sed_temp_mean, sz * sizeof(AED_REAL));
-            sed_temp_mean = tr;
-        }
-        if ( sed_temp_amplitude != NULL ) {
-            if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_amplitude")) < n_zones ) {
-                fprintf(stderr, "sed_temp_amplitude list too short in sediment\n");
-                err = TRUE;
-            }
-            tr = malloc(sz * sizeof(AED_REAL));
-            memcpy(tr, sed_temp_amplitude, sz * sizeof(AED_REAL));
-            sed_temp_amplitude = tr;
-        }
-        if ( sed_temp_peak_doy != NULL ) {
-            if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_peak_doy")) < n_zones ) {
-                fprintf(stderr, "sed_temp_peak_doy list too short in sediment\n");
-                err = TRUE;
-            }
-            tr = malloc(sz * sizeof(AED_REAL));
-            memcpy(tr, sed_temp_peak_doy, sz * sizeof(AED_REAL));
-            sed_temp_peak_doy = tr;
-        }
-        if (err ) exit(1);
     }
+    if ( sed_reflectivity != NULL ) {
+        AED_REAL *tr;
+        int sz;
+        if ( (sz = get_nml_listlen(namlst, "sediment", "sed_reflectivity")) < n_zones ) {
+            fprintf(stderr, "sed_reflectivity list too short in sediment\n");
+            err = TRUE;
+        }
+        tr = malloc(sz * sizeof(AED_REAL));
+        memcpy(tr, sed_reflectivity, sz * sizeof(AED_REAL));
+        sed_reflectivity = tr;
+    }
+    if ( sed_roughness != NULL ) {
+        if ( get_nml_listlen(namlst, "sediment", "sed_roughness") < n_zones ) {
+            fprintf(stderr, "sed_roughness list too short in sediment\n");
+            err = TRUE;
+        }
+    }
+    if ( sed_temp_mean != NULL ) {
+        AED_REAL *tr;
+        int sz;
+        if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_mean")) < n_zones ) {
+            fprintf(stderr, "sed_temp_mean list too short in sediment\n");
+            err = TRUE;
+        }
+        tr = malloc(sz * sizeof(AED_REAL));
+        memcpy(tr, sed_temp_mean, sz * sizeof(AED_REAL));
+        sed_temp_mean = tr;
+    }
+    if ( sed_temp_amplitude != NULL ) {
+        AED_REAL *tr;
+        int sz;
+        if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_amplitude")) < n_zones ) {
+            fprintf(stderr, "sed_temp_amplitude list too short in sediment\n");
+            err = TRUE;
+        }
+        tr = malloc(sz * sizeof(AED_REAL));
+        memcpy(tr, sed_temp_amplitude, sz * sizeof(AED_REAL));
+        sed_temp_amplitude = tr;
+    }
+    if ( sed_temp_peak_doy != NULL ) {
+        AED_REAL *tr;
+        int sz;
+        if ( (sz = get_nml_listlen(namlst, "sediment", "sed_temp_peak_doy")) < n_zones ) {
+            fprintf(stderr, "sed_temp_peak_doy list too short in sediment\n");
+            err = TRUE;
+        }
+        tr = malloc(sz * sizeof(AED_REAL));
+        memcpy(tr, sed_temp_peak_doy, sz * sizeof(AED_REAL));
+        sed_temp_peak_doy = tr;
+    }
+    if (err) exit(1);
 
     if ( sed_reflectivity == NULL ) {
         int t_zones = 2;
@@ -947,6 +1026,7 @@ for (i = 0; i < n_zones; i++) {
 }
 */
 
+    //--------------------------------------------------------------------------
     open_met_file(meteo_fl, snow_sw, rain_sw, timefmt_m);
     config_bird(namlst);
 
@@ -1002,6 +1082,7 @@ for (i = 0; i < n_zones; i++) {
             Inflows[i].Phi = strmbd_slope[i] * Pi/PiDeg;
             Inflows[i].DragCoeff = strmbd_drag[i];
             Inflows[i].Factor = inflow_factor[i];
+            if ( inflow_conc != NULL ) Inflows[i].ParticleConc = inflow_conc[i];
 
             open_inflow_file(i, inflow_fl[i], timefmt_i);
         }
@@ -1010,7 +1091,8 @@ for (i = 0; i < n_zones; i++) {
 
     if ( get_namelist(namlst, groundwater) ) {
         if ( (num_inflows+gw_mode) > MaxInf ) {
-            fprintf(stderr, "     ERROR: Too many inflows specified in 'inflow' and 'groundwater' config %d+%d > %d\n", num_inflows, gw_mode, MaxInf);
+            fprintf(stderr, "     ERROR: Too many inflows specified in 'inflow' and 'groundwater' config %d+%d > %d\n",
+                                    num_inflows, gw_mode, MaxInf);
             exit(1);
         }
         for (i = 0; i < gw_mode; i++) {
@@ -1032,8 +1114,8 @@ for (i = 0; i < n_zones; i++) {
         fprintf(stderr, "     No 'outflow' config, assuming no outflows\n");
         NumOut = 0;
     } else {
-        LOGICAL need_free = FALSE;
-        LOGICAL need_free2 = FALSE;
+        CLOGICAL need_free = FALSE;
+        CLOGICAL need_free2 = FALSE;
 
         if ( num_outlet > MaxOut) {
             fprintf(stderr, "     ERROR: Too many outlets specified in 'outflow' config %d > %d\n", num_outlet, MaxOut);
@@ -1044,7 +1126,7 @@ for (i = 0; i < n_zones; i++) {
                                          // remove this if you use it for anything else!!
         if ( flt_off_sw == NULL ) {
             need_free = TRUE;
-            flt_off_sw = malloc(sizeof(LOGICAL)*num_outlet);
+            flt_off_sw = malloc(sizeof(CLOGICAL)*num_outlet);
             for (i = 0; i < NumOut; i++) flt_off_sw[i] = FALSE;
         }
         if ( outlet_type == NULL ) {
@@ -1052,13 +1134,15 @@ for (i = 0; i < n_zones; i++) {
             outlet_type = malloc(sizeof(int)*num_outlet);
             for (i = 0; i < NumOut; i++) outlet_type[i] = (flt_off_sw[i])?2:1;
         }
+
         for (i = 0; i < NumOut; i++) {
+            
             // Outlet_type
             if ( outlet_type != NULL ) {
-                if ( (outlet_type[i] > 0) && (outlet_type[i] <= 5) ) {
+                if ( outlet_type[i] >= 1 && outlet_type[i] <= 6 ) {
                     Outflows[i].Type = outlet_type[i];
                 } else {
-                    fprintf(stderr, "     ERROR: Wrong outlet type\n");
+                    fprintf(stderr, "     ERROR: Wrong type for outlet %d: value = %d\n", i, outlet_type[i]);
                     exit(1);
                 }
             }
@@ -1090,9 +1174,32 @@ for (i = 0; i < n_zones; i++) {
             if ( outlet_crit != NULL )
                 Outflows[i].Hcrit  = outlet_crit[i];
             if ( target_temp != NULL )
-                Outflows[i].TARGETtemp  = target_temp[i]; // if more than 1 withdrawals with their depth should work with a target temperature (like "isotherm")
+                Outflows[i].TARGETtemp  = target_temp[i]; // if more than 1 withdrawals with their depth should
+                                                          // work with a target temperature (like "isotherm")
 
-            if (outflow_fl[i] != NULL) open_outflow_file(i, outflow_fl[i], timefmt_o);
+            // Initialize submerged outflow parameters for Type 6
+            Outflows[i].SubmElev = (subm_elev_outflow != NULL) ? subm_elev_outflow[i] : 0.0;
+            Outflows[i].SubmElevDynamic = (elev_idx_outflow != NULL && elev_idx_outflow[i] >= 0);
+            
+            // Initialize WQ_Outflow to NULL initially (will be allocated later if needed)
+            Outflows[i].WQ_Outflow = NULL;
+
+            // Validation for Type 6 outflows
+            if (outlet_type[i] == 6) {
+                if (Outflows[i].SubmElev < 0.0 || Outflows[i].SubmElev > (crest_elev - base_elev)) {
+                    fprintf(stderr, "ERROR: Submerged outflow elevation (%.2f) out of bounds [0, %.2f]\n",
+                            Outflows[i].SubmElev, crest_elev - base_elev);
+                    exit(1);
+                }
+            }
+            // Initialize critical outflow fields
+            Outflows[i].DrawnFrom = -1;      // Not drawn from any layer yet
+            Outflows[i].LastDrawn = 0.0;     // No outflow drawn yet
+            Outflows[i].Draw = 0.0;          // Initialize draw amount
+
+            if (outflow_fl[i] != NULL) {
+                open_outflow_file(i, outflow_fl[i], timefmt_o);
+            }
 
         }
         if (need_free) free(flt_off_sw);
@@ -1158,12 +1265,21 @@ for (i = 0; i < n_zones; i++) {
         size_t l = strlen(wq_nml_file);
 
         prime_wq(wq_lib);
-        wq_init_glm(wq_nml_file, &l, &MaxLayers, &Num_WQ_Vars, &Num_WQ_Ben, &Kw); // Reads WQ namelist file
-        fprintf(stderr, "     WQ plugin active: included Num_WQ_Vars = %d\n", Num_WQ_Vars);
-        if ( Num_WQ_Vars > MaxVars ) {
+        wq_init_glm(wq_nml_file, &l, &Num_WQ_Vars, &Num_WQ_Ben); // Reads WQ namelist file
+        Tot_WQ_Vars = Num_WQ_Vars + Num_WQ_Ben;
+        fprintf(stdout, "     WQ plugin active: included Num_WQ_Vars = %d\n", Num_WQ_Vars);
+        if ( Tot_WQ_Vars > MaxVars ) {
             fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", MaxVars);
             exit(1);
         }
+
+        if ( benthic_mode > 1 ) {
+            if ( (n_zones <= 0 || zone_heights == NULL) ) {
+                fprintf(stderr, "     benthic_mode %d must define zones\n", benthic_mode);
+                exit(1);
+            }
+        }
+        wq_set_glm_data();
     }
     NumDif += Num_WQ_Vars;
 
@@ -1176,34 +1292,47 @@ for (i = 0; i < n_zones; i++) {
     }
     //--------------------------------------------------------------------------
 
+    // particles / ptm
+    if ( ptm_sw ) {
+        fprintf(stderr, "     PTM module active: initial particles = %d\n", init_particle_num);
+        ptm_init_glm();  // num_particle_grp, max_particle_num, init_particle_num,
+                         // init_depth_min, init_depth_max, ptm_time_step, ptm_diffusivity
+        if ( max_particle_num > 10000 ) {
+            fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", 1000000);
+            exit(1);
+        }
+    }
+
     // This is where we could map inflow, met and csv_output vars to wq vars
 
-//  if ( ! WQ_VarsIdx ) {
-//      WQ_VarsIdx = calloc(inflow_varnum, sizeof(int));
-//  }
     if ( wq_calc ) {
         if ( inflow_vars == NULL && inflow_varnum > 3 ) {
             fprintf(stderr, "ERROR: %d inflow vars requested, but none provided\n", inflow_varnum);
             exit(1);
         }
-        /* The first 3 vars are flow, temp and salt */
-//      for (j = 3; j < inflow_varnum; j++) {
-//          if ( inflow_vars[j] == NULL ) {
-//              fprintf(stderr, "ERROR: %d inflow vars requested, but only %d provided\n", inflow_varnum, j-3);
-//              exit(1);
-//          }
-//          size_t k =  strlen(inflow_vars[j]);
-//          WQ_VarsIdx[j-3] = wq_var_index_c(inflow_vars[j], &k);
-//      }
         for (j = 0; j < NumInf; j++)
             index_inflow_file(j, inflow_varnum, (const char **)inflow_vars);
 
-        if ( benthic_mode > 1 ) {
-            if ( (n_zones <= 0 || zone_heights == NULL) ) {
-                fprintf(stderr, "     benthic_mode %d must define zones\n", benthic_mode);
-                exit(1);
+        // "Outflow wq aware": Handling the WQ variable setup for outflows
+        // Index outflow WQ variables
+        for (j = 0; j < NumOut; j++) {
+            if (outflow_fl[j] != NULL) {
+                if ( outflow_vars == NULL && outflow_varnum > 0 ) {
+                    fprintf(stderr, "WARNING: outflow_vars specified for outlet %d, but outflow WQ variables are not implemented\n", j);
+                }
+            }
+        }
+
+        // Allocate WQ arrays for outflows
+        for (j = 0; j < NumOut; j++) {
+            if (Num_WQ_Vars > 0) {
+                Outflows[j].WQ_Outflow = calloc(Num_WQ_Vars, sizeof(AED_REAL));//store WQ concentrations in WQ_Outflow
+                if (Outflows[j].WQ_Outflow == NULL) {
+                    fprintf(stderr, "ERROR: Failed to allocate WQ_Outflow array for outflow %d\n", j);
+                    exit(1);
+                }
             } else {
-                wq_set_glm_zones(theZones, &n_zones, &Num_WQ_Vars, &Num_WQ_Ben);
+                Outflows[j].WQ_Outflow = NULL; //if there are no WQ variables = NULL
             }
         }
 
@@ -1219,16 +1348,17 @@ for (i = 0; i < n_zones; i++) {
                 }
             }
         }
-
-        wq_set_glm_data(Lake, &MaxLayers, &MetData, &SurfData, &dt,
-                                   rain_factor, sw_factor, biodrag);
     }
-
+    // Read heat pump configuration
+    get_namelist(namlst, heat_pump);
 
     get_namelist(namlst, debugging);
 
     close_namelist(namlst);  // Close the glm.nml file
 
+    // Initialize heat pump system
+    init_heat_pump();
+    check_heat_pump_config();
 #if DEBUG
     debug_initialisation(0);
 #endif
@@ -1298,7 +1428,7 @@ void create_lake(int namlst)
     }
 
     if (base_elev != MISVAL ) {
-        fprintf(stderr, "     NOTE: value for base_elev is no longer used; A[1] is assumed.\n");
+        fprintf(stderr, "     NOTE: value for base_elev is no longer used; H[1] is assumed.\n");
     }
     if ( V != NULL ) {
         fprintf(stderr, "     NOTE: values for V are no longer used\n");
@@ -1525,7 +1655,6 @@ void initialise_lake(int namlst)
     AED_REAL       *restart_variables = NULL;
     int             restart_mixer_count;
 
-
     //==========================================================================
     NAMELIST init_profiles[] = {
           { "init_profiles",       TYPE_START,            NULL                },
@@ -1552,7 +1681,7 @@ void initialise_lake(int namlst)
     int i, j, min_layers;
     int nx, np, nz;
     int *idx = NULL;
-    int need_free = FALSE;
+    CLOGICAL need_free = FALSE;
 
 /*----------------------------------------------------------------------------*/
     //-------------------------------------------------
@@ -1579,8 +1708,9 @@ void initialise_lake(int namlst)
             Lake[i].Salinity = the_sals[i];
         }
 
-        if (the_heights[num_heights-1] > CrestHeight) {
-            fprintf(stderr, "     ERROR: maximum height is greater than crest level\n");
+        if (the_heights[num_heights-1] > MaxHeight) {
+            fprintf(stderr, "     ERROR: initial first height of %f is greater than maximum height of %f \n",
+                                                 the_heights[num_heights-1], MaxHeight);
             exit(1);
         }
         num_depths = num_heights;
@@ -1690,6 +1820,11 @@ void initialise_lake(int namlst)
         ice = TRUE;
     }
 
+    if (deep_mixing == 1) {     // constant diffusivity over whole water column
+        for (i = 0; i < NumLayers; i++)
+          Lake[i].Epsilon = coef_mix_hyp;
+    }
+
     AvgSurfTemp = avg_surf_temp;
 
     if (restart_variables != NULL) {
@@ -1715,7 +1850,6 @@ void initialise_lake(int namlst)
 
         if (need_free) free(restart_variables);
     }
-
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

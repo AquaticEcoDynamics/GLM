@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -34,7 +34,32 @@
 
 #ifdef PLOTS
 
-#ifdef _FORTRAN_SOURCE_
+#ifdef __STDC__
+
+#ifdef XPLOTS
+    extern int xdisp;
+#endif
+    extern FLOGICAL do_plots;
+    extern CLOGICAL saveall;
+    extern int today, plotstep;
+    extern AED_REAL psubday;
+
+/******************************************************************************/
+void init_plots(int jstart, int ndays, AED_REAL crest);
+void put_glm_val_s(int plot_id, AED_REAL val);
+void put_glm_val(int plot_id, AED_REAL *val);
+void do_internal_plots(const int plot_id[]);
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+void put_glm_val_z(int plot_id, AED_REAL val, int z);
+void put_glm_val_z_(int *plot_id, AED_REAL *val, int *z);
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+void init_plots_(int *jstart, int *ndays, AED_REAL *crest);
+void put_glm_val_s_(int *plot_id, AED_REAL *val);
+void put_glm_val_(int *plot_id, AED_REAL *val);
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+#else
 
   INTERFACE
 
@@ -77,29 +102,6 @@
   END INTERFACE
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#else
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
-#ifdef XPLOTS
-    extern int xdisp;
-#endif
-    extern CLOGICAL do_plots, saveall;
-    extern int today, plotstep;
-    extern AED_REAL psubday;
-
-/******************************************************************************/
-void init_plots(int jstart, int ndays, AED_REAL crest);
-void put_glm_val_s(int plot_id, AED_REAL val);
-void put_glm_val(int plot_id, AED_REAL *val);
-void do_internal_plots(const int plot_id[]);
-
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-void put_glm_val_z(int plot_id, AED_REAL val, int z);
-void put_glm_val_z_(int *plot_id, AED_REAL *val, int *z);
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-void init_plots_(int *jstart, int *ndays, AED_REAL *crest);
-void put_glm_val_s_(int *plot_id, AED_REAL *val);
-void put_glm_val_(int *plot_id, AED_REAL *val);
 
 #endif
 

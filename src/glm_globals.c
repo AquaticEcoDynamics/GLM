@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -37,13 +37,10 @@
 #include "glm_globals.h"
 #include "aed_csv.h"
 
+#define DEBUG_GLOBS 0
 
-int MaxLayers;   //# Maximum number of layers in this sim
-int NumLayers;   //# current number of layers
+CINTEGER NumLayers;   //# current number of layers
 LakeDataType *Lake = NULL;
-
-
-AED_REAL Latitude, Longitude;
 
 AED_REAL DMin;    //# minimum layer thickness
 AED_REAL DMax;    //# maximum layer thickness
@@ -52,11 +49,13 @@ AED_REAL VMax;    //# maximum layer volume
 
 int wq_calc = FALSE;
 
-AED_REAL Kw;      //# background light attenuation (m**-1)
+int Num_WQ_Vars = 0;   //# number of water quality variables
+int Num_WQ_Ben = 0;    //# number of benthic water quality variables
+int Tot_WQ_Vars = 0;   //# nVars+nBen
+int Num_WQD_Vars = 0;  //# number of diagnostic water quality variables
+int Num_WQDS_Vars = 0; //# number of diagnostic benthic water quality variables
 
-int Num_WQ_Vars = 0;  //# number of water quality variables
-int Num_WQ_Ben = 0;   //# number of benthic water quality variables
-int atm_stab = 0; //# Account for non-neutral atmospheric stability
+CLOGICAL atm_stab = 0; //# Account for non-neutral atmospheric stability
 
 //------------------------------------------------------------------------------
 
@@ -110,8 +109,10 @@ AED_REAL CH = 0.0013;
 
 //------------------------------------------------------------------------------
 
-MetDataType MetData;         //# Meteorological data
-SurfaceDataType SurfData;    //# Surface Data
+MetDataType MetData;                    //# Meteorological data
+MetDataType* pMetData = &MetData;       //# pointer to Meteorological data
+SurfaceDataType SurfData;               //# Surface Data
+SurfaceDataType* pSurfData = &SurfData; //# pointer to Surface Data
 
 int subdaily = FALSE;
 
@@ -160,10 +161,8 @@ int       n_bands = 2;
 AED_REAL  *light_extc = NULL;
 AED_REAL  *energy_frac = NULL;
 
-LOGICAL link_solar_shade = FALSE;
-LOGICAL link_rain_loss   = FALSE;
-LOGICAL link_bottom_drag = FALSE;
-LOGICAL use_met_atm_pres = TRUE;
+CLOGICAL use_met_atm_pres = TRUE;
+
 AED_REAL biodrag = 0.0;
 
 AED_REAL salt_fall = 0.0;
@@ -201,7 +200,7 @@ AED_REAL avg_surf_temp_thres = 0.0;   //# average surface temperature threshold 
 
 //------------------------------------------------------------------------------
 // SEDIMENT
-CLOGICAL sed_heat_sw        = FALSE;
+CLOGICAL  sed_heat_sw       = FALSE;
 int      sed_heat_model     = 0;
 //AED_REAL sed_temp_mean        = 9.7;
 //AED_REAL sed_temp_amplitude   = 2.7;
@@ -223,7 +222,7 @@ AED_REAL *L_gw = NULL;   //# turn off evaporation
 
 //------------------------------------------------------------------------------
 // FETCH
-LOGICAL     fetch_sw = FALSE;
+CLOGICAL    fetch_sw = FALSE;
 int         fetch_ndirs = 0;
 AED_REAL   *fetch_dirs = NULL;
 AED_REAL   *fetch_scale = NULL;
@@ -234,10 +233,33 @@ int         fetch_mode = 0;
 AED_REAL    fetch_aws = 0.;
 AED_REAL    fetch_xws = 0.;
 char *      fetch_fws = NULL;
+//------------------------------------------------------------------------------
+// HEAT PUMP SYSTEM
+int      heat_pump_switch = 0;              //# Enable/disable heat pump (0=off, 1=on, 2=heat flux mode)
+int      heat_pump_inflow_idx = 0;          //# Index of heat pump inflow (0-based)
+int      heat_pump_outflow_idx = 0;         //# Index of heat pump outflow(0-based)
+AED_REAL heat_pump_temp_change = 0.0;       //# Temperature change [°C]
+AED_REAL heat_pump_heat_flux = 0.0;         //# Heat flux input [W]
+AED_REAL heat_pump_dynamic_heat_flux = 0.0; //# Dynamic heat flux from CSV [W]
+AED_REAL heat_pump_current_heat_flux = 0.0; //# Current dynamic heat flux from CSV [W]
 
 //------------------------------------------------------------------------------
 // LITTORAL
 CLOGICAL littoral_sw        = FALSE;
+
+//------------------------------------------------------------------------------
+// PARTICLE TRANSPORT MODEL
+CLOGICAL ptm_sw = FALSE;
+int max_particle_num = 10000;  //# max number of particles
+ParticleDataType *Particle = NULL;
+AED_REAL settling_velocity = 0.;
+CLOGICAL do_particle_bgc = FALSE;
+int init_particle_num = 10;
+AED_REAL settling_efficiency = 1.;
+AED_REAL *inflow_conc = 0;    //# number of particles per cubic meter in the inflow
+
+partgroup *Particles = NULL;
+
 
 //------------------------------------------------------------------------------
 
@@ -246,17 +268,17 @@ AED_REAL timezone_r = 0.0, timezone_m = 0.0, timezone_i = 0.0, timezone_o = 0.0;
 //------------------------------------------------------------------------------
 
 int nDays;          //# number of days to simulate
-AED_REAL timestep;
 int noSecs;
-AED_REAL yearday;   //# day of year
 
 //------------------------------------------------------------------------------
 
-AED_REAL *WQ_Vars = NULL;  //# water quality array, nlayers, nvars
+AED_REAL *WQ_Vars = NULL;  //# water quality array, [nlayers, nvars]
+AED_REAL *WQS_Vars = NULL;  //# water quality benthic array, [nvars]
+AED_REAL *WQD_Vars = NULL;  //# water quality diagnostics array, [nlayers, nvars]
+AED_REAL *WQDS_Vars = NULL;  //# water quality diagnostic benthic array, [nvars]
 
-int       n_zones = 0;
-ZoneType *theZones = NULL;
-
+int *PTM_Stat = NULL;  //# water quality array, [nlayers, nvars]
+AED_REAL *PTM_Vars = NULL;  //# water quality array, [nlayers, nvars]
 
 //------------------------------------------------------------------------------
 //  These for debugging
@@ -266,6 +288,11 @@ CLOGICAL no_evap = FALSE;   //# turn off evaporation
 int      quiet   = 0;       //# turn down output messages
 
 void set_c_wqvars_ptr(AED_REAL *iwqv) { WQ_Vars = iwqv; }
+void set_c_wqdvars_ptr(AED_REAL *iwqd, AED_REAL *iwqds, int *nwqd, int *nwqds)
+{ WQD_Vars = iwqd; WQDS_Vars = iwqds; Num_WQD_Vars = *nwqd; Num_WQDS_Vars = *nwqds; }
+
+void set_c_ptmstat_ptr(int *iptms) { PTM_Stat = iptms; }
+void set_c_ptmenv_ptr(AED_REAL *iptmv) { PTM_Vars = iptmv; }
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -289,25 +316,22 @@ void debug_initialisation(int which) { }
 #else
 /******************************************************************************/
 void _debug_print_lake(FILE *of) {
+#if DEBUG_GLOBS
     int i;
 
-/*
-    fprintf(of, "----------DEPTH----------------TEMP-----------------SALT-----------------DENS-----------------LVol------\n");
-    for (i = 0; i < NumLayers; i++)
-        fprintf(of, "%3d %16.11f %20.11f %20.11f %20.11f %20.11f %16.10f\n",
-                    i, Lake[i].Height, Lake[i].Temp, Lake[i].Salinity, Lake[i].Density, Lake[i].LayerVol,Lake[i].Vol1);
-*/
     fprintf(of, "MaxLayers %d NumLayers %d\n", MaxLayers, NumLayers);
     fprintf(of, "----------DEPTH----------------TEMP-----------------SALT-----------------DENS-----------------LVol--------------LArea----\n");
     for (i = 0; i < NumLayers; i++)
         fprintf(of, "%3d %16.11f %20.11f %20.11f %20.11f %20.11f %16.10f\n",
                     i, Lake[i].Height, Lake[i].Temp, Lake[i].Salinity, Lake[i].Density, Lake[i].LayerVol, Lake[i].LayerArea);
     fprintf(of, "-------------------------------------------------------------------------------------------------------------------------\n\n");
+#endif
 }
 void debug_print_lake() { _debug_print_lake(stderr); }
 
 /******************************************************************************/
 void debug_initialisation(int which) {
+#if DEBUG_GLOBS
     int i ;
     FILE *of = stderr;
 
@@ -330,8 +354,7 @@ void debug_initialisation(int which) {
     fprintf(of, "NumInf %d NumOut %d NumDif %d\n", NumInf, NumOut, NumDif);
 
     if (which) fprintf(of, "FORTRAN\n"); else fprintf(of, "C-----\n");
-
-//exit(0);
+#endif
 }
 void debug_initialisation_(int *which) { debug_initialisation(*which); }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

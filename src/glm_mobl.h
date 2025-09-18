@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -34,12 +34,18 @@
 
 #include "glm.h"
 
-#ifdef _FORTRAN_SOURCE_
+#ifdef __STDC__
+
+   void doMobility(const CINTEGER *N, const AED_REAL *dt,
+                         const AED_REAL *h,  const AED_REAL *A,
+                         const AED_REAL *ww, const AED_REAL *min_C, AED_REAL *mcc);
+
+#else
 !###############################################################################
 
   INTERFACE
 
-    SUBROUTINE doMobility(N,dt,h,A,ww,min_C,cc) BIND(C, name="doMobility")
+    SUBROUTINE doMobility(N,dt,h,A,ww,min_C,mcc) BIND(C, name="doMobility")
        USE ISO_C_BINDING
 #      if defined( _WIN32 ) && USE_DL_LOADER
        !DEC$ ATTRIBUTES DLLIMPORT :: doMobility
@@ -50,17 +56,11 @@
        AED_REAL,INTENT(in)     :: A(*)    !# layer areas (m2)
        AED_REAL,INTENT(in)     :: ww(*)   !# vertical speed (m/s)
        AED_REAL,INTENT(in)     :: min_C   !# minimum allowed cell concentration
-       AED_REAL,INTENT(inout)  :: cc(*)   !# cell concentration
+       AED_REAL,INTENT(inout)  :: mcc(*)  !# cell concentration
     END SUBROUTINE doMobility
 
   END INTERFACE
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#else
-
-   void doMobility(const int *N, const AED_REAL *dt,
-                         const AED_REAL *h,  const AED_REAL *A,
-                         const AED_REAL *ww, const AED_REAL *min_C, AED_REAL *cc);
-
 #endif
 
 #endif

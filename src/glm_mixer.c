@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -48,6 +48,7 @@
 #include "glm_const.h"
 #include "glm_globals.h"
 #include "glm_mixu.h"
+#include "glm_ptm.h"
 #include "glm_util.h"
 
 #include "aed_time.h"
@@ -1106,6 +1107,11 @@ void do_mixing()
                      WQ_VarsM[wqvidx] = _WQ_Vars(wqvidx, i) * Lake[i].LayerVol + WQ_VarsM[wqvidx];
                  WQ_VarsM[wqvidx] = WQ_VarsM[wqvidx] / Lake[surfLayer].Vol1;
             }
+
+            //# redistribute particles in the mixed layer
+            if ( ptm_sw )
+                ptm_redistribute(Lake[surfLayer].Height, zero);
+
             /***** fall through ******/
 
          case MOMENTUM_CUT:
@@ -1136,6 +1142,12 @@ void do_mixing()
             //# water quality and particles
             for (wqvidx=0; wqvidx < Num_WQ_Vars; wqvidx++)
                 _WQ_Vars(wqvidx,Meta_topLayer+1) = WQ_VarsM[wqvidx];
+
+            //# redistribute particles in the mixed layer
+            if ( ptm_sw && (Meta_topLayer >= botmLayer) ) {
+//              fprintf(stderr, "MaxLyers = %d Meta_topLayer = %d\n", MaxLayers, Meta_topLayer);
+                ptm_redistribute(Lake[Meta_topLayer+1].Height, Lake[Meta_topLayer].Height);
+            }
 
             //# reset the layer volume, density and area for the surface layer
             Lake[Meta_topLayer+1].Vol1 = Lake[surfLayer].Vol1;

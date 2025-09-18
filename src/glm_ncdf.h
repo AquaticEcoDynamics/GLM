@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -33,7 +33,7 @@
 #define NF90_FLOAT  5
 #define NF90_DOUBLE 6
 
-#ifdef _FORTRAN_SOURCE_
+#ifndef __STDC__
 !-------------------------------------------------------------------------------
 
   INTERFACE
@@ -106,6 +106,8 @@
 
 #else
 
+# include <netcdf.h>
+
   int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
                                   AED_REAL lon, int nlev, const char *start_time);
   void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep);
@@ -120,9 +122,17 @@
   void store_nc_integer(int ncid, int id, int var_shape, int iscalar);
   void store_nc_scalar(int ncid, int id, int var_shape, AED_REAL scalar);
   void store_nc_array(int ncid, int id, int var_shape, int nvals, int maxvals, AED_REAL *array);
+  void check_nc_error(int err);
 
-  extern int ncid, x_dim, y_dim, z_dim, zone_dim, time_dim;
+  extern int ncid, x_dim, y_dim, z_dim, zone_dim, time_dim, ptm_dim;
 
+#endif
+
+#ifndef NC_FILL_DOUBLE
+#define NC_FILL_DOUBLE    (9.9692099683868690d+36)
+#endif
+#ifndef NC_FILL_FLOAT
+#define NC_FILL_FLOAT     (9.9692099683868690e+36)
 #endif
 
 #endif

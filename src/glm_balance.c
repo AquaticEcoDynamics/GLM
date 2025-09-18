@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2019 - 2025 -  The University of Western Australia               *
+ * Copyright 2019-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -60,21 +60,26 @@ static int mbnv = 0;
 //------------------------------------------------------------------------------
 // These for mass balance
 //------------------------------------------------------------------------------
-AED_REAL *mb_ifvar = NULL;
-AED_REAL *mb_ofvar = NULL;
-AED_REAL *mb_lkvar = NULL;
-int      *mb_idx = NULL;
+static AED_REAL *mb_ifvar = NULL;
+static AED_REAL *mb_ofvar = NULL;
+static AED_REAL *mb_lkvar = NULL;
+static int      *mb_idx = NULL;
 
 
 /******************************************************************************
  ******************************************************************************/
-void mb_add_inflows(AED_REAL vol, AED_REAL *wq_vars)
+void mb_add_inflows(AED_REAL vol, AED_REAL inTemp, AED_REAL inSalt, AED_REAL *wq_vars)
 {
     int i;
     if ( mbf < 0 ) return;
 
     for (i = 0; i < mbnv; i++) {
-        mb_ifvar[i] += (wq_vars[mb_idx[i]] * vol);
+        if ( mb_idx[i] == -2 )
+            mb_ifvar[i] +=  (inTemp * vol);
+        if ( mb_idx[i] == -1 )
+            mb_ifvar[i] +=  (inSalt * vol);
+        else
+            mb_ifvar[i] += (wq_vars[mb_idx[i]] * vol);
     }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -88,7 +93,12 @@ void mb_sub_outflows(int layer, AED_REAL subvol)
     if ( mbf < 0 ) return;
 
     for (i = 0; i < mbnv; i++) {
-        mb_ifvar[i] += (_WQ_Vars(mb_idx[i], layer) * subvol);
+        if ( mb_idx[i] == -2 )
+            mb_ofvar[i] +=  (Lake[layer].Temp * subvol);
+        if ( mb_idx[i] == -1 )
+            mb_ofvar[i] +=  (Lake[layer].Salinity * subvol);
+        else
+            mb_ofvar[i] += (_WQ_Vars(mb_idx[i], layer) * subvol);
     }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -114,21 +124,28 @@ void open_balance(const char *out_dir, const char *balance_fname,
     mb_lkvar = calloc(balance_varnum, sizeof(AED_REAL));
     mb_idx   = calloc(balance_varnum, sizeof(int));
 
+    l = sizeof(VARNAME) - 1;
     csv_header_start(mbf);
     for (i = 0; i < balance_varnum; i++) {
-        sprintf(mbs, "Inf %s", balance_vars[i]);
+        snprintf(mbs, l, "Inf %s", balance_vars[i]);
         csv_header_var(mbf, mbs);
-        sprintf(mbs, "Lake %s", balance_vars[i]);
+        snprintf(mbs, l, "Lake %s", balance_vars[i]);
         csv_header_var(mbf, mbs);
-        sprintf(mbs, "Out %s", balance_vars[i]);
+        snprintf(mbs, l, "Out %s", balance_vars[i]);
         csv_header_var(mbf, mbs);
 
         mb_ifvar[i] = 0.0;
         mb_ofvar[i] = 0.0;
         mb_lkvar[i] = 0.0;
 
-        l = strlen(balance_vars[i]);
-        mb_idx[i] = wq_var_index_c(balance_vars[i], &l);
+        if ( strcmp(balance_vars[i], "Heat") == 0 )
+             mb_idx[i] = -2;
+        else if ( strcmp(balance_vars[i], "Salt") == 0 )
+             mb_idx[i] = -1;
+        else {
+            l = strlen(balance_vars[i]);
+            mb_idx[i] = wq_var_index_c(balance_vars[i], &l);
+        }
     }
     csv_header_end(mbf);
 
@@ -156,7 +173,12 @@ void write_balance(int jday)
         write_csv_val(mbf, mb_ofvar[i]);
 
         for (j = 0; j < surfLayer; j++) {
-            mb_lkvar[i] +=  (_WQ_Vars(mb_idx[i], j) * Lake[j].LayerVol);
+            if ( mb_idx[i] == -2 )
+                 mb_lkvar[i] +=  (Lake[j].Temp * Lake[j].LayerVol);
+            if ( mb_idx[i] == -1 )
+                 mb_lkvar[i] +=  (Lake[j].Salinity * Lake[j].LayerVol);
+            else
+                 mb_lkvar[i] +=  (_WQ_Vars(mb_idx[i], j) * Lake[j].LayerVol);
         }
         write_csv_val(mbf, mb_lkvar[i]);
 

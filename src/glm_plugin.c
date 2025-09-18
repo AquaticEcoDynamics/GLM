@@ -12,7 +12,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -79,9 +79,9 @@ void set_funcs(
 /******************************************************************************/
 void set_c_wqvars_ptr(AED_REAL *iwqvars) { (*funcs.set_c_wqvars_ptr)(iwqvars); }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-void Mobility(int *N, AED_REAL *dt, AED_REAL *h, AED_REAL *A,
-                         AED_REAL *ww, AED_REAL *min_C, AED_REAL *cc)
-{ (*funcs.Mobility)(N, dt, h, A, ww, min_C, cc); }
+void Mobility(CINTEGER *N, AED_REAL *dt, AED_REAL *h, AED_REAL *A,
+                         AED_REAL *ww, AED_REAL *min_C, AED_REAL *mcc)
+{ (*funcs.Mobility)(N, dt, h, A, ww, min_C, mcc); }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 void define_mode_on(int *ncid) { (*funcs.define_mode_on)(ncid); }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

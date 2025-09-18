@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -46,12 +46,13 @@
 
 #include "namelist.h"
 #include "libplot.h"
+#include "plotter.h"
 
 #ifdef XPLOTS
     int xdisp = 0;
 #endif
 
-CLOGICAL do_plots, saveall = 0;
+CLOGICAL saveall = FALSE;
 static int nplots = 9;
 static int max_plots = 16, *theplots = NULL;
 static char **vars = NULL;
@@ -60,11 +61,17 @@ int plotstep = 0;
 AED_REAL psubday = 1;
 char * plots_nml_name = "plots.nml";
 
+static int nanim = 0;
+static char **avars = NULL;
+static char **afnam = NULL;
+static char *anim_name[MAX_PLOTS];
+
 
 /******************************************************************************/
 void init_plots(int jstart, int ndays, AED_REAL crest)
 {
-    int        maxx, maxy, width, height,i,w,h,acrs;
+    int        maxx, maxy, width, height;
+    int        i, j, w, h, acrs;
     int        plot_width, plot_height;
     int        namlst;
     char     **title;
@@ -77,6 +84,7 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
     char      *label_font = NULL;
     int        tsz, lsz;
     int        default_t = FALSE;
+    extern int anim_delay;
 
     NAMELIST plots_window[] = {
           { "plots_window",   TYPE_START,            NULL               },
@@ -99,6 +107,14 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
           { "max_z",          TYPE_DOUBLE|MASK_LIST, &max_z             },
           { "min_y",          TYPE_DOUBLE|MASK_LIST, &min_y             },
           { "max_y",          TYPE_DOUBLE|MASK_LIST, &max_y             },
+          { NULL,             TYPE_END,              NULL               }
+    };
+    NAMELIST animate[] = {
+          { "animate",        TYPE_START,            NULL               },
+          { "nanim",          TYPE_INT,              &nanim             },
+          { "vars",           TYPE_STR|MASK_LIST,    &avars             },
+          { "fnames",         TYPE_STR|MASK_LIST,    &afnam             },
+          { "anim_delay",     TYPE_INT,              &anim_delay        },
           { NULL,             TYPE_END,              NULL               }
     };
 
@@ -156,6 +172,18 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
 
             default_t = TRUE;
         }
+
+        for (i = 0; i < nplots; i++) anim_name[i] = NULL;
+        if ( get_namelist(namlst, animate) == 0 ) {
+            for (j = 0; j < nanim; j++) {
+                for (i = 0; i < nplots; i++) {
+                    if ( strcmp(vars[i], avars[j]) == 0 ) {
+                        anim_name[i] = afnam[j];
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     max_plots = nplots + 12;
@@ -164,7 +192,7 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
     for (i = 0; i < max_plots; i++) theplots[i] = -1;
 
     glm_vers = malloc(strlen(GLM_VERSION) + 10);
-    sprintf(glm_vers, "GLM-%s", GLM_VERSION);
+    snprintf(glm_vers, strlen(GLM_VERSION) + 9, "GLM-%s", GLM_VERSION);
 
     maxx = width;
     maxy = height;
@@ -237,6 +265,9 @@ void init_plots(int jstart, int ndays, AED_REAL crest)
         }
         set_plot_version(theplots[i], glm_vers);
         set_plot_varname(theplots[i], vars[i]);
+
+        if ( anim_name[i] != NULL )
+            set_plot_animation(theplots[i], anim_name[i]);
     }
     free(glm_vers);
     if (default_t) {
@@ -265,6 +296,7 @@ void do_internal_plots(const int plot_id[])
         if ( (j=plot_id[4]) >= 0 ) plot_value(theplots[j], todayish, Lake[i].Height, Lake[i].Density);
         if ( (j=plot_id[5]) >= 0 ) plot_value(theplots[j], todayish, Lake[i].Height, Lake[i].Uorb);
         if ( (j=plot_id[6]) >= 0 ) plot_value(theplots[j], todayish, Lake[i].Height, Lake[i].LayerStress);
+        if ( (j=plot_id[7]) >= 0 ) plot_value(theplots[j], todayish, Lake[i].Height, Lake[i].LayerArea);
     }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

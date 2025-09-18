@@ -9,7 +9,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013 - 2025 -  The University of Western Australia               *
+ * Copyright 2013-2025 - The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -87,7 +87,6 @@ int  atmos_stability(     AED_REAL *Q_latentheat,
  * Module variables                                                           *
  ******************************************************************************/
 
-int ice = FALSE;               // flag that tells if there is ice cover
 AED_REAL  AvgSurfTemp= 6.;  // Recent average of surface temp, for ice-on.
 
 // Heat fluxes; these are made available for the lake.csv output
@@ -238,8 +237,6 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     AED_REAL catch_runoff = zero;
 
 
-    //fprintf(stdout, "###1 %f\n", Lake[5].Temp);
-
     if ( catchrain && MetData.Rain>rain_threshold ) {
 
         // Compute runoff in m3 for this time step
@@ -281,8 +278,6 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         SurfData.dailyRunoff += catch_runoff;
     }
 
-     //fprintf(stdout, "###2 %f\n", Lake[5].Temp);
-
     /**********************************************************************
     * Now get ready for surface heating
     ***********************************************************************/
@@ -322,8 +317,6 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     // Modify wind speed experienced by the surafce layer, if ice is present
     if (ice) WindSp = 0.0001;
     else     WindSp = MetData.WindSpeed;
-
- //fprintf(stdout, "###3 %f\n", Lake[5].Temp);
 
     /**********************************************************************
      * ATMOSPHERIC CONDITIONS
@@ -455,7 +448,6 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     SurfData.dailyQsw += Lake[surfLayer].LayerArea * Q_shortwave * noSecs;
 
 
- //fprintf(stdout, "###4 %f\n", Lake[5].Temp);
     // ---- MH TEST SOLPOND IN PROGRESS ---- //
     if (light_mode == 2){
 
@@ -494,7 +486,6 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
      * and check ice buoyancy for crackign and white ice formation
      *********************************************************************/
 
-      //fprintf(stdout, "###5 %f\n", Lake[5].Temp);
     if (iclock == 0 && ice) {
         AED_REAL BuoyantPotential;
 
@@ -652,7 +643,6 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         SUMSI  = SUMSI  + 0.0   + MetData.RainConcSi  * MetData.Rain ;
 
     }  // end iclock == 0 && ice
- //fprintf(stdout, "###6 %f\n", Lake[5].Temp);
 
     /**********************************************************************
      * NON-PENETRATIVE HEAT FLUXES
@@ -675,7 +665,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         coef_wind_chwn = CH;
         coef_wind_drag = CD;
 
-        if (atm_stab>0) {
+        if ( atm_stab > 0 ) {
 //           non_neutral_converged =
                atmos_stability(&Q_latentheat,
                                &Q_sensibleheat,
@@ -844,8 +834,6 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
             }
         } // end while
 
-         //fprintf(stdout, "###7 %f\n", Lake[5].Temp);
-
         //# Reset
         T01_NEW =  50.0;
         T01_OLD = -50.0;
@@ -952,7 +940,6 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
        SurfData.dailyQlw += Q_longwave * Lake[surfLayer].LayerArea * noSecs;
     }
 
- //fprintf(stdout, "###8 %f\n", Lake[5].Temp);
     /***************************************************************************
      * APPLY HEATING TO WATER LAYERS
      * Now look at the ice or water interface
@@ -1007,8 +994,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         Lake[onshoreLayer].Temp += dTemp;
     }
 
- //fprintf(stdout, "###9 %f\n", Lake[5].Temp);
-      /**************************************************************************
+    /**************************************************************************
      * Check if the ice melted in code above
      *************************************************************************/
     if ((SurfData.delzBlueIce+SurfData.delzWhiteIce) < min_ice_thickness && ice) {
@@ -1107,7 +1093,6 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         recalc_surface_salt();
     }
 
- //fprintf(stdout, "###10 %f\n", Lake[5].Temp);
     /**************************************************************************
      * SEDIMENT HEATING
      * Sediment "heating" factor now applied to any layer based on which zone
@@ -1197,57 +1182,67 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 //                                            (SPHEAT * onshoreDensity * onshoreVol);
     }
 
- //fprintf(stdout, "###11 %f\n", Lake[5].Temp);
-
     /**************************************************************************
      * SURFACE MASS FLUXES (NO ICE COVER PRESENT)
      * Precipitation, evaporation in the absence of ice
      **************************************************************************/
     if (!ice) {
+        AED_REAL evap = MAX( SurfData.Evap*noSecs,-0.9*Lake[surfLayer].Height );
+
+        AED_REAL evapvol = MIN( evap,zero ) * Lake[surfLayer].LayerArea;
 
         AED_REAL rainvol = MAX( MetData.Rain,zero )
-                         * (noSecs / SecsPerDay) * Lake[surfLayer].LayerArea;
+                             * (noSecs / SecsPerDay) * Lake[surfLayer].LayerArea;
 
+        AED_REAL snowvol = MAX( MetData.Snow,zero ) * (1./10.)
+                             * (noSecs / SecsPerDay) * Lake[surfLayer].LayerArea;
+
+        SurfData.dailyEvap += evapvol;
         SurfData.dailyRain += rainvol;
-        SurfData.dailyEvap += SurfData.Evap * noSecs * Lake[surfLayer].LayerArea;
+        SurfData.dailySnow += snowvol;
 
         //---------------------------------------------------------------------+
-        //# Dilution by rainfall and evapo-concentration. Note that evaporation
-        //  leaves consituents and rain can deposit them at a rate dependent
-        //  on the composition of rainfall.
+        //# Add rain directly to surface layer height 
         //---------------------------------------------------------------------+
-        Lake[surfLayer].Height += MAX( SurfData.Evap*noSecs,-0.9*Lake[surfLayer].Height )
-                                + rainvol / Lake[surfLayer].LayerArea;
+        Lake[surfLayer].Height += rainvol / Lake[surfLayer].LayerArea;
 
+        //---------------------------------------------------------------------+
+        //# Add snow directly to surface layer height, if there is no ice.
+        //  If there is ice, snow will be handled in the next block
+        //  Use 1:10 rule for snow water equivalent (SWE)
+        //---------------------------------------------------------------------+
+        Lake[surfLayer].Height += snowvol / Lake[surfLayer].LayerArea;
+
+        //---------------------------------------------------------------------+
+        //# Dilution by rainfall/snowfall. Note that rain can deposit   
+        //  consituents at a rate dependent on the composition of rainfall. # TBC
+        //---------------------------------------------------------------------+
         Lake[surfLayer].Temp = combine(Lake[surfLayer].Temp,
                                        Lake[surfLayer].LayerVol,
                                        Lake[surfLayer].Density,
-                                       MetData.AirTemp, rainvol,
-                                       calculate_density(MetData.AirTemp, zero+0.001));
+                                       MetData.AirTemp, rainvol+snowvol,
+                                       calculate_density(MetData.AirTemp, MAX(zero,salt_fall)));
         Lake[surfLayer].Salinity = combine(Lake[surfLayer].Salinity,
                                        Lake[surfLayer].LayerVol,
                                        Lake[surfLayer].Density,
-                                       zero+0.001, rainvol,
-                                       calculate_density(MetData.AirTemp, zero+0.001));
+                                       MAX(zero,salt_fall), rainvol+snowvol,
+                                       calculate_density(MetData.AirTemp, MAX(zero,salt_fall)));
         for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
             _WQ_Vars(wqidx, surfLayer) = combine_vol(_WQ_Vars(wqidx, surfLayer),
                                                      Lake[surfLayer].LayerVol,
-                                                     zero, rainvol);
+                                                     zero, rainvol+snowvol);
+
+//      resize_internals(1, surfLayer);  // recompute surflayer volume
 
         //---------------------------------------------------------------------+
-        //# Add snow directly to surface layer height if there is no ice.
-        //  If there is ice, snow will be handled in the next block
-        //  Use 1:10 rule for snow water equivalent
+        //# Evaporation and evapo-concentration, as evaporation leaves consituents 
         //---------------------------------------------------------------------+
-        Lake[surfLayer].Height += MAX( MetData.Snow, zero)
-                 * (1./10.) * (noSecs / SecsPerDay);
+        Lake[surfLayer].Height += evapvol / Lake[surfLayer].LayerArea;
 
         recalc_surface_salt();
+        //recalc_surface_wq();
+        resize_internals(1, surfLayer);  // recompute surflayer volume
     }
-
-
-     //fprintf(stdout, "###12 %f\n", Lake[5].Temp);
-
 
     //# Recalculate densities
     for (i = botmLayer; i <= surfLayer; i++)
@@ -1292,9 +1287,6 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         SurfData.delzSnow    = 0.0;
     }
     SurfData.RhoSnow = rho_snow;
-
-     //fprintf(stdout, "###13 %f\n", Lake[5].Temp);
-
 
     free(LayerThickness);  free(heat);  free(layer_zone);
 
@@ -1583,7 +1575,7 @@ int atmos_stability(      AED_REAL *Q_latentheat,
         Q_latentheat_still = zero;
     }
 
-    if(atm_stab==2){
+    if ( atm_stab == 2 ) {
       // Assign free vs forced
       if (Q_sensible_still < *Q_sensible)
          *Q_sensible = Q_sensible_still;
@@ -1764,7 +1756,7 @@ int atmos_stability(      AED_REAL *Q_latentheat,
     printf("*Q_latentheat = %10.5f\n",*Q_latentheat);
 
     *zonL = zL;
-    if (atm_stab==3)
+    if ( atm_stab == 3 )
        return atmos_status;
 
     //# Limit minimum to still air value
