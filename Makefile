@@ -234,13 +234,10 @@ ifeq ($(F90),ifort)
   FLIBS+=-limf -lintlc -liomp5 -lifport
   #EXTFFLAGS=-warn-no-unused-dummy-argument
 else ifeq ($(F90),ifx)
-# INCLUDES+=-I/opt/intel/oneapi/compiler/latest/include
-# LINK=$(CC)
   DEBUG_FFLAGS=-g -traceback -DDEBUG=1 -O0
   OMPFLAG=-qopenmp
   OPT_FFLAGS=-O3
   ifeq ($(OSTYPE),Msys)
-#   LINK=$(FC) /link /nofor_main
     LINK=$(FC) /nofor_main
     FFLAGS=-fpp -warn=all -module=${moddir} -static-intel -mp1 -stand=f23 -warn=nounused $(DEFINES) $(FINCLUDES)
     ifeq ($(WITH_CHECKS),true)
@@ -253,6 +250,7 @@ else ifeq ($(F90),ifx)
 #   FLIBS+=-lifmodintr -lbufferoverflow -lifconsol -lgcc
   else
     FFLAGS=-fpp -warn all -module ${moddir} -static-intel -mp1 -stand f23 -warn nounused $(DEFINES) $(FINCLUDES)
+    LINK=$(FC) -nofor-main
     ifeq ($(WITH_CHECKS),true)
       FFLAGS+=-check all -check=noarg_temp_created
     endif
