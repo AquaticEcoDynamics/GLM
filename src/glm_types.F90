@@ -232,7 +232,7 @@ MODULE glm_types
    TYPE(FLOGICAL),BIND(C, name="link_bottom_drag")   :: link_bottom_drag  = .FALSE.
    TYPE(FLOGICAL),BIND(C, name="ice")                :: ice               = .FALSE.
 
-   TYPE(CINTEGER),BIND(C, name="split_factor")       :: split_factor
+   TYPE(CINTEGER),BIND(C, name="split_factor")       :: split_factor = 1
    TYPE(CINTEGER),BIND(C, name="ode_method")         :: ode_method
    TYPE(CINTEGER),BIND(C, name="benthic_mode")       :: benthic_mode
 
@@ -243,10 +243,10 @@ MODULE glm_types
    TYPE(AED_REAL),TARGET,BIND(C, name="Kw")          :: Kw
    TYPE(AED_REAL),TARGET,BIND(C, name="dt")          :: dt = 0.
 
-   TYPE(AED_REAL),TARGET,BIND(C, name="yearday")     :: yearday
-   TYPE(AED_REAL),TARGET,BIND(C, name="timestep")    :: timestep
-   TYPE(AED_REAL),TARGET,BIND(C, name="Longitude")   :: longitude
-   TYPE(AED_REAL),TARGET,BIND(C, name="Latitude")    :: latitude
+   TYPE(AED_REAL),TARGET,BIND(C, name="yearday")     :: yearday   = 0.
+   TYPE(AED_REAL),TARGET,BIND(C, name="timestep")    :: timestep  = 0.
+   TYPE(AED_REAL),TARGET,BIND(C, name="Longitude")   :: longitude = 0.
+   TYPE(AED_REAL),TARGET,BIND(C, name="Latitude")    :: latitude  = 0.
 
 CONTAINS
 

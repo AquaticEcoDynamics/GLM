@@ -528,7 +528,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- %%NAMELIST sediment -------------------------------------------------*/
-//  int              benthic_mode;
+//  extern int       benthic_mode;
 //  int              n_zones;
     AED_REAL        *zone_heights = NULL;
     extern CLOGICAL  sed_heat_sw;

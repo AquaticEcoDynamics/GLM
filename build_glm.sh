@@ -74,7 +74,7 @@ export F95=$FC
 
 export MPI=OPENMPI
 
-. ${CWD}/build_env.inc
+.. ${CWD}/build_env.inc
 
 if [ "$AED2DIR" = "" ] ; then
   export AED2DIR=../libaed2

@@ -322,7 +322,7 @@ extern AED_REAL settling_velocity;
 extern CLOGICAL do_particle_bgc;
 extern int init_particle_num;
 extern AED_REAL settling_efficiency;
-extern AED_REAL *inflow_conc;    //# concentration of particles per ?? in the inflow
+extern AED_REAL *inflow_conc;  //# concentration of particles per ?? in the inflow
 
 extern partgroup *Particles;
 
@@ -336,9 +336,9 @@ extern AED_REAL yearday;   //# day of year
 
 /*----------------------------------------------------------------------------*/
 // DEBUGGING
-extern CLOGICAL dbg_mix;  //# debug output from mixer
-extern CLOGICAL no_evap;  //# turn off evaporation
-extern int     quiet;     //# turn down output messages
+extern CLOGICAL dbg_mix;   //# debug output from mixer
+extern CLOGICAL no_evap;   //# turn off evaporation
+extern int      quiet;     //# turn down output messages
 
 /*----------------------------------------------------------------------------*/
 // C-Fortran shared (see glm_types.F90
@@ -375,8 +375,6 @@ extern AED_REAL friction;
 extern AED_REAL Kw;
 extern AED_REAL dt;
 
-extern AED_REAL yearday;
-extern AED_REAL timestep;
 extern AED_REAL Longitude;
 extern AED_REAL Latitude;
 
