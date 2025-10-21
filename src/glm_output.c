@@ -72,7 +72,9 @@ void wq_write_glm(int ncid, int wlev, int nlev, int *lvl, int point_nlevs)
 
 extern AED_REAL XLW, XCO, XEV, QSW;
 
+#ifdef PLOTS
 static int plot_id[16];
+#endif
 
 /******************************************************************************
  * Initialise output streams                                                  *

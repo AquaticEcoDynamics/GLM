@@ -164,25 +164,25 @@ MODULE glm_types
       TYPE(C_PTR) :: c_layers      !# array of sed layers
    END TYPE ZoneType
 
+#if 0
+
+!# These are not used in the fortran part - will need to check against .h if they are to be used
    !#===========================================================#!
    !# Structured type for Particle Transport Model (PTM)
-
-!  TYPE,BIND(C) :: ParticleDataType
-!      INTEGER  :: Status         ! indivdual particle status
-!      INTEGER  :: Flag           ! indivdual particle flag indicating if BED (1) or SCUM (2), or neither (0)
-!      AED_REAL :: Height
-!      AED_REAL :: Mass
-!      AED_REAL :: Diam
-!      AED_REAL :: Density
-!      AED_REAL :: Velocity
-!      AED_REAL :: vvel
-!      CINTEGER :: Layer
-!  END TYPE ParticleDataType
+   TYPE,BIND(C) :: ParticleDataType
+       INTEGER  :: Status         ! indivdual particle status
+       INTEGER  :: Flag           ! indivdual particle flag indicating if BED (1) or SCUM (2), or neither (0)
+       AED_REAL :: Height
+       AED_REAL :: Mass
+       AED_REAL :: Diam
+       AED_REAL :: Density
+       AED_REAL :: Velocity
+       AED_REAL :: vvel
+       CINTEGER :: Layer
+   END TYPE ParticleDataType
 
    !#===========================================================#!
    !# NEW structured type for Particle Transport Model (PTM), following AED API
-
-#if 0
    TYPE,BIND(C) :: partgroup
       INTEGER(KIND=4) :: NP                                ! Number of Particles
       INTEGER(KIND=4) :: id_stat, id_i2, id_i3, id_layer   ! Particle ISTAT Index Values
@@ -197,9 +197,11 @@ MODULE glm_types
       REAL(KIND=4),POINTER,DIMENSION(:,:) :: prop          ! Particle Property Vector (12,Npart)
       REAL(KIND=4),POINTER,DIMENSION(:,:) :: U             ! Particle Conserved Variable Vector (NU,NP)
    END TYPE partgroup
+
    TYPE,BIND(C) :: partgroup_p
       INTEGER :: idx, grp
    END TYPE partgroup_p
+
    TYPE,BIND(C) :: partgroup_cell
       INTEGER :: count, n
       TYPE(partgroup_p),ALLOCATABLE,DIMENSION(:) :: prt

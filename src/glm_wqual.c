@@ -96,9 +96,6 @@ static void dummy_inflow_update(AED_REAL *wqinf, int *nwqVars, AED_REAL *temp, A
  ******************************************************************************/
 int prime_wq(const char *which)
 {
-#ifndef PLOTS
-    CLOGICAL do_plots = FALSE;
-#endif
     glm_init_fortran_support();
 #if USE_DL_LOADER
     char dirname[1024];

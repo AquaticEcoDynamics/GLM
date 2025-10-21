@@ -140,20 +140,20 @@ ifeq ($(FABM),true)
 endif
 
 EXTFFLAGS=
-ifeq ($(AED),true)
+ifeq ($(WITH_AED),true)
   DEFINES+=-DAED
 endif
-ifeq ($(API),true)
+ifeq ($(WITH_API),true)
   DEFINES+=-DAPI
-  AED=true
+  WITH_AED=true
 endif
 
-ifeq ($(AED),true)
+ifeq ($(WITH_AED),true)
   AEDWATDIR=../libaed-water
   FINCLUDES+=-I$(AEDWATDIR)/include -I$(AEDWATDIR)/mod
   CINCLUDES+=-I$(AEDWATDIR)/include
   AEDLIBS=-L$(AEDWATDIR)/lib -laed-water
-  ifeq ($(API),true)
+  ifeq ($(WITH_API),true)
     AEDAPIDIR=../libaed-api
     FINCLUDES+=-I$(AEDAPIDIR)/include -I$(AEDAPIDIR)/mod
     CINCLUDES+=-I$(AEDAPIDIR)/include
@@ -321,27 +321,35 @@ ifneq ($(NETCDFLIB),)
   LIBS+=-L$(NETCDFLIB)
 endif
 
-
 ifeq ($(PLOTDIR),)
   PLOTDIR=../../libplot
 endif
 
-RES=
-RESP=
-ifeq ($(WITH_PLOTS),true)
-  LIBS+=-L$(PLOTDIR)/lib -lplot -lgd
+PLOTLIBS=-L$(PLOTDIR)/lib -lplot -lgd
+ifeq ($(OSTYPE),Darwin)
+  XLIBS+=-framework Cocoa
+else ifeq ($(OSTYPE),Msys)
+  XLIBS+=-lgdi32
+else
+  XLIBS+=-lX11
+endif
+ifdef AEDDEVDIR
+  LIBS+=$(PLOTLIBS) $(XLIBS)
+else ifeq ($(WITH_PLOTS),true)
+  LIBS+=$(PLOTLIBS)
   ifeq ($(WITH_XPLOTS),true)
-    ifeq ($(OSTYPE),Darwin)
-      LIBS+=-framework Cocoa
-    else ifeq ($(OSTYPE),Msys)
-      LIBS+=-lgdi32
-      RES=${objdir}/glm_rc.o
-      RESP=${objdir}/glm+_rc.o
-    else
-      LIBS+=-lX11
-    endif
+    LIBS+=$(XLIBS)
   endif
 endif
+
+ifeq ($(OSTYPE),Msys)
+  RES=${objdir}/glm_rc.o
+  RESP=${objdir}/glm+_rc.o
+else
+  RES=
+  RESP=
+endif
+
 ifeq ($(FENCE),true)
   LIBS+=-lefence
 endif
@@ -386,24 +394,16 @@ ifeq ($(USE_DL),true)
   FFLAGS+=-DUSE_DL_LOADER=1
   TARGETS+=$(AEDTARGETS) $(FABMTARGETS)
 else
-  ifeq ($(AED),true)
-    OBJS+=${objdir}/glm_zones.o
-  else ifeq ($(FABM),true)
+  ifeq ($(WITH_AED),true)
     OBJS+=${objdir}/glm_zones.o
   endif
-  ifeq ($(AED2),true)
-    OBJS+=${objdir}/glm_aed2.o
-  endif
-  ifeq ($(API),true)
+  ifeq ($(WITH_API),true)
     OBJS+=${objdir}/glm_api_zones.o \
           ${objdir}/glm_api_aed.o
   endif
-  ifeq ($(AED),true)
+  ifeq ($(WITH_AED),true)
     OBJS+=${objdir}/glm_aed.o \
           ${objdir}/aed_external.o
-  endif
-  ifeq ($(FABM),true)
-    OBJS+=${objdir}/ode_solvers.o ${objdir}/glm_fabm.o
   endif
 endif
 

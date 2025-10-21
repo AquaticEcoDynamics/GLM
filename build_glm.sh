@@ -1,9 +1,20 @@
 #!/bin/sh
 
-if [ "$GLM_CONFIGURED" != "true" ] ; then
-  . ./GLM_CONFIG
-fi
-export CWD=`pwd`
+export CURDIR=`pwd`
+export CWD=`dirname ${CURDIR}`
+
+#
+# These are defaults for glm
+#
+export WITH_AED=true
+export WITH_AED_PLUS=false
+export WITH_API=true
+export USE_DL=false
+export WITH_PLOTS=true
+export WITH_XPLOTS=true
+
+export PLOTDIR=${CWD}/libplot
+export UTILDIR=${CWD}/libutil
 
 case `uname` in
   "Darwin"|"Linux"|"FreeBSD")
@@ -40,8 +51,8 @@ while [ $# -gt 0 ] ; do
     --fence)
       export FENCE=true
       ;;
-    --fabm)
-      export FABM=true
+    --with-aed-plus)
+      export WITH_AED_PLUS=true
       ;;
     --gfort)
       export FC=gfortran
@@ -74,11 +85,8 @@ export F95=$FC
 
 export MPI=OPENMPI
 
-.. ${CWD}/build_env.inc
+. ${CWD}/build_env.inc
 
-if [ "$AED2DIR" = "" ] ; then
-  export AED2DIR=../libaed2
-fi
 if [ "$PLOTDIR" = "" ] ; then
   export PLOTDIR=../libplot
 fi
@@ -117,21 +125,7 @@ if [ "$FABM" = "true" ] ; then
   ${MAKE} || exit 1
 fi
 
-if [ "${AED2}" = "true" ] ; then
-  cd "${AED2DIR}"
-  ${MAKE} || exit 1
-  cd ..
-  if [ "${AED2PLS}" != "" ] ; then
-    if [ -d "${AED2PLS}" ] ; then
-      cd "${AED2PLS}"
-      ${MAKE} || exit 1
-      cd ..
-    fi
-  fi
-fi
-
-if [ "${AED}" = "true" ] || [ "${API}" = "true" ] ; then
-  export WITH_AED_PLUS='true'
+if [ "${WITH_AED}" = "true" ] || [ "${WITH_API}" = "true" ] ; then
   . ${CWD}/build_aedlibs.inc
 fi
 
@@ -139,7 +133,7 @@ if [ -d "${UTILDIR}" ] ; then
   echo "making libutil"
   cd "${UTILDIR}"
   ${MAKE} || exit 1
-  cd "${CURDIR}/.."
+  cd "${CWD}"
 fi
 
 if [ "$OSTYPE" = "FreeBSD" ] ; then
@@ -177,6 +171,7 @@ ${CURDIR}/vers.sh $VERSION
 #cd ${CURDIR}/win-dll
 #${CURDIR}/vers.sh $VERSION
 cd "${CURDIR}"
+get_commit_id >> ${CWD}/cur_state.log
 
 export LIBRARY_PATH=$LIB
 ${MAKE} AEDBENDIR=$DAEDBENDIR AEDDMODIR=$DAEDDMODIR || exit 1
@@ -191,44 +186,6 @@ if [ "${DAEDDEVDIR}" != "" ] ; then
   fi
 fi
 
-cd "${CURDIR}/.."
+cd "${CWD}"
 
 # =====================================================================
-# Package building bit
-
-# ***************************** Linux *********************************
-if [ "$OSTYPE" = "Linux" ] ; then
-  if [ $(lsb_release -is) = Ubuntu ] ; then
-    BINPATH=binaries/ubuntu/$(lsb_release -rs)
-    if [ ! -d "${BINPATH}" ] ; then
-      mkdir -p "${BINPATH}"/
-    fi
-    cd ${CURDIR}
-    if [ -x glm+ ] ; then
-       /bin/cp debian/control-with+ debian/control
-    else
-       /bin/cp debian/control-no+ debian/control
-    fi
-    VERSDEB=`head -1 debian/changelog | cut -f2 -d\( | cut -f1 -d-`
-    echo debian version $VERSDEB
-    if [ "$VERSION" != "$VERSDEB" ] ; then
-      echo updating debian version
-      dch --newversion ${VERSION}-0 "new version ${VERSION}"
-    fi
-    VERSRUL=`grep 'version=' debian/rules | cut -f2 -d=`
-    if [ "$VERSION" != "$VERSRUL" ] ; then
-      sed -i "s/version=$VERSRUL/version=$VERSION/" debian/rules
-    fi
-
-    fakeroot ${MAKE} -f debian/rules binary || exit 1
-
-    cd ..
-
-    mv glm*.deb ${BINPATH}/
-  else
-    BINPATH="binaries/$(lsb_release -is)/$(lsb_release -rs)"
-    echo "No package build for $(lsb_release -is)"
-  fi
-fi
-
-exit 0

@@ -717,7 +717,9 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
    TYPE(aed_variable_t),POINTER :: tv
 
    INTEGER  :: i, j, v, d, sv, sd
+#ifdef PLOTS
    INTEGER  :: z
+#endif
    AED_REAL :: val_out
    FLOGICAL :: last = .FALSE.
 !
@@ -736,6 +738,7 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                   CALL store_nc_array(ncid, zexternalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_diag_hz(sd,1:n_zones+1))
                ENDIF
                CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc_diag_hz(sd))
+#ifdef PLOTS
                IF ( do_plots .AND. plot_id_sd(sd).GE.0 ) THEN
                   IF ( n_zones .GT. 0 ) THEN
                      DO z=1,n_zones
@@ -744,6 +747,7 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                   ENDIF
                   CALL put_glm_val_s(plot_id_sd(sd),cc_diag_hz(sd))
                ENDIF
+#endif
                DO j=1,point_nlevs
                   val_out = missing
                   IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc_diag(v, 1)
@@ -754,8 +758,10 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                d = d + 1
                !# Store diagnostic variable values defined on the full domain.
                CALL store_nc_array(ncid, externalid(i), XYZT_SHAPE, wlev, nlev, array=cc_diag(d, :))
+#ifdef PLOTS
                IF ( do_plots .AND. plot_id_d(d).GE.0 ) &
                   CALL put_glm_val(plot_id_d(d), cc_diag(d, 1:wlev))
+#endif
                DO j=1,point_nlevs
                   IF (lvl(j) .GE. 0) THEN ; val_out = cc_diag(d, lvl(j)+1)
                   ELSE                    ; val_out = missing     ; ENDIF
@@ -771,6 +777,7 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                   CALL store_nc_array(ncid, zexternalid(i), XYNT_SHAPE, n_zones, n_zones, array=z_cc_hz(sv, 1:n_zones))
                ENDIF
                CALL store_nc_scalar(ncid, externalid(i), XYT_SHAPE, scalar=cc_hz(sv))
+#ifdef PLOTS
                IF ( do_plots .AND. plot_id_sv(sv).GE.0 ) THEN
                   IF ( n_zones .GT. 0 ) THEN
                      DO z=1,n_zones
@@ -779,6 +786,7 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                   ENDIF
                   CALL put_glm_val_s(plot_id_sv(sv), cc_hz(sv))
                ENDIF
+#endif
                DO j=1,point_nlevs
                   val_out = missing
                   IF ((lvl(j) .EQ. wlev) .AND. tv%top) val_out = cc_hz(sv)
@@ -789,7 +797,9 @@ SUBROUTINE api_write_glm(ncid,wlev,nlev,lvl,point_nlevs) BIND(C, name=_WQ_WRITE_
                v = v + 1
                !# Store pelagic biogeochemical state variables.
                CALL store_nc_array(ncid, externalid(i), XYZT_SHAPE, wlev, nlev, array=cc(v, :))
+#ifdef PLOTS
                IF ( do_plots .AND. plot_id_v(v).GE.0 ) CALL put_glm_val(plot_id_v(v), cc(v, 1:wlev))
+#endif
                DO j=1,point_nlevs
                   IF (lvl(j) .GE. 0) THEN ; val_out = cc(v, lvl(j)+1)
                   ELSE                    ; val_out = missing     ; ENDIF

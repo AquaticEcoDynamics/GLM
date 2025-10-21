@@ -64,6 +64,7 @@ char *all_plots_name = NULL;
 extern char glm_nml_file[];
 extern void run_model(void);
 
+#ifdef PLOTS
 /*----------------------------------------------------------------------------*/
 static char *plot_filename()
 {
@@ -71,6 +72,7 @@ static char *plot_filename()
     strcpy(nam, "GLM.png");
     return nam;
 }
+#endif
 
 /******************************************************************************/
 int main(int argc, char *argv[])
