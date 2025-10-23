@@ -117,6 +117,7 @@
     #define strcasecmp _stricmp
     #define strncasecmp _strnicmp
     double fmod(double x, double y);
+    char *ctime_r(const time_t *t, char *b);
   #endif
 
   #if DEBUG

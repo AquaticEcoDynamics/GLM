@@ -73,10 +73,10 @@ extern wq_inflow_update_t   p_wq_inflow_update;
 
 int prime_wq(const char *which);
 
-#if USE_DL_LOADER
 extern wq_set_glm_zones_t p_wq_set_glm_zones;
 #define wq_set_glm_zones  (*p_wq_set_glm_zones)
 
+#if USE_DL_LOADER
 void wq_init_glm(char *fname, size_t *len, int *NumWQVars, int *NumWQBen);
 void wq_set_glm_data(void);
 void wq_do_glm(int *wlev);
