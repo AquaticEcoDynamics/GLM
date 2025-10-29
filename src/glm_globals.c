@@ -233,6 +233,15 @@ int         fetch_mode = 0;
 AED_REAL    fetch_aws = 0.;
 AED_REAL    fetch_xws = 0.;
 char *      fetch_fws = NULL;
+//------------------------------------------------------------------------------
+// HEAT PUMP SYSTEM
+int      heat_pump_switch = 0;              //# Enable/disable heat pump (0=off, 1=on, 2=heat flux mode)
+int      heat_pump_inflow_idx = 0;          //# Index of heat pump inflow (0-based)
+int      heat_pump_outflow_idx = 0;         //# Index of heat pump outflow(0-based)
+AED_REAL heat_pump_temp_change = 0.0;       //# Temperature change [°C]
+AED_REAL heat_pump_heat_flux = 0.0;         //# Heat flux input [W]
+AED_REAL heat_pump_dynamic_heat_flux = 0.0; //# Dynamic heat flux from CSV [W]
+AED_REAL heat_pump_current_heat_flux = 0.0; //# Current dynamic heat flux from CSV [W]
 
 //------------------------------------------------------------------------------
 // LITTORAL

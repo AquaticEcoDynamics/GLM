@@ -52,6 +52,7 @@
 #include "glm_mixu.h"
 #include "glm_layers.h"
 #include "glm_output.h"
+#include "glm_heatexchange.h"
 
 #include "glm_balance.h"
 #include "glm_ptm.h"
@@ -149,7 +150,19 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
     Outflow_LayerNum = i;
 //  printf("HeightOfOutflow is %10.5f; Outflow type is %d in layer %d\n",HeightOfOutflow, outf->Type, Outflow_LayerNum);
 
-    if (outf != NULL) outf->DrawnFrom = i;       // layer index where last drawn
+    if (outf != NULL) {                                                     // Check if outflow structure pointer is valid (not NULL)
+        outf-> DrawnFrom = i;                                               // Store the layer index (i) where water was last drawn from for this outflow
+
+        // Collect WQ variables from the layer being drawn from Type 6 outflow
+        if (outf->Type == 6 && WQ_Vars != NULL && Num_WQ_Vars > 0) {        
+            int wqidx;                                                      
+            for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++) {                 
+                if (outf->WQ_Outflow != NULL && i >= 0 && i < MaxLayers) {  
+                    outf->WQ_Outflow[wqidx] = _WQ_Vars(wqidx, i);           
+                }                                                           
+            }                                                               
+        }                                                                   
+    }
 
     WidthAtOutflow = 0.;
     LenAtOutflow = 0.;
@@ -458,6 +471,12 @@ AED_REAL do_outflows(int jday, AED_REAL day_fraction)
             DrawHeight = Lake[surfLayer].Height - Outflows[i].OLev;
             //# Let it sit on the bottom if the lake has drained
             if (DrawHeight < 0.) DrawHeight = 0.11;
+        /***********************************************************************
+         * Type 6 is submerged outflow (fixed or dynamic elevation from bottom)*
+         * Special additions by Taynara Fernandes                              *
+         **********************************************************************/
+        } else if (Outflows[i].Type == 6) {
+            DrawHeight = Outflows[i].SubmElev;  // Use submerged elevation
         /**********************************************************************
          * 3, 4 and 5 are the special additions by Michael Weber              *
          **********************************************************************/
@@ -467,7 +486,41 @@ AED_REAL do_outflows(int jday, AED_REAL day_fraction)
         Outflows[i].Draw *= Outflows[i].Factor;
 
         do_single_outflow(DrawHeight, Outflows[i].Draw, &Outflows[i]);
+        // Set LastDrawn for diagnostic calculations
+        Outflows[i].LastDrawn = Outflows[i].Draw;
         // DrawHeight is layer where particles are; if know # of particles in
+
+        //Heat_pump captures the outflow
+        if (heat_pump_switch > 0 && i == heat_pump_outflow_idx) {
+            // substep discharge
+            AED_REAL qout = Outflows[i].Draw;   /* m3/day */
+            // find the layer that has the withdrawal elevation
+            int lvl;
+            for (lvl = botmLayer; lvl <= surfLayer; ++lvl) {   //Look up and finds withdrawl elevation
+                if (Lake[lvl].Height >= DrawHeight) break;
+            }
+            // clamp in case DrawHeight is above the current surface
+            if (lvl > surfLayer) lvl = surfLayer;
+
+            AED_REAL Tin = Lake[lvl].Temp;
+            AED_REAL Sin = Lake[lvl].Salinity;
+
+            // Use WQ variables already stored in outflow structure if available (Type 6), otherwise collect fresh
+            if (Outflows[i].Type == 6 && Outflows[i].WQ_Outflow != NULL && Num_WQ_Vars > 0) {
+                // Use pre-collected/stored WQ data from Type 6 outflow structure
+                heat_pump_capture_outflow(jday, DrawHeight, qout, Tin, Sin, Outflows[i].WQ_Outflow);
+            } else if (WQ_Vars != NULL && Num_WQ_Vars > 0) {
+                // Collect WQ variables fresh (for non-Type 6 outflows or if WQ_Outflow is NULL)
+                AED_REAL wq_vars[MaxVars];
+                for (int wqidx = 0; wqidx < Num_WQ_Vars; wqidx++) {
+                    wq_vars[wqidx] = _WQ_Vars(wqidx, lvl);
+                }
+                heat_pump_capture_outflow(jday, DrawHeight, qout, Tin, Sin, wq_vars);
+            } else {
+                // No WQ variables available
+                heat_pump_capture_outflow(jday, DrawHeight, qout, Tin, Sin, NULL);
+            }
+        }
 
         write_outflow(i, jday, DrawHeight, tVolSum-Lake[surfLayer].Vol1, Outflows[i].Draw, hBot, hTop);
     }

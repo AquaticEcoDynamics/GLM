@@ -41,7 +41,7 @@ void open_gw_file(int inf_id, const char *fname,
 void read_daily_gw(int julian, int NumGW, AED_REAL *flow);
 
 void open_outflow_file(int i, const char *fname, const char *timefmt);
-void read_daily_outflow(int julian, int NumOut, AED_REAL *drw);
+void read_daily_outflow(int julian, int NumOut, AED_REAL *drw, AED_REAL *elev, AED_REAL *heat_flux, AED_REAL *wq);
 
 void open_withdrtemp_file(const char *fname, const char *timefmt);
 void open_evap_file(const char *fname, const char *timefmt);

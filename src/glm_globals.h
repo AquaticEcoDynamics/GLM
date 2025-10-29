@@ -333,6 +333,15 @@ extern int nDays;          //# number of days to simulate
 extern AED_REAL timestep;
 extern int noSecs;
 extern AED_REAL yearday;   //# day of year
+/*----------------------------------------------------------------------------*/
+// HEAT PUMP SYSTEM
+extern int heat_pump_switch;                 //# enable/disable heat pump (0=off, 1=on, 2=heat flux mode) - add other heatflux type after
+extern int heat_pump_inflow_idx;             //# index of the heat pump inflow to be linked to the outflow
+extern int heat_pump_outflow_idx;            //# index of the heat pump outflow to be linked with the inflow
+extern AED_REAL heat_pump_temp_change;       //# temperature increase (°C)
+extern AED_REAL heat_pump_heat_flux;         //# heat flux input (W)
+extern AED_REAL heat_pump_dynamic_heat_flux; //# dynamic heat flux from CSV (W)
+extern AED_REAL heat_pump_current_heat_flux; //# current dynamic heat flux from CSV (W)
 
 /*----------------------------------------------------------------------------*/
 // DEBUGGING

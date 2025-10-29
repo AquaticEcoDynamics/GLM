@@ -200,7 +200,7 @@ static AED_REAL salt_outflow()
 
     for (i = 0; i < NumOut; i++) {
         drawL = Outflows[i].DrawnFrom;
-        if ( drawL >= 0 )
+        if ( drawL >= 0 && drawL < NumLayers )
             totOutfSal += (Outflows[i].LastDrawn * Outflows[i].Factor * Lake[drawL].Salinity);
     }
 

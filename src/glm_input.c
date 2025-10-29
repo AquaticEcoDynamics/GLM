@@ -45,6 +45,7 @@
 #include "glm_bird.h"
 #include "glm_wqual.h"
 #include "glm_input.h"
+#include "glm_heatexchange.h"
 
 
 //#define dbgprt(...) fprintf(stderr, __VA_ARGS__)
@@ -65,6 +66,8 @@ typedef struct _inf_data_ {
 typedef struct _out_data_ {
     int outf;
     int draw_idx;
+    int elev_idx;          // CSV column index for dynamic elevation
+    int heat_flux_idx;     // CSV column index for dynamic heat flux
 } OutflowDataT;
 
 typedef struct _withdrTemp_data_ {
@@ -204,14 +207,27 @@ void read_daily_kw(int julian, AED_REAL *kwout)
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
-void read_daily_outflow(int julian, int NumOut, AED_REAL *draw)
+void read_daily_outflow(int julian, int NumOut, AED_REAL *draw, AED_REAL *elev, AED_REAL *heat_flux, AED_REAL *wq)
 {
     int csv, i;
 
     for (i = 0; i < NumOut; i++) {
-        csv = outf[i].outf;
-        find_day(csv, time_idx, julian);
-        draw[i] = get_csv_val_r(csv,outf[i].draw_idx);
+        if ( (csv = outf[i].outf) > -1 ) {
+            find_day(csv, time_idx, julian);
+            draw[i] = get_csv_val_r(csv, outf[i].draw_idx);
+            
+            // Read elevation if available (for Type 6 dynamic elevation)
+            if (outf[i].elev_idx >= 0) {
+                elev[i] = get_csv_val_r(csv, outf[i].elev_idx);
+            }
+            
+            // Read heat flux if available (for heat pump dynamic heat flux)
+            if (heat_flux != NULL && outf[i].heat_flux_idx >= 0) {
+                heat_flux[i] = get_csv_val_r(csv, outf[i].heat_flux_idx);
+            } else if (heat_flux != NULL) {
+                heat_flux[i] = 0.0; // Default to 0 if no heat flux column
+            }
+        }
     }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -601,10 +617,11 @@ void open_inflow_file(int idx, const char *fname, const char *timefmt)
     inf[idx].temp_idx = find_csv_var(inf[idx].inf,"temp");
     inf[idx].salt_idx = find_csv_var(inf[idx].inf,"salt");
     inf[idx].particles_idx = find_csv_var(inf[idx].inf,"particles");
-    if ( Inflows[idx].SubmFlag )
-        inf[idx].elev_idx = find_csv_var(inf[idx].inf,"elevation");
-    else
-        inf[idx].elev_idx = -1;
+    if ( Inflows[idx].SubmFlag ) {
+        inf[idx].elev_idx = find_csv_var(inf[idx].inf,"elev");
+    } else {
+        inf[idx].elev_idx = -1;    
+    }
     Inflows[idx].SubmElevDynamic = (inf[idx].elev_idx >= 0);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -701,7 +718,10 @@ void open_outflow_file(int idx, const char *fname, const char *timefmt)
 
     locate_time_column(outf[idx].outf, "outflow", fname);
 
-    outf[idx].draw_idx = find_csv_var(outf[idx].outf,"flow");
+    // Find required columns in outflow CSV file
+    outf[idx].draw_idx = find_csv_var(outf[idx].outf,"flow");  
+    outf[idx].elev_idx = find_csv_var(outf[idx].outf,"elev");           // Dynamic elevation column (for Type 6)
+    outf[idx].heat_flux_idx = find_csv_var(outf[idx].outf,"heat_flux"); // Dynamic heat flux column (for Type 6)
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

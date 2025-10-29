@@ -48,6 +48,7 @@
 #include "glm_bird.h"
 #include "glm_ncdf.h"
 #include "glm_balance.h"
+#include "glm_heatexchange.h"
 
 #include <aed_time.h>
 #include <namelist.h>
@@ -387,6 +388,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     char          **outflow_fl   = NULL;
     char           *withdrTemp_fl  = NULL;
     AED_REAL       *outflow_factor = NULL;
+    AED_REAL       *subm_elev_outflow = NULL;
+    CINTEGER       *elev_idx_outflow  = NULL;
+    char          **outflow_vars      = NULL;
+    int             outflow_varnum    = 0;
     char           *timefmt_o    = NULL;
     extern AED_REAL timezone_o;
     //==========================================================================
@@ -413,6 +418,10 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "outflow_fl",        TYPE_STR|MASK_LIST,    &outflow_fl           },
           { "withdrTemp_fl",     TYPE_STR,              &withdrTemp_fl        },
           { "outflow_factor",    TYPE_DOUBLE|MASK_LIST, &outflow_factor       },
+          { "outflow_vars",      TYPE_STR|MASK_LIST,    &outflow_vars         },
+          { "outflow_varnum",    TYPE_INT,              &outflow_varnum       },
+          { "subm_elev_outflow", TYPE_DOUBLE|MASK_LIST, &subm_elev_outflow    },
+          { "elev_idx_outflow",  TYPE_INT|MASK_LIST,    &elev_idx_outflow     },
           { "seepage",           TYPE_BOOL,             &seepage              },
           { "seepage_rate",      TYPE_DOUBLE,           &seepage_rate         },
           { "crest_width",       TYPE_DOUBLE,           &crest_width          },
@@ -619,6 +628,17 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "debug_mixer",       TYPE_BOOL,             &dbg_mix              },
           { "disable_evap",      TYPE_BOOL,             &no_evap              },
           { NULL,                TYPE_END,              NULL                  }
+    };
+    /*-- %%END NAMELIST ------------------------------------------------------*/
+    //==========================================================================
+    NAMELIST heat_pump[] = {
+          { "heat_pump",              TYPE_START,            NULL                    },
+          { "heat_pump_switch",       TYPE_INT,              &heat_pump_switch       },
+          { "heat_pump_inflow_idx",   TYPE_INT,              &heat_pump_inflow_idx   },
+          { "heat_pump_outflow_idx",  TYPE_INT,              &heat_pump_outflow_idx  },
+          { "heat_pump_temp_change",  TYPE_DOUBLE,           &heat_pump_temp_change  },
+          { "heat_pump_heat_flux",    TYPE_DOUBLE,           &heat_pump_heat_flux    },
+          { NULL,                     TYPE_END,              NULL                    }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
@@ -1117,12 +1137,11 @@ for (i = 0; i < n_zones; i++) {
 
         for (i = 0; i < NumOut; i++) {
             // Outlet_type
-
             if ( outlet_type != NULL ) {
-                if ( (outlet_type[i] > 0) && (outlet_type[i] <= 5) ) {
+                if ( outlet_type[i] >= 1 && outlet_type[i] <= 6 ) {
                     Outflows[i].Type = outlet_type[i];
                 } else {
-                    fprintf(stderr, "     ERROR: Wrong outlet type\n");
+                    fprintf(stderr, "     ERROR: Wrong type for outlet %d: value = %d\n", i, outlet_type[i]);
                     exit(1);
                 }
             }
@@ -1157,7 +1176,29 @@ for (i = 0; i < n_zones; i++) {
                 Outflows[i].TARGETtemp  = target_temp[i]; // if more than 1 withdrawals with their depth should
                                                           // work with a target temperature (like "isotherm")
 
-            if (outflow_fl[i] != NULL) open_outflow_file(i, outflow_fl[i], timefmt_o);
+            // Initialize submerged outflow parameters for Type 6
+            Outflows[i].SubmElev = (subm_elev_outflow != NULL) ? subm_elev_outflow[i] : 0.0;
+            Outflows[i].SubmElevDynamic = (elev_idx_outflow != NULL && elev_idx_outflow[i] >= 0);
+            
+            // Initialize WQ_Outflow to NULL initially (will be allocated later if needed)
+            Outflows[i].WQ_Outflow = NULL;
+
+            // Validation for Type 6 outflows
+            if (outlet_type[i] == 6) {
+                if (Outflows[i].SubmElev < 0.0 || Outflows[i].SubmElev > (crest_elev - base_elev)) {
+                    fprintf(stderr, "ERROR: Submerged outflow elevation (%.2f) out of bounds [0, %.2f]\n",
+                            Outflows[i].SubmElev, crest_elev - base_elev);
+                    exit(1);
+                }
+            }
+            // Initialize critical outflow fields
+            Outflows[i].DrawnFrom = -1;      // Not drawn from any layer yet
+            Outflows[i].LastDrawn = 0.0;     // No outflow drawn yet
+            Outflows[i].Draw = 0.0;          // Initialize draw amount
+
+            if (outflow_fl[i] != NULL) {
+                open_outflow_file(i, outflow_fl[i], timefmt_o);
+            }
 
         }
         if (need_free) free(flt_off_sw);
@@ -1271,6 +1312,29 @@ for (i = 0; i < n_zones; i++) {
         for (j = 0; j < NumInf; j++)
             index_inflow_file(j, inflow_varnum, (const char **)inflow_vars);
 
+        // "Outflow wq aware": Handling the WQ variable setup for outflows
+        // Index outflow WQ variables
+        for (j = 0; j < NumOut; j++) {
+            if (outflow_fl[j] != NULL) {
+                if ( outflow_vars == NULL && outflow_varnum > 0 ) {
+                    fprintf(stderr, "WARNING: outflow_vars specified for outlet %d, but outflow WQ variables are not implemented\n", j);
+                }
+            }
+        }
+
+        // Allocate WQ arrays for outflows
+        for (j = 0; j < NumOut; j++) {
+            if (Num_WQ_Vars > 0) {
+                Outflows[j].WQ_Outflow = calloc(Num_WQ_Vars, sizeof(AED_REAL));//store WQ concentrations in WQ_Outflow
+                if (Outflows[j].WQ_Outflow == NULL) {
+                    fprintf(stderr, "ERROR: Failed to allocate WQ_Outflow array for outflow %d\n", j);
+                    exit(1);
+                }
+            } else {
+                Outflows[j].WQ_Outflow = NULL; //if there are no WQ variables = NULL
+            }
+        }
+
         for (j = 0; j < NumOut; j++) {
             if ( O2name != NULL ) {
                 size_t tl = strlen(O2name[j]);
@@ -1284,11 +1348,16 @@ for (i = 0; i < n_zones; i++) {
             }
         }
     }
+    // Read heat pump configuration
+    get_namelist(namlst, heat_pump);
 
     get_namelist(namlst, debugging);
 
     close_namelist(namlst);  // Close the glm.nml file
 
+    // Initialize heat pump system
+    init_heat_pump();
+    check_heat_pump_config();
 #if DEBUG
     debug_initialisation(0);
 #endif

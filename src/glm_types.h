@@ -151,6 +151,9 @@ typedef char filname[80];
        CINTEGER DrawnFrom;       // layer index where last drawn
        AED_REAL Factor;          // scaling factor for outflow
        LOGICAL  FloatOff;        // Is this a floating offtake
+       AED_REAL SubmElev;        // submerged outflow elevation (height from bottom)
+       LOGICAL  SubmElevDynamic; // Is this dynamic elevation from CSV
+       AED_REAL *WQ_Outflow;     // WQ variables collected from outflow layer
    } OutflowDataType;
 
    /*===========================================================*/

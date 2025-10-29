@@ -62,6 +62,7 @@
 #include "glm_ptm.h"
 #include "glm_stress.h"
 #include "glm_balance.h"
+#include "glm_heatexchange.h"
 #ifdef PLOTS
 #include <libplot.h>
 #include "glm_plot.h"
@@ -273,6 +274,8 @@ void do_model(int jstart, int nsave)
     AED_REAL SaltNew[MaxInf], TempNew[MaxInf], WQNew[MaxInf * MaxVars];
     AED_REAL SaltOld[MaxInf], TempOld[MaxInf], WQOld[MaxInf * MaxVars];
     AED_REAL Elev[MaxInf];
+    AED_REAL ElevOut[MaxOut];     // Outflow elevation array for Type 6 submerged outflow support
+    AED_REAL HeatFluxOut[MaxOut]; // Outflow heat flux array for dynamic heat pump support 
     int jday, ntot, stepnum, stoptime;
     int i, j;
     AED_REAL day_fraction;
@@ -291,7 +294,7 @@ void do_model(int jstart, int nsave)
 
     read_daily_inflow(jstart, NumInf, FlowOld, TempOld, SaltOld, Elev, WQOld);
 //  read_daily_gw(jstart, gw_mode, GWFlOld);
-    read_daily_outflow(jstart, NumOut, DrawOld);
+    read_daily_outflow(jstart, NumOut, DrawOld, ElevOut, HeatFluxOut, NULL); // No WQ for outflows yet
     read_daily_withdraw_temp(jstart, &WithdrTempOld);
     read_daily_met(jstart, &MetOld);
     MetData = MetOld;
@@ -344,13 +347,25 @@ void do_model(int jstart, int nsave)
             }
             wq_inflow_update(Inflows[i].WQInf, &Num_WQ_Vars, &Inflows[i].TemInf, &Inflows[i].SalInf);
         }
+        // Heat pump insert the captured values from outflow (AFTER averaging to avoid overwrite)
+        heat_pump_insert_inflow();
 
         //# Read & set today's outflow properties
-        read_daily_outflow(jday, NumOut, DrawNew);
+        read_daily_outflow(jday, NumOut, DrawNew, ElevOut, HeatFluxOut, NULL);
         //# To get daily outflow (i.e. m3/day) times by the seconds in the current day
         for (i = 0; i < NumOut; i++)
             Outflows[i].Draw = (DrawOld[i] + DrawNew[i]) / 2.0 * day_fraction * iSecsPerDay ;
 
+        //# Update outflow elevations for Type 6 with dynamic elevation
+        for (i = 0; i < NumOut; i++) {
+            if (Outflows[i].Type == 6 && Outflows[i].SubmElevDynamic) {
+                Outflows[i].SubmElev = ElevOut[i];
+            }
+        }
+        //# Update heat pump heat flux if dynamic heat flux is available
+        if (heat_pump_switch == 2 && heat_pump_outflow_idx >= 0 && heat_pump_outflow_idx < NumOut) {
+            heat_pump_dynamic_heat_flux = HeatFluxOut[heat_pump_outflow_idx];
+        }
         read_daily_withdraw_temp(jday, &WithdrTempNew);
         WithdrawalTemp = (WithdrTempOld + WithdrTempNew) / 2.0;
 
@@ -468,6 +483,8 @@ void do_model_non_avg(int jstart, int nsave)
     ***************************************************************************/
     AED_REAL SaltNew[MaxInf], TempNew[MaxInf], WQNew[MaxInf * MaxVars];
     AED_REAL Elev[MaxInf];
+    AED_REAL ElevOut[MaxOut];     // Outflow elevation array for Type 6 submerged outflow support
+    AED_REAL HeatFluxOut[MaxOut]; // Outflow heat flux array for dynamic heat pump support
 
     /*------------------------------------------------------------------------*/
     memset(WQNew, 0, sizeof(AED_REAL)*MaxInf*MaxVars);
@@ -523,12 +540,24 @@ void do_model_non_avg(int jstart, int nsave)
         }
 
         //# Read & set today's outflow properties
-        read_daily_outflow(jday, NumOut, DrawNew);
+        read_daily_outflow(jday, NumOut, DrawNew, ElevOut, HeatFluxOut, NULL); // No WQ for outflows yet
         //# To get daily outflow (i.e. m3/day) times by the seconds in the current day
         //# (stoptime - startTOD) allow for partial dates at the the beginning and end of
         //# simulation
         for (i = 0; i < NumOut; i++)
             Outflows[i].Draw = DrawNew[i] * day_fraction * iSecsPerDay ;
+
+        //# Update outflow elevations for Type 6 with dynamic elevation
+        for (i = 0; i < NumOut; i++) {
+            if (Outflows[i].Type == 6 && Outflows[i].SubmElevDynamic) {
+                Outflows[i].SubmElev = ElevOut[i];
+            }
+        }
+
+        //# Update heat pump heat flux if dynamic heat flux is available
+        if (heat_pump_switch == 2 && heat_pump_outflow_idx >= 0 && heat_pump_outflow_idx < NumOut) {
+            heat_pump_dynamic_heat_flux = HeatFluxOut[heat_pump_outflow_idx];
+        }
 
         read_daily_withdraw_temp(jday, &WithdrTempNew);
         WithdrawalTemp = WithdrTempNew;
