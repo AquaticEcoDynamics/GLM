@@ -83,14 +83,14 @@ void init_output(int jstart, const char *out_dir, const char *out_fn,
     struct stat sb;
     extern int startTOD;
 
-    if ( out_dir != NULL && stat(out_dir, &sb) ) {
-        fprintf(stderr, "Directory \"%s\" does not exist - attempting to create it\n", out_dir);
-        if ( mkdir(out_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) ) {
-            fprintf(stderr, "mkdir failed\n");
-            exit(1);
-        }
-    } else {
-        if ( ! S_ISDIR(sb.st_mode) ) {
+    if ( out_dir != NULL ) {
+        if ( stat(out_dir, &sb) ) {
+            fprintf(stderr, "Directory \"%s\" does not exist - attempting to create it\n", out_dir);
+            if ( mkdir(out_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) ) {
+                fprintf(stderr, "mkdir failed\n");
+                exit(1);
+            }
+        } else if ( ! S_ISDIR(sb.st_mode) ) {
             fprintf(stderr, "Name given in out_dir (%s) is not a directory\n", out_dir);
             exit(1);
         }

@@ -87,6 +87,8 @@
 //------------------------------------------------------------------------------
   // C Version of header
 
+# include <stdint.h>
+
   #define surfLayer (NumLayers-1)
   #define botmLayer 0
 
@@ -117,6 +119,7 @@
     #define strcasecmp _stricmp
     #define strncasecmp _strnicmp
     double fmod(double x, double y);
+    char *ctime_r(const time_t *t, char *b);
   #endif
 
   #if DEBUG

@@ -335,23 +335,24 @@ int internal_var(const char *name)
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
-#ifndef PLOTS
 #ifdef _WIN32
+#include <time.h>
 /******************************************************************************/
 char *strndup(const char *s, size_t len)
 {
     size_t l = strlen(s);
-    char *t = malloc(min(l, len) + 1);
-    if (t != NULL) { strncpy(t, s, min(l, len) + 1); t[min(l, len)] = 0; }
+    char *t = malloc(MIN(l, len) + 1);
+    if (t != NULL) { strncpy(t, s, MIN(l, len) + 1); t[MIN(l, len)] = 0; }
     return t;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 char *ctime_r(const time_t *timep, char *buf)
 {
-    char *s = ctime(timep);
-    strcpy(buf, s);
+    if ( ctime_s(buf, 26, timep) != 0 ) {
+        *buf = 0;
+        return NULL;
+    }
     return buf;
 }
 
-#endif
 #endif
