@@ -73,10 +73,10 @@ extern wq_inflow_update_t   p_wq_inflow_update;
 
 int prime_wq(const char *which);
 
+#if USE_DL_LOADER
 extern wq_set_glm_zones_t p_wq_set_glm_zones;
 #define wq_set_glm_zones  (*p_wq_set_glm_zones)
 
-#if USE_DL_LOADER
 void wq_init_glm(char *fname, size_t *len, int *NumWQVars, int *NumWQBen);
 void wq_set_glm_data(void);
 void wq_do_glm(int *wlev);
@@ -111,7 +111,6 @@ void api_write_glm(int *ncid, int *wlev, int *nlev, int *lvl, int *point_nlevs);
 int  api_var_index_c(const char*name, size_t *len);
 int  api_is_var(int *id, const char *v, size_t *len);
 void api_update_inflow_wq(AED_REAL *wqinf, int *nwqVars, AED_REAL *temp, AED_REAL *salt);
-void api_set_glm_ptm(int *num_particle_groups, int *max_particle_num);
 #endif
 
 #if AED
@@ -146,7 +145,8 @@ void SoilTemp(int *m, const AED_REAL *depth, const AED_REAL *wv,
 
 #endif
 
-//void wq_set_glm_zones(int *numVars, int *numBenV, int *numDiagV, int *numDiagHzV);
+void wq_set_glm_zones(int *numVars, int *numBenV, int *numDiagV, int *numDiagHzV);
+void api_set_glm_ptm(int *num_particle_groups, int *max_particle_num);
 
 #endif
 
