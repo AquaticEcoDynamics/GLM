@@ -502,11 +502,16 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
 
     pg = 0;
     // For each new particle, initialise their properties and height
-    for (p = 0 ; p < max_particle_num; p++) {
+    for (p = 0 ; ; p++) {
         if(n == new_particles){
             break;
         }
-                    printf("ptm_addparticles() %d %d \n"  , p,n);
+
+        if(p == max_particle_num){
+            fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports up to %d particles\n", max_particle_num);
+            exit(1);
+        }
+                    printf("ptm_addparticles() %d %d %d \n"  , p,n,new_particles);
 
         if( _PTM_Stat(pg,p,STAT) == 0 && _PTM_Stat(pg,p,FLAG) == 3){ // find the first inactive particles with EXIT flag
             _PTM_Stat(pg,p,STAT) = 1;
