@@ -154,7 +154,15 @@ void ptm_init_glm()
 
     // Set initial active particle height within the water column
     upper_height = Lake[surfLayer].Height - init_depth_min;
+     if(upper_height > Lake[surfLayer].Height){
+            fprintf(stderr, "     ERROR: Particles cannot be initialized above the surface of the lake");
+            exit(1);
+        }
     lower_height = Lake[surfLayer].Height - init_depth_max;
+     if(lower_height < 0){
+            fprintf(stderr, "     ERROR: Particles cannot be initialized at a depth greater than the maximum lake depth");
+            exit(1);
+        }
 
     ptm_addparticles(init_particle_num, max_particle_num, upper_height,lower_height);
 
