@@ -14,6 +14,7 @@ export API=true
 export USE_DL=false
 export WITH_PLOTS=true
 export WITH_XPLOTS=true
+export WITH_MPI=false
 
 export PLOTDIR=${CWD}/libplot
 export UTILDIR=${CWD}/libutil
