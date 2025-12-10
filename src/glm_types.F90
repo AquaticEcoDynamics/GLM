@@ -249,6 +249,8 @@ MODULE glm_types
    TYPE(AED_REAL),TARGET,BIND(C, name="timestep")    :: timestep  = 0.
    TYPE(AED_REAL),TARGET,BIND(C, name="Longitude")   :: longitude = 0.
    TYPE(AED_REAL),TARGET,BIND(C, name="Latitude")    :: latitude  = 0.
+   
+   TYPE(FLOGICAL),BIND(C, name="do_particle_bgc")    :: do_particle_bgc = .FALSE.
 
 CONTAINS
 

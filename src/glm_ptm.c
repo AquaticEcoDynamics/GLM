@@ -112,29 +112,28 @@ void ptm_init_glm()
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
-    printf("ptm_init_glm: num_particle_groups  %d \n",num_particle_groups);
 
     //NEW allocate AED ptm data structures, and GLM pointers
     api_set_glm_ptm(&num_particle_groups,&max_particle_num);   //_WQ_SET_GLM_PTM
 
-    printf("_PTM_Stat(0,5000-1,0)  %d \n" ,_PTM_Stat(0,5000-1,0));
-    printf("_PTM_Stat(0,5000-1,1)  %d \n"  ,_PTM_Stat(0,5000-1,1));
-    printf("_PTM_Stat(0,5000-1,2)  %d \n"  ,_PTM_Stat(0,5000-1,2));
-    printf("_PTM_Stat(0,5000-1,3)  %d \n"  ,_PTM_Stat(0,5000-1,3));
-    printf("_PTM_Stat(0,5000,0)  %d \n"  ,_PTM_Stat(0,5000,0));
-    printf("_PTM_Stat(0,5000,1)  %d \n"  ,_PTM_Stat(0,5000,1));
-    printf("_PTM_Stat(0,5000,2)  %d \n"  ,_PTM_Stat(0,5000,2));
-    printf("_PTM_Stat(0,5000,3)  %d \n"  ,_PTM_Stat(0,5000,3));
-    printf("_PTM_Stat(0,5000,4)  %d \n" ,_PTM_Stat(0,5000,4));
-    printf("_PTM_Stat(0,0,0)  %d \n"  ,_PTM_Stat(0,0,0));
-    printf("_PTM_Stat(0,1,1)  %d \n"  ,_PTM_Stat(0,1,1));
-    printf("_PTM_Stat(0,2,2)  %d \n"  ,_PTM_Stat(0,2,2));
-    printf("_PTM_Stat(0,3,3)  %d \n"  ,_PTM_Stat(0,3,3));
+    //printf("_PTM_Stat(0,5000-1,0)  %d \n" ,_PTM_Stat(0,5000-1,0));
+    //printf("_PTM_Stat(0,5000-1,1)  %d \n"  ,_PTM_Stat(0,5000-1,1));
+    //printf("_PTM_Stat(0,5000-1,2)  %d \n"  ,_PTM_Stat(0,5000-1,2));
+    //printf("_PTM_Stat(0,5000-1,3)  %d \n"  ,_PTM_Stat(0,5000-1,3));
+    //printf("_PTM_Stat(0,5000,0)  %d \n"  ,_PTM_Stat(0,5000,0));
+    //printf("_PTM_Stat(0,5000,1)  %d \n"  ,_PTM_Stat(0,5000,1));
+    //printf("_PTM_Stat(0,5000,2)  %d \n"  ,_PTM_Stat(0,5000,2));
+    //printf("_PTM_Stat(0,5000,3)  %d \n"  ,_PTM_Stat(0,5000,3));
+    //printf("_PTM_Stat(0,5000,4)  %d \n" ,_PTM_Stat(0,5000,4));
+    //printf("_PTM_Stat(0,0,0)  %d \n"  ,_PTM_Stat(0,0,0));
+    //printf("_PTM_Stat(0,1,1)  %d \n"  ,_PTM_Stat(0,1,1));
+    //printf("_PTM_Stat(0,2,2)  %d \n"  ,_PTM_Stat(0,2,2));
+    //printf("_PTM_Stat(0,3,3)  %d \n"  ,_PTM_Stat(0,3,3));
 
-    printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,0));
-    printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,1));
-    printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,2));
-    printf("_PTM_Vars(0,2,2)  %f \n"  ,_PTM_Vars(0,2,2));
+    //printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,0));
+    //printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,1));
+    //printf("_PTM_Vars(0,0,0)  %f \n"  ,_PTM_Vars(0,0,2));
+    //printf("_PTM_Vars(0,2,2)  %f \n"  ,_PTM_Vars(0,2,2));
 
 
     //NEW initialise (integer) status array for all particles to 0
@@ -506,7 +505,6 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
         if(n == new_particles){
             break;
         }
-                    printf("ptm_addparticles() %d %d \n"  , p,n);
 
         if( _PTM_Stat(pg,p,STAT) == 0 && _PTM_Stat(pg,p,FLAG) == 3){ // find the first inactive particles with EXIT flag
             _PTM_Stat(pg,p,STAT) = 1;

@@ -206,7 +206,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
       aedZones(zon)%z_env%z_sed_zones = zon
       aedZones(zon)%z_env%z_vel = 0.
    ENDDO
-
+   
    a_zones = 1
    zcount = 0
    w_zones = .FALSE.
@@ -224,7 +224,10 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
       ! introduce errors in z_cc (split layers)
       ! Ideally this average would be based on volume weighting
 
-      z_cc(1:nvars,lev,zon) = z_cc(1:nvars,lev,zon) + x_cc(1:nvars,lev)
+      !z_cc(1:nvars,lev,zon) = z_cc(1:nvars,lev,zon) + x_cc(1:nvars,lev)
+!RQT 
+      z_cc(1:nvars,1,zon) = z_cc(1:nvars,1,zon) + x_cc(1:nvars,lev)
+
 !     z_diag(:,lev,zon)     = z_diag(:,lev,zon) + x_diag(:,lev)
 
       aedZones(zon)%z_env%z_temp         = aedZones(zon)%z_env%z_temp + theLake(lev)%Temp
@@ -297,6 +300,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
          aedZones(zon)%z_env%z_dz = surf - aedZones(zon-1)%z_env%z_height
       ENDIF
    ENDDO
+   
 END SUBROUTINE api_copy_to_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -328,7 +332,7 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
 !-------------------------------------------------------------------------------
 !BEGIN
    zon = n_zones
-
+   
    ! Loop down through water layers
    DO lev=wlev,1,-1
       ! Check if zone boundary is in this water layer range

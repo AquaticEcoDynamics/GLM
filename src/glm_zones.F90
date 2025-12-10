@@ -182,6 +182,7 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
    theZones%zuvb = 0.
    theZones(1)%z_sed_zones = 1.
    theZones%zvel = 0.
+   
 
    ! Populate the 1st layer in each zone structure, with the zone-averaged quantity
    a_zones = 1
@@ -275,6 +276,7 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
          theZones(zon)%zdz = surf - zone_heights(zon-1)
       ENDIF
    ENDDO
+     
 END SUBROUTINE copy_to_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

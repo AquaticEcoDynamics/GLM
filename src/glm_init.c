@@ -586,7 +586,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     /*-- %%END NAMELIST ------------------------------------------------------*/
 
     /*-- %%NAMELIST particle model -------------------------------------------*/
-//  extern CLOGICAL  ptm_sw;
+ // extern CLOGICAL  ptm_sw;
 //  extern CLOGICAL  sed_deactivation;
     extern int       num_particle_grp;
     extern int       max_particle_num;
@@ -598,7 +598,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL  ptm_diffusivity;
     extern AED_REAL  settling_velocity;
     extern AED_REAL  settling_efficiency;
-    extern CLOGICAL  do_particle_bgc;
+  //extern CLOGICAL  do_particle_bgc;
     //==========================================================================
     NAMELIST particles[] = {
           { "particles",         TYPE_START,            NULL                  },
@@ -727,7 +727,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( get_namelist(namlst, particles) ) {
         fprintf(stderr, "No 'particles' config, assuming no particles\n");
     }
-
+    
     //-------------------------------------------------
     if ( get_namelist(namlst, time) ) {
         fprintf(stderr,"\n     ERROR reading the 'time' namelist from %s\n", glm_nml_file);
