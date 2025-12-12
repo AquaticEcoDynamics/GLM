@@ -211,12 +211,9 @@ SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    conf%friction => friction
 
    conf%Kw => Kw
-   
-   
-   
-      
+
    conf%do_particle_bgc = do_particle_bgc
-   
+
    CALL aed_set_coupling(conf)
 
    CALL api_set_glm_env()
@@ -459,12 +456,7 @@ SUBROUTINE api_set_glm_ptm(num_particle_groups,num_particles)    BIND(C, name=_W
 
    ALLOCATE(ptm_bla(num_particle_groups))
 
-
-
    CALL aed_ptm_init(num_particle_groups,num_particles,ptm_bla,n_ptm_vars,MaxLayers)
-
-
-
 
   ! CALL set_c_ptmvars_ptr(cc)
    CALL set_c_ptmstat_ptr(ptm_istat)

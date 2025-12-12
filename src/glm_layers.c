@@ -140,7 +140,7 @@ void check_layer_thickness(void)
         for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
             _WQ_Vars(wqidx,j) = combine_vol(_WQ_Vars(wqidx,j), Lake[j].LayerVol, _WQ_Vars(wqidx,j+1), Lake[j+1].LayerVol);
 
-   		for (wqidx = 0; wqidx < Num_WQD_Vars; wqidx++)
+        for (wqidx = 0; wqidx < Num_WQD_Vars; wqidx++)
             _WQD_Vars(wqidx,j) = combine_vol(_WQD_Vars(wqidx,j), Lake[j].LayerVol, _WQD_Vars(wqidx,j+1), Lake[j+1].LayerVol);
 
         Lake[j].Density = calculate_density(Lake[j].Temp, Lake[j].Salinity);

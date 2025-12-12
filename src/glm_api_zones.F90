@@ -206,7 +206,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
       aedZones(zon)%z_env%z_sed_zones = zon
       aedZones(zon)%z_env%z_vel = 0.
    ENDDO
-   
+
    a_zones = 1
    zcount = 0
    w_zones = .FALSE.
@@ -225,7 +225,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
       ! Ideally this average would be based on volume weighting
 
       !z_cc(1:nvars,lev,zon) = z_cc(1:nvars,lev,zon) + x_cc(1:nvars,lev)
-!RQT 
+!RQT
       z_cc(1:nvars,1,zon) = z_cc(1:nvars,1,zon) + x_cc(1:nvars,lev)
 
 !     z_diag(:,lev,zon)     = z_diag(:,lev,zon) + x_diag(:,lev)
@@ -243,13 +243,13 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
    a_zones = zon
 
    DO zon=1,a_zones
-      z_cc(1:nvars,:,zon) = z_cc(1:nvars,:,zon)/zcount(zon)
-      z_diag(:,:,zon)     = z_diag(:,:,zon)/zcount(zon)
+      z_cc(1:nvars,1,zon) = z_cc(1:nvars,1,zon)/zcount(zon)
+      z_diag(:,1,zon)     = z_diag(:,1,zon)/zcount(zon)
 !     z_diag_hz(:,zon)    = z_diag_hz(:,zon)/zcount(zon)
 
       ! Set the water column above a zone, to the respective water layer values
-      z_cc(1:nvars,2:wlev,zon) = x_cc(1:nvars,2:wlev) ! water column state vars
-      z_diag(:,2:wlev,zon)     = x_diag(:,2:wlev)     ! water column diag vars
+!     z_cc(1:nvars,2:wlev,zon) = x_cc(1:nvars,2:wlev) ! water column state vars
+!     z_diag(:,2:wlev,zon)     = x_diag(:,2:wlev)     ! water column diag vars
    ENDDO
 
    DO zon=1,a_zones
@@ -300,7 +300,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
          aedZones(zon)%z_env%z_dz = surf - aedZones(zon-1)%z_env%z_height
       ENDIF
    ENDDO
-   
+
 END SUBROUTINE api_copy_to_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -332,7 +332,7 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
 !-------------------------------------------------------------------------------
 !BEGIN
    zon = n_zones
-   
+
    ! Loop down through water layers
    DO lev=wlev,1,-1
       ! Check if zone boundary is in this water layer range
