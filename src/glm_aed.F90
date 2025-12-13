@@ -712,7 +712,6 @@ SUBROUTINE define_column(column, top)
             sv = sv + 1
             IF ( tvar%bot ) THEN
                column(av)%cell_sheet => cc(n_vars+sv, 1)
-!              print *,'av',av,sv
             ELSEIF ( tvar%top ) THEN
                column(av)%cell_sheet => cc(n_vars+sv, top)
             ENDIF
@@ -1289,7 +1288,6 @@ CONTAINS
          !# model configurations where mass balance of benthic variables is required.
 
          !# Calculate temporal derivatives due to exchanges at the sediment/water interface
-         IF ( zone_var >= 1 ) column(zone_var)%cell_sheet => theZones(1)%z_sed_zones
          CALL aed_calculate_benthic(column, 1)
 
          !# Limit flux out of bottom layers to concentration of that layer
@@ -1311,7 +1309,7 @@ CONTAINS
                !# & distribute bottom flux into pelagic over bottom box (i.e., divide by layer height).
                !# scaled to proportion of area that is "bottom"
                DO v=1,n_vars
-                 IF ( cc(v, lev) .GE. 0.0 ) flux_pel(v, lev) = &
+                  IF ( cc(v, lev) .GE. 0.0 ) flux_pel(v, lev) = &
                                    max(-1.0 * cc(v, lev), flux_pel(v, lev)/dz(lev))
                END DO
                flux_pel(:, lev) = flux_pel(:, lev) * (area(lev)-area(lev-1))/area(lev)

@@ -165,7 +165,7 @@ void check_layer_thickness(void)
                     _WQ_Vars(wqidx, k) = _WQ_Vars(wqidx, k+1);
                     
                 for (wqidx = 0; wqidx < Num_WQD_Vars; wqidx++)
-                    _WQD_Vars(wqidx,j) = _WQD_Vars(wqidx,jold);
+                    _WQD_Vars(wqidx, k) = _WQD_Vars(wqidx, k+1);
 
                 Lake[k].LayerVol = Lake[k+1].LayerVol;
                 Lake[k].Vol1 = Lake[k+1].Vol1;
