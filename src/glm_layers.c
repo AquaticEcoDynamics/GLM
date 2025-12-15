@@ -143,7 +143,7 @@ void check_layer_thickness(void)
         for (wqidx = 0; wqidx < Num_WQD_Vars; wqidx++)
             _WQD_Vars(wqidx,j) = combine_vol(_WQD_Vars(wqidx,j), Lake[j].LayerVol, _WQD_Vars(wqidx,j+1), Lake[j+1].LayerVol);
 
-   		for (wqidx = 0; wqidx < Num_WQD_Vars; wqidx++)
+        for (wqidx = 0; wqidx < Num_WQD_Vars; wqidx++)
             _WQD_Vars(wqidx,j) = combine_vol(_WQD_Vars(wqidx,j), Lake[j].LayerVol, _WQD_Vars(wqidx,j+1), Lake[j+1].LayerVol);
 
         Lake[j].Density = calculate_density(Lake[j].Temp, Lake[j].Salinity);
@@ -168,7 +168,7 @@ void check_layer_thickness(void)
                     _WQ_Vars(wqidx, k) = _WQ_Vars(wqidx, k+1);
                     
                 for (wqidx = 0; wqidx < Num_WQD_Vars; wqidx++)
-                    _WQD_Vars(wqidx,j) = _WQD_Vars(wqidx,jold);
+                    _WQD_Vars(wqidx, k) = _WQD_Vars(wqidx, k+1);
 
                 for (wqidx=0; wqidx < Num_WQD_Vars; wqidx++)
                     _WQD_Vars(wqidx, k) = _WQD_Vars(wqidx, k+1);

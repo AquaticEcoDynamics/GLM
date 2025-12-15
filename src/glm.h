@@ -71,6 +71,7 @@
 #  define CINTEGER INTEGER(kind=C_INT32_T)
 #  define CSIZET   INTEGER(kind=C_SIZE_T)
 #  define FLOGICAL LOGICAL(kind=C_BOOL)
+#  define CLOGICAL LOGICAL(kind=C_BOOL)
 #  define CCHARACTER CHARACTER(C_CHAR)
 
 #  define stdin  5

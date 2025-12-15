@@ -206,7 +206,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
       aedZones(zon)%z_env%z_sed_zones = zon
       aedZones(zon)%z_env%z_vel = 0.
    ENDDO
-
+   
    a_zones = 1
    zcount = 0
    w_zones = .FALSE.
@@ -224,7 +224,10 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
       ! introduce errors in z_cc (split layers)
       ! Ideally this average would be based on volume weighting
 
-      z_cc(1:nvars,lev,zon) = z_cc(1:nvars,lev,zon) + x_cc(1:nvars,lev)
+      !z_cc(1:nvars,lev,zon) = z_cc(1:nvars,lev,zon) + x_cc(1:nvars,lev)
+!RQT
+      z_cc(1:nvars,1,zon) = z_cc(1:nvars,1,zon) + x_cc(1:nvars,lev)
+
 !     z_diag(:,lev,zon)     = z_diag(:,lev,zon) + x_diag(:,lev)
 
       aedZones(zon)%z_env%z_temp         = aedZones(zon)%z_env%z_temp + theLake(lev)%Temp
@@ -240,13 +243,13 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
    a_zones = zon
 
    DO zon=1,a_zones
-      z_cc(1:nvars,:,zon) = z_cc(1:nvars,:,zon)/zcount(zon)
-      z_diag(:,:,zon)     = z_diag(:,:,zon)/zcount(zon)
+      z_cc(1:nvars,1,zon) = z_cc(1:nvars,1,zon)/zcount(zon)
+      z_diag(:,1,zon)     = z_diag(:,1,zon)/zcount(zon)
 !     z_diag_hz(:,zon)    = z_diag_hz(:,zon)/zcount(zon)
 
       ! Set the water column above a zone, to the respective water layer values
-      z_cc(1:nvars,2:wlev,zon) = x_cc(1:nvars,2:wlev) ! water column state vars
-      z_diag(:,2:wlev,zon)     = x_diag(:,2:wlev)     ! water column diag vars
+!     z_cc(1:nvars,2:wlev,zon) = x_cc(1:nvars,2:wlev) ! water column state vars
+!     z_diag(:,2:wlev,zon)     = x_diag(:,2:wlev)     ! water column diag vars
    ENDDO
 
    DO zon=1,a_zones
@@ -297,6 +300,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
          aedZones(zon)%z_env%z_dz = surf - aedZones(zon-1)%z_env%z_height
       ENDIF
    ENDDO
+
 END SUBROUTINE api_copy_to_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -318,12 +322,9 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
 !
 !LOCALS
    INTEGER  :: zon, lev, i, j
-   AED_REAL :: scale
+   AED_REAL :: scale, area
    LOGICAL  :: splitZone
    TYPE(aed_variable_t),POINTER :: tvar
-
-!  LOGICAL  :: column_benthic_var_averaging = .false.
-   INTEGER  :: water_column_zone = 1
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -409,21 +410,15 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
       ENDIF
    ENDDO
 
-! CAB since column_benthic_var_averaging is always false, theres not much point in this test
-!  ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
-!  IF (column_benthic_var_averaging) THEN
-!     area = 0.
-!     DO zon=1,n_zones
-!        area = area + aedZones(zon)%z_env%z_area
-!     ENDDO
-!     DO zon=1,n_zones
-!        x_diag_hz = x_diag_hz + (z_diag_hz(:,zon) * (aedZones(zon)%z_env%z_area/area))
-!     ENDDO
-!  ELSE
-      ! If not column_benthic_var_averaging, set single-value to selected zone (e.g. bottom)
-      x_diag_hz = z_diag_hz(:,water_column_zone)
-!  ENDIF
-!print*,"Z2 cc(:,1) = ", x_cc(:,1), z_cc(:,1,1)
+   ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
+   area = 0.
+   DO zon=1,n_zones
+      area = area + aedZones(zon)%z_env%z_area
+   ENDDO
+   DO zon=1,n_zones
+      x_diag_hz = x_diag_hz + (z_diag_hz(:,zon) * (aedZones(zon)%z_env%z_area/area))
+   ENDDO
+
 END SUBROUTINE api_copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

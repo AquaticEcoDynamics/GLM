@@ -183,7 +183,7 @@ SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
 
    TYPE(aed_coupling_t) :: conf
 
-   LOGICAL :: do_particle_bgc = .true. ! REMVE THIS LATER AND GET FROM GLOBALS
+   !LOGICAL :: do_particle_bgc = .true. ! REMVE THIS LATER AND GET FROM GLOBALS
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -453,23 +453,15 @@ SUBROUTINE api_set_glm_ptm(num_particle_groups,num_particles)    BIND(C, name=_W
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-print *,'HI0',num_particle_groups
 
    ALLOCATE(ptm_bla(num_particle_groups))
 
-print *,'HI'
-
    CALL aed_ptm_init(num_particle_groups,num_particles,ptm_bla,n_ptm_vars,MaxLayers)
-
-print *,'BYE', num_particles
-
 
   ! CALL set_c_ptmvars_ptr(cc)
    CALL set_c_ptmstat_ptr(ptm_istat)
    CALL set_c_ptmenv_ptr(ptm_env)
 
-   print *,'PTM : ', ptm_istat(1,5000,1)
-   print *,'PTM : ', ptm_env(1,5000,1)
 END SUBROUTINE api_set_glm_ptm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
