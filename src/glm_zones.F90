@@ -223,7 +223,7 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
       ! Finalise zone averaged information (1st layer in each zone structure reserved for zavg)
       z_cc(1:nvars,1,zon) = z_cc(1:nvars,1,zon)/zcount(zon)  ! water column state vars
       z_diag(:,1,zon)     = z_diag(:,1,zon)/zcount(zon)      ! water column diag vars
-!     z_diag_hz(:,zon)    = z_diag_hz(:,zon)/zcount(zon)     ! benthic diag vars
+      z_diag_hz(:,zon)    = z_diag_hz(:,zon)/zcount(zon)     ! benthic diag vars
 
       ! Set the water column above a zone, to the respective water layer values
 !     z_cc(1:nvars,2:wlev,zon) = x_cc(1:nvars,2:wlev)        ! water column state vars
@@ -290,10 +290,11 @@ SUBROUTINE copy_from_zone(n_aed_vars, x_cc, x_diag, x_diag_hz, wlev)
 !
 !LOCALS
    INTEGER  :: zon, lev, v_start, v_end
-   AED_REAL :: scale !, area
+   AED_REAL :: scale, area
    LOGICAL  :: splitZone
 !  LOGICAL  :: column_benthic_var_averaging = .false.
-   INTEGER  :: water_column_zone = 1, i, j
+!  INTEGER  :: water_column_zone = 1
+   INTEGER  :: i, j
    TYPE(aed_variable_t),POINTER :: tvar
 !
 !-------------------------------------------------------------------------------
@@ -396,19 +397,11 @@ SUBROUTINE copy_from_zone(n_aed_vars, x_cc, x_diag, x_diag_hz, wlev)
       ENDIF
    ENDDO
 
-   ! Reset the normal (non-zone-based) sheet diagnostics
-   ! CAB: since column_benthic_var_averaging is always false this seems redundant
-!  IF (column_benthic_var_averaging) THEN
-!     ! IF column_benthic_var_averaging, set single-value to the mean, weighted by area
-!     area = SUM(theZones(1:n_zones)%zarea)
-!     DO zon=1, n_zones
-!        x_diag_hz = x_diag_hz + (z_diag_hz(:, zon) * (theZones(zon)%zarea/area))
-!     ENDDO
-!  ELSE
-     ! If not column_benthic_var_averaging, set single-value to selected zone (e.g. bottom)
-     x_diag_hz = z_diag_hz(:, water_column_zone)
-!  ENDIF
-!print*,"Z2 cc(1:2,1) = ", x_cc(1:nvars,1)
+   ! IF column_benthic_var_averaging, set single-value to the mean, weighted by area
+   area = SUM(theZones(1:n_zones)%zarea)
+   DO zon=1, n_zones
+      x_diag_hz = x_diag_hz + (z_diag_hz(:, zon) * (theZones(zon)%zarea/area))
+   ENDDO
 END SUBROUTINE copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
