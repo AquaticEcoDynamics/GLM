@@ -888,7 +888,6 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
          ENDIF
       ENDDO
    ENDIF
-!stop
 
    DO lev=1, wlev
       CALL aed_equilibrate(column, lev)
@@ -898,14 +897,13 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
    
    
 
+   IF (benthic_mode .GT. 1) &
+      CALL calc_zone_areas(area, wlev, height(wlev))
+
    DO split=1,split_factor
-   
-     print *, 'cc_diag_hz1', cc_diag_hz(:)
-      IF (benthic_mode .GT. 1) THEN
-         CALL calc_zone_areas(area, wlev, height(wlev))
+      IF (benthic_mode .GT. 1) &
          CALL copy_to_zone(cc, cc_diag, cc_diag_hz, wlev)
-      ENDIF
-      
+
       !# Update local light field (self-shading may have changed through
       !# changes in biological state variables). Update_light is set to
       !# be inline with current aed_phyoplankton, which requires only

@@ -322,12 +322,9 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
 !
 !LOCALS
    INTEGER  :: zon, lev, i, j
-   AED_REAL :: scale
+   AED_REAL :: scale, area
    LOGICAL  :: splitZone
    TYPE(aed_variable_t),POINTER :: tvar
-
-!  LOGICAL  :: column_benthic_var_averaging = .false.
-   INTEGER  :: water_column_zone = 1
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -413,24 +410,15 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
       ENDIF
    ENDDO
 
-! CAB since column_benthic_var_averaging is always false, theres not much point in this test
-!  ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
-!  IF (column_benthic_var_averaging) THEN
-!     area = 0.
-!     DO zon=1,n_zones
-!        area = area + aedZones(zon)%z_env%z_area
-!     ENDDO
-!     DO zon=1,n_zones
-!        x_diag_hz = x_diag_hz + (z_diag_hz(:,zon) * (aedZones(zon)%z_env%z_area/area))
-!     ENDDO
-!  ELSE
-      ! If not column_benthic_var_averaging, set single-value to selected zone (e.g. bottom)
-      print *, 'z_diag_hz(:,water_column_zone)', z_diag_hz(:,water_column_zone)
-      print *, 'water_column_zone', water_column_zone 
-      
-      x_diag_hz = z_diag_hz(:,water_column_zone)
-!  ENDIF
-!print*,"Z2 cc(:,1) = ", x_cc(:,1), z_cc(:,1,1)
+   ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
+   area = 0.
+   DO zon=1,n_zones
+      area = area + aedZones(zon)%z_env%z_area
+   ENDDO
+   DO zon=1,n_zones
+      x_diag_hz = x_diag_hz + (z_diag_hz(:,zon) * (aedZones(zon)%z_env%z_area/area))
+   ENDDO
+>>>>>>> 4e25e556fe8cd28b25215fd2c47a87c51613e13d
 END SUBROUTINE api_copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
