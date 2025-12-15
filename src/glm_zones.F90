@@ -183,8 +183,6 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
    theZones(1)%z_sed_zones = 1.
    theZones%zvel = 0.
    
-   print *, 'x_diag_hz', x_diag_hz(:)
-
    ! Populate the 1st layer in each zone structure, with the zone-averaged quantity
    a_zones = 1
    zcount = 0
@@ -400,29 +398,11 @@ SUBROUTINE copy_from_zone(n_aed_vars, x_cc, x_diag, x_diag_hz, wlev)
       ENDIF
    ENDDO
 
-<<<<<<< HEAD
-   ! Reset the normal (non-zone-based) sheet diagnostics
-   ! CAB: since column_benthic_var_averaging is always false this seems redundant
-!  IF (column_benthic_var_averaging) THEN
-!     ! IF column_benthic_var_averaging, set single-value to the mean, weighted by area
-!     area = SUM(theZones(1:n_zones)%zarea)
-!     DO zon=1, n_zones
-!        x_diag_hz = x_diag_hz + (z_diag_hz(:, zon) * (theZones(zon)%zarea/area))
-!     ENDDO
-!  ELSE
-     ! If not column_benthic_var_averaging, set single-value to selected zone (e.g. bottom)
-     
-     print *, 'z_diag_hz(:, water_column_zone)', z_diag_hz(:, water_column_zone)
-     x_diag_hz = z_diag_hz(:, water_column_zone)
-!  ENDIF
-!print*,"Z2 cc(1:2,1) = ", x_cc(1:nvars,1)
-=======
    ! IF column_benthic_var_averaging, set single-value to the mean, weighted by area
    area = SUM(theZones(1:n_zones)%zarea)
    DO zon=1, n_zones
       x_diag_hz = x_diag_hz + (z_diag_hz(:, zon) * (theZones(zon)%zarea/area))
    ENDDO
->>>>>>> 4e25e556fe8cd28b25215fd2c47a87c51613e13d
 END SUBROUTINE copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

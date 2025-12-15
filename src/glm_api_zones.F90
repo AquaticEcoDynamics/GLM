@@ -418,7 +418,7 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
    DO zon=1,n_zones
       x_diag_hz = x_diag_hz + (z_diag_hz(:,zon) * (aedZones(zon)%z_env%z_area/area))
    ENDDO
->>>>>>> 4e25e556fe8cd28b25215fd2c47a87c51613e13d
+
 END SUBROUTINE api_copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
