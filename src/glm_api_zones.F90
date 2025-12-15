@@ -206,7 +206,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
       aedZones(zon)%z_env%z_sed_zones = zon
       aedZones(zon)%z_env%z_vel = 0.
    ENDDO
-
+   
    a_zones = 1
    zcount = 0
    w_zones = .FALSE.
@@ -425,6 +425,9 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
 !     ENDDO
 !  ELSE
       ! If not column_benthic_var_averaging, set single-value to selected zone (e.g. bottom)
+      print *, 'z_diag_hz(:,water_column_zone)', z_diag_hz(:,water_column_zone)
+      print *, 'water_column_zone', water_column_zone 
+      
       x_diag_hz = z_diag_hz(:,water_column_zone)
 !  ENDIF
 !print*,"Z2 cc(:,1) = ", x_cc(:,1), z_cc(:,1,1)

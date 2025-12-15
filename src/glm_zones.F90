@@ -182,6 +182,8 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
    theZones%zuvb = 0.
    theZones(1)%z_sed_zones = 1.
    theZones%zvel = 0.
+   
+   print *, 'x_diag_hz', x_diag_hz(:)
 
    ! Populate the 1st layer in each zone structure, with the zone-averaged quantity
    a_zones = 1
@@ -275,6 +277,7 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
          theZones(zon)%zdz = surf - zone_heights(zon-1)
       ENDIF
    ENDDO
+   
 END SUBROUTINE copy_to_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -406,6 +409,8 @@ SUBROUTINE copy_from_zone(n_aed_vars, x_cc, x_diag, x_diag_hz, wlev)
 !     ENDDO
 !  ELSE
      ! If not column_benthic_var_averaging, set single-value to selected zone (e.g. bottom)
+     
+     print *, 'z_diag_hz(:, water_column_zone)', z_diag_hz(:, water_column_zone)
      x_diag_hz = z_diag_hz(:, water_column_zone)
 !  ENDIF
 !print*,"Z2 cc(1:2,1) = ", x_cc(1:nvars,1)
