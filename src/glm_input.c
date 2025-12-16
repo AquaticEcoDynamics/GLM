@@ -215,12 +215,12 @@ void read_daily_outflow(int julian, int NumOut, AED_REAL *draw, AED_REAL *elev, 
         if ( (csv = outf[i].outf) > -1 ) {
             find_day(csv, time_idx, julian);
             draw[i] = get_csv_val_r(csv, outf[i].draw_idx);
-            
+
             // Read elevation if available (for Type 6 dynamic elevation)
             if (outf[i].elev_idx >= 0) {
                 elev[i] = get_csv_val_r(csv, outf[i].elev_idx);
             }
-            
+
             // Read heat flux if available (for heat pump dynamic heat flux)
             if (heat_flux != NULL && outf[i].heat_flux_idx >= 0) {
                 heat_flux[i] = get_csv_val_r(csv, outf[i].heat_flux_idx);
@@ -620,7 +620,7 @@ void open_inflow_file(int idx, const char *fname, const char *timefmt)
     if ( Inflows[idx].SubmFlag ) {
         inf[idx].elev_idx = find_csv_var(inf[idx].inf,"elev");
     } else {
-        inf[idx].elev_idx = -1;    
+        inf[idx].elev_idx = -1;
     }
     Inflows[idx].SubmElevDynamic = (inf[idx].elev_idx >= 0);
 }
@@ -719,7 +719,7 @@ void open_outflow_file(int idx, const char *fname, const char *timefmt)
     locate_time_column(outf[idx].outf, "outflow", fname);
 
     // Find required columns in outflow CSV file
-    outf[idx].draw_idx = find_csv_var(outf[idx].outf,"flow");  
+    outf[idx].draw_idx = find_csv_var(outf[idx].outf,"flow");
     outf[idx].elev_idx = find_csv_var(outf[idx].outf,"elev");           // Dynamic elevation column (for Type 6)
     outf[idx].heat_flux_idx = find_csv_var(outf[idx].outf,"heat_flux"); // Dynamic heat flux column (for Type 6)
 }

@@ -1,12 +1,49 @@
-glm (3.9.104-0) UNRELEASED; urgency=low
+glm (3.9.105-0) UNRELEASED; urgency=low
 
   * new version 3.9.011
   * new version 3.9.012
   * new version 3.9.102
   * new version 3.9.103
   * new version 3.9.104
+  * new version 3.9.105
 
- -- Casper Boon <casper@guppy>  Thu, 30 Oct 2025 09:37:41 +0800
+ -- Casper Boon <casper@guppy>  Tue, 16 Dec 2025 17:57:07 +0800
+
+glm (3.3.5-0) UNRELEASED; urgency=low
+
+  * new version 3.2.0a1
+  * new version 3.2.0a8
+  * new version 3.3.0a2
+  * new version 3.3.0a4
+  * new version 3.3.0a4d
+  * new version 3.3.0a5
+  * new version 3.3.0a6
+  * new version 3.3.0a7
+  * new version 3.3.0a8
+  * new version 3.3.0a9
+  * new version 3.3.0
+  * new version 3.3.1a0
+  * new version 3.3.1a1
+  * new version 3.3.1a2
+  * new version 3.3.1a3
+  * new version 3.3.1a4
+  * new version 3.3.1a5
+  * new version 3.3.1a6
+  * new version 3.3.1a7
+  * new version 3.3.1a8
+  * new version 3.3.1a9
+  * new version 3.3.1a10
+  * new version 3.3.1a11
+  * new version 3.3.1a12
+  * new version 3.3.1a13
+  * new version 3.3.1b1
+  * new version 3.3.1
+  * new version 3.3.2
+  * new version 3.3.3
+  * new version 3.3.4
+  * new version 3.3.5
+
+ -- Casper Boon <casper@guppy>  Wed, 27 Aug 2025 13:28:16 +0800
 
 glm (3.1.0-0) UNRELEASED; urgency=low
 

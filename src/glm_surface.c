@@ -1202,7 +1202,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         SurfData.dailySnow += snowvol;
 
         //---------------------------------------------------------------------+
-        //# Add rain directly to surface layer height 
+        //# Add rain directly to surface layer height
         //---------------------------------------------------------------------+
         Lake[surfLayer].Height += rainvol / Lake[surfLayer].LayerArea;
 
@@ -1214,7 +1214,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         Lake[surfLayer].Height += snowvol / Lake[surfLayer].LayerArea;
 
         //---------------------------------------------------------------------+
-        //# Dilution by rainfall/snowfall. Note that rain can deposit   
+        //# Dilution by rainfall/snowfall. Note that rain can deposit
         //  consituents at a rate dependent on the composition of rainfall. # TBC
         //---------------------------------------------------------------------+
         Lake[surfLayer].Temp = combine(Lake[surfLayer].Temp,
@@ -1235,7 +1235,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 //      resize_internals(1, surfLayer);  // recompute surflayer volume
 
         //---------------------------------------------------------------------+
-        //# Evaporation and evapo-concentration, as evaporation leaves consituents 
+        //# Evaporation and evapo-concentration, as evaporation leaves consituents
         //---------------------------------------------------------------------+
         Lake[surfLayer].Height += evapvol / Lake[surfLayer].LayerArea;
 

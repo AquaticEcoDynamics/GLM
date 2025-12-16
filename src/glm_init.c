@@ -1179,7 +1179,7 @@ for (i = 0; i < n_zones; i++) {
             // Initialize submerged outflow parameters for Type 6
             Outflows[i].SubmElev = (subm_elev_outflow != NULL) ? subm_elev_outflow[i] : 0.0;
             Outflows[i].SubmElevDynamic = (elev_idx_outflow != NULL && elev_idx_outflow[i] >= 0);
-            
+
             // Initialize WQ_Outflow to NULL initially (will be allocated later if needed)
             Outflows[i].WQ_Outflow = NULL;
 

@@ -835,7 +835,7 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
       DO lev=wlev,1,-1
         IF ( zon .GT. 1 ) THEN
           IF (lev .GT. 1) THEN
-            splitZone = zz(lev-1) < zone_heights(zon-1)
+            splitZone = lheights(lev-1) < zone_heights(zon-1)
           ELSE
             splitZone = 0.0 < zone_heights(zon-1)
           ENDIF
@@ -845,9 +845,9 @@ SUBROUTINE calculate_fluxes(column, wlev, column_sed, nsed, flux_pel, flux_atm, 
 
         IF (splitZone) THEN
           IF (lev .GT. 1) THEN
-            scale = (zone_heights(zon-1) - zz(lev-1)) / (zz(lev) - zz(lev-1))
+            scale = (zone_heights(zon-1) - lheights(lev-1)) / (lheights(lev) - lheights(lev-1))
           ELSE
-            scale = (zone_heights(zon-1) - 0.0) / (zz(lev) - 0.0)
+            scale = (zone_heights(zon-1) - 0.0) / (lheights(lev) - 0.0)
           ENDIF
           flux_pel(lev,v_start:v_end) = flux_pel_z(zon,v_start:v_end) * scale
 

@@ -397,7 +397,7 @@ void debug_print_lake(void);
 void debug_initialisation(int which);
 void debug_initialisation_(int *which);
 
-//# NB: The order of array indeices has been reversed as of V4 
+//# NB: The order of array indices has been reversed as of V4
 // #  define _WQ_Vars(var,lyr) WQ_Vars[_IDX_2d(MaxLayers,Tot_WQ_Vars,lyr,var)]
 // //#define _WQS_Vars(var,lyr) WQ_Vars[_IDX_2d(MaxLayers,Tot_WQ_Vars,lyr,var)]
 // #  define _WQD_Vars(var,lyr) WQD_Vars[_IDX_2d(MaxLayers,Num_WQD_Vars,lyr,var)]

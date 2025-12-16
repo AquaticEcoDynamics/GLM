@@ -894,8 +894,6 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
    ENDDO
 
    CALL check_states(wlev)
-   
-   
 
    IF (benthic_mode .GT. 1) &
       CALL calc_zone_areas(area, wlev, height(wlev))
@@ -917,7 +915,7 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
 
       !# Time-integrate one biological time step
       CALL calculate_fluxes(wlev)
-      
+
       !# Update the water column layers
       cc(1:n_vars, 1:wlev) = cc(1:n_vars, 1:wlev) + dt_eff*flux_pel(1:n_vars, 1:wlev)
 
@@ -929,7 +927,7 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
 
          !# Distribute cc-sed benthic properties back into main cc array
          CALL copy_from_zone(n_aed_vars, cc, cc_diag, cc_diag_hz, wlev)
-         
+
       ELSE
          cc(n_vars+1:n_vars+n_vars_ben, 1) = cc(n_vars+1:n_vars+n_vars_ben, 1) &
                                  + dt_eff*flux_ben(n_vars+1:n_vars+n_vars_ben)

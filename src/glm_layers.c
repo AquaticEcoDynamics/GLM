@@ -163,7 +163,7 @@ void check_layer_thickness(void)
 
                 for (wqidx=0; wqidx < Num_WQ_Vars; wqidx++)
                     _WQ_Vars(wqidx, k) = _WQ_Vars(wqidx, k+1);
-                    
+
                 for (wqidx = 0; wqidx < Num_WQD_Vars; wqidx++)
                     _WQD_Vars(wqidx, k) = _WQD_Vars(wqidx, k+1);
 

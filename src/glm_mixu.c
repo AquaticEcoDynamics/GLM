@@ -200,6 +200,7 @@ void resize_internals(int icode, int lnu)
             }
             j++;
         }
+        if ( j < 0 ) j = 0;
         if (j >= Nmorph) j = Nmorph - 1;
         Lake[surfLayer].Height = ((j+1) + ((VolSum - MphLevelVol[j]) / dMphLevelVol[j])) / MphInc;
 
@@ -219,6 +220,8 @@ void resize_internals(int icode, int lnu)
             l = lnu;
         }
 
+        if (j >= Nmorph) j = Nmorph - 1;
+        if (j < 0) j = 0;
         /* compute to one below current surface */
         for (k = l; k < surfLayer; k++) {
             while (j < Nmorph) {
@@ -240,6 +243,7 @@ void resize_internals(int icode, int lnu)
             y = AMOD(x, 1.0);
             ij = (x - y) - 1;
             if (ij >= Nmorph) ij = Nmorph - 1;
+            if ( ij < 0 ) ij = 0;
 
             if (ij >= 0) Lake[i].LayerArea = MphLevelArea[ij] + y * dMphLevelArea[ij];
             else         Lake[i].LayerArea = MphLevelArea[0] * Lake[i].Height * MphInc;

@@ -322,7 +322,7 @@ void write_output(int jday, int iclock, int nsave, int stepnum)
                 write_csv_point_avg(i, "temp", NULL, NULL, FALSE);
                 write_csv_point_avg(i, "salt", NULL, NULL, FALSE);
                 write_csv_point_avg(i, "dens", NULL, NULL, FALSE);
-            } else {
+            } else if ( lvl[i] >= 0 ) {
                 write_csv_point(i, "temp", Lake[lvl[i]].Temp,     NULL, FALSE);
                 write_csv_point(i, "salt", Lake[lvl[i]].Salinity, NULL, FALSE);
                 write_csv_point(i, "dens", Lake[lvl[i]].Density,  NULL, FALSE);
