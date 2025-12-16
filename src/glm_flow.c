@@ -154,14 +154,14 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
         outf-> DrawnFrom = i;                                               // Store the layer index (i) where water was last drawn from for this outflow
 
         // Collect WQ variables from the layer being drawn from Type 6 outflow
-        if (outf->Type == 6 && WQ_Vars != NULL && Num_WQ_Vars > 0) {        
-            int wqidx;                                                      
-            for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++) {                 
-                if (outf->WQ_Outflow != NULL && i >= 0 && i < MaxLayers) {  
-                    outf->WQ_Outflow[wqidx] = _WQ_Vars(wqidx, i);           
-                }                                                           
-            }                                                               
-        }                                                                   
+        if (outf->Type == 6 && WQ_Vars != NULL && Num_WQ_Vars > 0) {
+            int wqidx;
+            for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++) {
+                if (outf->WQ_Outflow != NULL && i >= 0 && i < MaxLayers) {
+                    outf->WQ_Outflow[wqidx] = _WQ_Vars(wqidx, i);
+                }
+            }
+        }
     }
 
     WidthAtOutflow = 0.;

@@ -275,7 +275,7 @@ void do_model(int jstart, int nsave)
     AED_REAL SaltOld[MaxInf], TempOld[MaxInf], WQOld[MaxInf * MaxVars];
     AED_REAL Elev[MaxInf];
     AED_REAL ElevOut[MaxOut];     // Outflow elevation array for Type 6 submerged outflow support
-    AED_REAL HeatFluxOut[MaxOut]; // Outflow heat flux array for dynamic heat pump support 
+    AED_REAL HeatFluxOut[MaxOut]; // Outflow heat flux array for dynamic heat pump support
     int jday, ntot, stepnum, stoptime;
     int i, j;
     AED_REAL day_fraction;

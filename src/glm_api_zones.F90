@@ -206,7 +206,7 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
       aedZones(zon)%z_env%z_sed_zones = zon
       aedZones(zon)%z_env%z_vel = 0.
    ENDDO
-   
+
    a_zones = 1
    zcount = 0
    w_zones = .FALSE.

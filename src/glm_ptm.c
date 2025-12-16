@@ -917,7 +917,7 @@ void ptm_init_glm_output(int ncid, int time_dim)
 
    check_nc_error(nc_def_var(ncid, "particle_par", NC_REALTYPE, 2, dims, &par_id));
    set_nc_attributes(ncid, par_id, "ummol m2 sec", "particle layer PAR" PARAM_FILLVALUE);
- 
+
    check_nc_error(nc_def_var(ncid, "particle_tem", NC_REALTYPE, 2, dims, &tem_id));
    set_nc_attributes(ncid, tem_id, "degC", "particle layer temperature" PARAM_FILLVALUE);
 

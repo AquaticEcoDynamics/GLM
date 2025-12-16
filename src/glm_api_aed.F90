@@ -328,7 +328,7 @@ SUBROUTINE api_set_glm_env()
    env(1)%longitude => longitude
    env(1)%latitude  => latitude
    env(1)%col_num   => col_num
-  
+
    env(1)%active    => actv !# .true.
 
    env(1)%longwave      => longwave
