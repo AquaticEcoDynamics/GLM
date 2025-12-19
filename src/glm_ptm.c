@@ -283,9 +283,11 @@ void do_ptm_update()
     pg = 0;
 
     // Update settling/migration velocity  ! Will overwrite AED
-    for (p = 0; p < max_particle_num; p++) {
-        if (_PTM_Stat(pg,p,STAT)>0) {
-           //_PTM_Vars(pg,p,VVEL) = get_settling_velocity(settling_velocity);
+    if(do_particle_bgc == FALSE){
+        for (p = 0; p < max_particle_num; p++) {
+            if (_PTM_Stat(pg,p,STAT)>0) {
+            //_PTM_Vars(pg,p,VVEL) = get_settling_velocity(settling_velocity);
+            }
         }
     }
 
@@ -746,14 +748,14 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prim
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
-    del_t = dt*60;
+    del_t = dt*60; // number of minutes (dt) times seconds per minute
 
     random_float = -1+2*((float)rand())/RAND_MAX;            // random draw from uniform distribution [-1,1]
 
     updated_height = Height + K_prime_z * Height * del_t + random_float *
     sqrt((2 * K_z * (Height + 0.5 * K_prime_z * Height * del_t) * del_t) / (1.0/3)); // random walk
 
-    updated_height = updated_height + vvel;                   // account for sinking/floating
+    updated_height = updated_height + vvel;   // account for sinking/floating; vvel is per second
 
     return updated_height;
 }
@@ -813,7 +815,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
         mass[p]             = _PTM_Vars(pg,p,MASS);    //Particle[p].Mass;                  REAL
         diam[p]             = _PTM_Vars(pg,p,DIAM);    // Particle[p].Diam;                 REAL
         density[p]          = _PTM_Vars(pg,p,DENS);    //Particle[p].Density;               REAL
-        vvel[p]             = _PTM_Vars(pg,p,VVEL);    //Particle[p].vvel;                  REAL
+        vvel[p]             = _PTM_Vars(pg,p,VVEL)*86400;  //Particle[p].vvel;              REAL
                                          //  VVEL+1 = HGHT
         par[p]              = _PTM_Vars(pg,p,VVEL+2);  //PAR experienced by particle;       REAL //ML why is it +2?
         tem[p]              = _PTM_Vars(pg,p,VVEL+3);  //temp experienced by particle;      REAL
