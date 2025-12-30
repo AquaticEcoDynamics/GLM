@@ -596,6 +596,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL  init_depth_max;
     extern AED_REAL  ptm_time_step;
     extern AED_REAL  ptm_diffusivity;
+    extern AED_REAL  particle_density;
+    extern AED_REAL  particle_diameter;
     extern AED_REAL  settling_velocity;
     extern AED_REAL  settling_efficiency;
 //  extern CLOGICAL  do_particle_bgc;
@@ -612,6 +614,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "init_depth_max",    TYPE_DOUBLE,           &init_depth_max       },
           { "ptm_time_step",     TYPE_DOUBLE,           &ptm_time_step        },
           { "ptm_diffusivity",   TYPE_DOUBLE,           &ptm_diffusivity      },
+          { "particle_density",  TYPE_DOUBLE,           &particle_density     },
+          { "particle_diameter", TYPE_DOUBLE,           &particle_diameter    },
           { "settling_velocity", TYPE_DOUBLE,           &settling_velocity    },
           { "settling_efficiency", TYPE_DOUBLE,         &settling_efficiency  },
           { "do_particle_bgc",   TYPE_BOOL,             &do_particle_bgc      },

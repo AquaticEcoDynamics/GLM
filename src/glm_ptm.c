@@ -52,7 +52,6 @@
             // Maybe exiting the lake
 #define EXIT   3
 
-            // Cell suspended in water column
 #define STAT   0
 #define IDX2   1
 #define IDX3   2
@@ -70,6 +69,8 @@
 #define _PTM_Stat(grp,part,var) PTM_Stat[_IDX_3d(1,max_particle_num,4,grp,part,var)]
 #define _PTM_Vars(grp,part,var) PTM_Vars[_IDX_3d(1,max_particle_num,Num_WQ_Vars,grp,part,var)]
 
+AED_REAL get_particle_density(AED_REAL particle_density);
+AED_REAL get_particle_diameter(AED_REAL particle_diameter);
 AED_REAL get_settling_velocity(AED_REAL settling_velocity);
 AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel);
 
@@ -187,19 +188,6 @@ void do_ptm_update()
 /*----------------------------------------------------------------------------*/
 //BEGIN
     pg = 0;
-
-    // Update settling/migration velocity  ! Will overwrite AED
-    if(do_particle_bgc == FALSE){ // only do this if we are not running AED
-        for (p = 0; p < max_particle_num; p++) {
-            if (_PTM_Stat(pg,p,STAT)>0) {
-            //_PTM_Vars(pg,p,VVEL) = get_settling_velocity(settling_velocity); // commented out for 
-                                                                               // now b/c do_particle_bgc 
-                                                                               // doesn't work properly, 
-                                                                               // but this line should be 
-                                                                               // uncommented at some point
-            }
-        }
-    }
 
     // Loop through sub-timesteps, incrementing position
     sub_steps = 60;
@@ -359,9 +347,9 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
             _PTM_Stat(pg,p,STAT) = 1;
             _PTM_Stat(pg,p,FLAG) = 0;
             _PTM_Vars(pg,p,MASS) = 1.0;
-            _PTM_Vars(pg,p,DIAM) = 1e-6;
-            _PTM_Vars(pg,p,DENS) = 1000.0;
-            _PTM_Vars(pg,p,VVEL) = 0.0;
+            _PTM_Vars(pg,p,DIAM) = get_particle_diameter(particle_diameter);
+            _PTM_Vars(pg,p,DENS) = get_particle_density(particle_density);
+            _PTM_Vars(pg,p,VVEL) = get_settling_velocity(settling_velocity);
 
             // Assign particles initial height
             rand_int = rand() % 100 + 1;                            // random draw from unit distribution
@@ -524,6 +512,30 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prim
 AED_REAL get_settling_velocity(AED_REAL settling_velocity)
 {
     return settling_velocity;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ *        This routine returns the density for a particle                     *
+ *                                                                            *
+ ******************************************************************************/
+AED_REAL get_particle_density(AED_REAL particle_density)
+{
+    return particle_density;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ *        This routine returns the diameter for a particle                    *
+ *                                                                            *
+ ******************************************************************************/
+AED_REAL get_particle_diameter(AED_REAL particle_diameter)
+{
+    return particle_diameter;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

@@ -318,6 +318,8 @@ extern CLOGICAL littoral_sw;
 extern CLOGICAL ptm_sw;
 extern int max_particle_num;   //# number of particles
 extern ParticleDataType *Particle;
+extern AED_REAL particle_density;
+extern AED_REAL particle_diameter;
 extern AED_REAL settling_velocity;
 extern CLOGICAL do_particle_bgc;
 extern int init_particle_num;

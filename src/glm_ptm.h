@@ -47,6 +47,8 @@ void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, i
 // void ptm_restart()
 
 extern CLOGICAL ptm_sw;
+extern AED_REAL particle_density;
+extern AED_REAL particle_diameter;
 extern AED_REAL settling_velocity;
 extern int init_particle_num;
 extern LOGICAL sed_deactivation;
