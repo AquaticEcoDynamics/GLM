@@ -415,7 +415,6 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
 
     AED_REAL upper_height;
     AED_REAL lower_height;
-//  AED_REAL height_range;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
@@ -423,7 +422,6 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
     // Get vertical range in the water column that is impacted by the shift
     lower_height = shift_height;
     upper_height = shift_height + shift_amount;
-//  height_range = upper_height - lower_height;
 
     pg = 0;
     // Check for active particles in the impacted height range
@@ -506,12 +504,12 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prim
 
 /******************************************************************************
  *                                                                            *
- *        This routine returns the settling velocity for a particle           *
+ *        This routine returns the settling velocity for a particle in m/s    *
  *                                                                            *
  ******************************************************************************/
 AED_REAL get_settling_velocity(AED_REAL settling_velocity)
 {
-    return settling_velocity;
+    return settling_velocity / 86400;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
