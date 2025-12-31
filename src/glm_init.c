@@ -157,6 +157,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "bioshade_feedback", TYPE_BOOL,             &bsf                  },
           { "repair_state",      TYPE_BOOL,             &rs                   },
           { "mobility_off",      TYPE_BOOL,             &mo                   },
+          { "link_ext_par",      TYPE_BOOL,             &link_ext_par         },
           { NULL,                TYPE_END,              NULL                  }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
@@ -713,6 +714,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         repair_state      = FALSE;
         mobility_off      = FALSE;
         n_zones           = 0;
+        link_ext_par	  = TRUE;
     } else {
         ode_method        = lode_method;
         split_factor      = lsplit_factor;
