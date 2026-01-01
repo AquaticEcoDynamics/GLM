@@ -1041,7 +1041,7 @@ CONTAINS
             column_sed(av)%flux_atm => flux_atm(n_vars+sv)
          ELSE
             v = v + 1
-            column_sed(av)%cell => z_cc(v, :, zon)  ! GLM water layers above "zon" (set in copy_to_zone)
+            column_sed(av)%cell => z_cc(v, 1, :)  ! GLM water layers above "zon" (set in copy_to_zone)
             column_sed(av)%flux_atm => flux_atm(v)
             column_sed(av)%flux_pel => flux_pel(v, :)
             column_sed(av)%flux_ben => flux_ben(v)

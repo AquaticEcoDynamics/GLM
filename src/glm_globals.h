@@ -321,7 +321,6 @@ extern ParticleDataType *Particle;
 extern AED_REAL particle_density;
 extern AED_REAL particle_diameter;
 extern AED_REAL settling_velocity;
-extern CLOGICAL do_particle_bgc;
 extern int init_particle_num;
 extern AED_REAL settling_efficiency;
 extern AED_REAL *inflow_conc;  //# concentration of particles per ?? in the inflow
@@ -374,6 +373,8 @@ extern FLOGICAL link_rain_loss;
 extern FLOGICAL link_solar_shade;
 extern FLOGICAL link_bottom_drag;
 extern FLOGICAL ice;
+extern FLOGICAL do_particle_bgc;
+extern FLOGICAL link_ext_par;
 
 extern CINTEGER split_factor;
 extern CINTEGER ode_method;

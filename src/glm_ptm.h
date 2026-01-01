@@ -53,7 +53,7 @@ extern AED_REAL settling_velocity;
 extern int init_particle_num;
 extern LOGICAL sed_deactivation;
 extern AED_REAL settling_efficiency;
-extern CLOGICAL do_particle_bgc;
+extern FLOGICAL do_particle_bgc;
 
 
 #endif

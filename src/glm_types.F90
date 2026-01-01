@@ -250,8 +250,9 @@ MODULE glm_types
    TYPE(AED_REAL),TARGET,BIND(C, name="Longitude")   :: longitude = 0.
    TYPE(AED_REAL),TARGET,BIND(C, name="Latitude")    :: latitude  = 0.
 
-   TYPE(CLOGICAL),BIND(C, name="do_particle_bgc")    :: do_particle_bgc = .FALSE.
-
+   TYPE(FLOGICAL),BIND(C, name="do_particle_bgc")    :: do_particle_bgc = .FALSE.
+   TYPE(FLOGICAL),BIND(C, name="link_ext_par")       :: link_ext_par = .FALSE.
+   
 CONTAINS
 
 !#

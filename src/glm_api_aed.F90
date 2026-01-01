@@ -213,6 +213,8 @@ SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    conf%Kw => Kw
 
    conf%do_particle_bgc = do_particle_bgc
+   
+   conf%link_ext_par = link_ext_par
 
    CALL aed_set_coupling(conf)
 
