@@ -538,7 +538,7 @@ AED_REAL get_particle_diameter(AED_REAL particle_diameter)
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-static int h_id, m_id, d_id, dn_id, vv_id, par_id, tem_id, no3_id, frp_id, c_id, n_id, pho_id, chl_id, num_id, cdiv_id, topt_id, lnalphachl_id, mu_c_id, fit_id, stat_id, flag_id;
+static int h_id, m_id, d_id, dn_id, vv_id, par_id, tem_id, no3_id, frp_id, c_id, n_id, pho_id, chl_id, num_id, cdiv_id, topt_id, lnalphachl_id, stat_id, flag_id;
 static int set_no_p = -1;
 static size_t start[2],edges[2];
 
@@ -551,7 +551,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
 {
 //LOCALS
     int p,pg;
-    AED_REAL *p_height, *mass, *diam, *density, *vvel, *par, *tem, *no3, *frp, *c, *n, *pho, *chl, *num, *cdiv, *topt, *lnalphachl, *mu_c, *fit;
+    AED_REAL *p_height, *mass, *diam, *density, *vvel, *par, *tem, *no3, *frp, *c, *n, *pho, *chl, *num, *cdiv, *topt, *lnalphachl;
     int *status, *flag;
 
 /*----------------------------------------------------------------------------*/
@@ -580,9 +580,6 @@ void ptm_write_glm(int ncid, int max_particle_num)
     cdiv  = malloc(max_particle_num*sizeof(AED_REAL));
     topt  = malloc(max_particle_num*sizeof(AED_REAL));
     lnalphachl  = malloc(max_particle_num*sizeof(AED_REAL));
-    mu_c  = malloc(max_particle_num*sizeof(AED_REAL));
-    fit  = malloc(max_particle_num*sizeof(AED_REAL));
-
     status  = malloc(max_particle_num*sizeof(int));
     flag  = malloc(max_particle_num*sizeof(int));
 
@@ -605,8 +602,6 @@ void ptm_write_glm(int ncid, int max_particle_num)
         cdiv[p]             = _PTM_Vars(pg,p,VVEL+11);  //internal C threshold for division; REAL
         topt[p]             = _PTM_Vars(pg,p,VVEL+12);  //particle temperature optimum;      REAL
         lnalphachl[p]       = _PTM_Vars(pg,p,VVEL+13); //ln alpha chl of particle;          REAL
-        mu_c[p]             = _PTM_Vars(pg,p,VVEL+14); //mu_c of particle;                  REAL
-        fit[p]              = _PTM_Vars(pg,p,VVEL+15); //fitness of particle;               REAL
         status[p]           = _PTM_Stat(pg,p,STAT);    //Particle[p].Status;                INT
         flag[p]             = _PTM_Stat(pg,p,FLAG);    //Particle[p].Flag;                  INT
     }
@@ -628,8 +623,6 @@ void ptm_write_glm(int ncid, int max_particle_num)
     nc_put_vara(ncid, cdiv_id, start, edges, cdiv);
     nc_put_vara(ncid, topt_id, start, edges, topt);
     nc_put_vara(ncid, lnalphachl_id, start, edges, lnalphachl);
-    nc_put_vara(ncid, mu_c_id, start, edges, mu_c);
-    nc_put_vara(ncid, fit_id, start, edges, fit);
     nc_put_vara(ncid, stat_id, start, edges, status);
     nc_put_vara(ncid, flag_id, start, edges, flag);
 
@@ -650,8 +643,6 @@ void ptm_write_glm(int ncid, int max_particle_num)
     free(cdiv);
     free(topt);
     free(lnalphachl);
-    free(mu_c);
-    free(fit);
     free(status);
     free(flag);
 
@@ -728,12 +719,6 @@ void ptm_init_glm_output(int ncid, int time_dim)
 
    check_nc_error(nc_def_var(ncid, "particle_lnalphachl", NC_REALTYPE, 2, dims, &lnalphachl_id));
    set_nc_attributes(ncid, lnalphachl_id, "(W m-2)-1(gChl molC)-1d-1", "slope of the P-I curve" PARAM_FILLVALUE);
-
-   check_nc_error(nc_def_var(ncid, "particle_mu_c", NC_REALTYPE, 2, dims, &mu_c_id));
-   set_nc_attributes(ncid, mu_c_id, "??", "carbon-specific growth rate" PARAM_FILLVALUE);
-
-   check_nc_error(nc_def_var(ncid, "particle_fit", NC_REALTYPE, 2, dims, &fit_id));
-   set_nc_attributes(ncid, fit_id, "??", "fitness represented by net growth rate (growth - mortality)" PARAM_FILLVALUE);
 
    check_nc_error(nc_def_var(ncid, "particle_status", NC_INT, 2, dims, &stat_id));
    nc_put_att(ncid, stat_id, "long_name", NC_CHAR, 18, "Status of Particle");
