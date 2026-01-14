@@ -11,7 +11,7 @@
 #                                                                             #
 #      http://aquatic.science.uwa.edu.au/                                     #
 #                                                                             #
-#  Copyright 2013-2025 - The University of Western Australia                  #
+#  Copyright 2013-2026 : The University of Western Australia                  #
 #                                                                             #
 #   GLM is free software: you can redistribute it and/or modify               #
 #   it under the terms of the GNU General Public License as published by      #
@@ -164,15 +164,17 @@ ifeq ($(WITH_AED),true)
   else
     EXTFFLAGS+=-DNO_BENTHIC
   endif
-  ifdef AEDRIPDIR
-    AEDLIBS+=-L$(AEDRIPDIR)/lib -laed-riparian
-  else
-    EXTFFLAGS+=-DNO_RIPARIAN
-  endif
   ifdef AEDDMODIR
     AEDLIBS+=-L$(AEDDMODIR)/lib -laed-demo
   else
     EXTFFLAGS+=-DNO_DEMO
+  endif
+
+  # the plus version libs
+  ifdef AEDRIPDIR
+    AEDLIBS+=-L$(AEDRIPDIR)/lib -laed-riparian
+  else
+    EXTFFLAGS+=-DNO_RIPARIAN
   endif
   ifdef AEDLGTDIR
     AEDLIBS+=-L$(AEDLGTDIR)/lib -laed-lighting

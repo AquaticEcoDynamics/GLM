@@ -54,6 +54,12 @@ while [ $# -gt 0 ] ; do
     --fence)
       export FENCE=true
       ;;
+    --with-aed)
+      export WITH_AED=true
+      ;;
+    --without-aed)
+      export WITH_AED=false
+      ;;
     --with-aed-plus)
       export WITH_AED_PLUS=true
       ;;

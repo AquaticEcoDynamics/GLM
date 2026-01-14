@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2013-2025 - The University of Western Australia                   #
+!# Copyright 2013-2026 : The University of Western Australia                   #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -252,7 +252,7 @@ MODULE glm_types
 
    TYPE(FLOGICAL),BIND(C, name="do_particle_bgc")    :: do_particle_bgc = .FALSE.
    TYPE(FLOGICAL),BIND(C, name="link_ext_par")       :: link_ext_par = .FALSE.
-   
+
 CONTAINS
 
 !#
