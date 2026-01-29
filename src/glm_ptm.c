@@ -57,6 +57,7 @@
 #define IDX3   2
 #define LAYR   3
 #define FLAG   4
+#define PTID   5
 
 #define MASS   0
 #define DIAM   1
@@ -319,7 +320,7 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
                       AED_REAL lower_height)
 {
 //LOCALS
-    int p, n, pg;
+    int p, n, pg, pid;
 
     int rand_int;
     AED_REAL height_range;
@@ -350,6 +351,14 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
             _PTM_Vars(pg,p,DIAM) = get_particle_diameter(particle_diameter);
             _PTM_Vars(pg,p,DENS) = get_particle_density(particle_density);
             _PTM_Vars(pg,p,VVEL) = get_settling_velocity(settling_velocity);
+
+            // Assign PTID
+            if(_PTM_Stat(pg,p,PTID) < 0){
+               _PTM_Stat(pg,p,PTID) = p+1;
+            } else {
+               pid = (int) floor(_PTM_Stat(pg,p,PTID) / max_particle_num);
+               _PTM_Stat(pg,p,PTID) = max_particle_num + pid*max_particle_num + (p+1 - pid*max_particle_num);
+            }
 
             // Assign particles initial height
             rand_int = rand() % 100 + 1;                            // random draw from unit distribution
@@ -538,7 +547,7 @@ AED_REAL get_particle_diameter(AED_REAL particle_diameter)
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-static int h_id, m_id, d_id, dn_id, vv_id, par_id, tem_id, no3_id, frp_id, c_id, n_id, pho_id, chl_id, num_id, cdiv_id, topt_id, lnalphachl_id, stat_id, flag_id;
+static int h_id, m_id, d_id, dn_id, vv_id, par_id, tem_id, no3_id, frp_id, c_id, n_id, pho_id, chl_id, num_id, cdiv_id, topt_id, lnalphachl_id, stat_id, flag_id, ptid_id;
 static int set_no_p = -1;
 static size_t start[2],edges[2];
 
@@ -552,7 +561,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
 //LOCALS
     int p,pg;
     AED_REAL *p_height, *mass, *diam, *density, *vvel, *par, *tem, *no3, *frp, *c, *n, *pho, *chl, *num, *cdiv, *topt, *lnalphachl;
-    int *status, *flag;
+    int *status, *flag, *ptid;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
@@ -582,6 +591,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
     lnalphachl  = malloc(max_particle_num*sizeof(AED_REAL));
     status  = malloc(max_particle_num*sizeof(int));
     flag  = malloc(max_particle_num*sizeof(int));
+    ptid  = malloc(max_particle_num*sizeof(int));
 
     for (p = 0; p < max_particle_num; p++) {
         p_height[p]         = _PTM_Vars(pg,p,HGHT);    //Particle[p].Height;                REAL
@@ -604,6 +614,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
         lnalphachl[p]       = _PTM_Vars(pg,p,VVEL+13); //ln alpha chl of particle;          REAL
         status[p]           = _PTM_Stat(pg,p,STAT);    //Particle[p].Status;                INT
         flag[p]             = _PTM_Stat(pg,p,FLAG);    //Particle[p].Flag;                  INT
+        ptid[p]             = _PTM_Stat(pg,p,PTID);    //Particle[p].PTID;                  INT
     }
 
     nc_put_vara(ncid, h_id, start, edges, p_height);
@@ -625,6 +636,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
     nc_put_vara(ncid, lnalphachl_id, start, edges, lnalphachl);
     nc_put_vara(ncid, stat_id, start, edges, status);
     nc_put_vara(ncid, flag_id, start, edges, flag);
+    nc_put_vara(ncid, ptid_id, start, edges, ptid);
 
     free(p_height);
     free(mass);
@@ -645,6 +657,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
     free(lnalphachl);
     free(status);
     free(flag);
+    free(ptid);
 
     check_nc_error(nc_sync(ncid));
 }
@@ -725,6 +738,9 @@ void ptm_init_glm_output(int ncid, int time_dim)
 
    check_nc_error(nc_def_var(ncid, "particle_flag", NC_INT, 2, dims, &flag_id));
    nc_put_att(ncid, flag_id, "long_name", NC_CHAR, 18, "Location Flag of Particle");
+
+   check_nc_error(nc_def_var(ncid, "particle_ptid", NC_INT, 2, dims, &ptid_id));
+   nc_put_att(ncid, ptid_id, "long_name", NC_CHAR, 18, "ID of Particle");
 
    define_mode_off(&ncid);
 }
