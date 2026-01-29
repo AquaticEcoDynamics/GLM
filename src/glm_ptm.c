@@ -52,12 +52,12 @@
             // Maybe exiting the lake
 #define EXIT   3
 
-            // Cell suspended in water column
 #define STAT   0
 #define IDX2   1
 #define IDX3   2
 #define LAYR   3
 #define FLAG   4
+#define PTID   5
 
 #define MASS   0
 #define DIAM   1
@@ -70,6 +70,8 @@
 #define _PTM_Stat(grp,part,var) PTM_Stat[_IDX_3d(1,max_particle_num,4,grp,part,var)]
 #define _PTM_Vars(grp,part,var) PTM_Vars[_IDX_3d(1,max_particle_num,Num_WQ_Vars,grp,part,var)]
 
+AED_REAL get_particle_density(AED_REAL particle_density);
+AED_REAL get_particle_diameter(AED_REAL particle_diameter);
 AED_REAL get_settling_velocity(AED_REAL settling_velocity);
 AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel);
 
@@ -153,7 +155,15 @@ void ptm_init_glm()
 
     // Set initial active particle height within the water column
     upper_height = Lake[surfLayer].Height - init_depth_min;
+     if(upper_height > Lake[surfLayer].Height){
+            fprintf(stderr, "     ERROR: Particles cannot be initialized above the surface of the lake");
+            exit(1);
+        }
     lower_height = Lake[surfLayer].Height - init_depth_max;
+     if(lower_height < 0){
+            fprintf(stderr, "     ERROR: Particles cannot be initialized at a depth greater than the maximum lake depth");
+            exit(1);
+        }
 
     ptm_addparticles(init_particle_num, max_particle_num, upper_height,lower_height);
 
@@ -169,100 +179,6 @@ void ptm_init_glm()
  *    and settling/migration                                                  *
  *                                                                            *
  ******************************************************************************/
-void do_ptm_update_old()
-{
-//LOCALS
-    int p, tt, ij1, ij2, sub_steps;
-    AED_REAL dt, K_z, K_above, K_prime_z;
-    float rand_float, prob, prev_height, x1, x2, y1, y2, a1, a2;
-
-/*----------------------------------------------------------------------------*/
-//BEGIN
-
-    // Update settling/migration velocity  ! Will overwrite AED
-    for (p = 0; p < max_particle_num; p++) {
-        if (Particle[p].Status>0) {
-           Particle[p].vvel = get_settling_velocity(settling_velocity);
-        }
-    }
-
-    // Loop through sub-timesteps, incrementing position
-    sub_steps = 60;
-    dt = 1;
-    for (tt = 1; tt < sub_steps; tt++) {
-        for (p = 0; p < max_particle_num; p++) {
-          if (Particle[p].Status>0) {
-            // Capture current height of particle to calculate probability of settling below
-            prev_height = Particle[p].Height;
-
-            // Update particle position based on diffusivity and vert velocity
-            Particle[p].Flag= WATER;
-            K_z = Lake[Particle[p].Layer].Epsilon;
-            K_above = Lake[Particle[p+1].Layer].Epsilon;
-
-            // determine whether to assume molecular diffusion K
-            if (K_z < 1E-6) K_z = 1E-6;
-
-            if (K_above < 1E-6) K_above = 1E-6;
-
-            if(Particle[p].Layer == surfLayer){
-                K_prime_z = 0;
-                continue;
-            } else {
-                K_prime_z = fabs(K_z - K_above);
-            }
-
-            Particle[p].Height = random_walk(dt,Particle[p].Height, K_z, K_prime_z, Particle[p].vvel);
-
-            if(prev_height > Particle[p].Height){
-
-                // Get area at previous particle height
-                x1 = prev_height * 10.0;
-                y1 = x1 - (int)(x1 / 1.0) * 1.0;
-                ij1 = (int)(x1 - y1) - 1;
-                if(ij1 > Nmorph){
-                    y1 = y1 + (float)(ij1 - Nmorph);
-                    ij1 = Nmorph - 1;
-                }
-                a1 = MphLevelArea[ij1] + y1 * dMphLevelArea[ij1];
-
-                // Get area at depth of current particle height
-                x2 = Particle[p].Height * 10.0;
-                y2 = x2 - (int)(x2 / 1.0) * 1.0;
-                ij2 = (int)(x2 - y2) - 1;
-                if(ij2 > Nmorph){
-                    y2 = y2 + (float)(ij2 - Nmorph);
-                    ij2 = Nmorph - 1;
-                }
-                a2 = MphLevelArea[ij2] + y2 * dMphLevelArea[ij2];
-
-                // Calculate proportional difference between two areas
-                prob = (a1 - a2) / a1 * settling_efficiency;
-
-                // Bernoulli draw to determine if particle should be assigned as BED
-                rand_float = ((float)rand())/RAND_MAX;
-                if(rand_float < prob || Particle[p].Height < 0.02){
-                    Particle[p].Flag= BED;
-                    if(Particle[p].Height<0.0){
-                        Particle[p].Height=0.0;
-                    }
-                    if(sed_deactivation){
-                        Particle[p].Status = 0;
-                    }
-                }
-            }
-
-            // Determine if particle should be assigned as SCUM
-            if(Particle[p].Height>Lake[surfLayer].Height){
-                Particle[p].Flag= SCUM;                      // Maybe forming a scum layer
-                Particle[p].Height=Lake[surfLayer].Height;
-            }
-          }
-        }
-    }
-
-    ptm_update_layerid();     // assign layers to active particles
-}
 void do_ptm_update()
 {
 //LOCALS
@@ -273,13 +189,6 @@ void do_ptm_update()
 /*----------------------------------------------------------------------------*/
 //BEGIN
     pg = 0;
-
-    // Update settling/migration velocity  ! Will overwrite AED
-    for (p = 0; p < max_particle_num; p++) {
-        if (_PTM_Stat(pg,p,STAT)>0) {
-           //_PTM_Vars(pg,p,VVEL) = get_settling_velocity(settling_velocity);
-        }
-    }
 
     // Loop through sub-timesteps, incrementing position
     sub_steps = 60;
@@ -370,33 +279,6 @@ void do_ptm_update()
  *    range, used to capture the effect of layer mixing                       *
  *                                                                            *
  ******************************************************************************/
-void ptm_redistribute_old(AED_REAL upper_height, AED_REAL lower_height)
-{
-//LOCALS
-    int p;
-
-    int rand_int;
-    AED_REAL height_range;
-
-/*----------------------------------------------------------------------------*/
-//BEGIN
-    // Get vertical range in the water column that mixed
-    height_range = upper_height - lower_height;
-
-    // Check for active particles in the height range
-    for (p = 0; p < max_particle_num; p++) {
-        if (Particle[p].Status>0) {
-            if (Particle[p].Height>=lower_height && Particle[p].Height<=upper_height ) {
-                // Particle is in the mixing zone, so re-position
-                rand_int = rand() % 100 + 1;                            // random draw from unit distribution
-                double random_double = (double)rand_int / 100;
-                random_double = random_double * height_range;                 // scale unit random to requested range
-                Particle[p].Height = lower_height + random_double;
-            }
-        }
-    }
-    ptm_update_layerid();     // assign layers to active particles
-}
 void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
 {
 //LOCALS
@@ -431,64 +313,14 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
 /******************************************************************************
  *                                                                            *
  *    This routine adds new particles within the provided depth               *
- *    range, used to capture the effect of layer mixing                       *
- *                                                                            *
- *                                                                            *
- ******************************************************************************/
-void ptm_addparticles_old(int new_particles, int max_particle_num, AED_REAL upper_height,
-                      AED_REAL lower_height)
-{
-//LOCALS
-    int p, n;
-
-    int rand_int;
-    AED_REAL height_range;
-
-/*----------------------------------------------------------------------------*/
-//BEGIN
-    // Get vertical range in the water column that mixed
-    height_range = upper_height - lower_height;
-    n = 0;
-
-    // For each new particle, initialise their properties and height
-    for (p = 0 ; p < max_particle_num; p++) {
-        if(n == new_particles){
-            break;
-        }
-        if(Particle[p].Status == 0 && Particle[p].Flag == 3){ // find the first inactive particles with EXIT flag
-            Particle[p].Status = 1;
-            Particle[p].Flag = 0;
-            Particle[p].Mass = 1.0;
-            Particle[p].Diam = 1e-6;
-            Particle[p].Density = 1000.0;
-            Particle[p].vvel = 0.0;
-
-            // Assign particles initial height
-            rand_int = rand() % 100 + 1;                            // random draw from unit distribution
-            double random_double = (double)rand_int / 100;
-            random_double = random_double * height_range;                 // scale unit random to requested range
-            Particle[p].Height = lower_height + random_double;   // set particle height
-
-            // Adjust counter
-            n++;
-        }
-    }
-}
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
-
-/******************************************************************************
- *                                                                            *
- *    This routine adds new particles within the provided depth               *
- *    range, used to capture the effect of layer mixing                       *
- *                                                                            *
+ *    range                                                                   *                                                                        *
  *                                                                            *
  ******************************************************************************/
 void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_height,
                       AED_REAL lower_height)
 {
 //LOCALS
-    int p, n, pg;
+    int p, n, pg, pid;
 
     int rand_int;
     AED_REAL height_range;
@@ -501,18 +333,32 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
 
     pg = 0;
     // For each new particle, initialise their properties and height
-    for (p = 0 ; p < max_particle_num; p++) {
+    for (p = 0 ; ; p++) {
         if(n == new_particles){
             break;
         }
+
+        if(p == max_particle_num){
+            fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports up to %d particles\n", max_particle_num);
+            exit(1);
+        }
+                    printf("ptm_addparticles() %d %d %d \n"  , p,n,new_particles);
 
         if( _PTM_Stat(pg,p,STAT) == 0 && _PTM_Stat(pg,p,FLAG) == 3){ // find the first inactive particles with EXIT flag
             _PTM_Stat(pg,p,STAT) = 1;
             _PTM_Stat(pg,p,FLAG) = 0;
             _PTM_Vars(pg,p,MASS) = 1.0;
-            _PTM_Vars(pg,p,DIAM) = 1e-6;
-            _PTM_Vars(pg,p,DENS) = 1000.0;
-            _PTM_Vars(pg,p,VVEL) = 0.0;
+            _PTM_Vars(pg,p,DIAM) = get_particle_diameter(particle_diameter);
+            _PTM_Vars(pg,p,DENS) = get_particle_density(particle_density);
+            _PTM_Vars(pg,p,VVEL) = get_settling_velocity(settling_velocity);
+
+            // Assign PTID
+            if(_PTM_Stat(pg,p,PTID) < 0){
+               _PTM_Stat(pg,p,PTID) = p+1;
+            } else {
+               pid = (int) floor(_PTM_Stat(pg,p,PTID) / max_particle_num);
+               _PTM_Stat(pg,p,PTID) = max_particle_num + pid*max_particle_num + (p+1 - pid*max_particle_num);
+            }
 
             // Assign particles initial height
             rand_int = rand() % 100 + 1;                            // random draw from unit distribution
@@ -526,41 +372,6 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
     }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
-/******************************************************************************
- *                                                                            *
- *    This routine removes new particles from a specified layer, based        *
- *    on the proportion of layer volume that is removed through outflow       *
- *                                                                            *
- *                                                                            *
- ******************************************************************************/
-void ptm_removeparticles_old(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, int max_particle_num)
-{
-//LOCALS
-    AED_REAL layer_prop, rand_float;
-    int p;
-
-/*----------------------------------------------------------------------------*/
-//BEGIN
-    // For each particle, draw from Bernoulli distribution to see whether removed from layer
-    layer_prop = delta_vol / layer_vol;
-    for (p = 0; p < max_particle_num; p++) {
-        if(Particle[p].Status == 1 && Particle[p].Layer == layer_id){
-            rand_float = ((float)rand())/RAND_MAX;
-            if(rand_float <= layer_prop){
-                // If particle leaves through outflow, reset completely
-                Particle[p].Status = 0;
-                Particle[p].Flag = 3;
-                Particle[p].Mass = 0.0;
-                Particle[p].Diam = 0.0;
-                Particle[p].Density = 0.0;
-                Particle[p].vvel = 0.0;
-            }
-        }
-    }
-}
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
 
 
 /******************************************************************************
@@ -606,35 +417,6 @@ void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, i
  *                                                                            *
  *                                                                            *
  ******************************************************************************/
-void ptm_layershift_old(AED_REAL shift_height, AED_REAL shift_amount)
-{
-//LOCALS
-    int p;
-
-    AED_REAL upper_height;
-    AED_REAL lower_height;
-//  AED_REAL height_range;
-
-/*----------------------------------------------------------------------------*/
-//BEGIN
-
-    // Get vertical range in the water column that is impacted by the shift
-    lower_height = shift_height;
-    upper_height = shift_height + shift_amount;
-//  height_range = upper_height - lower_height;
-
-    // Check for active particles in the impacted height range
-    for (p = 0; p < max_particle_num; p++) {
-        if (Particle[p].Status>0) {
-            if (Particle[p].Height>lower_height && Particle[p].Height<upper_height ) {
-                // Particle is in the impacted zone, so re-position (lift or drop)
-                Particle[p].Height = Particle[p].Height + shift_amount;   // adjust particle height
-            }
-        }
-    }
-
-    ptm_update_layerid();     // assign layers to active particles
-}
 void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
 {
 //LOCALS
@@ -642,7 +424,6 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
 
     AED_REAL upper_height;
     AED_REAL lower_height;
-//  AED_REAL height_range;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
@@ -650,7 +431,6 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
     // Get vertical range in the water column that is impacted by the shift
     lower_height = shift_height;
     upper_height = shift_height + shift_amount;
-//  height_range = upper_height - lower_height;
 
     pg = 0;
     // Check for active particles in the impacted height range
@@ -673,25 +453,6 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
  *    This routine sets the layer id for each particle based on its height    *
  *                                                                            *
  ******************************************************************************/
-void ptm_update_layerid_old()
-{
-//LOCALS
-    int p,i;
-
-/*----------------------------------------------------------------------------*/
-//BEGIN
-
-    for (p = 0; p < max_particle_num; p++) {
-        if (Particle[p].Status>0) {
-            for (i = botmLayer; i < NumLayers; i++) {
-                if (Particle[p].Height<Lake[i].Height) {
-                    Particle[p].Layer = i;
-                    break; // get out of layer loop
-                }
-            }
-        }
-    }
-}
 void ptm_update_layerid()
 {
 //LOCALS
@@ -732,21 +493,61 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prim
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
-    del_t = dt*60;
+    del_t = dt*60; // number of minutes (dt) times seconds per minute
 
     random_float = -1+2*((float)rand())/RAND_MAX;            // random draw from uniform distribution [-1,1]
 
     updated_height = Height + K_prime_z * Height * del_t + random_float *
     sqrt((2 * K_z * (Height + 0.5 * K_prime_z * Height * del_t) * del_t) / (1.0/3)); // random walk
 
-    updated_height = updated_height + vvel;                   // account for sinking/floating
+    updated_height = updated_height + vvel * del_t;   // account for sinking/floating; 
+                                                      // vvel is per second so needs to
+                                                      // be multiplied by del_t which
+                                                      // is number of seconds of random
+                                                      // walk timestep
 
     return updated_height;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-static int h_id, m_id, d_id, dn_id, vv_id, par_id, tem_id, no3_id, frp_id, c_id, n_id, pho_id, chl_id, num_id, cdiv_id, topt_id, lnalphachl_id, mu_c_id, fit_id, stat_id, flag_id;
+/******************************************************************************
+ *                                                                            *
+ *        This routine returns the settling velocity for a particle in m/s    *
+ *                                                                            *
+ ******************************************************************************/
+AED_REAL get_settling_velocity(AED_REAL settling_velocity)
+{
+    return settling_velocity / 86400;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ *        This routine returns the density for a particle                     *
+ *                                                                            *
+ ******************************************************************************/
+AED_REAL get_particle_density(AED_REAL particle_density)
+{
+    return particle_density;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ *        This routine returns the diameter for a particle                    *
+ *                                                                            *
+ ******************************************************************************/
+AED_REAL get_particle_diameter(AED_REAL particle_diameter)
+{
+    return particle_diameter;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+static int h_id, m_id, d_id, dn_id, vv_id, par_id, tem_id, no3_id, frp_id, c_id, n_id, pho_id, chl_id, num_id, cdiv_id, topt_id, lnalphachl_id, stat_id, flag_id, ptid_id;
 static int set_no_p = -1;
 static size_t start[2],edges[2];
 
@@ -759,8 +560,8 @@ void ptm_write_glm(int ncid, int max_particle_num)
 {
 //LOCALS
     int p,pg;
-    AED_REAL *p_height, *mass, *diam, *density, *vvel, *par, *tem, *no3, *frp, *c, *n, *pho, *chl, *num, *cdiv, *topt, *lnalphachl, *mu_c, *fit;
-    int *status, *flag;
+    AED_REAL *p_height, *mass, *diam, *density, *vvel, *par, *tem, *no3, *frp, *c, *n, *pho, *chl, *num, *cdiv, *topt, *lnalphachl;
+    int *status, *flag, *ptid;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
@@ -788,18 +589,16 @@ void ptm_write_glm(int ncid, int max_particle_num)
     cdiv  = malloc(max_particle_num*sizeof(AED_REAL));
     topt  = malloc(max_particle_num*sizeof(AED_REAL));
     lnalphachl  = malloc(max_particle_num*sizeof(AED_REAL));
-    mu_c  = malloc(max_particle_num*sizeof(AED_REAL));
-    fit  = malloc(max_particle_num*sizeof(AED_REAL));
-
     status  = malloc(max_particle_num*sizeof(int));
     flag  = malloc(max_particle_num*sizeof(int));
+    ptid  = malloc(max_particle_num*sizeof(int));
 
     for (p = 0; p < max_particle_num; p++) {
         p_height[p]         = _PTM_Vars(pg,p,HGHT);    //Particle[p].Height;                REAL
         mass[p]             = _PTM_Vars(pg,p,MASS);    //Particle[p].Mass;                  REAL
         diam[p]             = _PTM_Vars(pg,p,DIAM);    // Particle[p].Diam;                 REAL
         density[p]          = _PTM_Vars(pg,p,DENS);    //Particle[p].Density;               REAL
-        vvel[p]             = _PTM_Vars(pg,p,VVEL);    //Particle[p].vvel;                  REAL
+        vvel[p]             = _PTM_Vars(pg,p,VVEL)*86400;  //Particle[p].vvel;              REAL
                                          //  VVEL+1 = HGHT
         par[p]              = _PTM_Vars(pg,p,VVEL+2);  //PAR experienced by particle;       REAL //ML why is it +2?
         tem[p]              = _PTM_Vars(pg,p,VVEL+3);  //temp experienced by particle;      REAL
@@ -813,10 +612,9 @@ void ptm_write_glm(int ncid, int max_particle_num)
         cdiv[p]             = _PTM_Vars(pg,p,VVEL+11);  //internal C threshold for division; REAL
         topt[p]             = _PTM_Vars(pg,p,VVEL+12);  //particle temperature optimum;      REAL
         lnalphachl[p]       = _PTM_Vars(pg,p,VVEL+13); //ln alpha chl of particle;          REAL
-        mu_c[p]             = _PTM_Vars(pg,p,VVEL+14); //mu_c of particle;                  REAL
-        fit[p]              = _PTM_Vars(pg,p,VVEL+15); //fitness of particle;               REAL
         status[p]           = _PTM_Stat(pg,p,STAT);    //Particle[p].Status;                INT
         flag[p]             = _PTM_Stat(pg,p,FLAG);    //Particle[p].Flag;                  INT
+        ptid[p]             = _PTM_Stat(pg,p,PTID);    //Particle[p].PTID;                  INT
     }
 
     nc_put_vara(ncid, h_id, start, edges, p_height);
@@ -836,10 +634,9 @@ void ptm_write_glm(int ncid, int max_particle_num)
     nc_put_vara(ncid, cdiv_id, start, edges, cdiv);
     nc_put_vara(ncid, topt_id, start, edges, topt);
     nc_put_vara(ncid, lnalphachl_id, start, edges, lnalphachl);
-    nc_put_vara(ncid, mu_c_id, start, edges, mu_c);
-    nc_put_vara(ncid, fit_id, start, edges, fit);
     nc_put_vara(ncid, stat_id, start, edges, status);
     nc_put_vara(ncid, flag_id, start, edges, flag);
+    nc_put_vara(ncid, ptid_id, start, edges, ptid);
 
     free(p_height);
     free(mass);
@@ -858,10 +655,9 @@ void ptm_write_glm(int ncid, int max_particle_num)
     free(cdiv);
     free(topt);
     free(lnalphachl);
-    free(mu_c);
-    free(fit);
     free(status);
     free(flag);
+    free(ptid);
 
     check_nc_error(nc_sync(ncid));
 }
@@ -937,31 +733,15 @@ void ptm_init_glm_output(int ncid, int time_dim)
    check_nc_error(nc_def_var(ncid, "particle_lnalphachl", NC_REALTYPE, 2, dims, &lnalphachl_id));
    set_nc_attributes(ncid, lnalphachl_id, "(W m-2)-1(gChl molC)-1d-1", "slope of the P-I curve" PARAM_FILLVALUE);
 
-   check_nc_error(nc_def_var(ncid, "particle_mu_c", NC_REALTYPE, 2, dims, &mu_c_id));
-   set_nc_attributes(ncid, mu_c_id, "??", "carbon-specific growth rate" PARAM_FILLVALUE);
-
-   check_nc_error(nc_def_var(ncid, "particle_fit", NC_REALTYPE, 2, dims, &fit_id));
-   set_nc_attributes(ncid, fit_id, "??", "fitness represented by net growth rate (growth - mortality)" PARAM_FILLVALUE);
-
    check_nc_error(nc_def_var(ncid, "particle_status", NC_INT, 2, dims, &stat_id));
    nc_put_att(ncid, stat_id, "long_name", NC_CHAR, 18, "Status of Particle");
 
    check_nc_error(nc_def_var(ncid, "particle_flag", NC_INT, 2, dims, &flag_id));
    nc_put_att(ncid, flag_id, "long_name", NC_CHAR, 18, "Location Flag of Particle");
 
+   check_nc_error(nc_def_var(ncid, "particle_ptid", NC_INT, 2, dims, &ptid_id));
+   nc_put_att(ncid, ptid_id, "long_name", NC_CHAR, 18, "ID of Particle");
+
    define_mode_off(&ncid);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
-
-/******************************************************************************
- *                                                                            *
- *        This routine returns the settling velocity for a particle           *
- *                                                                            *
- ******************************************************************************/
-AED_REAL get_settling_velocity(AED_REAL settling_velocity)
-{
-    return settling_velocity;
-}
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
