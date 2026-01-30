@@ -1,6 +1,8 @@
 #!/bin/sh
 
+# CURDIR should be the directory of the project we are building
 export CURDIR=`pwd`
+# CWD should be the tools directory in which CURDIR lives
 export CWD=`dirname ${CURDIR}`
 
 #
@@ -9,12 +11,16 @@ export CWD=`dirname ${CURDIR}`
 export WITH_AED=true
 export AED=true
 export WITH_AED_PLUS=false
+if [ -d ${CWD}/libaed-dev ] ; then
+  export WITH_AED_PLUS=true
+fi
 export WITH_API=true
 export API=true
 export USE_DL=false
 export WITH_PLOTS=true
 export WITH_XPLOTS=true
 export WITH_MPI=false
+
 
 export PLOTDIR=${CWD}/libplot
 export UTILDIR=${CWD}/libutil
@@ -201,3 +207,5 @@ fi
 cd "${CWD}"
 
 # =====================================================================
+
+exit 0

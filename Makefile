@@ -429,11 +429,11 @@ glm+: ${objdir} ${moddir} $(OBJS) $(GLM_DEPS) $(RESP)
 
 clean: ${objdir} ${moddir}
 	@touch ${objdir}/1.o ${moddir}/1.mod 1.t 1__genmod.f90 glm 1.${so_ext} glm_test_bird macos/glm.app macos/glm+.app
-	@touch debian/.debhelper debian/files
+	@touch debian/.debhelper debian/files debian/control
 	@touch debian/glm debian/glm.debhelper.log debian/glm.substvars
 	@touch debian/glm+ debian/glm+.debhelper.log debian/glm+.substvars
 	@/bin/rm ${moddir}/*.mod ${objdir}/*.o *.t *__genmod.f90 *.${so_ext} glm_test_bird
-	@/bin/rm -rf debian/.debhelper debian/files
+	@/bin/rm -rf debian/.debhelper debian/files debian/control
 	@/bin/rm -rf debian/glm debian/glm.debhelper.log debian/glm.substvars
 	@/bin/rm -rf debian/glm+ debian/glm+.debhelper.log debian/glm+.substvars
 	@echo Made clean
