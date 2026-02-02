@@ -11,7 +11,7 @@
  *                                                                            *
  *     http://aquatic.science.uwa.edu.au/                                     *
  *                                                                            *
- * Copyright 2013-2025 - The University of Western Australia                  *
+ * Copyright 2013-2026 : The University of Western Australia                  *
  *                                                                            *
  *  This file is part of GLM (General Lake Model)                             *
  *                                                                            *
@@ -143,8 +143,8 @@ void check_layer_thickness(void)
         for (wqidx = 0; wqidx < Num_WQD_Vars; wqidx++)
             _WQD_Vars(wqidx,j) = combine_vol(_WQD_Vars(wqidx,j), Lake[j].LayerVol, _WQD_Vars(wqidx,j+1), Lake[j+1].LayerVol);
 
-        for (wqidx = 0; wqidx < Num_WQD_Vars; wqidx++)
-            _WQD_Vars(wqidx,j) = combine_vol(_WQD_Vars(wqidx,j), Lake[j].LayerVol, _WQD_Vars(wqidx,j+1), Lake[j+1].LayerVol);
+//      for (wqidx = 0; wqidx < Num_WQD_Vars; wqidx++)
+//          _WQD_Vars(wqidx,j) = combine_vol(_WQD_Vars(wqidx,j), Lake[j].LayerVol, _WQD_Vars(wqidx,j+1), Lake[j+1].LayerVol);
 
         Lake[j].Density = calculate_density(Lake[j].Temp, Lake[j].Salinity);
         Lake[j].LayerVol = Lake[j].LayerVol + Lake[j+1].LayerVol;
@@ -170,8 +170,8 @@ void check_layer_thickness(void)
                 for (wqidx = 0; wqidx < Num_WQD_Vars; wqidx++)
                     _WQD_Vars(wqidx, k) = _WQD_Vars(wqidx, k+1);
 
-                for (wqidx=0; wqidx < Num_WQD_Vars; wqidx++)
-                    _WQD_Vars(wqidx, k) = _WQD_Vars(wqidx, k+1);
+//              for (wqidx=0; wqidx < Num_WQD_Vars; wqidx++)
+//                  _WQD_Vars(wqidx, k) = _WQD_Vars(wqidx, k+1);
 
                 Lake[k].LayerVol = Lake[k+1].LayerVol;
                 Lake[k].Vol1 = Lake[k+1].Vol1;

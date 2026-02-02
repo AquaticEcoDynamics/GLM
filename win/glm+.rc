@@ -47,7 +47,7 @@ BEGIN
             VALUE "FileDescription", "General Lake Model (GLM) with AED+"
             VALUE "FileVersion", "3.9.105 \0"
             VALUE "InternalName", "version.rc"
-            VALUE "LegalCopyright", "Copyright (C) 2025"
+            VALUE "LegalCopyright", "Copyright (C) 2026"
             VALUE "OriginalFilename", "version.rc"
             VALUE "ProductName", "GLM+"
             VALUE "ProductVersion", "3.9.105 \0"

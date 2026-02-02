@@ -11,7 +11,7 @@
 !#                                                                             #
 !#     http://aquatic.science.uwa.edu.au/                                      #
 !#                                                                             #
-!# Copyright 2024-2025 - The University of Western Australia                   #
+!# Copyright 2024-2026 : The University of Western Australia                   #
 !#                                                                             #
 !#  This file is part of GLM (General Lake Model)                              #
 !#                                                                             #
@@ -213,7 +213,7 @@ SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    conf%Kw => Kw
 
    conf%do_particle_bgc = do_particle_bgc
-   
+
    conf%link_ext_par = link_ext_par
 
    CALL aed_set_coupling(conf)
