@@ -610,7 +610,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
         n[p]                = _PTM_Vars(pg,p,VVEL+8);  //internal particle N;               REAL
         pho[p]              = _PTM_Vars(pg,p,VVEL+9);  //internal particle P;               REAL
         chl[p]              = _PTM_Vars(pg,p,VVEL+10);  //internal particle chl;             REAL
-        num[p]              = _PTM_Vars(pg,p,VVEL+12);  //number of cells in particle;       REAL
+        num[p]              = _PTM_Vars(pg,p,VVEL+11);  //number of cells in particle;       REAL
         cdiv[p]             = _PTM_Vars(pg,p,VVEL+12);  //internal C threshold for division; REAL
         topt[p]             = _PTM_Vars(pg,p,VVEL+13);  //particle temperature optimum;      REAL
         lnalphachl[p]       = _PTM_Vars(pg,p,VVEL+14); //ln alpha chl of particle;          REAL
