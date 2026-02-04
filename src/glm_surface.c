@@ -55,6 +55,8 @@
 #  define dbgprt(...) /* __VA_ARGS__ */
 #endif
 
+// define the function type for reflection/refraction/...
+typedef double (*ref_f)(double, double, double, double, int);
 
 void solpond(int nband, int npoint,
              double depth, double *delz, double rb, double hdir, double anglei, double hdif,
@@ -63,8 +65,9 @@ void solpond(int nband, int npoint,
 static double expint(double ri, double cr, double h, double cmu, int n);
 static double fct(double ri, double cr, double h, double cmu, int n);
 static double fdif(double rindex, double critw, double h, double cmu, int n);
+
 static double ref(double ri, double cr, double cmu);
-static void   gaus10(double ri, double cr, double c, double d, double (*f)(), int n, double h, double *v);
+static void   gaus10(double ri, double cr, double c, double d, ref_f f, int n, double h, double *v);
 
 static AED_REAL grischenko_albedo(AED_REAL Latitude, AED_REAL mDays);
 
@@ -1962,7 +1965,7 @@ void solpond(int nband, int npoint,
  *    f = function to be integrated                                           *
  *                                                                            *
  ******************************************************************************/
-void gaus10(double ri, double cr, double c, double d, double (*f)(), int n, double h, double *v)
+void gaus10(double ri, double cr, double c, double d, ref_f f, int n, double h, double *v)
 {
 //  implicit real*8(a-h,o-z),integer*4(i,n)
 
