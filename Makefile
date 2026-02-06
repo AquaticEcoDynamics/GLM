@@ -246,10 +246,6 @@ else ifeq ($(F90),ifx)
       FFLAGS+=-check=all -check=noarg_temp_created
     endif
     FFLAGS+=-real-size=64 -fpscomp
-#   FLIBS+=-L"${CMPLR_ROOT}/lib"
-#   FLIBS+=-lifcore -lsvml_dispmt -lifport
-#   FLIBS+=-lmmds -lircmt -liomp5md -lifport
-#   FLIBS+=-lifmodintr -lbufferoverflow -lifconsol -lgcc
   else
     FFLAGS=-fpp -warn all -module ${moddir} -static-intel -mp1 -stand f23 -warn nounused $(DEFINES) $(FINCLUDES)
     LINK=$(FC) -nofor-main
@@ -262,7 +258,6 @@ else ifeq ($(F90),ifx)
     FLIBS+=-limf -lintlc -liomp5 -lifport
   endif
 else ifeq ($(F90),flang)
-# LINK=$(FC) -fno-fortran-main
   LINK=$(CC)
   DEBUG_FFLAGS=-g -DDEBUG=1
   OPT_FFLAGS=-O3
@@ -285,7 +280,7 @@ else
   FFLAGS+=-fdefault-real-8 -fdefault-double-8
   OMPFLAG=-fopenmp
   FLIBS+=-lgfortran -lgomp
-  EXTFFLAGS+=-Wno-unused-dummy-argument -Wno-unused-value
+ #EXTFFLAGS+=-Wno-unused-dummy-argument -Wno-unused-value
 endif
 
 ifeq ($(F90),ifx)

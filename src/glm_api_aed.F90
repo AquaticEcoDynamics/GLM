@@ -36,6 +36,8 @@
 
 #include "glm.h"
 
+#define _UNUSED(x) if (.FALSE.) print*,shape(x)
+
 !-------------------------------------------------------------------------------
 MODULE glm_api_aed
 !
@@ -91,10 +93,10 @@ MODULE glm_api_aed
 !-------------------------------------------------------------------------------
 !MODULE DATA
 
-   AED_REAL :: par_fraction = 0.450
-   AED_REAL :: nir_fraction = 0.510
-   AED_REAL :: uva_fraction = 0.035
-   AED_REAL :: uvb_fraction = 0.005
+  !AED_REAL :: par_fraction = 0.450
+  !AED_REAL :: nir_fraction = 0.510
+  !AED_REAL :: uva_fraction = 0.035
+  !AED_REAL :: uvb_fraction = 0.005
 
    !# Arrays for state and diagnostic variables
    AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: cc    !# water quality array - water  : nvars, nlayers
@@ -527,20 +529,23 @@ SUBROUTINE doMobilityF(N,dt,h,A,ww,min_C,mcc)
 !ARGUMENTS
    CINTEGER,INTENT(in)    :: N       !# number of vertical layers
    AED_REAL,INTENT(in)    :: dt      !# time step (s)
-   AED_REAL,INTENT(in)    :: h(*)    !# layer thickness (m)
-   AED_REAL,INTENT(in)    :: A(*)    !# layer areas (m2)
-   AED_REAL,INTENT(in)    :: ww(*)   !# vertical speed (m/s)
+   AED_REAL,INTENT(in)    :: h(:)    !# layer thicknesses (m)
+   AED_REAL,INTENT(in)    :: A(:)    !# layer areas (m2)
+   AED_REAL,INTENT(in)    :: ww(:)   !# vertical speed (m/s)
    AED_REAL,INTENT(in)    :: min_C   !# minimum allowed cell concentration
-   AED_REAL,INTENT(inout) :: mcc(*)  !# cell concentration
+   AED_REAL,INTENT(inout) :: mcc(:)  !# cell concentration
 !
 !LOCALS
-   CINTEGER :: NC
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   NC = N
-!  CALL doMobility(NC,dt,h,A,ww,min_C,mcc)
-   CALL doMobility(NC,dt,h,area,ww,min_C,mcc)
+   _UNUSED(A)
+
+!## The "Woods" example shows the problem.  Either version, "A" or "area" work with ifx
+!## but, with gfortran - using local copy "area" works, using passed array "A" doesnt
+!## Woods lake example Oxy and Oxy_sat NaN out with the A passed in.
+!  CALL doMobility(N,dt,h,A,ww,min_C,mcc)
+   CALL doMobility(N,dt,h,area,ww,min_C,mcc)
 END SUBROUTINE doMobilityF
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

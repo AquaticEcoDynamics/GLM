@@ -900,7 +900,7 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
 
    DO split=1,split_factor
       IF (benthic_mode .GT. 1) &
-         CALL copy_to_zone(cc, cc_diag, cc_diag_hz, wlev)
+         CALL copy_to_zone(cc, cc_diag, wlev)
 
       !# Update local light field (self-shading may have changed through
       !# changes in biological state variables). Update_light is set to
@@ -968,12 +968,12 @@ CONTAINS
 !-------------------------------------------------------------------------------
 
    !############################################################################
-   SUBROUTINE define_zone_column(zon, top, bot)
+   SUBROUTINE define_zone_column(zon, top)
    !----------------------------------------------------------------------------
    ! Set up the current column pointers
    !----------------------------------------------------------------------------
    !ARGUMENTS
-      INTEGER, INTENT(in)  :: zon, top, bot
+      INTEGER, INTENT(in)  :: zon, top
    !
    !LOCALS
       INTEGER :: av
@@ -1078,7 +1078,7 @@ CONTAINS
          !# water conditions need to be aggregated from multiple cells/layers
 
          DO zon=1,n_zones
-            CALL define_zone_column(zon, n_zones, 1)
+            CALL define_zone_column(zon, n_zones)
 
             theZones(zon)%z_sed_zones = zon  !MH TMP
 !           print *,'theZones(zon)%z_sed_zones',theZones(zon)%z_sed_zones !MH TMP
@@ -1161,7 +1161,7 @@ CONTAINS
 
 !$OMP DO
          DO zon=1,n_zones
-            CALL define_zone_column(zon, n_zones, 1)
+            CALL define_zone_column(zon, n_zones)
 
             !# Reinitialise flux_ben to be repopulated for this zone
             flux_ben = zero_

@@ -34,6 +34,8 @@
 
 #include "glm.h"
 
+#define _UNUSED(x) if (.FALSE.) print*,shape(x)
+
 MODULE glm_api_zones
 
    USE ISO_C_BINDING
@@ -187,6 +189,10 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
 !
 !-------------------------------------------------------------------------------
 !BEGIN
+   _UNUSED(x_cc_hz)
+   _UNUSED(x_diag)
+   _UNUSED(x_diag_hz)
+
    DO zon=1,n_zones
       z_cc(1:nvars,:,zon) = 0.
       z_diag(:,:,zon) = 0.
@@ -328,6 +334,7 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
 !
 !-------------------------------------------------------------------------------
 !BEGIN
+   _UNUSED(x_cc)
    zon = n_zones
 
    ! Loop down through water layers

@@ -145,12 +145,11 @@ END SUBROUTINE calc_zone_areas
 
 
 !###############################################################################
-SUBROUTINE copy_to_zone(x_cc, x_diag, x_diag_hz, wlev)
+SUBROUTINE copy_to_zone(x_cc, x_diag, wlev)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    AED_REAL,DIMENSION(:,:),INTENT(in) :: x_cc
    AED_REAL,DIMENSION(:,:),INTENT(in) :: x_diag
-   AED_REAL,DIMENSION(:),INTENT(in) :: x_diag_hz
    INTEGER,INTENT(in) :: wlev
 !
 !LOCALS
