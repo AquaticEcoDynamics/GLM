@@ -338,36 +338,36 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
             break;
         }
 
-        if(p == max_particle_num){
-            fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports up to %d particles\n", max_particle_num);
-            exit(1);
-        }
-                    printf("ptm_addparticles() %d %d %d \n"  , p,n,new_particles);
+        if(p >= max_particle_num){
+            printf("ptm_addparticles(): WARNING no more available particles; skipping particle initialization");
+            break;
+        } else {
+            if( _PTM_Stat(pg,p,STAT) == 0 && _PTM_Stat(pg,p,FLAG) == 3){ // find the first inactive particles with EXIT flag
+                printf("ptm_addparticles() %d %d %d \n"  , p,n,new_particles);
+                _PTM_Stat(pg,p,STAT) = 1;
+                _PTM_Stat(pg,p,FLAG) = 0;
+                _PTM_Vars(pg,p,MASS) = 1.0;
+                _PTM_Vars(pg,p,DIAM) = get_particle_diameter(particle_diameter);
+                _PTM_Vars(pg,p,DENS) = get_particle_density(particle_density);
+                _PTM_Vars(pg,p,VVEL) = get_settling_velocity(settling_velocity);
 
-        if( _PTM_Stat(pg,p,STAT) == 0 && _PTM_Stat(pg,p,FLAG) == 3){ // find the first inactive particles with EXIT flag
-            _PTM_Stat(pg,p,STAT) = 1;
-            _PTM_Stat(pg,p,FLAG) = 0;
-            _PTM_Vars(pg,p,MASS) = 1.0;
-            _PTM_Vars(pg,p,DIAM) = get_particle_diameter(particle_diameter);
-            _PTM_Vars(pg,p,DENS) = get_particle_density(particle_density);
-            _PTM_Vars(pg,p,VVEL) = get_settling_velocity(settling_velocity);
+                // Assign PTID
+                if(_PTM_Stat(pg,p,PTID) < 0){
+                   _PTM_Stat(pg,p,PTID) = p+1;
+                } else {
+                   pid = (int) floor(_PTM_Stat(pg,p,PTID) / max_particle_num);
+                   _PTM_Stat(pg,p,PTID) = max_particle_num + pid*max_particle_num + (p+1 - pid*max_particle_num);
+                }
 
-            // Assign PTID
-            if(_PTM_Stat(pg,p,PTID) < 0){
-               _PTM_Stat(pg,p,PTID) = p+1;
-            } else {
-               pid = (int) floor(_PTM_Stat(pg,p,PTID) / max_particle_num);
-               _PTM_Stat(pg,p,PTID) = max_particle_num + pid*max_particle_num + (p+1 - pid*max_particle_num);
+                // Assign particles initial height
+                rand_int = rand() % 100 + 1;                            // random draw from unit distribution
+                double random_double = (double)rand_int / 100;
+                random_double = random_double * height_range;           // scale unit random to requested range
+                _PTM_Vars(pg,p,HGHT) = lower_height + random_double;     // set particle height
+
+                // Adjust counter
+                n++;
             }
-
-            // Assign particles initial height
-            rand_int = rand() % 100 + 1;                            // random draw from unit distribution
-            double random_double = (double)rand_int / 100;
-            random_double = random_double * height_range;           // scale unit random to requested range
-            _PTM_Vars(pg,p,HGHT) = lower_height + random_double;     // set particle height
-
-            // Adjust counter
-            n++;
         }
     }
 }
