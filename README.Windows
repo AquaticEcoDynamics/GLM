@@ -1,0 +1,13 @@
+
+We build GLM on windows using "chocolatey".
+
+After installing choco (see https://chocolatey.org/install ) install these packages :
+
+          choco install -y make
+          choco install -y mingw
+          choco install -y git
+          choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+
+After which the build script ( build_glm.sh ) can be used in a "Git Bash" shell
+which should fetch and build some 3rd party libraries in the ancillary directory
+before building GLM

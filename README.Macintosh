@@ -1,0 +1,29 @@
+Building n on macOS-X requires :
+
+   1) XCode - available through the App Store
+       NB you will also need the commandline tools for XCode
+
+              xcode-select --install
+
+   2) There are various 3rd party libraries required - fortunately someone else has done the
+      hard work of porting them.  There are several options, we have only looked at
+      MacPorts and Homebrew which seem to be amongst the most popular.  If you don't
+      already have a collection, look at :
+
+          Homebrew : http://brew.sh/
+
+   3) If you want to use gfortran, make sure you have at least version 8.2.
+
+             brew install gcc
+
+   4) You will need netcdf - this is available from Homebrew :
+
+             brew install netcdf
+
+   5) To build the GUI you will need libgd - this is available through Homebrew
+
+             brew install gd
+
+Note:
+    GLM source includes a script - "macpkg.sh" to include non-standard libraries
+    into the glm.app binary.

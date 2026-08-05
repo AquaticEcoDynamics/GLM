@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+
+package=glm
+year=2026
+version=4.0.0
+release=0.0
+
+#export DH_VERBOSE=1
+
+binary:
+	dh_testdir
+	-mkdir -p $(CURDIR)/debian/glm/usr/local/bin
+	-(cp $(CURDIR)/glm $(CURDIR)/debian/glm/usr/local/bin)
+	dh_install
+	dh_gencontrol
+	dh_builddeb
+
+
+clean:
+	dh_clean
+
+
+.PHONY: clean binary
