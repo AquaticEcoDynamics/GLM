@@ -545,25 +545,34 @@ void do_model(int jstart, int nsave)
  ******************************************************************************/
 void do_model_non_avg(int jstart, int nsave)
 {
-    AED_REAL FlowNew[MaxInf], DrawNew[MaxOut], WithdrTempNew;
+    AED_REAL *FlowNew, *DrawNew, WithdrTempNew;
     AED_REAL SWold, SWnew, DailyKw, DailyEvap;
     int jday, ntot, stepnum, stoptime;
     int i, j;
     AED_REAL day_fraction;
 
+    AED_REAL *SaltNew, *TempNew, *WQNew;
+    AED_REAL *Elev;
+    AED_REAL *ElevOut;     // Outflow elevation (above sea level) for Type 6 submerged outflow
+    AED_REAL *HeatFluxOut; // Outflow heat flux array for dynamic heat pump support
    /***************************************************************************
     *CAB Note: these WQ arrays should be sized to Num_WQ_Vars not MaxVars,    *
     *           look into that later ....                                     *
     ***************************************************************************/
-    AED_REAL SaltNew[MaxInf], TempNew[MaxInf], WQNew[MaxInf * MaxVars];
+    FlowNew = malloc(sizeof(AED_REAL)*NumInf);
+    DrawNew = malloc(sizeof(AED_REAL)*NumOut);
+
+    SaltNew = malloc(sizeof(AED_REAL)*MaxInf);
+    TempNew = malloc(sizeof(AED_REAL)*MaxInf);
+    WQNew = malloc(sizeof(AED_REAL)*(MaxInf * MaxVars));
     // NOTE: despite the name, Elev[] holds inflow HEIGHT above the lake bottom
     // (same units as InflowDataType.SubmHeight / NML subm_height), NOT elevation
     // above sea level.  The name and the CSV column ("elev") are legacy from when
     // the field was called SubmElev.  The CSV column name is kept to avoid breaking
     // existing user inflow files.
-    AED_REAL Elev[MaxInf];
-    AED_REAL ElevOut[MaxOut];     // Outflow elevation (above sea level) for Type 6 submerged outflow
-    AED_REAL HeatFluxOut[MaxOut]; // Outflow heat flux array for dynamic heat pump support
+    Elev = malloc(sizeof(AED_REAL)*MaxInf);
+    ElevOut = malloc(sizeof(AED_REAL)*MaxOut);
+    HeatFluxOut = malloc(sizeof(AED_REAL)*MaxOut);
 
     /*------------------------------------------------------------------------*/
     memset(WQNew, 0, sizeof(AED_REAL)*MaxInf*MaxVars);
@@ -754,6 +763,12 @@ void do_model_non_avg(int jstart, int nsave)
     }   //# do while (ntot < nDates)
     if (quiet < 2) { printf("\n"); fflush(stdout); }
     /*----------########### End of main daily loop ################-----------*/
+
+    free(FlowNew); free(DrawNew);
+    free(SaltNew); free(TempNew);
+    free(WQNew);
+    free(Elev); free(ElevOut);
+    free(HeatFluxOut);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -770,12 +785,13 @@ void do_model_coupled(int step_start, int step_end,
     *CAB Note: these WQ arrays should be sized to Num_WQ_Vars not MaxVars,    *
     *           look into that later ....                                     *
     ***************************************************************************/
-    AED_REAL WQNew[MaxInf * MaxVars];
+    AED_REAL *WQNew;
     int jday, ntot, stepnum, stoptime, cDays;
     int i, j;
     AED_REAL day_fraction;
 
     /*------------------------------------------------------------------------*/
+    WQNew = malloc(sizeof(AED_REAL)*(MaxInf * MaxVars));
     memset(WQNew, 0, sizeof(AED_REAL)*MaxInf*MaxVars);
 
     /**************************** Start Simulation ****************************/
@@ -918,6 +934,8 @@ void do_model_coupled(int step_start, int step_end,
     /*----------########### End of main daily loop ################-----------*/
 
     *elevation = Lake[surfLayer].Height;
+
+    free(WQNew);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
