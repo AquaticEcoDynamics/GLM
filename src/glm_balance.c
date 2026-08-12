@@ -111,7 +111,7 @@ void open_balance(const char *out_dir, const char *balance_fname,
               int balance_varnum, const char**balance_vars, const char *timefmt)
 {
     int i;
-    size_t l;
+    size_t l, vlen;
     VARNAME mbs;
 
     if ( (mbf = open_csv_output(out_dir, balance_fname)) < 0 ) {
@@ -143,8 +143,8 @@ void open_balance(const char *out_dir, const char *balance_fname,
         else if ( strcmp(balance_vars[i], "Salt") == 0 )
              mb_idx[i] = -1;
         else {
-            l = strlen(balance_vars[i]);
-            mb_idx[i] = wq_var_index_c(balance_vars[i], &l);
+            vlen = strlen(balance_vars[i]);
+            mb_idx[i] = wq_var_index_c(balance_vars[i], &vlen);
         }
     }
     csv_header_end(mbf);
