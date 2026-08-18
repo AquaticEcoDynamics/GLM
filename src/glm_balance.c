@@ -39,6 +39,11 @@
   #include <unistd.h>
 #else
   #include <direct.h>
+  #ifndef S_ISDIR
+  #define S_ISDIR(mode) (mode & _S_IFDIR)
+  #endif
+  #define mkdir(path, mode) _mkdir(path)
+  #define stat _stat
 #endif
 
 #include "glm.h"
@@ -113,6 +118,20 @@ void open_balance(const char *out_dir, const char *balance_fname,
     int i;
     size_t l, vlen;
     VARNAME mbs;
+    struct stat sb;
+
+    if ( out_dir != NULL ) {
+        if ( stat(out_dir, &sb) ) {
+            fprintf(stderr, "Directory \"%s\" does not exist - attempting to create it\n", out_dir);
+            if ( mkdir(out_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) ) {
+                fprintf(stderr, "mkdir failed\n");
+                exit(1);
+            }
+        } else if ( ! S_ISDIR(sb.st_mode) ) {
+            fprintf(stderr, "Name given in out_dir (%s) is not a directory\n", out_dir);
+            exit(1);
+        }
+    }
 
     if ( (mbf = open_csv_output(out_dir, balance_fname)) < 0 ) {
         fprintf(stderr, "Failed to create '%s'\n", balance_fname);
