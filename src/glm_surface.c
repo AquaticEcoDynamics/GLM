@@ -108,7 +108,7 @@ static AED_REAL  Q_underflow;  // Heat flux through water due to flow under the 
 
 //static AED_REAL  snow_rain_compact = 1. ; //update based on timestep and scaling
 
-void recalc_surface_salt(void);
+void recalc_surface_salt_wq(void);
 
 AED_REAL calculate_qsw(int kDays, int mDays, int iclock,
                        AED_REAL Latitude, AED_REAL SWOld,
@@ -542,7 +542,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
                     Lake[surfLayer].Height = Lake[surfLayer].Height+MetData.Rain;
                     SurfData.dailyRain += MetData.Rain * Lake[surfLayer].LayerArea;
-                    recalc_surface_salt();
+                    recalc_surface_salt_wq();
 
                     if (Temp_ice == Temp_melt)
                         Q_rain = SPHEAT*(MetData.AirTemp-Temp_ice)*(MetData.Rain)/noSecs;
@@ -588,7 +588,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                 if (MetData.AirTemp > 0.0) {
                     Lake[surfLayer].Height = Lake[surfLayer].Height+MetData.Rain;
                     SurfData.dailyRain += MetData.Rain * Lake[surfLayer].LayerArea;
-                    recalc_surface_salt();
+                    recalc_surface_salt_wq();
 
                     if (Temp_ice == Temp_melt)
                         Q_rain = SPHEAT*(MetData.AirTemp-Temp_ice)*(MetData.Rain)/noSecs;
@@ -630,7 +630,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
             Q_snowice = (Q_whiteice*SurfData.delzSnow)/(2.0*K_snow);
             SurfData.delzSnow = BuoyantPotential;
 
-            recalc_surface_salt();
+            recalc_surface_salt_wq();
 
         } else {
             dHt_WhiteIce = 0.0;
@@ -913,7 +913,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                 if ((SurfData.delzSnow-SurfData.dHt) < 0.0)SurfData.dHt = SurfData.delzSnow;
                 SurfData.delzSnow = SurfData.delzSnow-SurfData.dHt;
                 Lake[surfLayer].Height += SurfData.dHt*(rho_snow/Lake[surfLayer].Density);
-                recalc_surface_salt();
+                recalc_surface_salt_wq();
 
             } else if (SurfData.delzWhiteIce > 0.){
                 // Otherwise melt the white ice
@@ -925,7 +925,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                 SurfData.delzWhiteIce -= SurfData.dHt;
 
                 Lake[surfLayer].Height += SurfData.dHt*(rho_ice_white/Lake[surfLayer].Density);
-                recalc_surface_salt();
+                recalc_surface_salt_wq();
 
             } else {
                 // Lastly, melt the blue ice
@@ -936,7 +936,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                 SurfData.delzBlueIce = SurfData.delzBlueIce-SurfData.dHt;
 
                 Lake[surfLayer].Height += SurfData.dHt*(rho_ice_blue/Lake[surfLayer].Density);
-                recalc_surface_salt();
+                recalc_surface_salt_wq();
             }   // end melting snow/white/blue ice
 
         } // end melting if
@@ -948,7 +948,6 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
        SurfData.Qe = Q_latentheat;
        SurfData.Qh = Q_sensibleheat;
        SurfData.Qlw = Q_longwave;
-       SurfData.Q_net = Q_latentheat + Q_sensibleheat + Q_longwave;
     }
 
     /***************************************************************************
@@ -1014,7 +1013,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
       + SurfData.delzWhiteIce * (rho_ice_white/Lake[surfLayer].Density)
       + SurfData.delzSnow     * (rho_snow/Lake[surfLayer].Density);
 
-      recalc_surface_salt();
+      recalc_surface_salt_wq();
 
       ice = FALSE;
       SurfData.delzBlueIce  = 0.0;
@@ -1101,7 +1100,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
         Lake[surfLayer].Height = Lake[surfLayer].Height
                                -SurfData.dHt*(rho_ice_blue/Lake[surfLayer].Density);
-        recalc_surface_salt();
+        recalc_surface_salt_wq();
     }
 
     /**************************************************************************
@@ -1139,28 +1138,11 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
             }
             //# Now compute layer-specifc sed heating and increment temperature
             if ( sed_heat_model == 2 ){
-              soil_dt = noSecs;   /* per-step timestep for the dynamic soil solver (s) */
 //            memset(sed_depths, 0, sizeof(AED_REAL)*sed_layers);
 //            memset(sed_vwc, 0, sizeof(AED_REAL)*sed_layers);
 //            memset(sed_temps, 0, sizeof(AED_REAL)*sed_layers);
 
-              //# Volume-weighted zone-average water temperature: the soil model's
-              //# surface boundary condition.  Computed here rather than in the WQ
-              //# coupler because only the legacy 'aed' coupler's copy_to_zone fills
-              //# ztemp; the 'api' coupler and wq_calc=.false. runs would leave it 0.
-              //# Zones with no wet layers keep their previous ztemp.
-              for (z = 0; z < n_zones; z++) {
-                  AED_REAL tsum = 0., tvol = 0.;
-                  for (i = botmLayer; i <= surfLayer; i++) {
-                      if (layer_zone[i] == z) {
-                          tsum += Lake[i].Temp * Lake[i].LayerVol;
-                          tvol += Lake[i].LayerVol;
-                      }
-                  }
-                  if (tvol > 0.) theZones[z].ztemp = tsum / tvol;
-              }
-
-              for (z = 0; z < n_zones; z++) {
+              for (z = 1; z < n_zones; z++) {
                   // call the dynamic soil/sediment temperature model
                   /*
                   SoilTemp( &theZones[z].n_sed_layers,
@@ -1174,7 +1156,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                   // ZSoilTemp advances this zone's sediment temperature profile
                   // and stores the sediment-water interface heat flux (W/m2) in
                   // theZones[z].heatflux.
-                  if ( p_wq_ZSoilTemp != NULL ) ZSoilTemp(&theZones[z]);
+                  ZSoilTemp(&theZones[z]);
 #endif
                   // flux heat from the soil into the water, if the layer is over z
                   for (i = botmLayer+1; i <= surfLayer; i++) {
@@ -1182,70 +1164,29 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                       Lake[i].Temp += theZones[z].heatflux
                               * ((Lake[i].LayerArea - Lake[i-1].LayerArea) * noSecs)
                               / (SPHEAT * Lake[i].Density * Lake[i].LayerVol);
-                      //# accumulate the exact Joules delivered to the water from
-                      //# this zone's bed (= flux * bed-contact area * dt), summed
-                      //# over layers and sub-steps -> written to restart.nc.
-                      if ( sed_zone_energy != NULL )
-                        sed_zone_energy[z] += theZones[z].heatflux
-                              * (Lake[i].LayerArea - Lake[i-1].LayerArea) * noSecs;
                     }
                   }
                }
-            } else if ( sed_heat_model == 1 ) {
-                for (i = botmLayer+1; i <= surfLayer; i++) {
-                    TYEAR = sed_temp_mean[layer_zone[i]]
-                          + sed_temp_amplitude[layer_zone[i]]
-                          * cos(((kDays-sed_temp_peak_doy[layer_zone[i]])*2.*Pi)/365.);
-                    soil_heat_flux = KSED * (TYEAR - Lake[i].Temp) / ZSED;
-                    Lake[i].Temp += soil_heat_flux
+            } else if ( sed_heat_model == 1 ){
+              for (i = botmLayer+1; i <= surfLayer; i++) {
+
+
+                                if(i == 5){
+                    //fprintf(stdout, "Lake[i].Temp %f soil_heat_flux, %f Lake[i].LayerArea, %f Lake[i-1].LayerArea, %f Lake[i].Density, %f Lake[i].LayerVol %f\n",  Lake[i].Temp, soil_heat_flux, Lake[i].LayerArea,Lake[i-1].LayerArea, Lake[i].Density, Lake[i].LayerVol);
+                  }
+                TYEAR = sed_temp_mean[layer_zone[i]]
+                        + sed_temp_amplitude[layer_zone[i]]
+                        * cos(((kDays-sed_temp_peak_doy[layer_zone[i]])*2.*Pi)/365.);
+                soil_heat_flux = KSED * (TYEAR - Lake[i].Temp) / ZSED;
+                Lake[i].Temp += soil_heat_flux
                               * ((Lake[i].LayerArea - Lake[i-1].LayerArea) * noSecs)
                               / (SPHEAT * Lake[i].Density * Lake[i].LayerVol);
-                    //# accumulate the exact Joules delivered to this layer's water
-                    //# from its zone's bed (= flux * flank area * dt) -> restart.nc.
-                    if ( sed_zone_energy != NULL )
-                        sed_zone_energy[layer_zone[i]] += soil_heat_flux
-                                * (Lake[i].LayerArea - Lake[i-1].LayerArea) * noSecs;
-                }
+              }
 
-                TYEAR = sed_temp_mean[0] + sed_temp_amplitude[0] * cos(((kDays-sed_temp_peak_doy[0])*2.*Pi)/365.);
-                //# bottom layer sits on the flat lake bed: bed-contact area is its
-                //# full LayerArea. Compute the flux into the local so we can both
-                //# apply it and accumulate the identical Joules (uses pre-update Temp).
-                soil_heat_flux = KSED * (TYEAR - Lake[botmLayer].Temp) / ZSED;
-                Lake[botmLayer].Temp += (soil_heat_flux *
+              TYEAR = sed_temp_mean[0] + sed_temp_amplitude[0] * cos(((kDays-sed_temp_peak_doy[0])*2.*Pi)/365.);
+              Lake[botmLayer].Temp += ((KSED * (TYEAR - Lake[botmLayer].Temp) / ZSED) *
                                       Lake[botmLayer].LayerArea * noSecs) /
                                       (SPHEAT * Lake[botmLayer].Density*Lake[botmLayer].LayerVol);
-                if ( sed_zone_energy != NULL )
-                    sed_zone_energy[layer_zone[botmLayer]] += soil_heat_flux
-                                  * Lake[botmLayer].LayerArea * noSecs;
-            } else if ( sed_heat_model == 3 && sed_zone_heat != NULL ) {
-                //# Prescribed per-zone heat. Deposit each zone's total power
-                //# sed_zone_heat[z] [W] across its water layers, weighted by
-                //# bed-contact area (flank area for interior layers, full LayerArea
-                //# for the bottom). The weights sum to 1 within a zone, so the
-                //# Joules delivered == sed_zone_heat[z]*noSecs exactly ->
-                //# energy-conserving, and with no dependence on Lake[].Temp there
-                //# is NO relaxation gap.
-                for (z = 0; z < n_zones; z++) {
-                    //# pass 1: this zone's total bed-contact area
-                    AED_REAL za = 0.0;
-                    for (i = botmLayer; i <= surfLayer; i++) {
-                        if (layer_zone[i] != z) continue;
-                        za += (i == botmLayer) ? Lake[i].LayerArea
-                                  : (Lake[i].LayerArea - Lake[i-1].LayerArea);
-                    }
-                    if (za <= 0.0) continue;   //# dry/absent zone -> nothing to heat
-                    //# pass 2: deposit power * area-fraction into each layer
-                    for (i = botmLayer; i <= surfLayer; i++) {
-                        if (layer_zone[i] != z) continue;
-                        AED_REAL a_i = (i == botmLayer) ? Lake[i].LayerArea
-                                    : (Lake[i].LayerArea - Lake[i-1].LayerArea);
-                        AED_REAL dE = sed_zone_heat[z] * (a_i/za) * noSecs;
-                        Lake[i].Temp += dE /
-                            (SPHEAT * Lake[i].Density * Lake[i].LayerVol);
-                        if ( sed_zone_energy != NULL ) sed_zone_energy[z] += dE;
-                    }
-                }
             }
         }
 //        if (littoral_sw) {
@@ -1311,8 +1252,9 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         //---------------------------------------------------------------------+
         Lake[surfLayer].Height += evapvol / Lake[surfLayer].LayerArea;
 
-        recalc_surface_salt();
-        //recalc_surface_wq();
+        //# recalc_surface_salt_wq() rescales the AED variables too, by the same
+        //# volume ratio - see the note in that function.
+        recalc_surface_salt_wq();
         resize_internals(1, surfLayer);  // recompute surflayer volume
     }
 
@@ -1343,7 +1285,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         SurfData.delzSnow       = 0.0;
         Lake[surfLayer].Height -= min_ice_thickness * (rho_ice_blue/Lake[surfLayer].Density);
 
-        recalc_surface_salt();
+        recalc_surface_salt_wq();
     }
     if ((SurfData.delzBlueIce+SurfData.delzWhiteIce) < min_ice_thickness && ice) {
         Lake[surfLayer].Height = Lake[surfLayer].Height
@@ -1351,7 +1293,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                 + SurfData.delzWhiteIce * (rho_ice_white/Lake[surfLayer].Density)
                 + SurfData.delzSnow     * (rho_snow/Lake[surfLayer].Density);
 
-        recalc_surface_salt();
+        recalc_surface_salt_wq();
 
         ice = FALSE;
         SurfData.delzBlueIce  = 0.0;
@@ -1545,9 +1487,10 @@ AED_REAL calculate_qsw(int kDays,          // Days since start of year for yeste
 /******************************************************************************
  * MELTWATER DILUTION
  ******************************************************************************/
-void recalc_surface_salt()
+void recalc_surface_salt_wq()
 {
     AED_REAL OldVol, AddDensity, WaterMass;
+    int wqidx;
 
     OldVol = Lake[surfLayer].LayerVol;
 
@@ -1560,8 +1503,25 @@ void recalc_surface_salt()
 
     Lake[surfLayer].Salinity = Lake[surfLayer].Salinity *
                               (Lake[surfLayer].Density / WaterMass) * OldVol;
+
+    /*------------------------------------------------------------------------*
+     * The AED water quality variables need the same treatment as salinity: a  *
+     * surface-layer volume change with no solute crossing the boundary must   *
+     * re-concentrate (or dilute) whatever is dissolved in it. Handled here    *
+     * rather than by each caller so the two cannot diverge - every path that  *
+     * changes the surface volume calls this one function, and the ratio uses  *
+     * the SAME OldVol as the salinity rescale above.                          *
+     *                                                                        *
+     * A plain volume ratio, deliberately NOT salinity's density-weighted form *
+     * - salinity is a mass fraction, the WQ variables are already per volume. *
+     *------------------------------------------------------------------------*/
+    if ( wq_calc && OldVol > zero && Lake[surfLayer].LayerVol > zero )
+        for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
+            _WQ_Vars(wqidx, surfLayer) *= OldVol / Lake[surfLayer].LayerVol;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
 
 
 
@@ -1581,18 +1541,7 @@ void recalc_surface_salt()
 static AED_REAL psi_m(AED_REAL zL);
 static AED_REAL psi_hw(AED_REAL zL);
 
-/******************************************************************************
- * Iterative Monin-Obukhov correction of the bulk transfer coefficients for
- * non-neutral atmospheric stability, per Appendix B of Hipsey et al. (2019,
- * GMD 12, 473) [Eqs B1-B10].  Control flow hardened following the ELCOM
- * implementation (cwr_utils thermodynamics_utilities.f90): z/L is clamped
- * inside the iteration, convergence is tested on L (relative), and every
- * failure path falls back to the neutral-atmosphere values.
- *
- * Fluxes are returned with GLM's sign convention: positive INTO the water.
- * The free-convection ("still air", TVA 1972 s5.31) fluxes act as a magnitude
- * floor carrying the sign of the forced-convection flux.
- ******************************************************************************/
+/******************************************************************************/
 int atmos_stability(      AED_REAL *Q_latentheat,
                           AED_REAL *Q_sensible,
                           AED_REAL  wind_speed,
@@ -1608,34 +1557,33 @@ int atmos_stability(      AED_REAL *Q_latentheat,
                           AED_REAL *coef_wind_chwn,
                           AED_REAL *zonL                )
 {
-    const int      ITER_MAX = 100;     // iteration cap (typically converges in < 20)
-    const AED_REAL CONV_TOL = 1.0e-3;  // relative convergence tolerance on L
-    const AED_REAL RELAX    = 0.5;     // under-relaxation of L updates (damps the
-                                       // 2-cycling of the plain fixed-point map)
-    const AED_REAL ZL_MAX   = 15.0;    // validity bound on |z/L| (I&P 1990, p329)
-    const AED_REAL vonK     = 0.4100;  // von Karman's constant
-    const AED_REAL charnock = 0.012;   // Charnock constant [Eq B2]
-    const AED_REAL c_z0     = 0.0001;  // roughness guess for wind height scaling
 
     AED_REAL U10, U_sensM, U_sensH, Ux;
-    AED_REAL zL, zL_h, zL_prev, L, L_prev, z0, zS, G1, G2, G3, G5, G6, Ldenom;
+    AED_REAL zL, L, zL0, z0, zS, G1, G2, G3, G5, G6, Ldenom;
     AED_REAL CDN10, CHWN10, CDN4, CDN3, CHWN, rCDN, CD4, CHW;
     AED_REAL P1, P2, P4;
-    AED_REAL T_virt, dT, dq, dTv;
-    AED_REAL SH, LH;
+    AED_REAL T_virt, dT, dq;
+    AED_REAL SH, LH, momn_flux;
     AED_REAL alpha_e, alpha_h, visc_k_air;
     AED_REAL Q_latentheat_still, Q_sensible_still;
 
-    int iter, atmos_status;
+    int atmos_count, atmos_status;
+
+    AED_REAL vonK = 0.4100;    // von Karman's constant
+    AED_REAL c_z0 = 0.0001;    // Default surafce roughness
+    AED_REAL zL_MAX = -15.0;   // Bound the iteration (eg. 15 for 10m, 3 for 2m)
 
 /*----------------------------------------------------------------------------*/
-    atmos_status = 1;
+    atmos_status = 0;
 
+    //# Some initial windspeed checks
     U_sensM = wind_speed;
     if (fabs(WIND_HEIGHT-10.0) > 0.5)
         U10 = wind_speed * (log(10.0/c_z0)/log(WIND_HEIGHT/c_z0));
     else
         U10 = wind_speed;
+
+    CHWN10 = CH;
 
     //# Surface temperature and humidity gradients
     dT = temp_water - temp_air;
@@ -1643,71 +1591,89 @@ int atmos_stability(      AED_REAL *Q_latentheat,
 
     visc_k_air = (1./rho_air)*(4.94e-8*temp_air + 1.7184e-5); //>m2/s
 
-    //# Still air (free convection) fluxes; TVA Sections 5.311 and 5.314.
-    //  Active only when the near-surface air column is unstable (surface air
-    //  lighter than ambient).  These provide a magnitude floor for light winds.
+    //# First calculate still air approximations (free convenction) and use
+    //  this as a minimum limit to compare with forced convection value
+    //  For the fluxes to still air, see TVA Section 5.311 and 5.314
+
+    //# Still air flux computation
     if (rho_air - rho_o > zero) {
         alpha_h = 0.137*0.5*K_air * pow( (g* fabs(rho_air-rho_o)/(rho_air*visc_k_air*D_air)), (1/3.0));
         alpha_e = alpha_h/cp_air;
         Q_sensible_still = -alpha_h * dT;
-        Q_latentheat_still = -alpha_e * latent_heat_vap * dq;
+        Q_latentheat_still = -alpha_e * latent_heat_vap * dq ;
+        // printf(">alpha_e = %10.5f\n",alpha_e);
     } else {
         Q_sensible_still = zero;
         Q_latentheat_still = zero;
     }
 
     if ( atm_stab == 2 ) {
-        //# Free vs forced convection only (no stability iteration): keep the
-        //  caller's bulk fluxes, floored by the free-convection magnitude
-        //  (the floor carries the sign of the forced flux)
-        if (fabs(Q_sensible_still) > fabs(*Q_sensible))
-            *Q_sensible = SIGN(Q_sensible_still, *Q_sensible);
-        if (fabs(Q_latentheat_still) > fabs(*Q_latentheat))
-            *Q_latentheat = SIGN(Q_latentheat_still, *Q_latentheat);
-        if (*Q_latentheat > zero) *Q_latentheat = zero;   // no condensation
-        *zonL = zero;
-        return -2;
+      // Assign free vs forced
+      if (Q_sensible_still < *Q_sensible)
+         *Q_sensible = Q_sensible_still;
+      if (Q_latentheat_still < *Q_latentheat)
+         *Q_latentheat = Q_latentheat_still;
+      *zonL = zero;
+      atmos_status = -2;
+
+      return atmos_status;
     }
 
-    //# Calm conditions: u* -> 0 so L is undefined; no iteration possible
-    if (U_sensM < 0.01) {
+    /////////////
+
+    printf("top = %10.5f\n",0.137*0.5*K_air);
+    printf("bit = %10.5f\n",pow( (g* fabs(rho_air-rho_o)/(rho_air*visc_k_air*D_air)), (1/3.0)));
+    printf("visc_k_air = %10.5f\n",visc_k_air);
+    printf("D_air = %10.5f\n",D_air);
+    printf("K_air = %10.5f\n",K_air);
+    printf("dq = %10.5f\n",dq);
+    printf("*Q_sensible_still = %10.5f\n",Q_sensible_still);
+    printf("*Q_latentheat_still = %10.5f\n",Q_latentheat_still);
+
+    /////////////
+
+
+
+    //# Now check windspeed
+    CDN10 = 0.001;
+    if (U_sensM<0.01) {
         *Q_sensible = Q_sensible_still;
         *Q_latentheat = Q_latentheat_still;
-        if (*Q_latentheat > zero) *Q_latentheat = zero;   // no condensation
-        *zonL = zero;
-        return 0;
+    } else {
+        // Neutral Drag Coefficient is a function of windspeed @ 10m
+        //Option1
+          //  if (U10 > 5.0)
+          //      CDN10 = (1.0 + 0.07*(U10-5.0))/1000.0;
+        //Option2
+        CDN10 = 1.92E-7 * U10*U10*U10 + 0.00096;
+
+        //Check
+        if (CDN10>0.0025) CDN10 = 0.0025;
     }
 
-    /**************************************************************************
-     * Neutral transfer coefficients [Eqs B1-B3]                              *
-     **************************************************************************/
-    //# Neutral drag as a function of 10 m windspeed; Babanin & Makin (2008)
-    CDN10 = 1.92E-7 * U10*U10*U10 + 0.00096;
-    if (CDN10 > 0.0025) CDN10 = 0.0025;
 
-    //# Charnock roughness with smooth-flow transition [Eq B2], seeded with the
-    //  first-guess friction velocity, then recompute the neutral drag [Eq B3]
-    Ux = sqrt(CDN10) * U10;
-    z0 = (charnock*Ux*Ux/g) + 0.11*visc_k_air/Ux;
-    CDN10 = pow(vonK/log(10./z0), 2.0);
+    //# Charnock computation of roughness, from Ux estimate.
+    //  0.00001568 is kinematic viscosity ?
+    //  0.012 is Charnock constant (alpha)
+    Ux = sqrt(CDN10  * U_sensM * U_sensM);
+    z0 = (0.012*Ux*Ux/g) + 0.11*visc_k_air/Ux;
+    CDN10 = pow(vonK/log(10./z0),2.0);
 
-    //# Neutral heat/moisture coefficient is the user value, wind-independent
-    CHWN10 = CH;
-
-    //# Roughness length scales and height correction factors (Rayner 1980)
+    //# Estimate surface roughness lengths
     z0 = 10.0/(exp(vonK/sqrt(CDN10)));
     zS = 10.0/(exp(vonK*vonK/(CHWN10*log(10.0/z0))));
 
+    //# Height correction factors
     G1 = log(10.0/z0);
     G2 = log(10.0/zS);
     G3 = log(HUMIDITY_HEIGHT/zS);
     G5 = log(HUMIDITY_HEIGHT/z0);
     G6 = log(WIND_HEIGHT/z0);
 
-    CDN4 = CDN10*(G1*G1)/(G6*G6);    // scale down to sensor heights
+    CDN4 = CDN10*(G1*G1)/(G6*G6);    // Scale down to sensor heights
     CDN3 = CDN10*(G1*G1)/(G5*G5);
     CHWN = CHWN10*(G1*G2)/(G5*G3);
-    CD4  = CDN4;
+    CD4  = CDN4;                     // Initialize
     CHW  = CHWN;
 
     //# Windspeed at the humidity sensor height
@@ -1716,130 +1682,120 @@ int atmos_stability(      AED_REAL *Q_latentheat,
     //# Virtual air temperature
     T_virt = (temp_air+Kelvin) * (1.0 + 0.61*humidity_altitude);
 
-    //# Neutral flux first estimates.  SH is the sensible heat flux [W/m2] and
-    //  LH the evaporative MASS flux [kg/m2/s], both positive upward, so the
-    //  0.61*T*LH buoyancy term in L needs no division by latent heat [Eq B4]
-    SH = CHW * rho_air * cp_air * U_sensH * dT;
-    LH = CHW * rho_air * U_sensH * dq;
+    //# Heat fluxes based on bulk transfer (forced convection)
+    SH = CHW * rho_air * cp_air * U_sensH  * dT;  //> W/m2
+    LH = CHW * rho_air * U_sensH * dq;            //>
 
-    Ux = sqrt(CD4) * U_sensM;
+    //# Friction velocity
+    momn_flux = CD4 * rho_air * U_sensM*U_sensM;
+    Ux = sqrt(momn_flux/rho_air);
 
-    //# Initial Monin-Obukhov length [Eq B4]
-    Ldenom = vonK * g * ((SH/cp_air) + 0.61*(temp_air+Kelvin)*LH);
-    if (fabs(Ldenom) < 1.0e-7) {
-        //# Vanishing buoyancy flux = near-neutral (|L| large); the sign of the
-        //  virtual temperature difference selects the branch (water buoyant
-        //  relative to air => unstable => L < 0)
-        dTv = dT + 0.61*(temp_air+Kelvin)*dq;
-        L = SIGN(1.0e6, -dTv);
-    } else
+    //# Monin-Obukhov Length
+    Ldenom = (vonK * g * ((SH/cp_air) + 0.61*(temp_air+Kelvin)*LH));
+    if (fabs(Ldenom) < 1e-5) {
+        zL = SIGN(zL_MAX,dT);
+        L = HUMIDITY_HEIGHT/zL;
+    } else {
         L = -(rho_air*Ux*Ux*Ux*T_virt) / Ldenom;
+        zL = HUMIDITY_HEIGHT/L;
+    }
 
-    /**************************************************************************
-     * Iterate coefficients <-> fluxes <-> L to convergence [Eq B10].         *
-     * Convergence is tested on the CLAMPED z/L - the quantity that actually  *
-     * sets the coefficients - so states pegged at the +/-15 validity bound   *
-     * (light wind and/or strong stratification) converge to the clamped      *
-     * coefficients instead of spuriously falling back to neutral.            *
-     **************************************************************************/
-    zL = WIND_HEIGHT/L;
-    if (fabs(zL) > ZL_MAX) zL = SIGN(ZL_MAX, zL);
+    printf("U_sensM = %10.5f\n",U_sensM);
+    printf("L = %10.5f\n",L);
+    printf("zL = %10.5f\n",zL);
 
-    for (iter = 0; iter < ITER_MAX; iter++) {
-        //# Evaluate psi at both sensor heights from the same (clamped) L
-        L = WIND_HEIGHT/zL;
-        zL_h = HUMIDITY_HEIGHT/L;
+    //# Start iterative sequence for heat flux calculations
+    atmos_count = 1;
+    atmos_status = 1;
+    zL0 = zero;
+    while ((fabs(zL - zL0) >= 0.0001) ){ // && (fabs(zL) <= fabs(zL_MAX)+1)) {
+        zL0 = zL;
+        zL = WIND_HEIGHT/L;
 
-        //# Drag coefficient [Eq B10, X = D]
-        P4 = psi_m(zL);
-        rCDN = sqrt(CDN4);
-        CD4 = CDN4/(1.0+CDN4*(P4*P4 - 2.0*vonK*P4/rCDN)/(vonK*vonK));
-
-        //# Humidity/temperature coefficient [Eq B10, X = H,E]
-        P1 = psi_m(zL_h);
-        P2 = psi_hw(zL_h);
-        rCDN = sqrt(CDN3);
-        CHW = CHWN/(1.0 + CHWN*(P1*P2 - (vonK*P2/rCDN)
-                            - vonK*P1*rCDN/CHWN)/(vonK*vonK));
-
-        //# Within |z/L| <= 15 these denominators cannot cross zero, but guard
-        //  against any numerical surprise with the neutral fallback
-        if (CD4 <= zero || CHW <= zero) { atmos_status = -1; break; }
-
-        //# Recalculate fluxes and friction velocity
-        SH = CHW * rho_air * cp_air * U_sensH * dT;
-        LH = CHW * rho_air * U_sensH * dq;
-        Ux = sqrt(CD4) * U_sensM;
-
-        //# Recalculate Monin-Obukhov length [Eq B4]
-        Ldenom = vonK * g * ((SH/cp_air) + 0.61*(temp_air+Kelvin)*LH);
-        if (fabs(Ldenom) < 1.0e-7) {
-            zL = zero;                      // converged to neutral
+        if (++atmos_count>=100){
+            atmos_status = -1;
             break;
         }
 
-        L_prev = L;
-        L = -(rho_air*Ux*Ux*Ux*T_virt) / Ldenom;
-        //# damp the update to suppress 2-cycling of the plain fixed-point map
-        L = L_prev + RELAX*(L - L_prev);
-
-        zL_prev = zL;
-        zL = WIND_HEIGHT/L;
-        if (fabs(zL) > ZL_MAX) zL = SIGN(ZL_MAX, zL);
-
-        if (fabs(zL - zL_prev) <= CONV_TOL * fabs(zL) + 1.0e-4)
-            break;                          // converged (incl. pegged at the bound)
-    }
-    if (iter >= ITER_MAX) atmos_status = -1;
-
-    if (atmos_status == -1) {
-        //# Not converged: fall back to the neutral-atmosphere values
-        CD4 = CDN4;
-        CHW = CHWN;
-        SH  = CHWN * rho_air * cp_air * U_sensH * dT;
-        LH  = CHWN * rho_air * U_sensH * dq;
-        zL_h = zero;
-    } else {
-        //# Final coefficients and fluxes at the converged (clamped) z/L.
-        //  psi only needs z/L, so the neutral case (zL = 0) needs no special
-        //  handling (psi(0) = 0 recovers the neutral coefficients).
-        zL_h = zL * HUMIDITY_HEIGHT/WIND_HEIGHT;
-
+        // Calculate drag coefficient, CD
         P4 = psi_m(zL);
         rCDN = sqrt(CDN4);
         CD4 = CDN4/(1.0+CDN4*(P4*P4 - 2.0*vonK*P4/rCDN)/(vonK*vonK));
 
-        P1 = psi_m(zL_h);
-        P2 = psi_hw(zL_h);
+        // Calculate Humdity/Temp coefficient, CHW
+        zL = HUMIDITY_HEIGHT/L;
+
+        P1 = psi_m(zL);
+        P2 = psi_hw(zL);
         rCDN = sqrt(CDN3);
         CHW = CHWN/(1.0 + CHWN*(P1*P2 - (vonK*P2/rCDN)
                             - vonK*P1*rCDN/CHWN)/(vonK*vonK));
 
+        // Recalculate heat and momn fluxes
         SH = CHW * rho_air * cp_air * U_sensH * dT;
-        LH = CHW * rho_air * U_sensH * dq;
-    }
+        LH = CHW * rho_air * U_sensH  * dq;
+        momn_flux = CD4 * rho_air * U_sensM*U_sensM;
+
+        // Recalculate friction velocity
+        Ux = sqrt(momn_flux/rho_air);
+
+        // Recalculate Monin - Obukhov length
+        L = -rho_air *Ux*Ux*Ux * T_virt / (vonK * g
+                                * ((SH/cp_air) + 0.61*(temp_air+Kelvin)*LH));
+
+        //printf("L = %10.5f\n",L);
+        //printf("CHW = %10.5f\n",CHW);
+        //printf("CD4 = %10.5f\n",CD4);
+
+      //  if (fabs(L) < 0.5)
+      //      L = SIGN(1.0e-20,dT);
+        zL = HUMIDITY_HEIGHT/L;
+    } // enddo
+
+    if (atmos_status==-1)
+       return atmos_status;
+
+
+    //# Last calculation ... but 1st, check for high values
+    if (fabs(zL)>fabs(zL_MAX))
+        zL = SIGN(fabs(zL_MAX),zL);
+    else
+        zL = WIND_HEIGHT/L;
+
+    P4 = psi_m(zL);
+    rCDN = sqrt(CDN4);
+    CD4 = CDN4/(1.0+CDN4*(P4*P4 - 2.0*vonK*P4/rCDN)/(vonK*vonK));
+    zL = zL*HUMIDITY_HEIGHT/WIND_HEIGHT;
+    P1 = psi_m(zL);
+    P2 = psi_hw(zL);
+    rCDN = sqrt(CDN3);
+    CHW = CHWN/(1.0 + CHWN*(P1*P2 - (vonK*P2/rCDN)
+            - vonK*P1*rCDN/CHWN)/(vonK*vonK));
 
     *coef_wind_drag = CD4;
     *coef_wind_chwn = CHW;
-    *zonL = zL_h;
 
-    //# Return fluxes as positive INTO the water
-    *Q_sensible   = -SH;
-    *Q_latentheat = -LH * latent_heat_vap;
+    *Q_sensible = -CHW * rho_air * cp_air * U_sensH * dT;
+    *Q_latentheat = -CHW * rho_air * U_sensH * dq * latent_heat_vap;
 
-    //# No condensation: evaporative flux may not heat the lake (consistent
-    //  with the neutral bulk flux policy at the call site)
-    if (*Q_latentheat > zero) *Q_latentheat = zero;
+    printf("*atmos_count = %10d\n",atmos_count);
+    printf("*CHW = %10.6f\n",CHW);
+    printf("*CD4 = %10.6f\n",CD4);
+    printf("zL = %10.5f\n",zL);
+    printf("dT = %10.5f\n",dT);
+    printf("dq = %10.5f\n",dq);
+    printf("*Q_sensible = %10.5f\n",*Q_sensible);
+    printf("*Q_latentheat = %10.5f\n",*Q_latentheat);
 
+    *zonL = zL;
     if ( atm_stab == 3 )
-        return atmos_status;
+       return atmos_status;
 
-    //# Free-convection magnitude floor (sign follows the forced flux)
-    if (fabs(Q_sensible_still) > fabs(*Q_sensible))
-        *Q_sensible = SIGN(Q_sensible_still, *Q_sensible);
-    if (fabs(Q_latentheat_still) > fabs(*Q_latentheat))
-        *Q_latentheat = SIGN(Q_latentheat_still, *Q_latentheat);
-    if (*Q_latentheat > zero) *Q_latentheat = zero;
+    //# Limit minimum to still air value
+    if (Q_sensible_still < *Q_sensible)
+        *Q_sensible = Q_sensible_still;
+    if (Q_latentheat_still < *Q_latentheat)
+        *Q_latentheat = Q_latentheat_still;
 
     return atmos_status;
 }
