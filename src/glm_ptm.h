@@ -54,6 +54,8 @@ extern int init_particle_num;
 extern LOGICAL sed_deactivation;
 extern AED_REAL settling_efficiency;
 extern FLOGICAL do_particle_bgc;
+extern int upper_boundary_cond;
+extern int lower_boundary_cond;
 
 
 #endif

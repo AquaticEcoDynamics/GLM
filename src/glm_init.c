@@ -32,6 +32,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>       /* time() - only for the optional ensemble seeding path below */
+
+/* init_glm() declares a NAMELIST array called 'time', which shadows the time() function
+ * inside that scope, so the wall-clock read has to happen out here at file scope. */
+static unsigned int wallclock_seed(void) { return (unsigned int)time(NULL); }
 
 #include "glm.h"
 
@@ -71,6 +76,14 @@ static AED_REAL   crest_elev;
 static AED_REAL   max_elev;
 extern CLOGICAL   seepage;
 extern AED_REAL   seepage_rate;
+
+/* Set by initialise_lake()'s &init_profiles parsing (still file-scope, not a
+ * local there) so init_glm() can see them afterwards, once ptm_init_glm() has
+ * allocated PTM_Stat/PTM_Vars - see read_glm_restart_ptm() in glm_restart.c
+ * for why PTM restart state cannot be loaded from inside initialise_lake()
+ * itself, alongside everything else read_glm_restart() restores. */
+static char      *init_restart_fname     = NULL;
+static int        init_restart_from_file = 0;
 
 char glm_nml_file[256] = DEFAULT_GLM_NML;
 char wq_lib[256] = DEFAULT_WQ_LIB;
@@ -647,6 +660,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     extern AED_REAL  settling_velocity;
     extern AED_REAL  settling_efficiency;
 //  extern CLOGICAL  do_particle_bgc;
+    extern int       upper_boundary_cond;
+    extern int       lower_boundary_cond;
+    extern CINTEGER  particle_random_seed;
     //==========================================================================
     NAMELIST particles[] = {
           { "particles",         TYPE_START,            NULL                  },
@@ -665,6 +681,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "settling_velocity", TYPE_DOUBLE,           &settling_velocity    },
           { "settling_efficiency", TYPE_DOUBLE,         &settling_efficiency  },
           { "do_particle_bgc",   TYPE_BOOL,             &do_particle_bgc      },
+          { "upper_boundary_cond", TYPE_INT,             &upper_boundary_cond  },
+          { "lower_boundary_cond", TYPE_INT,             &lower_boundary_cond  },
+          { "particle_random_seed", TYPE_INT,            &particle_random_seed },
           { NULL,                TYPE_END,              NULL                  }
     };
     /*-- %%END NAMELIST ------------------------------------------------------*/
@@ -845,6 +864,22 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( get_namelist(namlst, particles) ) {
         fprintf(stderr, "No 'particles' config, assuming no particles\n");
     }
+
+    /* Re-seed the C RNG now that the namelist has been read. glm_main.c seeds from
+     * time(NULL) before any config is parsed, which made every run irreproducible; that
+     * call is left in place and simply superseded here. A fixed seed is the default;
+     * particle_random_seed = 0 means "vary per run", for deliberate ensemble members.
+     * The Fortran intrinsic RNG is seeded from this same value in glm_api_aed.F90
+     * (seed_fortran_rng), which runs later via wq_init_glm - see the ordering note there. */
+    if ( particle_random_seed == 0 ) {
+        particle_random_seed = (CINTEGER)wallclock_seed();
+        fprintf(stderr, "     PTM RNG: time-seeded (ensemble mode), seed = %d\n",
+                        particle_random_seed);
+    } else if (quiet < 2) {
+        fprintf(stderr, "     PTM RNG: fixed seed = %d (reproducible)\n",
+                        particle_random_seed);
+    }
+    srand((unsigned int)particle_random_seed);
 
     //-------------------------------------------------
     if ( get_namelist(namlst, time) ) {
@@ -1576,9 +1611,18 @@ for (i = 0; i < n_zones; i++) {
         fprintf(stderr, "     PTM module active: initial particles = %d\n", init_particle_num);
         ptm_init_glm();  // num_particle_grp, max_particle_num, init_particle_num,
                          // init_depth_min, init_depth_max, ptm_time_step, ptm_diffusivity
-        if ( max_particle_num > 10000 ) {
+/*         if ( max_particle_num > 10000 ) {
             fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", 1000000);
             exit(1);
+        } */
+
+        /* PTM particle state (species included) can only be loaded here, after
+         * PTM_Stat/PTM_Vars exist - see read_glm_restart_ptm() in glm_restart.c.
+         * initialise_lake() (already run, above) restored everything else this
+         * same restart file has to offer. */
+        if ( init_restart_from_file != 0 && init_restart_fname != NULL ) {
+            if (read_glm_restart_ptm(init_restart_fname))
+                fprintf(stderr, "     PTM restart state loaded from %s\n", init_restart_fname);
         }
     }
 
@@ -1984,8 +2028,8 @@ void initialise_lake(int namlst)
     AED_REAL        snow_thickness = 0.0;
     AED_REAL        white_ice_thickness = 0.0;
     AED_REAL        blue_ice_thickness = 0.0;
-    char           *init_restart_fname     = NULL;
-    int             init_restart_from_file = 0;
+    /* init_restart_fname / init_restart_from_file are file-scope (see top of
+     * file) - init_glm() reads them after this function returns. */
 
     //==========================================================================
     NAMELIST init_profiles[] = {

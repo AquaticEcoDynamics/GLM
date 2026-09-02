@@ -58,12 +58,19 @@
 #define LAYR   3
 #define FLAG   4
 #define PTID   5
+#define GRP    6   // which phyto group/species this particle belongs to (aed_phyto_abm.F90 GRP=7, 1-indexed)
 
 #define MASS   0
 #define DIAM   1
 #define DENS   2
 #define VVEL   3
 #define HGHT   4
+
+// Width of the host-owned "environment" block above (MASS..HGHT), i.e. the offset at which
+// the AED particle state variables begin. Must match n_ptm_env in libaed-api/src/aed_ptm.F90,
+// which allocates ptm_env as (groups, particles, n_ptm_env + n_ptm_vars) - the array this
+// file aliases. Valid third indices are therefore 0 .. PTM_ENV_NVARS+Num_PTM_Vars-1.
+#define PTM_ENV_NVARS 5
 
 
 
@@ -74,6 +81,7 @@ AED_REAL get_particle_density(AED_REAL particle_density);
 AED_REAL get_particle_diameter(AED_REAL particle_diameter);
 AED_REAL get_settling_velocity(AED_REAL settling_velocity);
 AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel);
+static AED_REAL draw_height_in_range(AED_REAL lo, AED_REAL hi);
 
 /*============================================================================*/
 
@@ -84,11 +92,110 @@ AED_REAL init_depth_max=2.0;
 AED_REAL ptm_time_step=1/60;
 AED_REAL ptm_diffusivity=1e-6;
 
+// Boundary condition types
+#define BC_CLAMP      1
+#define BC_REFLECTIVE 2
+
 // VARIABLES
 LOGICAL sed_deactivation = FALSE;
 CINTEGER num_particle_groups = 1;
 
+/* Seed for the RNG used by particle placement and the vertical random walk, and (via the
+ * matching BIND(C) declaration in glm_api_aed.F90) for the Fortran intrinsic RNG used by
+ * the ABM's stochastic mortality and trait mutation - so one namelist knob drives both.
+ *
+ * A fixed non-zero default makes runs REPRODUCIBLE out of the box. Previously glm_main.c
+ * seeded from time(NULL) before the namelist was even read, while the Fortran RNG was
+ * never seeded at all: the model was half wall-clock-random and half frozen, and no two
+ * runs were comparable. Set to 0 in &particles to seed from the wall clock instead, which
+ * is only wanted when deliberately generating ensemble members. */
+CINTEGER particle_random_seed = 20250723;
+// Particle boundary conditions (1 = clamping, 2 = reflective)
+int upper_boundary_cond = BC_CLAMP;   // surface
+// lower_boundary_cond also governs what happens when the area-ratio settling
+// probability triggers (the particle "hits a2" - see the (a1-a2)/a1 check in
+// do_ptm_update()). CLAMP (default): today's behavior - the particle is
+// flagged BED but its height is left where it already is (a2's height).
+// REFLECTIVE: the particle instead bounces back to prev_height, undoing this
+// substep's downward step, same distance it fell.
+int lower_boundary_cond = BC_CLAMP;   // bottom
+
 /*============================================================================*/
+
+/******************************************************************************
+ *                                                                            *
+ *    Draw a height in [lo, hi], weighted by dMphLevelArea WITHIN that        *
+ *    range, for redistributing a particle inside a mixing zone. A physically *
+ *    thick mixed layer can span a real change in lake cross-sectional area   *
+ *    from its top to its bottom (e.g. a layer straddling the thermocline in  *
+ *    a basin that narrows with depth); drawing uniformly in HEIGHT within    *
+ *    the layer implicitly assumes constant particle density per unit height  *
+ *    regardless of that area change, i.e. treats the layer as a box. This    *
+ *    instead biases the draw toward heights with more cross-sectional area,  *
+ *    via the same inverse-CDF technique, restricted to [lo, hi] instead of   *
+ *    the whole water column - and re-weighting the partial 0.1 m bins at     *
+ *    both the lo and hi ends by how much of each is actually inside         *
+ *    [lo, hi], not just a single partial bin at one end.                    *
+ *                                                                            *
+ ******************************************************************************/
+static AED_REAL draw_height_in_range(AED_REAL lo, AED_REAL hi)
+{
+    static AED_REAL *cdf = NULL;
+    static AED_REAL *bnd = NULL;
+    int i_lo, i_hi, n, k;
+    AED_REAL total = 0.0;
+    AED_REAL u, bin_lo_cdf, frac, result;
+
+    if (hi <= lo) return lo;
+
+    if (cdf == NULL) {
+        cdf = malloc(Nmorph * sizeof(AED_REAL));
+        bnd = malloc((Nmorph + 1) * sizeof(AED_REAL));
+    }
+
+    i_lo = (int)(lo * 10.0);
+    i_hi = (int)(hi * 10.0);
+    if (i_lo < 0) i_lo = 0;
+    if (i_hi >= Nmorph) i_hi = Nmorph - 1;
+    if (i_lo > i_hi) i_lo = i_hi;
+    n = i_hi - i_lo + 1;
+
+    // Bin boundaries: bnd[0]=lo, bnd[n]=hi, interior ones on the 0.1 m grid - so
+    // the first and last bins are only as wide as the part of [lo,hi] they cover.
+    bnd[0] = lo;
+    for (k = 1; k < n; k++) bnd[k] = (AED_REAL)(i_lo + k) / 10.0;
+    bnd[n] = hi;
+
+    for (k = 0; k < n; k++) {
+        AED_REAL w = dMphLevelArea[i_lo + k];   // area per FULL 0.1 m band
+        if (w < 0.0) w = 0.0;
+        w *= (bnd[k+1] - bnd[k]) * 10.0;        // scale to this bin's actual (sub-)width
+        if (w < 0.0) w = 0.0;
+        total += w;
+        cdf[k] = total;
+    }
+
+    if (total <= 0.0) {
+        // Degenerate (zero-area range): fall back to uniform, same as the old behavior.
+        u = (AED_REAL)rand() / RAND_MAX;
+        return lo + u * (hi - lo);
+    }
+
+    u = ((AED_REAL)rand() / RAND_MAX) * total;
+    for (k = 0; k < n; k++)
+        if (u <= cdf[k]) break;
+    if (k >= n) k = n - 1;
+
+    bin_lo_cdf = (k == 0) ? 0.0 : cdf[k-1];
+    frac = (cdf[k] > bin_lo_cdf) ? (u - bin_lo_cdf) / (cdf[k] - bin_lo_cdf) : 0.0;
+    result = bnd[k] + frac * (bnd[k+1] - bnd[k]);
+
+    if (result < lo) result = lo;
+    if (result > hi) result = hi;
+    return result;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
 
 /******************************************************************************
  *                                                                            *
@@ -208,15 +315,43 @@ void do_ptm_update()
             if (K_z < ptm_diffusivity) K_z = ptm_diffusivity;
 
             if(_PTM_Stat(pg,p,LAYR) == surfLayer){
+                // No layer above surfLayer to sample (Lake[surfLayer+1] would be out of
+                // bounds), so there is no gradient to compute - zero is the correct
+                // K_prime_z here, not a special case. The `continue` this replaced,
+                // though, skipped past random_walk() below entirely: every surface-layer
+                // particle received NO diffusion, NO settling, and NEVER reached the
+                // BED/SCUM boundary checks further down, for the whole run. That silently
+                // froze the surface population and excluded it from settling regardless
+                // of species, physiology, or vertical velocity.
                 K_prime_z = 0;
-                continue;
             } else {
                 K_above = Lake[_PTM_Stat(pg,p,LAYR)+1].Epsilon;
                 if (K_above < ptm_diffusivity) K_above = ptm_diffusivity;
-                K_prime_z = fabs(K_z - K_above);
+                // K_prime_z approximates dK/dHeight (the Visser 1997 diffusivity-gradient
+                // correction term - see random_walk() below), so it must be a SIGNED
+                // derivative in units of diffusivity/length (m/s), not a bare difference
+                // of two diffusivities (m^2/s). Previously this was fabs(K_z - K_above)
+                // with no division by the vertical separation between the two evaluation
+                // points: unsigned, so it could only ever push particles upward regardless
+                // of which direction diffusivity actually increased, and two orders of
+                // magnitude too large in typical GLM layer thicknesses (~0.1-0.2 m) since
+                // dividing by a sub-1 m distance was simply skipped. Divide by the distance
+                // between the two layers' mean heights (their diffusivity is defined at
+                // Lake[i].MeanHeight, not at the layer top) to get a proper derivative;
+                // guard against a degenerate (near-zero-thickness) layer pair.
+                if (Lake[_PTM_Stat(pg,p,LAYR)+1].MeanHeight - Lake[_PTM_Stat(pg,p,LAYR)].MeanHeight > 1e-6) {
+                    K_prime_z = (K_above - K_z) /
+                        (Lake[_PTM_Stat(pg,p,LAYR)+1].MeanHeight - Lake[_PTM_Stat(pg,p,LAYR)].MeanHeight);
+                } else {
+                    K_prime_z = 0;
+                }
             }
 
             _PTM_Vars(pg,p,HGHT) = random_walk(dt,_PTM_Vars(pg,p,HGHT), K_z, K_prime_z, _PTM_Vars(pg,p,VVEL));
+
+            if(_PTM_Vars(pg,p,HGHT) < 0.0){
+                _PTM_Vars(pg,p,HGHT) = 0.0;
+            }
 
             if (prev_height > _PTM_Vars(pg,p,HGHT)){
 
@@ -230,7 +365,7 @@ void do_ptm_update()
                 } else if (ij1 < 0 ) ij1 = 0;
                 a1 = MphLevelArea[ij1] + y1 * dMphLevelArea[ij1];
 
-                // Get area at depth of current particle height
+                // Get area at depth of current (already boundary-clamped) particle height
                 x2 = _PTM_Vars(pg,p,HGHT) * 10.0;
                 y2 = x2 - (int)(x2 / 1.0) * 1.0;
                 ij2 = (int)(x2 - y2) - 1;
@@ -240,26 +375,51 @@ void do_ptm_update()
                 } else if (ij2 < 0 ) ij2 = 0;
                 a2 = MphLevelArea[ij2] + y2 * dMphLevelArea[ij2];
 
-                // Calculate proportional difference between two areas
-                prob = (a1 - a2) / a1 * settling_efficiency;
+                // Calculate proportional difference between two areas.
+                prob = (a1 - a2) / a1;
 
                 // Bernoulli draw to determine if particle should be assigned as BED
                 rand_float = ((float)rand())/RAND_MAX;
-                if(rand_float < prob || _PTM_Vars(pg,p,HGHT) < 0.02){
-                    _PTM_Stat(pg,p,FLAG)= BED;
-                    if(_PTM_Vars(pg,p,HGHT)<0.0){
-                        _PTM_Vars(pg,p,HGHT)=0.0;
-                    }
-                    if(sed_deactivation){
+                if(rand_float < prob){
+                    rand_float = ((float)rand())/RAND_MAX;
+                    if(rand_float < settling_efficiency){
+                        _PTM_Stat(pg,p,FLAG) = BED;
+                        if(sed_deactivation){
                         _PTM_Stat(pg,p,STAT) = 0;
+                        // Zero the whole ABM state block (age, birth day, cumulative
+                        // C/N/P/Chl, division count, etc.), not just STAT. A deactivated
+                        // slot is exactly what ptm_addparticles()'s "free slot" search
+                        // looks for (STAT==0 && FLAG==... - see the free-slot test
+                        // there), so leaving its old life history behind means whatever
+                        // new particle reuses this slot inherits it, and can also trip
+                        // any "already seeded" guard in the biology that checks for
+                        // pre-existing C/num before initialising a fresh particle.
+                        for (int v = 0; v < Num_PTM_Vars; v++)
+                            _PTM_Vars(pg,p,PTM_ENV_NVARS + v) = 0.0;
+                        }
+                    }else{
+                        if (lower_boundary_cond == BC_REFLECTIVE) {
+                        // Bounce back to prev_height - undo this substep's downward
+                        // step, the same distance the particle fell, instead of
+                        // resting at the height (a2) that triggered settling.
+                        _PTM_Vars(pg,p,HGHT) = prev_height;
+                        }
                     }
                 }
             }
 
-            // Determine if particle should be assigned as SCUM
+            // Apply the upper (lake surface) boundary condition.
+            //   upper_boundary_cond = 1 (clamp):     height set to the surface height (SCUM).
+            //   upper_boundary_cond = 2 (reflect):   height mirrored about the surface height.
             if(_PTM_Vars(pg,p,HGHT)>Lake[surfLayer].Height){
-                _PTM_Stat(pg,p,FLAG)= SCUM;                      // Maybe forming a scum layer
-                _PTM_Vars(pg,p,HGHT)=Lake[surfLayer].Height;
+                if (upper_boundary_cond == BC_REFLECTIVE) {
+                    // Mirror about the surface and remain in the water column.
+                    _PTM_Vars(pg,p,HGHT) = 2.0*Lake[surfLayer].Height - _PTM_Vars(pg,p,HGHT);
+                } else { /* BC_CLAMP (default) */
+                    // Determine if particle should be assigned as SCUM
+                    _PTM_Stat(pg,p,FLAG)= SCUM;                  // Maybe forming a scum layer
+                    _PTM_Vars(pg,p,HGHT)=Lake[surfLayer].Height;
+                }
             }
           }
         }
@@ -281,24 +441,21 @@ void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height)
 //LOCALS
     int p;
 
-    int rand_int, pg;
-    AED_REAL height_range;
+    int pg;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
-    // Get vertical range in the water column that mixed
-    height_range = upper_height - lower_height;
-
     pg = 0;
     // Check for active particles in the height range
     for (p = 0; p < max_particle_num; p++) {
         if (_PTM_Stat(pg,p,STAT)>0) {
             if (_PTM_Vars(pg,p,HGHT)>=lower_height && _PTM_Vars(pg,p,HGHT)<=upper_height ) {
-                // Particle is in the mixing zone, so re-position
-                rand_int = rand() % 100 + 1;                            // random draw from unit distribution
-                double random_double = (double)rand_int / 100;
-                random_double = random_double * height_range;                 // scale unit random to requested range
-                _PTM_Vars(pg,p,HGHT) = lower_height + random_double;
+                // Particle is in the mixing zone, so re-position, weighted by
+                // cross-sectional area within [lower_height, upper_height] rather
+                // than uniform: a thick mixing zone isn't a box, and a height with
+                // more lake area should hold more of the well-mixed particles, not
+                // the same density per unit height as a narrower part of the zone.
+                _PTM_Vars(pg,p,HGHT) = draw_height_in_range(lower_height, upper_height);
             }
         }
     }
@@ -340,7 +497,6 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
             break;
         } else {
             if( _PTM_Stat(pg,p,STAT) == 0 && _PTM_Stat(pg,p,FLAG) == 3){ // find the first inactive particles with EXIT flag
-                printf("ptm_addparticles() %d %d %d \n"  , p,n,new_particles);
                 _PTM_Stat(pg,p,STAT) = 1;
                 _PTM_Stat(pg,p,FLAG) = 0;
                 _PTM_Vars(pg,p,MASS) = 1.0;
@@ -353,7 +509,7 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
                    _PTM_Stat(pg,p,PTID) = p+1;
                 } else {
                    pid = (int) floor(_PTM_Stat(pg,p,PTID) / max_particle_num);
-                   _PTM_Stat(pg,p,PTID) = max_particle_num + pid*max_particle_num + (p+1 - pid*max_particle_num);
+                   _PTM_Stat(pg,p,PTID) = max_particle_num + pid*max_particle_num + (p+1);
                 }
 
                 // Assign particles initial height
@@ -393,13 +549,23 @@ void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, i
         if(_PTM_Stat(pg,p,STAT) == 1 && _PTM_Stat(pg,p,LAYR) == layer_id){
             rand_float = ((float)rand())/RAND_MAX;
             if(rand_float <= layer_prop){
-                // If particle leaves through outflow, reset completely
+                // If particle leaves through outflow, reset completely.
+                //
+                // STAT==0 && FLAG==3 (EXIT) is exactly the free-slot test
+                // ptm_addparticles() looks for when seeding a new particle, so this
+                // slot WILL be reused. The comment here always said "reset completely",
+                // but the resets themselves were commented out below - so the departed
+                // particle's whole ABM life history (age, birth day, cumulative C fixed,
+                // division count, C/N/P/Chl state) survived into whatever new particle
+                // got the slot next, and a leftover C>0 && num>0 could make the biology's
+                // own seeding guard skip re-initialising the new occupant entirely.
+                // Zero the ABM block by loop (not by naming individual variables, which
+                // is exactly the mistake the commented-out lines below made - listing
+                // MASS/DIAM/DENS/VVEL while leaving every biology variable untouched).
                 _PTM_Stat(pg,p,STAT) = 0;
                 _PTM_Stat(pg,p,FLAG) = 3;
-                //_PTM_Vars(pg,p,MASS) = 0.0;
-                //_PTM_Vars(pg,p,DIAM) = 0.0;
-                //_PTM_Vars(pg,p,DENS) = 0.0;
-                //_PTM_Vars(pg,p,VVEL) = 0.0;
+                for (int v = 0; v < Num_PTM_Vars; v++)
+                    _PTM_Vars(pg,p,PTM_ENV_NVARS + v) = 0.0;
             }
         }
     }
@@ -460,13 +626,35 @@ void ptm_update_layerid()
     pg = 0;
     for (p = 0; p < max_particle_num; p++) {
         if (_PTM_Stat(pg,p,STAT)>0) {
+            int found = 0;
             for (i = botmLayer; i < NumLayers; i++) {
                 if (_PTM_Vars(pg,p,HGHT)<Lake[i].Height) {
                     _PTM_Stat(pg,p,LAYR) = i;
-                    _PTM_Stat(pg,p,IDX3) = i;
+                    /* IDX3 is the cell the Fortran side bins this particle into, and it
+                     * is consumed 1-BASED there (aed_ptm.F90 guards on cell >= 1), while
+                     * C layer indices are 0-based (botmLayer 0 vs 1 in glm.h). Passing a
+                     * raw i shifted every particle one layer down and made bottom-layer
+                     * particles (i = 0) fail the >= 1 guard entirely, so they were never
+                     * binned and never had their physiology or environment updated.
+                     * LAYR stays 0-based - it indexes Lake[] on this side.            */
+                    _PTM_Stat(pg,p,IDX3) = i + 1;
                     _PTM_Stat(pg,p,IDX2) = 1;
+                    found = 1;
                     break; // get out of layer loop
                 }
+            }
+            // A particle clamped exactly to the surface (do_ptm_update's upper_boundary_cond
+            // = BC_CLAMP path sets HGHT = Lake[surfLayer].Height, not strictly less than it)
+            // satisfies HGHT < Lake[i].Height for NO i, including i = surfLayer - so the loop
+            // above never breaks and LAYR is left at its STALE previous value. Only reachable
+            // now that surface-layer particles actually move (see the do_ptm_update surface
+            // fix): previously they were frozen and could never reach this height. Any
+            // particle not caught by the loop is, by construction, at or above the highest
+            // layer boundary, so it belongs in surfLayer.
+            if (!found) {
+                _PTM_Stat(pg,p,LAYR) = surfLayer;
+                _PTM_Stat(pg,p,IDX3) = surfLayer + 1;   /* 1-based for Fortran, see above */
+                _PTM_Stat(pg,p,IDX2) = 1;
             }
         }
     }
@@ -494,8 +682,15 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prim
 
     random_float = -1+2*((float)rand())/RAND_MAX;            // random draw from uniform distribution [-1,1]
 
-    updated_height = Height + K_prime_z * Height * del_t + random_float *
-    sqrt((2 * K_z * (Height + 0.5 * K_prime_z * Height * del_t) * del_t) / (1.0/3)); // random walk
+    // Visser (1997) random-walk correction for depth-varying diffusivity:
+    //   z(t+dt) = z(t) + K'(z)*dt + R * sqrt(2 * K(z + 0.5*K'(z)*dt) * dt / r)
+    // K'(z) (K_prime_z, fixed to a proper signed dK/dHeight above in do_ptm_update())
+    // is the LOCAL RATE OF CHANGE of diffusivity, and K(...) is diffusivity EVALUATED AT
+    // A POSITION - GLM only hands this function per-layer diffusivity rather than a
+    // continuous profile, so K_z (the particle's current layer, already floored to
+    // ptm_diffusivity by the caller) stands in for that evaluation.
+    updated_height = Height + K_prime_z * del_t + random_float *
+    sqrt((2 * K_z * del_t) / (1.0/3)); // random walk
 
     updated_height = updated_height + vvel * del_t;   // account for sinking/floating;
                                                       // vvel is per second so needs to
@@ -544,7 +739,7 @@ AED_REAL get_particle_diameter(AED_REAL particle_diameter)
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-static int h_id, m_id, d_id, dn_id, vv_id, par_id, tem_id, no3_id, nh4_id, frp_id, c_id, n_id, pho_id, chl_id, num_id, cdiv_id, topt_id, lnalphachl_id, stat_id, flag_id, ptid_id;
+static int h_id, m_id, d_id, dn_id, vv_id, par_id, tem_id, no3_id, nh4_id, frp_id, c_id, n_id, pho_id, chl_id, num_id, cdiv_id, topt_id, lnalphachl_id, stat_id, flag_id, ptid_id, grp_id;
 static int set_no_p = -1;
 static size_t start[2],edges[2];
 
@@ -558,7 +753,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
 //LOCALS
     int p,pg;
     AED_REAL *p_height, *mass, *diam, *density, *vvel, *par, *tem, *no3, *nh4, *frp, *c, *n, *pho, *chl, *num, *cdiv, *topt, *lnalphachl;
-    int *status, *flag, *ptid;
+    int *status, *flag, *ptid, *grp;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
@@ -590,6 +785,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
     status  = malloc(max_particle_num*sizeof(int));
     flag  = malloc(max_particle_num*sizeof(int));
     ptid  = malloc(max_particle_num*sizeof(int));
+    grp  = malloc(max_particle_num*sizeof(int));
 
     for (p = 0; p < max_particle_num; p++) {
         p_height[p]         = _PTM_Vars(pg,p,HGHT);    //Particle[p].Height;                REAL
@@ -614,6 +810,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
         status[p]           = _PTM_Stat(pg,p,STAT);    //Particle[p].Status;                INT
         flag[p]             = _PTM_Stat(pg,p,FLAG);    //Particle[p].Flag;                  INT
         ptid[p]             = _PTM_Stat(pg,p,PTID);    //Particle[p].PTID;                  INT
+        grp[p]              = _PTM_Stat(pg,p,GRP);     //Particle[p].Grp;                   INT (which phyto group/species)
     }
 
     nc_put_vara(ncid, h_id, start, edges, p_height);
@@ -637,6 +834,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
     nc_put_vara(ncid, stat_id, start, edges, status);
     nc_put_vara(ncid, flag_id, start, edges, flag);
     nc_put_vara(ncid, ptid_id, start, edges, ptid);
+    nc_put_vara(ncid, grp_id, start, edges, grp);
 
     free(p_height);
     free(mass);
@@ -659,6 +857,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
     free(status);
     free(flag);
     free(ptid);
+    free(grp);
 
     check_nc_error(nc_sync(ncid));
 }
@@ -696,10 +895,15 @@ void ptm_init_glm_output(int ncid, int time_dim)
    set_nc_attributes(ncid, dn_id, "g/m3", "Density of Particle" PARAM_FILLVALUE);
 
    check_nc_error(nc_def_var(ncid, "particle_vvel", NC_REALTYPE, 2, dims, &vv_id));
-   set_nc_attributes(ncid, vv_id, "m/s", "Settling Velocity of Particle" PARAM_FILLVALUE);
+   // Written as _PTM_Vars(..,VVEL)*86400 in ptm_write_glm(), so the stored value is m/day,
+   // not m/s as this was labelled. Sign convention is from random_walk(): updated_height
+   // += vvel*del_t, so positive is upward.
+   set_nc_attributes(ncid, vv_id, "m/day", "Settling Velocity of Particle (positive = upward)" PARAM_FILLVALUE);
 
    check_nc_error(nc_def_var(ncid, "particle_par", NC_REALTYPE, 2, dims, &par_id));
-   set_nc_attributes(ncid, par_id, "ummol m2 sec", "particle layer PAR" PARAM_FILLVALUE);
+   // W/m2, matching GLM's own 'par' global and the units GMK98_Ind_TempSizeLight declares
+   // for its PAR argument. The previous "ummol m2 sec" label matched neither.
+   set_nc_attributes(ncid, par_id, "W/m2", "particle layer PAR" PARAM_FILLVALUE);
 
    check_nc_error(nc_def_var(ncid, "particle_tem", NC_REALTYPE, 2, dims, &tem_id));
    set_nc_attributes(ncid, tem_id, "degC", "particle layer temperature" PARAM_FILLVALUE);
@@ -737,14 +941,21 @@ void ptm_init_glm_output(int ncid, int time_dim)
    check_nc_error(nc_def_var(ncid, "particle_lnalphachl", NC_REALTYPE, 2, dims, &lnalphachl_id));
    set_nc_attributes(ncid, lnalphachl_id, "(W m-2)-1(gChl molC)-1d-1", "slope of the P-I curve" PARAM_FILLVALUE);
 
+   // Use nc_put_att_text with strlen rather than a hand-counted length (the pattern already
+   // used in glm_restart.c). The literal counts here were copy-pasted and two were wrong:
+   // "Location Flag of Particle" is 25 chars and was being truncated to "Location Flag of P",
+   // while "ID of Particle" is only 14 and the declared 18 read past the end of the literal.
    check_nc_error(nc_def_var(ncid, "particle_status", NC_INT, 2, dims, &stat_id));
-   nc_put_att(ncid, stat_id, "long_name", NC_CHAR, 18, "Status of Particle");
+   nc_put_att_text(ncid, stat_id, "long_name", strlen("Status of Particle"), "Status of Particle");
 
    check_nc_error(nc_def_var(ncid, "particle_flag", NC_INT, 2, dims, &flag_id));
-   nc_put_att(ncid, flag_id, "long_name", NC_CHAR, 18, "Location Flag of Particle");
+   nc_put_att_text(ncid, flag_id, "long_name", strlen("Location Flag of Particle"), "Location Flag of Particle");
 
    check_nc_error(nc_def_var(ncid, "particle_ptid", NC_INT, 2, dims, &ptid_id));
-   nc_put_att(ncid, ptid_id, "long_name", NC_CHAR, 18, "ID of Particle");
+   nc_put_att_text(ncid, ptid_id, "long_name", strlen("ID of Particle"), "ID of Particle");
+
+   check_nc_error(nc_def_var(ncid, "particle_grp", NC_INT, 2, dims, &grp_id));
+   nc_put_att_text(ncid, grp_id, "long_name", strlen("Phyto group/species of Particle"), "Phyto group/species of Particle");
 
    define_mode_off(&ncid);
 }
