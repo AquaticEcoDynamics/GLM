@@ -30,6 +30,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>       /* time */
+#include <stdint.h>     /* uint64_t, uint32_t - for ptm_rand01() */
 
 #include "glm.h"
 
@@ -80,8 +81,12 @@
 AED_REAL get_particle_density(AED_REAL particle_density);
 AED_REAL get_particle_diameter(AED_REAL particle_diameter);
 AED_REAL get_settling_velocity(AED_REAL settling_velocity);
-AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel);
+AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel, AED_REAL rand_draw);
 static AED_REAL draw_height_in_range(AED_REAL lo, AED_REAL hi);
+static AED_REAL ptm_rand01(int ptid, long step, int substep, int draw);
+static void ptm_free_queue_init(void);
+void ptm_free_push(int slot, int tag);   /* also BIND(C)-called from aed_phyto_abm.F90 */
+int  ptm_free_pop(void);        /* also BIND(C)-called from aed_phyto_abm.F90 */
 
 /*============================================================================*/
 
@@ -199,6 +204,163 @@ static AED_REAL draw_height_in_range(AED_REAL lo, AED_REAL hi)
 
 /******************************************************************************
  *                                                                            *
+ *    Deterministic, order-independent random draws for do_ptm_update()'s     *
+ *    substep loop (tens to hundreds of thousands of draws per host          *
+ *    timestep at typical particle counts). Rather than pulling values off   *
+ *    libc's single global rand() stream - which makes the result depend on  *
+ *    the ORDER particles/substeps are visited in - each draw is a hash of   *
+ *    (particle PTID, host step, substep, draw index, particle_random_seed). *
+ *    That makes the result depend only on which draw it logically IS, not   *
+ *    on loop order, which is what allows do_ptm_update() below to loop      *
+ *    particle-outer/substep-inner (or, in future, in parallel) while        *
+ *    staying just as reproducible from particle_random_seed as the rest of  *
+ *    the model (see the particle_random_seed comment further up this file). *
+ *                                                                            *
+ *    The mixing step (splitmix64, Steele et al. 2014) is used here purely   *
+ *    as a hash of the 4-tuple key, not as a seeded stream generator - it is *
+ *    called once per draw, with no state carried between calls.             *
+ *                                                                            *
+ ******************************************************************************/
+static uint64_t ptm_rng_mix64(uint64_t x)
+{
+    x += 0x9E3779B97F4A7C15ULL;
+    x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9ULL;
+    x = (x ^ (x >> 27)) * 0x94D049BB133111EBULL;
+    return x ^ (x >> 31);
+}
+
+/* Uniform double drawn from [0,1); fully determined by (ptid, step, substep, draw). */
+static AED_REAL ptm_rand01(int ptid, long step, int substep, int draw)
+{
+    uint64_t key;
+
+    key  = (uint64_t)(uint32_t)ptid            * 0x9E3779B97F4A7C15ULL;
+    key ^= (uint64_t)(uint32_t)particle_random_seed;
+    key  = key * 0xC2B2AE3D27D4EB4FULL + (uint64_t)(uint32_t)step;
+    key  = key * 0x165667B19E3779F9ULL + (uint64_t)(uint32_t)substep;
+    key  = key * 0x27D4EB2F165667C5ULL + (uint64_t)(uint32_t)draw;
+
+    /* top 53 bits -> a uniform double in [0,1), same construction as the
+     * standard "generate a double from 64 random bits" recipe. */
+    return (AED_REAL)(ptm_rng_mix64(key) >> 11) * (AED_REAL)(1.0 / 9007199254740992.0);
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ *    Free-slot queue (FIFO) for the domain's single particle group (pg=0 -   *
+ *    see the "not used" note on num_particle_grp in &particles: every PTM    *
+ *    consumer in this codebase - ptm_addparticles below, and the             *
+ *    split/recruit/reseed free-slot searches in aed_phyto_abm.F90 - already  *
+ *    only ever operates on pg=0). Every one of those searched for a free     *
+ *    slot by scanning from p=0 until it found one, up to O(max_particle_num) *
+ *    per search and repeated many times per call (once per split/recruit/    *
+ *    reseed event, and up to MAX_POPMAINTAIN_SPLITS_PER_CALL times in        *
+ *    population maintenance). This queue turns each of those into an O(1)    *
+ *    push/pop, backed by BIND(C)-callable ptm_free_push()/ptm_free_pop() so  *
+ *    the Fortran call sites can use it too.                                  *
+ *                                                                            *
+ *    A slot is "free" by the SAME definition ptm_addparticles has always     *
+ *    used: STAT==0 && FLAG==EXIT(3). Every place that sets STAT=0 pairs it   *
+ *    with FLAG=EXIT(3) EXCEPT do_ptm_update()'s sed_deactivation branch,     *
+ *    which leaves FLAG=BED - so that branch deliberately does NOT push onto  *
+ *    this queue, preserving ptm_addparticles' pre-existing refusal to reuse  *
+ *    those slots (untested here: sed_deactivation is off in the validation   *
+ *    case). Unifying the criterion also makes the Fortran free-slot search   *
+ *    sites - which previously checked STAT==0 alone, without the FLAG check  *
+ *    - consistent with ptm_addparticles' stricter definition.                *
+ *                                                                            *
+ *    FIFO, not LIFO: the longest-free slot is handed out next, not the       *
+ *    most-recently-freed one. A LIFO stack was tried first and is           *
+ *    functionally equivalent (no code depends on WHICH slot index a         *
+ *    particle occupies, only its PTID) - but it concentrates reuse onto     *
+ *    whichever slot was just freed, so a handful of "hot" slots churned      *
+ *    through hundreds of different short-lived particles while most of the   *
+ *    domain barely reused at all (observed: up to ~400 distinct particles    *
+ *    through one slot over a 5-year run, vs "each slot ~6 on average, never  *
+ *    more than ~30" under the original scan-from-p=0 approach). Two          *
+ *    unrelated particles sharing a hot slot at different times could get     *
+ *    sampled into the same species-trajectory plot and, since they occupy    *
+ *    the same array cell, visually resemble one trajectory that vanished     *
+ *    and reappeared - the reason for switching to FIFO. Implemented as a     *
+ *    circular buffer sized to max_particle_num (never more than              *
+ *    max_particle_num slots can be free at once); pushed in ascending        *
+ *    order at startup so, like before, the very first allocation sequence    *
+ *    pops out 0,1,2,... .                                                    *
+ *                                                                            *
+ *    ptm_free_present[] is a permanent O(1) correctness check, not a         *
+ *    leftover debugging aid: it caught a real bug (2026-09) where a Fortran  *
+ *    caller pushed the wrong slot number (a per-layer LOCAL loop index,      *
+ *    from a context where that index does not equal the global slot -       *
+ *    see the comments at aed_particle_bgc_phyto_abm's ptm_free_push() call   *
+ *    sites in aed_phyto_abm.F90), silently freeing unrelated - possibly      *
+ *    still-active - slots while leaking the true ones. That symptom (a       *
+ *    slowly growing shortfall between the queue's belief and the true free   *
+ *    count, eventually causing real allocation failures) would otherwise     *
+ *    take a full multi-year run to surface and be very hard to trace back    *
+ *    to its cause. These checks make any future instance of the same bug     *
+ *    class fail loudly, immediately, and at the exact call site, for the     *
+ *    cost of one array read/write per push/pop - worth keeping permanently.  *
+ *                                                                            *
+ ******************************************************************************/
+static int  *ptm_free_queue = NULL;
+static int   ptm_free_head = 0;      // next slot to pop is ptm_free_queue[ptm_free_head]
+static int   ptm_free_count = 0;     // number of valid entries currently queued
+static long  ptm_step_global = 0;    // mirrors do_ptm_update()'s per-call step counter; used to timestamp the invariant-check messages below
+static char *ptm_free_present = NULL; // ptm_free_present[s]=1 iff slot s is currently queued - see the header comment above
+
+static void ptm_free_queue_init(void)
+{
+    int p;
+
+    if (ptm_free_queue == NULL)
+        ptm_free_queue = malloc((size_t)max_particle_num * sizeof(int));
+    if (ptm_free_present == NULL)
+        ptm_free_present = malloc((size_t)max_particle_num * sizeof(char));
+    memset(ptm_free_present, 1, (size_t)max_particle_num);
+    ptm_free_head = 0;
+    ptm_free_count = max_particle_num;
+    for (p = 0; p < max_particle_num; p++)
+        ptm_free_queue[p] = p;
+}
+
+void ptm_free_push(int slot, int tag)
+{
+    int tail;
+    if (ptm_free_present[slot]) {
+        fprintf(stderr, "PTM_FREE_DOUBLE_PUSH slot=%d step=%ld count_before=%d tag=%d - "
+                "same slot freed twice without being reused in between; see the header "
+                "comment on ptm_free_present above\n",
+                slot, ptm_step_global, ptm_free_count, tag);
+    }
+    ptm_free_present[slot] = 1;
+    tail = (ptm_free_head + ptm_free_count) % max_particle_num;
+    ptm_free_queue[tail] = slot;
+    ptm_free_count++;
+}
+
+int ptm_free_pop(void)
+{
+    int slot;
+    if (ptm_free_count == 0) return -1;
+    slot = ptm_free_queue[ptm_free_head];
+    ptm_free_head = (ptm_free_head + 1) % max_particle_num;
+    ptm_free_count--;
+    if (!ptm_free_present[slot]) {
+        fprintf(stderr, "PTM_FREE_POP_NOT_PRESENT slot=%d step=%ld count_after=%d - "
+                "queue and present-flags disagree; see the header comment on "
+                "ptm_free_present above\n",
+                slot, ptm_step_global, ptm_free_count);
+    }
+    ptm_free_present[slot] = 0;
+    return slot;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
  *    This routine initialises the PTM data structure, and sets the initial   *
  *    particle properties and position                                        *
  *                                                                            *
@@ -260,6 +422,11 @@ void ptm_init_glm()
       }
     }
 
+    // Every slot above was just set to STAT=0, FLAG=EXIT(3) - the free-slot
+    // stack's push order (descending) makes the first pops come out ascending,
+    // matching the scan-from-p=0 order ptm_addparticles() below used to use.
+    ptm_free_queue_init();
+
     // Set initial active particle height within the water column
     upper_height = Lake[surfLayer].Height - init_depth_min;
      if(upper_height > Lake[surfLayer].Height){
@@ -289,8 +456,8 @@ void ptm_init_glm()
 void do_ptm_update()
 {
 //LOCALS
-    int p, tt, ij1, ij2, sub_steps, pg;
-    AED_REAL dt, K_z, K_above, K_prime_z;
+    int p, tt, ij1, ij2, sub_steps, pg, ptid, layr;
+    AED_REAL dt, K_z, K_above, K_prime_z, rand_draw;
     float rand_float, prob, prev_height, x1, x2, y1, y2, a1, a2;
 
 /*----------------------------------------------------------------------------*/
@@ -300,54 +467,73 @@ void do_ptm_update()
     // Loop through sub-timesteps, incrementing position
     sub_steps = 60;
     dt = 1;
-    for (tt = 0; tt < sub_steps; tt++) {
-        for (p = 0; p < max_particle_num; p++) {
-          if (_PTM_Stat(pg,p,STAT)>0) {
 
-            // printf("void do_ptm_update() %d %f \n"  , _PTM_Stat(pg,p,STAT),_PTM_Vars(pg,p,HGHT));
+    // Outer loop over particles, inner loop over substeps - was substep-outer/
+    // particle-inner. A particle's LAYR is fixed for the whole of this function
+    // (ptm_update_layerid(), which is the only thing that reassigns it, runs once
+    // at the very end - see below), so with particles on the outer loop, K_z/
+    // K_prime_z below can be computed ONCE per particle and reused across all 60
+    // substeps, instead of being recomputed (to the same value) in every one of
+    // them. Loop order no longer needs to match the old substep-outer nesting for
+    // reproducibility either, since random draws now come from ptm_rand01() (keyed
+    // on particle PTID/step/substep/draw, not loop position) rather than libc's
+    // single ordered rand() stream - see that function's header comment.
+    for (p = 0; p < max_particle_num; p++) {
+      if (_PTM_Stat(pg,p,STAT)>0) {
+
+        ptid = _PTM_Stat(pg,p,PTID);
+        layr = _PTM_Stat(pg,p,LAYR);
+
+        // K_z/K_prime_z depend only on `layr`, captured once above - hoisted out
+        // of the substep loop below (previously recomputed, identically, on every
+        // one of the 60 substeps).
+        K_z = Lake[layr].Epsilon;
+        if (K_z < ptm_diffusivity) K_z = ptm_diffusivity;
+
+        if(layr == surfLayer){
+            // No layer above surfLayer to sample (Lake[surfLayer+1] would be out of
+            // bounds), so there is no gradient to compute - zero is the correct
+            // K_prime_z here, not a special case. The `continue` this replaced,
+            // though, skipped past random_walk() below entirely: every surface-layer
+            // particle received NO diffusion, NO settling, and NEVER reached the
+            // BED/SCUM boundary checks further down, for the whole run. That silently
+            // froze the surface population and excluded it from settling regardless
+            // of species, physiology, or vertical velocity.
+            K_prime_z = 0;
+        } else {
+            K_above = Lake[layr+1].Epsilon;
+            if (K_above < ptm_diffusivity) K_above = ptm_diffusivity;
+            // K_prime_z approximates dK/dHeight (the Visser 1997 diffusivity-gradient
+            // correction term - see random_walk() below), so it must be a SIGNED
+            // derivative in units of diffusivity/length (m/s), not a bare difference
+            // of two diffusivities (m^2/s). Previously this was fabs(K_z - K_above)
+            // with no division by the vertical separation between the two evaluation
+            // points: unsigned, so it could only ever push particles upward regardless
+            // of which direction diffusivity actually increased, and two orders of
+            // magnitude too large in typical GLM layer thicknesses (~0.1-0.2 m) since
+            // dividing by a sub-1 m distance was simply skipped. Divide by the distance
+            // between the two layers' mean heights (their diffusivity is defined at
+            // Lake[i].MeanHeight, not at the layer top) to get a proper derivative;
+            // guard against a degenerate (near-zero-thickness) layer pair.
+            if (Lake[layr+1].MeanHeight - Lake[layr].MeanHeight > 1e-6) {
+                K_prime_z = (K_above - K_z) /
+                    (Lake[layr+1].MeanHeight - Lake[layr].MeanHeight);
+            } else {
+                K_prime_z = 0;
+            }
+        }
+
+        for (tt = 0; tt < sub_steps; tt++) {
 
             // Capture current height of particle to calculate probability of settling below
             prev_height = _PTM_Vars(pg,p,HGHT);
 
             // Update particle position based on diffusivity and vert velocity
             _PTM_Stat(pg,p,FLAG)= WATER;
-            K_z = Lake[_PTM_Stat(pg,p,LAYR)].Epsilon;
-            if (K_z < ptm_diffusivity) K_z = ptm_diffusivity;
 
-            if(_PTM_Stat(pg,p,LAYR) == surfLayer){
-                // No layer above surfLayer to sample (Lake[surfLayer+1] would be out of
-                // bounds), so there is no gradient to compute - zero is the correct
-                // K_prime_z here, not a special case. The `continue` this replaced,
-                // though, skipped past random_walk() below entirely: every surface-layer
-                // particle received NO diffusion, NO settling, and NEVER reached the
-                // BED/SCUM boundary checks further down, for the whole run. That silently
-                // froze the surface population and excluded it from settling regardless
-                // of species, physiology, or vertical velocity.
-                K_prime_z = 0;
-            } else {
-                K_above = Lake[_PTM_Stat(pg,p,LAYR)+1].Epsilon;
-                if (K_above < ptm_diffusivity) K_above = ptm_diffusivity;
-                // K_prime_z approximates dK/dHeight (the Visser 1997 diffusivity-gradient
-                // correction term - see random_walk() below), so it must be a SIGNED
-                // derivative in units of diffusivity/length (m/s), not a bare difference
-                // of two diffusivities (m^2/s). Previously this was fabs(K_z - K_above)
-                // with no division by the vertical separation between the two evaluation
-                // points: unsigned, so it could only ever push particles upward regardless
-                // of which direction diffusivity actually increased, and two orders of
-                // magnitude too large in typical GLM layer thicknesses (~0.1-0.2 m) since
-                // dividing by a sub-1 m distance was simply skipped. Divide by the distance
-                // between the two layers' mean heights (their diffusivity is defined at
-                // Lake[i].MeanHeight, not at the layer top) to get a proper derivative;
-                // guard against a degenerate (near-zero-thickness) layer pair.
-                if (Lake[_PTM_Stat(pg,p,LAYR)+1].MeanHeight - Lake[_PTM_Stat(pg,p,LAYR)].MeanHeight > 1e-6) {
-                    K_prime_z = (K_above - K_z) /
-                        (Lake[_PTM_Stat(pg,p,LAYR)+1].MeanHeight - Lake[_PTM_Stat(pg,p,LAYR)].MeanHeight);
-                } else {
-                    K_prime_z = 0;
-                }
-            }
-
-            _PTM_Vars(pg,p,HGHT) = random_walk(dt,_PTM_Vars(pg,p,HGHT), K_z, K_prime_z, _PTM_Vars(pg,p,VVEL));
+            // Draw 0: the random_walk() step itself, uniform in [-1,1].
+            rand_draw = -1.0 + 2.0*ptm_rand01(ptid, ptm_step_global, tt, 0);
+            _PTM_Vars(pg,p,HGHT) = random_walk(dt,_PTM_Vars(pg,p,HGHT), K_z, K_prime_z, _PTM_Vars(pg,p,VVEL), rand_draw);
 
             if(_PTM_Vars(pg,p,HGHT) < 0.0){
                 _PTM_Vars(pg,p,HGHT) = 0.0;
@@ -379,9 +565,10 @@ void do_ptm_update()
                 prob = (a1 - a2) / a1;
 
                 // Bernoulli draw to determine if particle should be assigned as BED
-                rand_float = ((float)rand())/RAND_MAX;
+                // (draw 1); if triggered, draw 2 tests settling_efficiency.
+                rand_float = (float)ptm_rand01(ptid, ptm_step_global, tt, 1);
                 if(rand_float < prob){
-                    rand_float = ((float)rand())/RAND_MAX;
+                    rand_float = (float)ptm_rand01(ptid, ptm_step_global, tt, 2);
                     if(rand_float < settling_efficiency){
                         _PTM_Stat(pg,p,FLAG) = BED;
                         if(sed_deactivation){
@@ -396,6 +583,10 @@ void do_ptm_update()
                         // pre-existing C/num before initialising a fresh particle.
                         for (int v = 0; v < Num_PTM_Vars; v++)
                             _PTM_Vars(pg,p,PTM_ENV_NVARS + v) = 0.0;
+                        // Deactivated: match the old substep-outer loop, which
+                        // simply stopped visiting this particle (STAT<=0 fails its
+                        // guard) for the remainder of this call's substeps.
+                        break;
                         }
                     }else{
                         if (lower_boundary_cond == BC_REFLECTIVE) {
@@ -421,9 +612,10 @@ void do_ptm_update()
                     _PTM_Vars(pg,p,HGHT)=Lake[surfLayer].Height;
                 }
             }
-          }
         }
+      }
     }
+    ptm_step_global++;
 
     ptm_update_layerid();     // assign layers to active particles
 }
@@ -486,17 +678,17 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
     n = 0;
 
     pg = 0;
-    // For each new particle, initialise their properties and height
-    for (p = 0 ; ; p++) {
-        if(n == new_particles){
-            break;
-        }
-
-        if(p >= max_particle_num){
+    // For each new particle, initialise their properties and height. Was a scan
+    // from p=0 for the first STAT==0 && FLAG==3 slot, repeated (from p=0 again)
+    // for every one of new_particles - O(max_particle_num) per particle. The
+    // free-slot stack (see its header comment above) uses the SAME criterion,
+    // so this pops exactly the slot that scan would have found.
+    for (n = 0; n < new_particles; n++) {
+        p = ptm_free_pop();
+        if (p < 0) {
             printf("ptm_addparticles(): WARNING no more available particles; skipping particle initialization");
             break;
         } else {
-            if( _PTM_Stat(pg,p,STAT) == 0 && _PTM_Stat(pg,p,FLAG) == 3){ // find the first inactive particles with EXIT flag
                 _PTM_Stat(pg,p,STAT) = 1;
                 _PTM_Stat(pg,p,FLAG) = 0;
                 _PTM_Vars(pg,p,MASS) = 1.0;
@@ -517,10 +709,6 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
                 double random_double = (double)rand_int / 100;
                 random_double = random_double * height_range;           // scale unit random to requested range
                 _PTM_Vars(pg,p,HGHT) = lower_height + random_double;     // set particle height
-
-                // Adjust counter
-                n++;
-            }
         }
     }
 }
@@ -566,6 +754,7 @@ void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, i
                 _PTM_Stat(pg,p,FLAG) = 3;
                 for (int v = 0; v < Num_PTM_Vars; v++)
                     _PTM_Vars(pg,p,PTM_ENV_NVARS + v) = 0.0;
+                ptm_free_push(p, 0);   // tag 0 = C ptm_removeparticles (outflow)
             }
         }
     }
@@ -667,20 +856,21 @@ void ptm_update_layerid()
  *      This routine redistributes particles using a random walk function     *
  *                                                                            *
  ******************************************************************************/
-AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel)
+AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel, AED_REAL rand_draw)
 {
 //LOCALS
 
     AED_REAL updated_height;
     AED_REAL del_t;
-    float random_float;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
     del_t = dt*60; // number of minutes (dt) times seconds per minute
 
-    random_float = -1+2*((float)rand())/RAND_MAX;            // random draw from uniform distribution [-1,1]
+    // rand_draw: a uniform draw in [-1,1] supplied by the caller (do_ptm_update, via
+    // ptm_rand01()) rather than pulled from libc's rand() here - see the header
+    // comment on ptm_rand01() for why.
 
     // Visser (1997) random-walk correction for depth-varying diffusivity:
     //   z(t+dt) = z(t) + K'(z)*dt + R * sqrt(2 * K(z + 0.5*K'(z)*dt) * dt / r)
@@ -689,7 +879,7 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prim
     // A POSITION - GLM only hands this function per-layer diffusivity rather than a
     // continuous profile, so K_z (the particle's current layer, already floored to
     // ptm_diffusivity by the caller) stands in for that evaluation.
-    updated_height = Height + K_prime_z * del_t + random_float *
+    updated_height = Height + K_prime_z * del_t + rand_draw *
     sqrt((2 * K_z * del_t) / (1.0/3)); // random walk
 
     updated_height = updated_height + vvel * del_t;   // account for sinking/floating;
