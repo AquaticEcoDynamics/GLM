@@ -30,7 +30,6 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>       /* time */
-#include <stdint.h>     /* uint64_t, uint32_t - for ptm_rand01() */
 
 #include "glm.h"
 
@@ -81,9 +80,8 @@
 AED_REAL get_particle_density(AED_REAL particle_density);
 AED_REAL get_particle_diameter(AED_REAL particle_diameter);
 AED_REAL get_settling_velocity(AED_REAL settling_velocity);
-AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel, AED_REAL rand_draw);
+AED_REAL random_walk(AED_REAL dt_secs, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel, AED_REAL rand_draw);
 static AED_REAL draw_height_in_range(AED_REAL lo, AED_REAL hi);
-static AED_REAL ptm_rand01(int ptid, long step, int substep, int draw);
 static void ptm_free_queue_init(void);
 void ptm_free_push(int slot, int tag);   /* also BIND(C)-called from aed_phyto_abm.F90 */
 int  ptm_free_pop(void);        /* also BIND(C)-called from aed_phyto_abm.F90 */
@@ -94,7 +92,7 @@ int  ptm_free_pop(void);        /* also BIND(C)-called from aed_phyto_abm.F90 */
 int num_particle_grp=1;
 AED_REAL init_depth_min=0.0;
 AED_REAL init_depth_max=2.0;
-AED_REAL ptm_time_step=1/60;
+AED_REAL ptm_time_step=1.0/60.0;
 AED_REAL ptm_diffusivity=1e-6;
 
 // Boundary condition types
@@ -198,51 +196,6 @@ static AED_REAL draw_height_in_range(AED_REAL lo, AED_REAL hi)
     if (result < lo) result = lo;
     if (result > hi) result = hi;
     return result;
-}
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
-
-/******************************************************************************
- *                                                                            *
- *    Deterministic, order-independent random draws for do_ptm_update()'s     *
- *    substep loop (tens to hundreds of thousands of draws per host          *
- *    timestep at typical particle counts). Rather than pulling values off   *
- *    libc's single global rand() stream - which makes the result depend on  *
- *    the ORDER particles/substeps are visited in - each draw is a hash of   *
- *    (particle PTID, host step, substep, draw index, particle_random_seed). *
- *    That makes the result depend only on which draw it logically IS, not   *
- *    on loop order, which is what allows do_ptm_update() below to loop      *
- *    particle-outer/substep-inner (or, in future, in parallel) while        *
- *    staying just as reproducible from particle_random_seed as the rest of  *
- *    the model (see the particle_random_seed comment further up this file). *
- *                                                                            *
- *    The mixing step (splitmix64, Steele et al. 2014) is used here purely   *
- *    as a hash of the 4-tuple key, not as a seeded stream generator - it is *
- *    called once per draw, with no state carried between calls.             *
- *                                                                            *
- ******************************************************************************/
-static uint64_t ptm_rng_mix64(uint64_t x)
-{
-    x += 0x9E3779B97F4A7C15ULL;
-    x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9ULL;
-    x = (x ^ (x >> 27)) * 0x94D049BB133111EBULL;
-    return x ^ (x >> 31);
-}
-
-/* Uniform double drawn from [0,1); fully determined by (ptid, step, substep, draw). */
-static AED_REAL ptm_rand01(int ptid, long step, int substep, int draw)
-{
-    uint64_t key;
-
-    key  = (uint64_t)(uint32_t)ptid            * 0x9E3779B97F4A7C15ULL;
-    key ^= (uint64_t)(uint32_t)particle_random_seed;
-    key  = key * 0xC2B2AE3D27D4EB4FULL + (uint64_t)(uint32_t)step;
-    key  = key * 0x165667B19E3779F9ULL + (uint64_t)(uint32_t)substep;
-    key  = key * 0x27D4EB2F165667C5ULL + (uint64_t)(uint32_t)draw;
-
-    /* top 53 bits -> a uniform double in [0,1), same construction as the
-     * standard "generate a double from 64 random bits" recipe. */
-    return (AED_REAL)(ptm_rng_mix64(key) >> 11) * (AED_REAL)(1.0 / 9007199254740992.0);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -456,74 +409,79 @@ void ptm_init_glm()
 void do_ptm_update()
 {
 //LOCALS
-    int p, tt, ij1, ij2, sub_steps, pg, ptid, layr;
-    AED_REAL dt, K_z, K_above, K_prime_z, rand_draw;
+    int p, tt, ij1, ij2, sub_steps, sub_steps_layer_recalc, pg, layr;
+    AED_REAL dt_secs, K_z, K_above, K_prime_z, rand_draw;
     float rand_float, prob, prev_height, x1, x2, y1, y2, a1, a2;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
     pg = 0;
 
-    // Loop through sub-timesteps, incrementing position
-    sub_steps = 60;
-    dt = 1;
+    // Loop through sub-timesteps, incrementing position. ptm_time_step (namelist
+    // &particles, e.g. 1/60) is the substep duration as a FRACTION OF THE HOST
+    // TIMESTEP `dt` (glm_globals.h, seconds) - so sub_steps, the number of
+    // substeps needed to exactly tile one host step, is just its reciprocal,
+    // independent of whatever `dt` actually is. dt_secs is then back-derived
+    // from dt/sub_steps so sub_steps*dt_secs always equals dt exactly, even if
+    // dt doesn't divide evenly by whole minutes. Previously both were
+    // hardcoded (60 substeps of 60s/1 minute each), silently assuming dt=3600s;
+    // ptm_time_step was read from the namelist but never actually used.
+    sub_steps = (int)(1.0/ptm_time_step + 0.5);   // round to nearest
+    if (sub_steps < 1) sub_steps = 1;
+    sub_steps_layer_recalc = sub_steps;   // recalc particle LAYR (and thus K_z/K_prime_z) every this many substeps
+    dt_secs = dt/sub_steps;               // seconds
 
-    // Outer loop over particles, inner loop over substeps - was substep-outer/
-    // particle-inner. A particle's LAYR is fixed for the whole of this function
-    // (ptm_update_layerid(), which is the only thing that reassigns it, runs once
-    // at the very end - see below), so with particles on the outer loop, K_z/
-    // K_prime_z below can be computed ONCE per particle and reused across all 60
-    // substeps, instead of being recomputed (to the same value) in every one of
-    // them. Loop order no longer needs to match the old substep-outer nesting for
-    // reproducibility either, since random draws now come from ptm_rand01() (keyed
-    // on particle PTID/step/substep/draw, not loop position) rather than libc's
-    // single ordered rand() stream - see that function's header comment.
-    for (p = 0; p < max_particle_num; p++) {
-      if (_PTM_Stat(pg,p,STAT)>0) {
+    // Outer loop over substeps, inner loop over particles. LAYR (and so K_z/
+    // K_prime_z, recomputed below from the particle's CURRENT layer every
+    // substep) is re-binned via ptm_update_layerid() every sub_steps_layer_recalc
+    // substeps - see that call further down - rather than staying fixed at
+    // whatever layer the particle started this call's substeps in.
+    //
+    // This also restores a fixed, deterministic visiting order (substep,
+    // then ascending particle index), so the random draws below can go back
+    // to plain rand() rather than needing a loop-order-independent hash
+    // keyed on particle identity - see random_walk() below.
+    for (tt = 0; tt < sub_steps; tt++) {
+      for (p = 0; p < max_particle_num; p++) {
+        if (_PTM_Stat(pg,p,STAT)>0) {
 
-        ptid = _PTM_Stat(pg,p,PTID);
-        layr = _PTM_Stat(pg,p,LAYR);
+            layr = _PTM_Stat(pg,p,LAYR);
 
-        // K_z/K_prime_z depend only on `layr`, captured once above - hoisted out
-        // of the substep loop below (previously recomputed, identically, on every
-        // one of the 60 substeps).
-        K_z = Lake[layr].Epsilon;
-        if (K_z < ptm_diffusivity) K_z = ptm_diffusivity;
+            K_z = Lake[layr].Epsilon;
+            if (K_z < ptm_diffusivity) K_z = ptm_diffusivity;
 
-        if(layr == surfLayer){
-            // No layer above surfLayer to sample (Lake[surfLayer+1] would be out of
-            // bounds), so there is no gradient to compute - zero is the correct
-            // K_prime_z here, not a special case. The `continue` this replaced,
-            // though, skipped past random_walk() below entirely: every surface-layer
-            // particle received NO diffusion, NO settling, and NEVER reached the
-            // BED/SCUM boundary checks further down, for the whole run. That silently
-            // froze the surface population and excluded it from settling regardless
-            // of species, physiology, or vertical velocity.
-            K_prime_z = 0;
-        } else {
-            K_above = Lake[layr+1].Epsilon;
-            if (K_above < ptm_diffusivity) K_above = ptm_diffusivity;
-            // K_prime_z approximates dK/dHeight (the Visser 1997 diffusivity-gradient
-            // correction term - see random_walk() below), so it must be a SIGNED
-            // derivative in units of diffusivity/length (m/s), not a bare difference
-            // of two diffusivities (m^2/s). Previously this was fabs(K_z - K_above)
-            // with no division by the vertical separation between the two evaluation
-            // points: unsigned, so it could only ever push particles upward regardless
-            // of which direction diffusivity actually increased, and two orders of
-            // magnitude too large in typical GLM layer thicknesses (~0.1-0.2 m) since
-            // dividing by a sub-1 m distance was simply skipped. Divide by the distance
-            // between the two layers' mean heights (their diffusivity is defined at
-            // Lake[i].MeanHeight, not at the layer top) to get a proper derivative;
-            // guard against a degenerate (near-zero-thickness) layer pair.
-            if (Lake[layr+1].MeanHeight - Lake[layr].MeanHeight > 1e-6) {
-                K_prime_z = (K_above - K_z) /
-                    (Lake[layr+1].MeanHeight - Lake[layr].MeanHeight);
-            } else {
+            if(layr == surfLayer){
+                // No layer above surfLayer to sample (Lake[surfLayer+1] would be out of
+                // bounds), so there is no gradient to compute - zero is the correct
+                // K_prime_z here, not a special case. The `continue` this replaced,
+                // though, skipped past random_walk() below entirely: every surface-layer
+                // particle received NO diffusion, NO settling, and NEVER reached the
+                // BED/SCUM boundary checks further down, for the whole run. That silently
+                // froze the surface population and excluded it from settling regardless
+                // of species, physiology, or vertical velocity.
                 K_prime_z = 0;
+            } else {
+                K_above = Lake[layr+1].Epsilon;
+                if (K_above < ptm_diffusivity) K_above = ptm_diffusivity;
+                // K_prime_z approximates dK/dHeight (the Visser 1997 diffusivity-gradient
+                // correction term - see random_walk() below), so it must be a SIGNED
+                // derivative in units of diffusivity/length (m/s), not a bare difference
+                // of two diffusivities (m^2/s). Previously this was fabs(K_z - K_above)
+                // with no division by the vertical separation between the two evaluation
+                // points: unsigned, so it could only ever push particles upward regardless
+                // of which direction diffusivity actually increased, and two orders of
+                // magnitude too large in typical GLM layer thicknesses (~0.1-0.2 m) since
+                // dividing by a sub-1 m distance was simply skipped. Divide by the distance
+                // between the two layers' mean heights (their diffusivity is defined at
+                // Lake[i].MeanHeight, not at the layer top) to get a proper derivative;
+                // guard against a degenerate (near-zero-thickness) layer pair.
+                if (Lake[layr+1].MeanHeight - Lake[layr].MeanHeight > 1e-6) {
+                    K_prime_z = (K_above - K_z) /
+                        (Lake[layr+1].MeanHeight - Lake[layr].MeanHeight);
+                } else {
+                    K_prime_z = 0;
+                }
             }
-        }
-
-        for (tt = 0; tt < sub_steps; tt++) {
 
             // Capture current height of particle to calculate probability of settling below
             prev_height = _PTM_Vars(pg,p,HGHT);
@@ -531,9 +489,8 @@ void do_ptm_update()
             // Update particle position based on diffusivity and vert velocity
             _PTM_Stat(pg,p,FLAG)= WATER;
 
-            // Draw 0: the random_walk() step itself, uniform in [-1,1].
-            rand_draw = -1.0 + 2.0*ptm_rand01(ptid, ptm_step_global, tt, 0);
-            _PTM_Vars(pg,p,HGHT) = random_walk(dt,_PTM_Vars(pg,p,HGHT), K_z, K_prime_z, _PTM_Vars(pg,p,VVEL), rand_draw);
+            rand_draw = -1.0 + 2.0*((AED_REAL)rand() / (AED_REAL)RAND_MAX);
+            _PTM_Vars(pg,p,HGHT) = random_walk(dt_secs,_PTM_Vars(pg,p,HGHT), K_z, K_prime_z, _PTM_Vars(pg,p,VVEL), rand_draw);
 
             if(_PTM_Vars(pg,p,HGHT) < 0.0){
                 _PTM_Vars(pg,p,HGHT) = 0.0;
@@ -564,11 +521,11 @@ void do_ptm_update()
                 // Calculate proportional difference between two areas.
                 prob = (a1 - a2) / a1;
 
-                // Bernoulli draw to determine if particle should be assigned as BED
-                // (draw 1); if triggered, draw 2 tests settling_efficiency.
-                rand_float = (float)ptm_rand01(ptid, ptm_step_global, tt, 1);
+                // Bernoulli draw to determine if particle should be assigned as BED;
+                // if triggered, a second draw tests settling_efficiency.
+                rand_float = (float)rand() / (float)RAND_MAX;
                 if(rand_float < prob){
-                    rand_float = (float)ptm_rand01(ptid, ptm_step_global, tt, 2);
+                    rand_float = (float)rand() / (float)RAND_MAX;
                     if(rand_float < settling_efficiency){
                         _PTM_Stat(pg,p,FLAG) = BED;
                         if(sed_deactivation){
@@ -583,10 +540,9 @@ void do_ptm_update()
                         // pre-existing C/num before initialising a fresh particle.
                         for (int v = 0; v < Num_PTM_Vars; v++)
                             _PTM_Vars(pg,p,PTM_ENV_NVARS + v) = 0.0;
-                        // Deactivated: match the old substep-outer loop, which
-                        // simply stopped visiting this particle (STAT<=0 fails its
-                        // guard) for the remainder of this call's substeps.
-                        break;
+                        // Deactivated: stop visiting this particle for the remainder of
+                        // this call's substeps (the STAT>0 guard above skips it from here on).
+                        continue;
                         }
                     }else{
                         if (lower_boundary_cond == BC_REFLECTIVE) {
@@ -614,10 +570,19 @@ void do_ptm_update()
             }
         }
       }
+      // Re-bin every particle's LAYR from its just-updated HGHT every
+      // sub_steps_layer_recalc substeps (not every single one - ptm_update_layerid()
+      // scans all max_particle_num slots, so doing it all 60 times per host step is
+      // expensive). K_z/K_prime_z above can therefore lag a particle's true layer by
+      // up to sub_steps_layer_recalc-1 substeps after it actually crosses a boundary.
+      if((tt + 1) % sub_steps_layer_recalc == 0 && tt+1 != sub_steps){
+          ptm_update_layerid();
+      }
     }
-    ptm_step_global++;
 
-    ptm_update_layerid();     // assign layers to active particles
+    ptm_update_layerid();   // safety net: keep LAYR current even if sub_steps isn't
+                            // an exact multiple of sub_steps_layer_recalc
+    ptm_step_global++;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -856,21 +821,16 @@ void ptm_update_layerid()
  *      This routine redistributes particles using a random walk function     *
  *                                                                            *
  ******************************************************************************/
-AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel, AED_REAL rand_draw)
+AED_REAL random_walk(AED_REAL dt_secs, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel, AED_REAL rand_draw)
 {
 //LOCALS
 
     AED_REAL updated_height;
-    AED_REAL del_t;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
 
-    del_t = dt*60; // number of minutes (dt) times seconds per minute
-
-    // rand_draw: a uniform draw in [-1,1] supplied by the caller (do_ptm_update, via
-    // ptm_rand01()) rather than pulled from libc's rand() here - see the header
-    // comment on ptm_rand01() for why.
+    // rand_draw: a uniform draw in [-1,1], supplied by the caller (do_ptm_update).
 
     // Visser (1997) random-walk correction for depth-varying diffusivity:
     //   z(t+dt) = z(t) + K'(z)*dt + R * sqrt(2 * K(z + 0.5*K'(z)*dt) * dt / r)
@@ -879,14 +839,14 @@ AED_REAL random_walk(AED_REAL dt, AED_REAL Height, AED_REAL K_z, AED_REAL K_prim
     // A POSITION - GLM only hands this function per-layer diffusivity rather than a
     // continuous profile, so K_z (the particle's current layer, already floored to
     // ptm_diffusivity by the caller) stands in for that evaluation.
-    updated_height = Height + K_prime_z * del_t + rand_draw *
-    sqrt((2 * K_z * del_t) / (1.0/3)); // random walk
+    updated_height = Height + K_prime_z * dt_secs + rand_draw *
+    sqrt((2 * K_z * dt_secs) / (1.0/3)); // random walk
 
-    updated_height = updated_height + vvel * del_t;   // account for sinking/floating;
-                                                      // vvel is per second so needs to
-                                                      // be multiplied by del_t which
-                                                      // is number of seconds of random
-                                                      // walk timestep
+    updated_height = updated_height + vvel * dt_secs;   // account for sinking/floating;
+                                                        // vvel is per second so needs to
+                                                        // be multiplied by dt_secs, the
+                                                        // duration of this random walk
+                                                        // substep
 
     return updated_height;
 }
