@@ -291,7 +291,11 @@ AED_REAL particle_diameter = 1e-6;
 AED_REAL settling_velocity = 0.;
 //CLOGICAL do_particle_bgc = FALSE;
 int init_particle_num = 10;
-AED_REAL settling_efficiency = 1.;
+AED_REAL settling_efficiency = 0.;   // d-1; 0 = disabled. Was 1.0, meaning "always settle
+                                      // when triggered" under the old per-substep-probability
+                                      // semantics - now a per-day RATE (see do_ptm_update() in
+                                      // glm_ptm.c), so that old value would silently mean
+                                      // something very different (a 1/day settling rate).
 AED_REAL *inflow_conc = 0;    //# number of particles per cubic meter in the inflow
 
 partgroup *Particles = NULL;

@@ -410,7 +410,7 @@ void do_ptm_update()
 {
 //LOCALS
     int p, tt, ij1, ij2, sub_steps, sub_steps_layer_recalc, pg, layr;
-    AED_REAL dt_secs, K_z, K_above, K_prime_z, rand_draw;
+    AED_REAL dt_secs, K_z, K_above, K_prime_z, rand_draw, settling_efficiency_substep;
     float rand_float, prob, prev_height, x1, x2, y1, y2, a1, a2;
 
 /*----------------------------------------------------------------------------*/
@@ -430,6 +430,14 @@ void do_ptm_update()
     if (sub_steps < 1) sub_steps = 1;
     sub_steps_layer_recalc = sub_steps;   // recalc particle LAYR (and thus K_z/K_prime_z) every this many substeps
     dt_secs = dt/sub_steps;               // seconds
+
+    // settling_efficiency (namelist &particles) is a per-day rate (d-1), same convention
+    // as every other rate parameter in this codebase (e.g. mort_prob in aed_phyto_abm.F90)
+    // - NOT a flat per-substep probability, which would silently change the effective
+    // per-day settling rate whenever sub_steps changes (i.e. whenever ptm_time_step or the
+    // host dt changes). Converted to this call's per-substep probability via the standard
+    // constant-hazard-rate formula, evaluated once per call since dt_secs is fixed here.
+    settling_efficiency_substep = 1.0 - exp(-settling_efficiency * dt_secs / 86400.0);
 
     // Outer loop over substeps, inner loop over particles. LAYR (and so K_z/
     // K_prime_z, recomputed below from the particle's CURRENT layer every
@@ -522,11 +530,12 @@ void do_ptm_update()
                 prob = (a1 - a2) / a1;
 
                 // Bernoulli draw to determine if particle should be assigned as BED;
-                // if triggered, a second draw tests settling_efficiency.
+                // if triggered, a second draw tests settling_efficiency_substep (this
+                // call's per-substep equivalent of the per-day settling_efficiency rate).
                 rand_float = (float)rand() / (float)RAND_MAX;
                 if(rand_float < prob){
                     rand_float = (float)rand() / (float)RAND_MAX;
-                    if(rand_float < settling_efficiency){
+                    if(rand_float < settling_efficiency_substep){
                         _PTM_Stat(pg,p,FLAG) = BED;
                         if(sed_deactivation){
                         _PTM_Stat(pg,p,STAT) = 0;
