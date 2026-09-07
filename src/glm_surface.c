@@ -108,7 +108,7 @@ static AED_REAL  Q_underflow;  // Heat flux through water due to flow under the 
 
 //static AED_REAL  snow_rain_compact = 1. ; //update based on timestep and scaling
 
-void recalc_surface_salt(void);
+void recalc_surface_salt_wq(void);
 
 AED_REAL calculate_qsw(int kDays, int mDays, int iclock,
                        AED_REAL Latitude, AED_REAL SWOld,
@@ -542,7 +542,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
                     Lake[surfLayer].Height = Lake[surfLayer].Height+MetData.Rain;
                     SurfData.dailyRain += MetData.Rain * Lake[surfLayer].LayerArea;
-                    recalc_surface_salt();
+                    recalc_surface_salt_wq();
 
                     if (Temp_ice == Temp_melt)
                         Q_rain = SPHEAT*(MetData.AirTemp-Temp_ice)*(MetData.Rain)/noSecs;
@@ -588,7 +588,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                 if (MetData.AirTemp > 0.0) {
                     Lake[surfLayer].Height = Lake[surfLayer].Height+MetData.Rain;
                     SurfData.dailyRain += MetData.Rain * Lake[surfLayer].LayerArea;
-                    recalc_surface_salt();
+                    recalc_surface_salt_wq();
 
                     if (Temp_ice == Temp_melt)
                         Q_rain = SPHEAT*(MetData.AirTemp-Temp_ice)*(MetData.Rain)/noSecs;
@@ -630,7 +630,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
             Q_snowice = (Q_whiteice*SurfData.delzSnow)/(2.0*K_snow);
             SurfData.delzSnow = BuoyantPotential;
 
-            recalc_surface_salt();
+            recalc_surface_salt_wq();
 
         } else {
             dHt_WhiteIce = 0.0;
@@ -913,7 +913,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                 if ((SurfData.delzSnow-SurfData.dHt) < 0.0)SurfData.dHt = SurfData.delzSnow;
                 SurfData.delzSnow = SurfData.delzSnow-SurfData.dHt;
                 Lake[surfLayer].Height += SurfData.dHt*(rho_snow/Lake[surfLayer].Density);
-                recalc_surface_salt();
+                recalc_surface_salt_wq();
 
             } else if (SurfData.delzWhiteIce > 0.){
                 // Otherwise melt the white ice
@@ -925,7 +925,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                 SurfData.delzWhiteIce -= SurfData.dHt;
 
                 Lake[surfLayer].Height += SurfData.dHt*(rho_ice_white/Lake[surfLayer].Density);
-                recalc_surface_salt();
+                recalc_surface_salt_wq();
 
             } else {
                 // Lastly, melt the blue ice
@@ -936,7 +936,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                 SurfData.delzBlueIce = SurfData.delzBlueIce-SurfData.dHt;
 
                 Lake[surfLayer].Height += SurfData.dHt*(rho_ice_blue/Lake[surfLayer].Density);
-                recalc_surface_salt();
+                recalc_surface_salt_wq();
             }   // end melting snow/white/blue ice
 
         } // end melting if
@@ -1014,7 +1014,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
       + SurfData.delzWhiteIce * (rho_ice_white/Lake[surfLayer].Density)
       + SurfData.delzSnow     * (rho_snow/Lake[surfLayer].Density);
 
-      recalc_surface_salt();
+      recalc_surface_salt_wq();
 
       ice = FALSE;
       SurfData.delzBlueIce  = 0.0;
@@ -1101,7 +1101,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
         Lake[surfLayer].Height = Lake[surfLayer].Height
                                -SurfData.dHt*(rho_ice_blue/Lake[surfLayer].Density);
-        recalc_surface_salt();
+        recalc_surface_salt_wq();
     }
 
     /**************************************************************************
@@ -1311,7 +1311,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         //---------------------------------------------------------------------+
         Lake[surfLayer].Height += evapvol / Lake[surfLayer].LayerArea;
 
-        recalc_surface_salt();
+        recalc_surface_salt_wq();
         //recalc_surface_wq();
         resize_internals(1, surfLayer);  // recompute surflayer volume
     }
@@ -1343,7 +1343,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         SurfData.delzSnow       = 0.0;
         Lake[surfLayer].Height -= min_ice_thickness * (rho_ice_blue/Lake[surfLayer].Density);
 
-        recalc_surface_salt();
+        recalc_surface_salt_wq();
     }
     if ((SurfData.delzBlueIce+SurfData.delzWhiteIce) < min_ice_thickness && ice) {
         Lake[surfLayer].Height = Lake[surfLayer].Height
@@ -1351,7 +1351,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                 + SurfData.delzWhiteIce * (rho_ice_white/Lake[surfLayer].Density)
                 + SurfData.delzSnow     * (rho_snow/Lake[surfLayer].Density);
 
-        recalc_surface_salt();
+        recalc_surface_salt_wq();
 
         ice = FALSE;
         SurfData.delzBlueIce  = 0.0;
@@ -1545,9 +1545,10 @@ AED_REAL calculate_qsw(int kDays,          // Days since start of year for yeste
 /******************************************************************************
  * MELTWATER DILUTION
  ******************************************************************************/
-void recalc_surface_salt()
+void recalc_surface_salt_wq()
 {
     AED_REAL OldVol, AddDensity, WaterMass;
+    int wqidx;
 
     OldVol = Lake[surfLayer].LayerVol;
 
@@ -1560,6 +1561,21 @@ void recalc_surface_salt()
 
     Lake[surfLayer].Salinity = Lake[surfLayer].Salinity *
                               (Lake[surfLayer].Density / WaterMass) * OldVol;
+
+    /*------------------------------------------------------------------------*
+     * The water quality variables need the same treatment as salinity: a  *
+     * surface-layer volume change with no solute crossing the boundary must   *
+     * re-concentrate (or dilute) whatever is dissolved in it. Handled here    *
+     * rather than by each caller so the two cannot diverge - every path that  *
+     * changes the surface volume calls this one function, and the ratio uses  *
+     * the SAME OldVol as the salinity rescale above.                          *
+     *                                                                        *
+     * A plain volume ratio, deliberately NOT salinity's density-weighted form *
+     * - salinity is a mass fraction, the WQ variables are already per volume. *
+     *------------------------------------------------------------------------*/
+    if ( wq_calc && OldVol > zero && Lake[surfLayer].LayerVol > zero )
+        for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
+            _WQ_Vars(wqidx, surfLayer) *= OldVol / Lake[surfLayer].LayerVol;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
