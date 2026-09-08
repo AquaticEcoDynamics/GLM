@@ -39,6 +39,11 @@
   #include <unistd.h>
 #else
   #include <direct.h>
+  #ifndef S_ISDIR
+  #define S_ISDIR(mode) (mode & _S_IFDIR)
+  #endif
+  #define mkdir(path, mode) _mkdir(path)
+  #define stat _stat
 #endif
 
 #include "glm.h"
@@ -76,9 +81,9 @@ void mb_add_inflows(AED_REAL vol, AED_REAL inTemp, AED_REAL inSalt, AED_REAL *wq
     for (i = 0; i < mbnv; i++) {
         if ( mb_idx[i] == -2 )
             mb_ifvar[i] +=  (inTemp * vol);
-        if ( mb_idx[i] == -1 )
+        else if ( mb_idx[i] == -1 )
             mb_ifvar[i] +=  (inSalt * vol);
-        else
+        else if ( mb_idx[i] >= 0 )
             mb_ifvar[i] += (wq_vars[mb_idx[i]] * vol);
     }
 }
@@ -95,9 +100,9 @@ void mb_sub_outflows(int layer, AED_REAL subvol)
     for (i = 0; i < mbnv; i++) {
         if ( mb_idx[i] == -2 )
             mb_ofvar[i] +=  (Lake[layer].Temp * subvol);
-        if ( mb_idx[i] == -1 )
+        else if ( mb_idx[i] == -1 )
             mb_ofvar[i] +=  (Lake[layer].Salinity * subvol);
-        else
+        else if ( mb_idx[i] >= 0 )
             mb_ofvar[i] += (_WQ_Vars(mb_idx[i], layer) * subvol);
     }
 }
@@ -111,8 +116,22 @@ void open_balance(const char *out_dir, const char *balance_fname,
               int balance_varnum, const char**balance_vars, const char *timefmt)
 {
     int i;
-    size_t l;
+    size_t l, vlen;
     VARNAME mbs;
+    struct stat sb;
+
+    if ( out_dir != NULL ) {
+        if ( stat(out_dir, &sb) ) {
+            fprintf(stderr, "Directory \"%s\" does not exist - attempting to create it\n", out_dir);
+            if ( mkdir(out_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) ) {
+                fprintf(stderr, "mkdir failed\n");
+                exit(1);
+            }
+        } else if ( ! S_ISDIR(sb.st_mode) ) {
+            fprintf(stderr, "Name given in out_dir (%s) is not a directory\n", out_dir);
+            exit(1);
+        }
+    }
 
     if ( (mbf = open_csv_output(out_dir, balance_fname)) < 0 ) {
         fprintf(stderr, "Failed to create '%s'\n", balance_fname);
@@ -143,8 +162,12 @@ void open_balance(const char *out_dir, const char *balance_fname,
         else if ( strcmp(balance_vars[i], "Salt") == 0 )
              mb_idx[i] = -1;
         else {
-            l = strlen(balance_vars[i]);
-            mb_idx[i] = wq_var_index_c(balance_vars[i], &l);
+            vlen = strlen(balance_vars[i]);
+            mb_idx[i] = wq_var_index_c(balance_vars[i], &vlen);
+            if ( mb_idx[i] < 0 ) {
+                fprintf(stderr, "Cannot find \"%s\" for mass balance output\n", balance_vars[i]);
+                mb_idx[i] = -3;
+            }
         }
     }
     csv_header_end(mbf);
@@ -170,17 +193,18 @@ void write_balance(int jday)
 
     for (i = 0; i < mbnv; i++) {
         write_csv_val(mbf, mb_ifvar[i]);
-        write_csv_val(mbf, mb_ofvar[i]);
 
-        for (j = 0; j < surfLayer; j++) {
+        for (j = 0; j <= surfLayer; j++) {
             if ( mb_idx[i] == -2 )
                  mb_lkvar[i] +=  (Lake[j].Temp * Lake[j].LayerVol);
-            if ( mb_idx[i] == -1 )
+            else if ( mb_idx[i] == -1 )
                  mb_lkvar[i] +=  (Lake[j].Salinity * Lake[j].LayerVol);
-            else
+            else if ( mb_idx[i] >= 0 )
                  mb_lkvar[i] +=  (_WQ_Vars(mb_idx[i], j) * Lake[j].LayerVol);
         }
         write_csv_val(mbf, mb_lkvar[i]);
+
+        write_csv_val(mbf, mb_ofvar[i]);
 
         mb_ifvar[i] = 0.0;
         mb_ofvar[i] = 0.0;
