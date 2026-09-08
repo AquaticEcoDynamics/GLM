@@ -300,7 +300,7 @@ AED_REAL oxy_do_recirculation(AED_REAL day_fraction)
     if ( oxygenation_mode != 3 ) return zero;
 
     //# Volume to recirculate this step (oxy_recirc_flow is m3/s).
-    want_vol = oxy_recirc_flow * SecsPerDay * day_fraction;
+    want_vol = oxy_recirc_flow * day_fraction;
     if ( want_vol <= zero ) return zero;
 
     //# 1. Withdraw at the withdrawal height, capturing T/S/WQ of that water.
