@@ -131,6 +131,7 @@ MODULE glm_api_aed
    AED_REAL,DIMENSION(:),POINTER :: rad
    AED_REAL,DIMENSION(:),POINTER :: rho
    AED_REAL,DIMENSION(:),POINTER :: area
+   AED_REAL,DIMENSION(:),POINTER :: lvol
    AED_REAL,DIMENSION(:),POINTER :: extc
    AED_REAL,DIMENSION(:),POINTER :: layer_stress
    AED_REAL,DIMENSION(:),POINTER :: cvel
@@ -168,6 +169,11 @@ MODULE glm_api_aed
 
    TYPE(aed_part_group_t),DIMENSION(:),ALLOCATABLE :: ptm_bla
 
+   !# Bound directly to the C global of the same name in glm_ptm.c, so the single
+   !# &particles/particle_random_seed setting drives both RNGs. glm_init.c has already
+   !# resolved it (replacing 0 with a wall-clock value) before api_init_glm is reached.
+   CINTEGER,BIND(C, name="particle_random_seed") :: particle_random_seed
+
 
 !===============================================================================
 CONTAINS
@@ -194,6 +200,15 @@ SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
 !-------------------------------------------------------------------------------
 !BEGIN
    CALL make_string(fname, i_fname, len)
+
+   !# Seed the Fortran intrinsic RNG (used by the ABM's stochastic mortality and trait
+   !# mutation in aed_phyto_abm.F90 / aed_pibm_utils.F90) from the SAME value the C side
+   !# uses, so one namelist knob controls both. Without this, random_number() ran on the
+   !# compiler's default sequence while the C RNG was wall-clock seeded, leaving the model
+   !# half-frozen and half-random with no run reproducible.
+   !# Ordering: glm_init.c reads &particles (and resolves seed 0 to a wall-clock value)
+   !# well before it calls wq_init_glm, which dispatches here - so the value is final.
+   CALL seed_fortran_rng()
 
    conf%glm_style_zones = .TRUE.
 
@@ -245,6 +260,34 @@ END SUBROUTINE api_init_glm
 
 
 !###############################################################################
+SUBROUTINE seed_fortran_rng()
+!-------------------------------------------------------------------------------
+! Seed the intrinsic Fortran RNG from particle_random_seed (set in &particles and
+! already resolved C-side, where 0 was replaced by a wall-clock value). Keeps the
+! ABM's stochastic mortality and trait mutation reproducible for a fixed seed, and
+! genuinely varying between ensemble members.
+!-------------------------------------------------------------------------------
+!LOCALS
+   INTEGER :: n, i
+   INTEGER,ALLOCATABLE :: sd(:)
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   CALL random_seed(size = n)
+   ALLOCATE(sd(n))
+   !# Spread the single seed across the generator's state vector. The odd multiplier
+   !# keeps successive elements from being trivially correlated.
+   DO i = 1, n
+      sd(i) = INT(particle_random_seed) + 37 * (i - 1)
+   ENDDO
+   CALL random_seed(put = sd)
+   DEALLOCATE(sd)
+   print *,'    AED RNG seeded from particle_random_seed = ', particle_random_seed
+END SUBROUTINE seed_fortran_rng
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
 SUBROUTINE api_set_glm_env()
 !-------------------------------------------------------------------------------
 !ARGUMENTS
@@ -275,6 +318,7 @@ SUBROUTINE api_set_glm_env()
    !# Set pointers to GLMs dynamic variables that will be updated later (in do_glm_wq)
    lheights => theLake%Height
    area     => theLake%LayerArea
+   lvol     => theLake%LayerVol
    temp     => theLake%Temp
    salt     => theLake%Salinity
    rho      => theLake%Density
@@ -363,6 +407,7 @@ SUBROUTINE api_set_glm_env()
    env(1)%depth         => depth
    env(1)%area          => layer_area   ! incremental area; cumulative theLake%LayerArea still available via 'area'
    env(1)%dz            => dz
+   env(1)%vol           => lvol
 
    env(1)%temp          => temp
    env(1)%salt          => salt

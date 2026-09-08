@@ -138,7 +138,7 @@ void write_glm_restart(const char *fn)
                              &dim_sedlayers));
 
     /* PTM dimensions (only defined when particles are active) */
-    static const int PTM_STAT_NVARS = 6; /* STAT,IDX2,IDX3,LAYR,FLAG,PTID */
+    static const int PTM_STAT_NVARS = 7; /* STAT,IDX2,IDX3,LAYR,FLAG,PTID,GRP */
     static const int PTM_ENV_NVARS  = 5; /* MASS,DIAM,DENS,VVEL,HGHT (n_ptm_env) */
     int dim_ptm_par = -1, dim_ptm_sv = -1, dim_ptm_wqv = -1;
     int ptm_enabled = (ptm_sw && PTM_Stat != NULL && max_particle_num > 0) ? 1 : 0;
@@ -838,42 +838,66 @@ int read_glm_restart(const char *fn)
         free(stbuf); free(hfbuf); free(ztbuf);
     }
 
-    /* ---- PTM particle state ---- */
-    {
-        int att_ptm_en = 0, att_max_ptm = 0, att_ptm_vars = 0;
-        /* Use nc_get_att_int without RST_CHECK — attribute may be absent in
-         * older restart files; errors here are non-fatal. */
-        nc_get_att_int(ncid, NC_GLOBAL, "ptm_enabled",     &att_ptm_en);
-        nc_get_att_int(ncid, NC_GLOBAL, "max_particle_num",&att_max_ptm);
-        nc_get_att_int(ncid, NC_GLOBAL, "Num_PTM_Vars",    &att_ptm_vars);
-
-        if (att_ptm_en) {
-            if (!ptm_sw || PTM_Stat == NULL) {
-                fprintf(stderr, "     WARNING: restart has PTM state but "
-                        "ptm_sw is off; particle state skipped.\n");
-            } else if (att_max_ptm != max_particle_num) {
-                fprintf(stderr, "     WARNING: restart max_particle_num (%d) "
-                        "!= current (%d); particle state skipped.\n",
-                        att_max_ptm, max_particle_num);
-            } else if (att_ptm_vars != Num_PTM_Vars) {
-                fprintf(stderr, "     WARNING: restart Num_PTM_Vars (%d) "
-                        "!= current (%d); particle state skipped.\n",
-                        att_ptm_vars, Num_PTM_Vars);
-            } else {
-                int _id;
-                RST_CHECK(nc_inq_varid(ncid, "ptm_stat", &_id));
-                RST_CHECK(nc_get_var_int(ncid, _id, PTM_Stat));
-                RST_CHECK(nc_inq_varid(ncid, "ptm_vars", &_id));
-                RST_CHECK(nc_get_var_double(ncid, _id, PTM_Vars));
-            }
-        } else if (ptm_sw && PTM_Stat != NULL) {
-            fprintf(stderr, "     WARNING: ptm_sw is on but restart has no "
-                    "PTM state; particles initialised from scratch.\n");
-        }
-    }
+    /* PTM particle state is NOT restored here - see read_glm_restart_ptm()
+     * below and the comment on read_glm_restart() in glm_restart.h. At this
+     * point in initialise_lake(), ptm_init_glm() has not run yet, so
+     * PTM_Stat/PTM_Vars are not allocated. */
 
     nc_close(ncid);
     rst_ncid_ = -1;
     Restart_loaded = 1;
     return 1;
+}
+/*----------------------------------------------------------------------------*/
+
+
+/*----------------------------------------------------------------------------*/
+/* read_glm_restart_ptm                                                       */
+/*----------------------------------------------------------------------------*/
+int read_glm_restart_ptm(const char *fn)
+{
+    int ncid;
+    int err;
+    int att_ptm_en = 0, att_max_ptm = 0, att_ptm_vars = 0;
+
+    err = nc_open(fn, NC_NOWRITE, &ncid);
+    if (err != NC_NOERR) return 0; /* read_glm_restart() already reported/handled this */
+    rst_ncid_ = ncid;
+
+    /* Use nc_get_att_int without RST_CHECK — attribute may be absent in
+     * older restart files; errors here are non-fatal. */
+    nc_get_att_int(ncid, NC_GLOBAL, "ptm_enabled",     &att_ptm_en);
+    nc_get_att_int(ncid, NC_GLOBAL, "max_particle_num",&att_max_ptm);
+    nc_get_att_int(ncid, NC_GLOBAL, "Num_PTM_Vars",    &att_ptm_vars);
+
+    if (att_ptm_en) {
+        if (!ptm_sw || PTM_Stat == NULL) {
+            fprintf(stderr, "     WARNING: restart has PTM state but "
+                    "ptm_sw is off; particle state skipped.\n");
+        } else if (att_max_ptm != max_particle_num) {
+            fprintf(stderr, "     WARNING: restart max_particle_num (%d) "
+                    "!= current (%d); particle state skipped.\n",
+                    att_max_ptm, max_particle_num);
+        } else if (att_ptm_vars != Num_PTM_Vars) {
+            fprintf(stderr, "     WARNING: restart Num_PTM_Vars (%d) "
+                    "!= current (%d); particle state skipped.\n",
+                    att_ptm_vars, Num_PTM_Vars);
+        } else {
+            int _id;
+            RST_CHECK(nc_inq_varid(ncid, "ptm_stat", &_id));
+            RST_CHECK(nc_get_var_int(ncid, _id, PTM_Stat));
+            RST_CHECK(nc_inq_varid(ncid, "ptm_vars", &_id));
+            RST_CHECK(nc_get_var_double(ncid, _id, PTM_Vars));
+            nc_close(ncid);
+            rst_ncid_ = -1;
+            return 1;
+        }
+    } else if (ptm_sw && PTM_Stat != NULL) {
+        fprintf(stderr, "     WARNING: ptm_sw is on but restart has no "
+                "PTM state; particles initialised from scratch.\n");
+    }
+
+    nc_close(ncid);
+    rst_ncid_ = -1;
+    return 0;
 }
