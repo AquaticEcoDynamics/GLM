@@ -299,8 +299,8 @@ AED_REAL oxy_do_recirculation(AED_REAL day_fraction)
 
     if ( oxygenation_mode != 3 ) return zero;
 
-    //# Volume to recirculate this step (oxy_recirc_flow is m3/s).
-    want_vol = oxy_recirc_flow * SecsPerDay * day_fraction;
+    //# Volume to recirculate this step (oxy_recirc_flow is m3/day).
+    want_vol = oxy_recirc_flow * day_fraction;
     if ( want_vol <= zero ) return zero;
 
     //# 1. Withdraw at the withdrawal height, capturing T/S/WQ of that water.
@@ -327,6 +327,11 @@ AED_REAL oxy_do_recirculation(AED_REAL day_fraction)
             _WQ_Vars(wqidx, L) = combine_vol(_WQ_Vars(wqidx, L), Lake[L].LayerVol,
                                              cap_wq[wqidx], drawn);
     }
+
+    //# Optional saturation cap, same as the direct-addition devices (do_oxygenation).
+    if ( oxy_o2_idx >= 0 && oxy_max > zero && _WQ_Vars(oxy_o2_idx, L) > oxy_max )
+        _WQ_Vars(oxy_o2_idx, L) = oxy_max;
+
     Lake[L].Density = calculate_density(Lake[L].Temp, Lake[L].Salinity);
     Lake[L].LayerVol = Lake[L].LayerVol + drawn;
 
