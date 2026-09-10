@@ -476,8 +476,7 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
    ! that value instead of superseding it, silently doubling every
    ! zone-averaged, rezero=.TRUE. sheet diagnostic (e.g. aed_environ's
    ! ENV_air_temp, ENV_wind_speed, ENV_humidity, ...) whenever benthic zones
-   ! are active. rezero=.FALSE. sheet diagnostics (e.g. CGM's running
-   ! averages cgm_tavg/lavg/savg and slough counters) are deliberately left
+   ! are active. rezero=.FALSE. sheet diagnostics are deliberately left
    ! untouched here - this loop's accumulation across timesteps is how they
    ! are meant to persist. (ch4_ebb_dsfv is NOT an example of this: it is a
    ! per-layer diagnostic, not a sheet one, so tvar%sheet is .FALSE. for it
