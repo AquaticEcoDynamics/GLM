@@ -400,6 +400,7 @@ extern AED_REAL oxy_recirc_withdraw_height; //# height above bottom to withdraw 
 extern AED_REAL oxy_recirc_return_height;   //# height above bottom to return to (m)
 extern AED_REAL oxy_recirc_flow;            //# recirculation rate (m3/s, or from CSV)
 extern AED_REAL oxy_recirc_add;             //# O2 mass loading rate (mass/day, or from CSV)
+extern AED_REAL oxy_recirc_factor;          //# scale factor applied to oxy_recirc_flow & oxy_recirc_add
 
 /*----------------------------------------------------------------------------*/
 // DEBUGGING

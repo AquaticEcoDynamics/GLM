@@ -119,6 +119,11 @@ void init_oxygenation(void)
             fprintf(stderr, "ERROR: oxygenation: recirc withdraw/return heights must be >= 0\n");
             exit(1);
         }
+        if ( oxy_recirc_factor <= 0.0 ) {
+            fprintf(stderr, "ERROR: oxygenation: oxy_recirc_factor must be > 0 (got %.4g)\n",
+                    oxy_recirc_factor);
+            exit(1);
+        }
     }
 }
 
@@ -154,9 +159,10 @@ void check_oxygenation_config(void)
     }
 
     if ( oxygenation_mode == 3 )
-        printf("  recirculation: withdraw %.2f m -> return %.2f m, flow=%.4g m3/s, load=%.4g /day%s\n",
+        printf("  recirculation: withdraw %.2f m -> return %.2f m, flow=%.4g m3/s, load=%.4g /day, "
+               "factor=%.4g%s\n",
                oxy_recirc_withdraw_height, oxy_recirc_return_height,
-               oxy_recirc_flow, oxy_recirc_add,
+               oxy_recirc_flow, oxy_recirc_add, oxy_recirc_factor,
                (recirc_file.csv >= 0) ? " [CSV]" : "");
 }
 
@@ -293,14 +299,15 @@ AED_REAL do_oxygenation(AED_REAL day_fraction)
 AED_REAL oxy_do_recirculation(AED_REAL day_fraction)
 {
     int wqidx, L, j;
-    AED_REAL want_vol, drawn, inject_density, total = zero;
+    AED_REAL want_vol, drawn, inject_density, total = zero, dose;
     AED_REAL cap_temp = 0.0, cap_salt = 0.0;
     AED_REAL cap_wq[MaxVars];
 
     if ( oxygenation_mode != 3 ) return zero;
 
-    //# Volume to recirculate this step (oxy_recirc_flow is m3/day).
-    want_vol = oxy_recirc_flow * day_fraction;
+    //# Volume to recirculate this step (oxy_recirc_flow is m3/day), rescaled
+    //# by oxy_recirc_factor (default 1.0 = no change).
+    want_vol = oxy_recirc_flow * oxy_recirc_factor * day_fraction;
     if ( want_vol <= zero ) return zero;
 
     //# 1. Withdraw at the withdrawal height, capturing T/S/WQ of that water.
@@ -308,10 +315,12 @@ AED_REAL oxy_do_recirculation(AED_REAL day_fraction)
                                &cap_temp, &cap_salt, cap_wq);
     if ( drawn <= zero ) return zero;
 
-    //# 2. Add O2 to the captured stream (mass/day scaled to this step).
+    //# 2. Add O2 to the captured stream (mass/day scaled to this step),
+    //# rescaled by oxy_recirc_factor (default 1.0 = no change).
     if ( oxy_o2_idx >= 0 && Num_WQ_Vars > 0 ) {
-        cap_wq[oxy_o2_idx] += (oxy_recirc_add * day_fraction) / drawn;
-        total = oxy_recirc_add * day_fraction;
+        dose = oxy_recirc_add * oxy_recirc_factor * day_fraction;
+        cap_wq[oxy_o2_idx] += dose / drawn;
+        total = dose;
     }
 
     //# 3. Re-inject the captured water at the return height (mass conserved).

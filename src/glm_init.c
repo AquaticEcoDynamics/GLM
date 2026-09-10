@@ -737,6 +737,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "oxy_recirc_return_height",   TYPE_DOUBLE,       &oxy_recirc_return_height   },
           { "oxy_recirc_flow",            TYPE_DOUBLE,       &oxy_recirc_flow            },
           { "oxy_recirc_add",             TYPE_DOUBLE,       &oxy_recirc_add             },
+          { "oxy_recirc_factor",          TYPE_DOUBLE,       &oxy_recirc_factor          },
           { "time_fmt",                   TYPE_STR,          &timefmt_oxy               },
           { NULL,                         TYPE_END,          NULL                       }
     };

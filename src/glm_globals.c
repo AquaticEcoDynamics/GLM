@@ -276,6 +276,8 @@ AED_REAL oxy_recirc_withdraw_height = 0.0;   //# Height above bottom to withdraw
 AED_REAL oxy_recirc_return_height = 0.0;     //# Height above bottom to return to (m)
 AED_REAL oxy_recirc_flow = 0.0;              //# Recirculation rate (m3/s)
 AED_REAL oxy_recirc_add = 0.0;                //# O2 mass loading rate (mass/day)
+AED_REAL oxy_recirc_factor = 1.0;             //# Multiplicative scale factor applied to
+                                               //# oxy_recirc_flow & oxy_recirc_add (mode 3)
 
 //------------------------------------------------------------------------------
 // LITTORAL
