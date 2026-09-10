@@ -400,8 +400,28 @@ SUBROUTINE copy_from_zone(n_aed_vars, x_cc, x_diag, x_diag_hz, wlev)
       ENDIF
    ENDDO
 
-   ! IF column_benthic_var_averaging, set single-value to the mean, weighted by area
+   ! Set single-value (lake-wide) sheet diagnostics to the mean of the zones,
+   ! weighted by area. Re-zero only the rezero=.TRUE. sheet diagnostics here:
+   ! aed_run_model/aed_run_column also calls aed_calculate_riparian once,
+   ! unconditionally, for the whole (non-zoned) column before this per-zone
+   ! aggregation runs; that call writes a correct single-pass value into the
+   ! same sheet-diagnostic slots via a plain assignment. Without re-zeroing,
+   ! this loop's "+=" accumulates on top of that value instead of superseding
+   ! it, silently doubling every zone-averaged, rezero=.TRUE. sheet diagnostic
+   ! (e.g. aed_environ's ENV_air_temp, ENV_wind_speed, ENV_humidity, ...)
+   ! whenever benthic zones are active. rezero=.FALSE. diagnostics (e.g. CGM
+   ! running averages, ch4_ebb_dsfv) are deliberately left untouched here -
+   ! this loop's accumulation across timesteps is how they are meant to persist.
    area = SUM(theZones(1:n_zones)%zarea)
+   j = 0
+   DO i=1,n_aed_vars
+      IF ( aed_get_var(i, tvar) ) THEN
+         IF ( tvar%var_type == V_DIAGNOSTIC .AND. tvar%sheet ) THEN
+            j = j + 1
+            IF ( tvar%rezero ) x_diag_hz(j) = 0.
+         ENDIF
+      ENDIF
+   ENDDO
    DO zon=1, n_zones
       x_diag_hz = x_diag_hz + (z_diag_hz(:, zon) * (theZones(zon)%zarea/area))
    ENDDO

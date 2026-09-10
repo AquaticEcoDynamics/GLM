@@ -467,10 +467,33 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
       ENDIF
    ENDDO
 
-   ! Set the normal sheet diagnostics to the mean of the zone, weighted by area
+   ! Set the normal sheet diagnostics to the mean of the zone, weighted by area.
+   ! Re-zero only the rezero=.TRUE. sheet diagnostics here: aed_run_model calls
+   ! aed_calculate_riparian once, unconditionally, for the whole (non-zoned)
+   ! column before this per-zone aggregation runs; that call writes a correct
+   ! single-pass value into the same sheet-diagnostic slots via a plain
+   ! assignment. Without re-zeroing, this loop's "+=" accumulates on top of
+   ! that value instead of superseding it, silently doubling every
+   ! zone-averaged, rezero=.TRUE. sheet diagnostic (e.g. aed_environ's
+   ! ENV_air_temp, ENV_wind_speed, ENV_humidity, ...) whenever benthic zones
+   ! are active. rezero=.FALSE. sheet diagnostics (e.g. CGM's running
+   ! averages cgm_tavg/lavg/savg and slough counters) are deliberately left
+   ! untouched here - this loop's accumulation across timesteps is how they
+   ! are meant to persist. (ch4_ebb_dsfv is NOT an example of this: it is a
+   ! per-layer diagnostic, not a sheet one, so tvar%sheet is .FALSE. for it
+   ! and this loop never touches it at all.)
    area = 0.
    DO zon=1,n_zones
       area = area + aedZones(zon)%z_env%z_area
+   ENDDO
+   j = 0
+   DO i=1,n_aed_vars
+      IF ( aed_get_var(i, tvar) ) THEN
+         IF ( tvar%var_type == V_DIAGNOSTIC .AND. tvar%sheet ) THEN
+            j = j + 1
+            IF ( tvar%rezero ) x_diag_hz(j) = 0.
+         ENDIF
+      ENDIF
    ENDDO
    DO zon=1,n_zones
       x_diag_hz = x_diag_hz + (z_diag_hz(:,zon) * (aedZones(zon)%z_env%z_area/area))

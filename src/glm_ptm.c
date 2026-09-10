@@ -89,7 +89,6 @@ int  ptm_free_pop(void);        /* also BIND(C)-called from aed_phyto_abm.F90 */
 /*============================================================================*/
 
 //CONSTANTS
-int num_particle_grp=1;
 AED_REAL init_depth_min=0.0;
 AED_REAL init_depth_max=2.0;
 AED_REAL ptm_time_step=1.0/60.0;
@@ -203,10 +202,11 @@ static AED_REAL draw_height_in_range(AED_REAL lo, AED_REAL hi)
 /******************************************************************************
  *                                                                            *
  *    Free-slot queue (FIFO) for the domain's single particle group (pg=0 -   *
- *    see the "not used" note on num_particle_grp in &particles: every PTM    *
- *    consumer in this codebase - ptm_addparticles below, and the             *
+ *    every PTM consumer in this codebase - ptm_addparticles below, and the   *
  *    split/recruit/reseed free-slot searches in aed_phyto_abm.F90 - already  *
- *    only ever operates on pg=0). Every one of those searched for a free     *
+ *    only ever operates on pg=0; species identity is instead a per-particle  *
+ *    attribute set from num_phytos in AED's &aed_phyto_abm namelist, not a   *
+ *    separate GLM particle group). Every one of those searched for a free    *
  *    slot by scanning from p=0 until it found one, up to O(max_particle_num) *
  *    per search and repeated many times per call (once per split/recruit/    *
  *    reseed event, and up to MAX_POPMAINTAIN_SPLITS_PER_CALL times in        *
@@ -709,7 +709,7 @@ void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, i
     layer_prop = delta_vol / layer_vol;
     for (p = 0; p < max_particle_num; p++) {
         if(_PTM_Stat(pg,p,STAT) == 1 && _PTM_Stat(pg,p,LAYR) == layer_id){
-            rand_float = ((float)rand())/RAND_MAX;
+            rand_float = ((AED_REAL)rand())/RAND_MAX;
             if(rand_float <= layer_prop){
                 // If particle leaves through outflow, reset completely.
                 //
