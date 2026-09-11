@@ -82,9 +82,7 @@ AED_REAL get_particle_diameter(AED_REAL particle_diameter);
 AED_REAL get_settling_velocity(AED_REAL settling_velocity);
 AED_REAL random_walk(AED_REAL dt_secs, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel, AED_REAL rand_draw);
 static AED_REAL draw_height_in_range(AED_REAL lo, AED_REAL hi);
-static void ptm_free_queue_init(void);
-void ptm_free_push(int slot, int tag);   /* also BIND(C)-called from aed_phyto_abm.F90 */
-int  ptm_free_pop(void);        /* also BIND(C)-called from aed_phyto_abm.F90 */
+static int ptm_next_free_slot(int pg, int max_particle_num);
 
 /*============================================================================*/
 
@@ -201,113 +199,51 @@ static AED_REAL draw_height_in_range(AED_REAL lo, AED_REAL hi)
 
 /******************************************************************************
  *                                                                            *
- *    Free-slot queue (FIFO) for the domain's single particle group (pg=0 -   *
- *    every PTM consumer in this codebase - ptm_addparticles below, and the   *
- *    split/recruit/reseed free-slot searches in aed_phyto_abm.F90 - already  *
- *    only ever operates on pg=0; species identity is instead a per-particle  *
- *    attribute set from num_phytos in AED's &aed_phyto_abm namelist, not a   *
- *    separate GLM particle group). Every one of those searched for a free    *
- *    slot by scanning from p=0 until it found one, up to O(max_particle_num) *
- *    per search and repeated many times per call (once per split/recruit/    *
- *    reseed event, and up to MAX_POPMAINTAIN_SPLITS_PER_CALL times in        *
- *    population maintenance). This queue turns each of those into an O(1)    *
- *    push/pop, backed by BIND(C)-callable ptm_free_push()/ptm_free_pop() so  *
- *    the Fortran call sites can use it too.                                  *
+ *    Free-slot search for the domain's single particle group (pg=0 - every   *
+ *    PTM consumer in this codebase already only ever operates on pg=0;       *
+ *    species identity is instead a per-particle attribute set from           *
+ *    num_phytos in AED's &aed_phyto_abm namelist, not a separate GLM         *
+ *    particle group).                                                        *
  *                                                                            *
- *    A slot is "free" by the SAME definition ptm_addparticles has always     *
- *    used: STAT==0 && FLAG==EXIT(3). Every place that sets STAT=0 pairs it   *
- *    with FLAG=EXIT(3) EXCEPT do_ptm_update()'s sed_deactivation branch,     *
- *    which leaves FLAG=BED - so that branch deliberately does NOT push onto  *
- *    this queue, preserving ptm_addparticles' pre-existing refusal to reuse  *
- *    those slots (untested here: sed_deactivation is off in the validation   *
- *    case). Unifying the criterion also makes the Fortran free-slot search   *
- *    sites - which previously checked STAT==0 alone, without the FLAG check  *
- *    - consistent with ptm_addparticles' stricter definition.                *
+ *    A slot is "free" when STAT==0 && FLAG==EXIT(3). Every place that sets   *
+ *    STAT=0 pairs it with FLAG=EXIT(3) EXCEPT do_ptm_update()'s              *
+ *    sed_deactivation branch, which leaves FLAG=BED and so deliberately      *
+ *    keeps those slots out of circulation.                                   *
  *                                                                            *
- *    FIFO, not LIFO: the longest-free slot is handed out next, not the       *
- *    most-recently-freed one. A LIFO stack was tried first and is           *
- *    functionally equivalent (no code depends on WHICH slot index a         *
- *    particle occupies, only its PTID) - but it concentrates reuse onto     *
- *    whichever slot was just freed, so a handful of "hot" slots churned      *
- *    through hundreds of different short-lived particles while most of the   *
- *    domain barely reused at all (observed: up to ~400 distinct particles    *
- *    through one slot over a 5-year run, vs "each slot ~6 on average, never  *
- *    more than ~30" under the original scan-from-p=0 approach). Two          *
- *    unrelated particles sharing a hot slot at different times could get     *
- *    sampled into the same species-trajectory plot and, since they occupy    *
- *    the same array cell, visually resemble one trajectory that vanished     *
- *    and reappeared - the reason for switching to FIFO. Implemented as a     *
- *    circular buffer sized to max_particle_num (never more than              *
- *    max_particle_num slots can be free at once); pushed in ascending        *
- *    order at startup so, like before, the very first allocation sequence    *
- *    pops out 0,1,2,... .                                                    *
+ *    The particle array is its own bookkeeping: there is no separate free    *
+ *    list to keep in sync with it, so the two cannot disagree. (A FIFO queue *
+ *    shared with aed_phyto_abm.F90 over BIND(C) was tried and removed - it   *
+ *    made allocation O(1) but coupled the two languages, and forced the      *
+ *    Fortran death paths to recover a global slot number from PTID because   *
+ *    their loop index is layer-local, which caused a real bug.)              *
  *                                                                            *
- *    ptm_free_present[] is a permanent O(1) correctness check, not a         *
- *    leftover debugging aid: it caught a real bug (2026-09) where a Fortran  *
- *    caller pushed the wrong slot number (a per-layer LOCAL loop index,      *
- *    from a context where that index does not equal the global slot -       *
- *    see the comments at aed_particle_bgc_phyto_abm's ptm_free_push() call   *
- *    sites in aed_phyto_abm.F90), silently freeing unrelated - possibly      *
- *    still-active - slots while leaking the true ones. That symptom (a       *
- *    slowly growing shortfall between the queue's belief and the true free   *
- *    count, eventually causing real allocation failures) would otherwise     *
- *    take a full multi-year run to surface and be very hard to trace back    *
- *    to its cause. These checks make any future instance of the same bug     *
- *    class fail loudly, immediately, and at the exact call site, for the     *
- *    cost of one array read/write per push/pop - worth keeping permanently.  *
+ *    ptm_search_cursor resumes the scan where the previous one stopped,      *
+ *    wrapping once. It matters because allocation happens in bursts -        *
+ *    init_particle_num slots in a single startup call, and one per new       *
+ *    particle on every inflow step - and restarting from 0 each time would   *
+ *    make a burst of K cost O(K*max_particle_num). It is only ever a hint:   *
+ *    every candidate is still tested against STAT/FLAG below, so a stale     *
+ *    cursor cannot return a slot that is not genuinely free.                 *
  *                                                                            *
  ******************************************************************************/
-static int  *ptm_free_queue = NULL;
-static int   ptm_free_head = 0;      // next slot to pop is ptm_free_queue[ptm_free_head]
-static int   ptm_free_count = 0;     // number of valid entries currently queued
-static long  ptm_step_global = 0;    // mirrors do_ptm_update()'s per-call step counter; used to timestamp the invariant-check messages below
-static char *ptm_free_present = NULL; // ptm_free_present[s]=1 iff slot s is currently queued - see the header comment above
+static int ptm_search_cursor = 0;   // rolling start position - see below
 
-static void ptm_free_queue_init(void)
+static int ptm_next_free_slot(int pg, int max_particle_num)
 {
-    int p;
+    int k, s;
 
-    if (ptm_free_queue == NULL)
-        ptm_free_queue = malloc((size_t)max_particle_num * sizeof(int));
-    if (ptm_free_present == NULL)
-        ptm_free_present = malloc((size_t)max_particle_num * sizeof(char));
-    memset(ptm_free_present, 1, (size_t)max_particle_num);
-    ptm_free_head = 0;
-    ptm_free_count = max_particle_num;
-    for (p = 0; p < max_particle_num; p++)
-        ptm_free_queue[p] = p;
-}
+    if (max_particle_num <= 0) return -1;
+    if (ptm_search_cursor < 0 || ptm_search_cursor >= max_particle_num)
+        ptm_search_cursor = 0;
 
-void ptm_free_push(int slot, int tag)
-{
-    int tail;
-    if (ptm_free_present[slot]) {
-        fprintf(stderr, "PTM_FREE_DOUBLE_PUSH slot=%d step=%ld count_before=%d tag=%d - "
-                "same slot freed twice without being reused in between; see the header "
-                "comment on ptm_free_present above\n",
-                slot, ptm_step_global, ptm_free_count, tag);
+    for (k = 0; k < max_particle_num; k++) {
+        s = ptm_search_cursor;
+        ptm_search_cursor++;
+        if (ptm_search_cursor >= max_particle_num) ptm_search_cursor = 0;
+        if (_PTM_Stat(pg,s,STAT) == 0 && _PTM_Stat(pg,s,FLAG) == EXIT)
+            return s;
     }
-    ptm_free_present[slot] = 1;
-    tail = (ptm_free_head + ptm_free_count) % max_particle_num;
-    ptm_free_queue[tail] = slot;
-    ptm_free_count++;
-}
-
-int ptm_free_pop(void)
-{
-    int slot;
-    if (ptm_free_count == 0) return -1;
-    slot = ptm_free_queue[ptm_free_head];
-    ptm_free_head = (ptm_free_head + 1) % max_particle_num;
-    ptm_free_count--;
-    if (!ptm_free_present[slot]) {
-        fprintf(stderr, "PTM_FREE_POP_NOT_PRESENT slot=%d step=%ld count_after=%d - "
-                "queue and present-flags disagree; see the header comment on "
-                "ptm_free_present above\n",
-                slot, ptm_step_global, ptm_free_count);
-    }
-    ptm_free_present[slot] = 0;
-    return slot;
+    return -1;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -375,10 +311,9 @@ void ptm_init_glm()
       }
     }
 
-    // Every slot above was just set to STAT=0, FLAG=EXIT(3) - the free-slot
-    // stack's push order (descending) makes the first pops come out ascending,
-    // matching the scan-from-p=0 order ptm_addparticles() below used to use.
-    ptm_free_queue_init();
+    // Every slot above was just set to STAT=0, FLAG=EXIT(3), i.e. the whole pool
+    // is free; ptm_next_free_slot() reads that state directly, so there is nothing
+    // further to initialise here.
 
     // Set initial active particle height within the water column
     upper_height = Lake[surfLayer].Height - init_depth_min;
@@ -591,7 +526,6 @@ void do_ptm_update()
 
     ptm_update_layerid();   // safety net: keep LAYR current even if sub_steps isn't
                             // an exact multiple of sub_steps_layer_recalc
-    ptm_step_global++;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -652,13 +586,12 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
     n = 0;
 
     pg = 0;
-    // For each new particle, initialise their properties and height. Was a scan
-    // from p=0 for the first STAT==0 && FLAG==3 slot, repeated (from p=0 again)
-    // for every one of new_particles - O(max_particle_num) per particle. The
-    // free-slot stack (see its header comment above) uses the SAME criterion,
-    // so this pops exactly the slot that scan would have found.
+    // For each new particle, initialise their properties and height.
+    // ptm_next_free_slot() carries a rolling cursor across calls (see its header
+    // comment above), so allocating new_particles of them costs about one pass
+    // over the pool in total rather than one pass per particle.
     for (n = 0; n < new_particles; n++) {
-        p = ptm_free_pop();
+        p = ptm_next_free_slot(pg, max_particle_num);
         if (p < 0) {
             printf("ptm_addparticles(): WARNING no more available particles; skipping particle initialization");
             break;
@@ -724,11 +657,12 @@ void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, i
                 // Zero the ABM block by loop (not by naming individual variables, which
                 // is exactly the mistake the commented-out lines below made - listing
                 // MASS/DIAM/DENS/VVEL while leaving every biology variable untouched).
+                // STAT=0 / FLAG=EXIT(3) is all that is needed to return the slot to
+                // circulation - ptm_next_free_slot() scans for exactly that.
                 _PTM_Stat(pg,p,STAT) = 0;
                 _PTM_Stat(pg,p,FLAG) = 3;
                 for (int v = 0; v < Num_PTM_Vars; v++)
                     _PTM_Vars(pg,p,PTM_ENV_NVARS + v) = 0.0;
-                ptm_free_push(p, 0);   // tag 0 = C ptm_removeparticles (outflow)
             }
         }
     }
