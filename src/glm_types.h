@@ -41,7 +41,14 @@
 #define MaxPar        37
 #define MaxOut        10000  /* Maximum number of outflows */
 #define MaxInf        10000  /* Maximum number of inflows */
-#define MaxVars       60     /* Maximum number of variables */
+/* Maximum number of water quality variables (pelagic + benthic state).  Raised
+ * from 60 because a single aed_sfmdom (Di Toro two-layer sediment) instance
+ * registers ~45 benthic state variables on its own, which leaves no room for a
+ * realistic water column.  NB footprint: WQIns/WQDown in InflowDataType are
+ * [MaxPar][MaxVars] and Inflows[] is a static [MaxInf] array, so this doubles
+ * that BSS block (demand-zero pages); sizing those by Num_WQ_Vars at runtime
+ * (see the CAB notes in glm_model.c) is the proper long-term fix. */
+#define MaxVars      120     /* Maximum number of variables */
 #define MaxDif   (MaxVars+2) /* Maximum number of diffusing substances */
 #define NPart         10000  /* Maximum number of particles */
 
