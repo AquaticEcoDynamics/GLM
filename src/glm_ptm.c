@@ -832,7 +832,7 @@ AED_REAL get_particle_diameter(AED_REAL particle_diameter)
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-static int h_id, m_id, d_id, dn_id, vv_id, par_id, tem_id, no3_id, nh4_id, frp_id, c_id, n_id, pho_id, chl_id, num_id, cdiv_id, topt_id, lnalphachl_id, stat_id, flag_id, ptid_id, grp_id;
+static int h_id, m_id, d_id, dn_id, vv_id, par_id, tem_id, no3_id, nh4_id, frp_id, c_id, n_id, pho_id, chl_id, num_id, cdiv_id, topt_id, lnalphachl_id, rhochl_id, stat_id, flag_id, ptid_id, grp_id;
 static int set_no_p = -1;
 static size_t start[2],edges[2];
 
@@ -845,7 +845,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
 {
 //LOCALS
     int p,pg;
-    AED_REAL *p_height, *mass, *diam, *density, *vvel, *par, *tem, *no3, *nh4, *frp, *c, *n, *pho, *chl, *num, *cdiv, *topt, *lnalphachl;
+    AED_REAL *p_height, *mass, *diam, *density, *vvel, *par, *tem, *no3, *nh4, *frp, *c, *n, *pho, *chl, *num, *cdiv, *topt, *lnalphachl, *rhochl;
     int *status, *flag, *ptid, *grp;
 
 /*----------------------------------------------------------------------------*/
@@ -875,6 +875,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
     cdiv  = malloc(max_particle_num*sizeof(AED_REAL));
     topt  = malloc(max_particle_num*sizeof(AED_REAL));
     lnalphachl  = malloc(max_particle_num*sizeof(AED_REAL));
+    rhochl  = malloc(max_particle_num*sizeof(AED_REAL));
     status  = malloc(max_particle_num*sizeof(int));
     flag  = malloc(max_particle_num*sizeof(int));
     ptid  = malloc(max_particle_num*sizeof(int));
@@ -900,6 +901,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
         cdiv[p]             = _PTM_Vars(pg,p,VVEL+12);  //internal C threshold for division; REAL
         topt[p]             = _PTM_Vars(pg,p,VVEL+13);  //particle temperature optimum;      REAL
         lnalphachl[p]       = _PTM_Vars(pg,p,VVEL+14); //ln alpha chl of particle;          REAL
+        rhochl[p]           = _PTM_Vars(pg,p,VVEL+15);
         status[p]           = _PTM_Stat(pg,p,STAT);    //Particle[p].Status;                INT
         flag[p]             = _PTM_Stat(pg,p,FLAG);    //Particle[p].Flag;                  INT
         ptid[p]             = _PTM_Stat(pg,p,PTID);    //Particle[p].PTID;                  INT
@@ -924,6 +926,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
     nc_put_vara(ncid, cdiv_id, start, edges, cdiv);
     nc_put_vara(ncid, topt_id, start, edges, topt);
     nc_put_vara(ncid, lnalphachl_id, start, edges, lnalphachl);
+    nc_put_vara(ncid, rhochl_id, start, edges, rhochl);
     nc_put_vara(ncid, stat_id, start, edges, status);
     nc_put_vara(ncid, flag_id, start, edges, flag);
     nc_put_vara(ncid, ptid_id, start, edges, ptid);
@@ -947,6 +950,7 @@ void ptm_write_glm(int ncid, int max_particle_num)
     free(cdiv);
     free(topt);
     free(lnalphachl);
+    free(rhochl);
     free(status);
     free(flag);
     free(ptid);
@@ -988,14 +992,9 @@ void ptm_init_glm_output(int ncid, int time_dim)
    set_nc_attributes(ncid, dn_id, "g/m3", "Density of Particle" PARAM_FILLVALUE);
 
    check_nc_error(nc_def_var(ncid, "particle_vvel", NC_REALTYPE, 2, dims, &vv_id));
-   // Written as _PTM_Vars(..,VVEL)*86400 in ptm_write_glm(), so the stored value is m/day,
-   // not m/s as this was labelled. Sign convention is from random_walk(): updated_height
-   // += vvel*del_t, so positive is upward.
    set_nc_attributes(ncid, vv_id, "m/day", "Settling Velocity of Particle (positive = upward)" PARAM_FILLVALUE);
 
    check_nc_error(nc_def_var(ncid, "particle_par", NC_REALTYPE, 2, dims, &par_id));
-   // W/m2, matching GLM's own 'par' global and the units GMK98_Ind_TempSizeLight declares
-   // for its PAR argument. The previous "ummol m2 sec" label matched neither.
    set_nc_attributes(ncid, par_id, "W/m2", "particle layer PAR" PARAM_FILLVALUE);
 
    check_nc_error(nc_def_var(ncid, "particle_tem", NC_REALTYPE, 2, dims, &tem_id));
@@ -1034,10 +1033,10 @@ void ptm_init_glm_output(int ncid, int time_dim)
    check_nc_error(nc_def_var(ncid, "particle_lnalphachl", NC_REALTYPE, 2, dims, &lnalphachl_id));
    set_nc_attributes(ncid, lnalphachl_id, "(W m-2)-1(gChl molC)-1d-1", "slope of the P-I curve" PARAM_FILLVALUE);
 
-   // Use nc_put_att_text with strlen rather than a hand-counted length (the pattern already
-   // used in glm_restart.c). The literal counts here were copy-pasted and two were wrong:
-   // "Location Flag of Particle" is 25 chars and was being truncated to "Location Flag of P",
-   // while "ID of Particle" is only 14 and the declared 18 read past the end of the literal.
+   check_nc_error(nc_def_var(ncid, "particle_rhochl", NC_REALTYPE, 2, dims, &rhochl_id));
+   set_nc_attributes(ncid, rhochl_id, "gChl/molC",
+       "carbon production allocated to Chl synthesis, carried over from the last daylight period" PARAM_FILLVALUE);
+
    check_nc_error(nc_def_var(ncid, "particle_status", NC_INT, 2, dims, &stat_id));
    nc_put_att_text(ncid, stat_id, "long_name", strlen("Status of Particle"), "Status of Particle");
 
