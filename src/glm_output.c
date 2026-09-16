@@ -57,6 +57,7 @@
 #include "aed_csv.h"
 #include "glm_csv.h"
 #include "glm_ncdf.h"
+#include "glm_oxygenation.h"
 #include "glm_restart.h"
 #include "glm_wqual.h"
 #include "glm_ptm.h"
@@ -502,6 +503,10 @@ void close_output()
 {
     close_glm_ncdf(ncid);
     glm_close_csv_output();
+
+    //# Oxygen budget: says how much of the configured load the oxy_max cap
+    //# actually discarded, which is otherwise invisible in the output.
+    report_oxygenation_summary();
 
 #ifdef PLOTS
     if ( do_plots ) {

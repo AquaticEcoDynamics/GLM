@@ -90,6 +90,11 @@ static AED_REAL *Delta_V = NULL; //# The delta V from each layer taken by outflo
 
 static int checkjday = -1;
 
+//# One-shot latch for the inflow-particle phyto-group warning issued in do_inflows().
+//# Inflow particle insertion runs every inflow step, the limitation it reports is a
+//# fixed property of the build rather than of any one step, so warn once per run.
+static LOGICAL ptm_inflow_grp_warned = FALSE;
+
 LOGICAL seepage = FALSE;
 AED_REAL seepage_rate = 0.0;
 AED_REAL hBot;           //# Height of bottom of withdrawal layer
@@ -1017,6 +1022,33 @@ AED_REAL do_inflows()
                     lower_height = 0.0; if (Layer_subm>botmLayer) lower_height = Lake[Layer_subm-1].Height;
                     double_particles = floor(Inflows[iRiver].ParticleConc * (Inflows[iRiver].FlowRate*Inflows[iRiver].Factor)); //@MEL implement this
                     new_particles = (int) floor(double_particles);
+
+                    /* Inflow particles are NOT assigned a phytoplankton group. ptm_addparticles()
+                     * sets STAT/FLAG/PTID and the physical properties, but never writes
+                     * ptm_istat(GRP) - the new particle inherits whatever group the recycled slot
+                     * already carried: the startup round-robin laid down by
+                     * aed_particle_initialize_phyto_abm(), or the group of the slot's last occupant
+                     * if it has since been claimed by a split or a recruit (ptm_removeparticles()
+                     * zeroes the ABM biology block but leaves ptm_istat alone).
+                     *
+                     * Harmless with a single phyto group - every slot carries group 1 either way.
+                     * With num_phytos > 1 the species mix of inflow particles is a function of run
+                     * history rather than of anything configurable, and drifts toward whichever
+                     * group splits or recruits most into recycled slots. Giving inflows a real
+                     * per-inflow species composition is not implemented.
+                     *
+                     * num_phytos lives in AED's &aed_phyto_abm namelist and is not visible from the
+                     * host, so this cannot be conditioned on the group count - it fires whenever
+                     * inflow particles are actually inserted, and says when it can be ignored. */
+                    if ( !ptm_inflow_grp_warned && new_particles > 0 ) {
+                        ptm_inflow_grp_warned = TRUE;
+                        fprintf(stderr,
+                            "     WARNING: inflow particles are not assigned a phytoplankton group; they\n"
+                            "              inherit the group left behind on the particle slot they reuse.\n"
+                            "              Valid only for num_phytos = 1 in &aed_phyto_abm; with more than\n"
+                            "              one group the inflow species mix depends on run history.\n");
+                    }
+
                     ptm_addparticles(new_particles, max_particle_num, upper_height, lower_height);
                     // insert particles ---
                 }

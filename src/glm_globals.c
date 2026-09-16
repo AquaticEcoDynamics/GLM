@@ -278,6 +278,12 @@ AED_REAL oxy_recirc_flow = 0.0;              //# Recirculation rate (m3/s)
 AED_REAL oxy_recirc_add = 0.0;                //# O2 mass loading rate (mass/day)
 AED_REAL oxy_recirc_factor = 1.0;             //# Multiplicative scale factor applied to
                                                //# oxy_recirc_flow & oxy_recirc_add (mode 3)
+//# Optional return BAND (mode 3). When both are >= 0 and max > min, the returned
+//# water and its O2 dose are spread over every layer between these two heights,
+//# volume-weighted, instead of landing entirely in one layer. Negative = unset,
+//# which preserves the original single-layer behaviour exactly.
+AED_REAL oxy_recirc_return_height_min = -1.0; //# Bottom of the return band (m above bottom)
+AED_REAL oxy_recirc_return_height_max = -1.0; //# Top of the return band (m above bottom)
 
 //------------------------------------------------------------------------------
 // LITTORAL

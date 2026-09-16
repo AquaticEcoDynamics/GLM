@@ -53,6 +53,16 @@ static oxy_csv_t oxy_files[MaxInf];
 static oxy_csv_t recirc_file = { -1, 0, -1, -1, -1, -1 };
 static int files_initialised = FALSE;
 
+/*----------------------------------------------------------------------------*
+ * Run-total oxygen budget. The oxy_max cap silently destroys mass, so track   *
+ * what it discards: without this the delivered load is not the configured     *
+ * load and nothing in the output says so. ELCOM's diffuser keeps the same     *
+ * three counters, so the two hosts' budgets can be compared directly.         *
+ *----------------------------------------------------------------------------*/
+static double oxy_total_dose    = 0.0;   //# O2 mass the configuration asked for
+static double oxy_total_clipped = 0.0;   //# O2 mass thrown away by the oxy_max cap
+static double oxy_total_vol     = 0.0;   //# m3 recirculated (mode 3)
+
 /*----------------------------------------------------------------------------*/
 static void clear_csv_handles()
 {
@@ -80,6 +90,62 @@ static int layer_at_height(AED_REAL height)
         if ( Lake[L].Height >= height ) break;
     if ( L > surfLayer ) L = surfLayer;
     return L;
+}
+
+
+/******************************************************************************
+ * Resolve the span of layers the recirculation return is spread over.        *
+ *                                                                            *
+ * With no band configured this is the single layer at oxy_recirc_return_     *
+ * height - the original behaviour, preserved bit-for-bit. With a band, every *
+ * layer between _min and _max shares the returned water volume-weighted.     *
+ *                                                                            *
+ * NOTE this is a VERTICAL band, which is not what ELCOM's diffuser is: that  *
+ * is a horizontal line of cells at one height, spreading the dose across 2%  *
+ * of the columns at that depth and leaving the rest of the layer untouched.  *
+ * GLM has no horizontal dimension, so a layer here is the whole lake cross-  *
+ * section and a dose into one layer is a whole-basin concentration spike.    *
+ * Spreading vertically is GLM's only way to give the dose more receiving     *
+ * volume; it is a numerical device, not a port of the ELCOM geometry.        *
+ ******************************************************************************/
+static void resolve_return_band(int *Lo, int *Hi)
+{
+    AED_REAL hmin = oxy_recirc_return_height_min;
+    AED_REAL hmax = oxy_recirc_return_height_max;
+
+    if ( hmin < zero || hmax < zero || hmax <= hmin ) {
+        *Lo = *Hi = layer_at_height(oxy_recirc_return_height);
+        return;
+    }
+    *Lo = layer_at_height(hmin);
+    *Hi = layer_at_height(hmax);
+    if ( *Hi < *Lo ) *Hi = *Lo;
+}
+
+
+/******************************************************************************
+ * End-of-run oxygen budget, printed from close_output().                     *
+ ******************************************************************************/
+void report_oxygenation_summary(void)
+{
+    double delivered, pct;
+
+    if ( oxygenation_mode <= 0 ) return;
+
+    delivered = oxy_total_dose - oxy_total_clipped;
+    pct = ( oxy_total_dose > 0.0 ) ? 100.0 * oxy_total_clipped / oxy_total_dose : 0.0;
+
+    printf("    Oxygenation summary (mode %d)\n", oxygenation_mode);
+    printf("      O2 dosed        : %.6g\n", oxy_total_dose);
+    printf("      O2 discarded    : %.6g  (%.2f%% of dose, by the oxy_max cap)\n",
+           oxy_total_clipped, pct);
+    printf("      O2 delivered    : %.6g\n", delivered);
+    if ( oxygenation_mode == 3 )
+        printf("      water recirculated: %.6g m3\n", oxy_total_vol);
+    if ( pct > 1.0 )
+        printf("      NOTE: the cap is discarding a material fraction of the dose.\n"
+               "            Widen the return band or raise oxy_max.\n");
+    printf("    -------------------------------------------------------\n");
 }
 
 
@@ -124,6 +190,20 @@ void init_oxygenation(void)
                     oxy_recirc_factor);
             exit(1);
         }
+
+        //# The return band is opt-in and must be given as a complete pair.
+        if ( (oxy_recirc_return_height_min >= 0.0) != (oxy_recirc_return_height_max >= 0.0) ) {
+            fprintf(stderr, "ERROR: oxygenation: set BOTH oxy_recirc_return_height_min and "
+                            "oxy_recirc_return_height_max, or neither\n");
+            exit(1);
+        }
+        if ( oxy_recirc_return_height_min >= 0.0 &&
+             oxy_recirc_return_height_max <= oxy_recirc_return_height_min ) {
+            fprintf(stderr, "ERROR: oxygenation: oxy_recirc_return_height_max (%.3f) must be "
+                            "greater than oxy_recirc_return_height_min (%.3f)\n",
+                    oxy_recirc_return_height_max, oxy_recirc_return_height_min);
+            exit(1);
+        }
     }
 }
 
@@ -158,12 +238,22 @@ void check_oxygenation_config(void)
             printf("  O2 concentration capped at %.4g\n", oxy_max);
     }
 
-    if ( oxygenation_mode == 3 )
+    if ( oxygenation_mode == 3 ) {
         printf("  recirculation: withdraw %.2f m -> return %.2f m, flow=%.4g m3/s, load=%.4g /day, "
                "factor=%.4g%s\n",
                oxy_recirc_withdraw_height, oxy_recirc_return_height,
                oxy_recirc_flow, oxy_recirc_add, oxy_recirc_factor,
                (recirc_file.csv >= 0) ? " [CSV]" : "");
+        if ( oxy_recirc_return_height_min >= 0.0 && oxy_recirc_return_height_max >= 0.0 )
+            printf("  return spread over a band %.2f - %.2f m above bottom (volume-weighted)\n",
+                   oxy_recirc_return_height_min, oxy_recirc_return_height_max);
+        else
+            printf("  return confined to the single layer at %.2f m "
+                   "(set oxy_recirc_return_height_min/_max to spread it)\n",
+                   oxy_recirc_return_height);
+        if ( oxy_max > 0.0 )
+            printf("  O2 concentration capped at %.4g\n", oxy_max);
+    }
 }
 
 
@@ -279,10 +369,15 @@ AED_REAL do_oxygenation(AED_REAL day_fraction)
         delta_conc = delta_mass / Lake[L].LayerVol;
         _WQ_Vars(oxy_o2_idx, L) += delta_conc;
 
-        //# Optional saturation cap.
-        if ( oxy_max > zero && _WQ_Vars(oxy_o2_idx, L) > oxy_max )
+        //# Optional saturation cap. Whatever it removes is mass the lake never
+        //# receives, so record it rather than dropping it silently.
+        if ( oxy_max > zero && _WQ_Vars(oxy_o2_idx, L) > oxy_max ) {
+            oxy_total_clipped += (double)(_WQ_Vars(oxy_o2_idx, L) - oxy_max)
+                               * (double)Lake[L].LayerVol;
             _WQ_Vars(oxy_o2_idx, L) = oxy_max;
+        }
 
+        oxy_total_dose += (double)delta_mass;
         total += delta_mass;
     }
     return total;
@@ -298,8 +393,9 @@ AED_REAL do_oxygenation(AED_REAL day_fraction)
  ******************************************************************************/
 AED_REAL oxy_do_recirculation(AED_REAL day_fraction)
 {
-    int wqidx, L, j;
+    int wqidx, L, j, Lo, Hi;
     AED_REAL want_vol, drawn, inject_density, total = zero, dose;
+    AED_REAL band_vol, share;
     AED_REAL cap_temp = 0.0, cap_salt = 0.0;
     AED_REAL cap_wq[MaxVars];
 
@@ -320,29 +416,53 @@ AED_REAL oxy_do_recirculation(AED_REAL day_fraction)
     if ( oxy_o2_idx >= 0 && Num_WQ_Vars > 0 ) {
         dose = oxy_recirc_add * oxy_recirc_factor * day_fraction;
         cap_wq[oxy_o2_idx] += dose / drawn;
+        oxy_total_dose += (double)dose;
         total = dose;
     }
 
-    //# 3. Re-inject the captured water at the return height (mass conserved).
-    L = layer_at_height(oxy_recirc_return_height);
+    //# 3. Re-inject the captured water (mass conserved). The side stream has one
+    //# concentration, so spreading it over a band is purely a matter of splitting
+    //# the VOLUME: each layer takes a share proportional to its own volume, and
+    //# every share carries the same cap_wq[]. With no band configured Lo == Hi and
+    //# this reduces exactly to the original single-layer injection.
+    resolve_return_band(&Lo, &Hi);
+
+    band_vol = zero;
+    for (L = Lo; L <= Hi; L++) band_vol += Lake[L].LayerVol;
+
     inject_density = calculate_density(cap_temp, cap_salt);
 
-    Lake[L].Temp = combine(Lake[L].Temp, Lake[L].LayerVol, Lake[L].Density,
-                           cap_temp, drawn, inject_density);
-    Lake[L].Salinity = combine(Lake[L].Salinity, Lake[L].LayerVol, Lake[L].Density,
-                               cap_salt, drawn, inject_density);
-    if ( Num_WQ_Vars > 0 ) {
-        for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
-            _WQ_Vars(wqidx, L) = combine_vol(_WQ_Vars(wqidx, L), Lake[L].LayerVol,
-                                             cap_wq[wqidx], drawn);
+    for (L = Lo; L <= Hi; L++) {
+        //# Degenerate band (all layers empty): put everything in the lowest one
+        //# rather than discarding the water we have already withdrawn.
+        if ( band_vol > zero ) share = drawn * (Lake[L].LayerVol / band_vol);
+        else                   share = ( L == Lo ) ? drawn : zero;
+        if ( share <= zero ) continue;
+
+        Lake[L].Temp = combine(Lake[L].Temp, Lake[L].LayerVol, Lake[L].Density,
+                               cap_temp, share, inject_density);
+        Lake[L].Salinity = combine(Lake[L].Salinity, Lake[L].LayerVol, Lake[L].Density,
+                                   cap_salt, share, inject_density);
+        if ( Num_WQ_Vars > 0 ) {
+            for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
+                _WQ_Vars(wqidx, L) = combine_vol(_WQ_Vars(wqidx, L), Lake[L].LayerVol,
+                                                 cap_wq[wqidx], share);
+        }
+
+        //# Optional saturation cap, same as the direct-addition devices
+        //# (do_oxygenation). Account for what it discards: the layer now holds
+        //# LayerVol + share, since LayerVol is not updated until below.
+        if ( oxy_o2_idx >= 0 && oxy_max > zero && _WQ_Vars(oxy_o2_idx, L) > oxy_max ) {
+            oxy_total_clipped += (double)(_WQ_Vars(oxy_o2_idx, L) - oxy_max)
+                               * (double)(Lake[L].LayerVol + share);
+            _WQ_Vars(oxy_o2_idx, L) = oxy_max;
+        }
+
+        Lake[L].Density = calculate_density(Lake[L].Temp, Lake[L].Salinity);
+        Lake[L].LayerVol = Lake[L].LayerVol + share;
     }
 
-    //# Optional saturation cap, same as the direct-addition devices (do_oxygenation).
-    if ( oxy_o2_idx >= 0 && oxy_max > zero && _WQ_Vars(oxy_o2_idx, L) > oxy_max )
-        _WQ_Vars(oxy_o2_idx, L) = oxy_max;
-
-    Lake[L].Density = calculate_density(Lake[L].Temp, Lake[L].Salinity);
-    Lake[L].LayerVol = Lake[L].LayerVol + drawn;
+    oxy_total_vol += (double)drawn;
 
     //# Update cumulative volumes and re-derive layer heights.
     Lake[botmLayer].Vol1 = Lake[botmLayer].LayerVol;

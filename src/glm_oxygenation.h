@@ -45,6 +45,9 @@ void read_daily_oxygenation(int julian);
 //# Approaches 1 & 2: add O2 to the target layer(s). Returns total O2 mass added.
 AED_REAL do_oxygenation(AED_REAL day_fraction);
 
+//# End-of-run oxygen budget: dosed, discarded by the oxy_max cap, delivered.
+void report_oxygenation_summary(void);
+
 //# Approach 3 (self-contained): withdraw water at oxy_recirc_withdraw_height,
 //# add O2, and return it at oxy_recirc_return_height. Call from glm_model.c
 //# after do_outflows. Returns the O2 mass added.
