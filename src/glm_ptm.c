@@ -734,7 +734,7 @@ void ptm_update_layerid()
  *   directional sinking/floating step (vvel * dt_secs)                       *
  *                                                                            *
  ******************************************************************************/
-AED_REAL move_particle(AED_REAL dt_secs, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel, AED_REAL rand_draw)
+AED_REAL move_particle(AED_REAL ptm_time_step, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel, AED_REAL rand_draw)
 {
 //LOCALS
 
@@ -752,12 +752,12 @@ AED_REAL move_particle(AED_REAL dt_secs, AED_REAL Height, AED_REAL K_z, AED_REAL
     // A POSITION - GLM only hands this function per-layer diffusivity rather than a
     // continuous profile, so K_z (the particle's current layer, already floored to
     // ptm_diffusivity by the caller) stands in for that evaluation.
-    updated_height = Height + K_prime_z * dt_secs + rand_draw *
-    sqrt((2 * K_z * dt_secs) / (1.0/3)); // random walk
+    updated_height = Height + K_prime_z * ptm_time_step + rand_draw *
+    sqrt((2 * K_z * ptm_time_step) / (1.0/3)); // random walk
 
-    updated_height = updated_height + vvel * dt_secs;   // account for sinking/floating;
+    updated_height = updated_height + vvel * ptm_time_step;   // account for sinking/floating;
                                                         // vvel is per second so needs to
-                                                        // be multiplied by dt_secs, the
+                                                        // be multiplied by ptm_time_step, the
                                                         // duration of this random walk
                                                         // substep
 
