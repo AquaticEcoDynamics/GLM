@@ -80,7 +80,7 @@
 AED_REAL get_particle_density(AED_REAL particle_density);
 AED_REAL get_particle_diameter(AED_REAL particle_diameter);
 AED_REAL get_settling_velocity(AED_REAL settling_velocity);
-AED_REAL random_walk(AED_REAL dt_secs, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel, AED_REAL rand_draw);
+AED_REAL move_particle(AED_REAL dt_secs, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel, AED_REAL rand_draw);
 static AED_REAL draw_height_in_range(AED_REAL lo, AED_REAL hi);
 static int ptm_next_free_slot(int pg, int max_particle_num);
 
@@ -89,7 +89,8 @@ static int ptm_next_free_slot(int pg, int max_particle_num);
 //CONSTANTS
 AED_REAL init_depth_min=0.0;
 AED_REAL init_depth_max=2.0;
-AED_REAL ptm_time_step=1.0/60.0;
+AED_REAL ptm_time_step=60.0;   // PTM substep duration in SECONDS; must evenly
+                               // divide the host timestep dt (see do_ptm_update())
 AED_REAL ptm_diffusivity=1e-6;
 
 // Boundary condition types
@@ -344,46 +345,30 @@ void ptm_init_glm()
 void do_ptm_update()
 {
 //LOCALS
-    int p, tt, ij1, ij2, sub_steps, sub_steps_layer_recalc, pg, layr;
-    AED_REAL dt_secs, K_z, K_above, K_prime_z, rand_draw, settling_efficiency_substep;
+    int p, tt, ij1, ij2, sub_steps, pg, layr, lbe;
+    AED_REAL K_z, K_local, K_above, K_below, K_prime_z, dz, rand_draw, settling_efficiency_substep, ptm_dt_rem;
     float rand_float, prob, prev_height, x1, x2, y1, y2, a1, a2;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
     pg = 0;
 
-    // Loop through sub-timesteps, incrementing position. ptm_time_step (namelist
-    // &particles, e.g. 1/60) is the substep duration as a FRACTION OF THE HOST
-    // TIMESTEP `dt` (glm_globals.h, seconds) - so sub_steps, the number of
-    // substeps needed to exactly tile one host step, is just its reciprocal,
-    // independent of whatever `dt` actually is. dt_secs is then back-derived
-    // from dt/sub_steps so sub_steps*dt_secs always equals dt exactly, even if
-    // dt doesn't divide evenly by whole minutes. Previously both were
-    // hardcoded (60 substeps of 60s/1 minute each), silently assuming dt=3600s;
-    // ptm_time_step was read from the namelist but never actually used.
-    sub_steps = (int)(1.0/ptm_time_step + 0.5);   // round to nearest
-    if (sub_steps < 1) sub_steps = 1;
-    sub_steps_layer_recalc = sub_steps;   // recalc particle LAYR (and thus K_z/K_prime_z) every this many substeps
-    dt_secs = dt/sub_steps;               // seconds
+    if (ptm_time_step <= 0.0) {
+        fprintf(stderr, "     ERROR: ptm_time_step must be > 0 seconds (namelist &particles)\n");
+        exit(1);
+    }
+    ptm_dt_rem = fmod(dt, ptm_time_step);
+    if (ptm_dt_rem > 1.0e-6 && (ptm_time_step - ptm_dt_rem) > 1.0e-6) {
+        fprintf(stderr, "     ERROR: host timestep dt=%.6f s is not evenly divisible "
+                         "by ptm_time_step=%.6f s (namelist &particles)\n", dt, ptm_time_step);
+        exit(1);
+    }
 
-    // settling_efficiency (namelist &particles) is a per-day rate (d-1), same convention
-    // as every other rate parameter in this codebase (e.g. mort_prob in aed_phyto_abm.F90)
-    // - NOT a flat per-substep probability, which would silently change the effective
-    // per-day settling rate whenever sub_steps changes (i.e. whenever ptm_time_step or the
-    // host dt changes). Converted to this call's per-substep probability via the standard
-    // constant-hazard-rate formula, evaluated once per call since dt_secs is fixed here.
-    settling_efficiency_substep = 1.0 - exp(-settling_efficiency * dt_secs / 86400.0);
+    sub_steps = (int)(dt / ptm_time_step + 0.5);   // round-to-nearest; exact per the check above
+    settling_efficiency_substep = 1.0 - exp(-settling_efficiency * (ptm_time_step / 86400.0));
 
-    // Outer loop over substeps, inner loop over particles. LAYR (and so K_z/
-    // K_prime_z, recomputed below from the particle's CURRENT layer every
-    // substep) is re-binned via ptm_update_layerid() every sub_steps_layer_recalc
-    // substeps - see that call further down - rather than staying fixed at
-    // whatever layer the particle started this call's substeps in.
-    //
-    // This also restores a fixed, deterministic visiting order (substep,
-    // then ascending particle index), so the random draws below can go back
-    // to plain rand() rather than needing a loop-order-independent hash
-    // keyed on particle identity - see random_walk() below.
+    ptm_update_layerid();
+
     for (tt = 0; tt < sub_steps; tt++) {
       for (p = 0; p < max_particle_num; p++) {
         if (_PTM_Stat(pg,p,STAT)>0) {
@@ -397,7 +382,7 @@ void do_ptm_update()
                 // No layer above surfLayer to sample (Lake[surfLayer+1] would be out of
                 // bounds), so there is no gradient to compute - zero is the correct
                 // K_prime_z here, not a special case. The `continue` this replaced,
-                // though, skipped past random_walk() below entirely: every surface-layer
+                // though, skipped past move_particle() below entirely: every surface-layer
                 // particle received NO diffusion, NO settling, and NEVER reached the
                 // BED/SCUM boundary checks further down, for the whole run. That silently
                 // froze the surface population and excluded it from settling regardless
@@ -406,24 +391,14 @@ void do_ptm_update()
             } else {
                 K_above = Lake[layr+1].Epsilon;
                 if (K_above < ptm_diffusivity) K_above = ptm_diffusivity;
-                // K_prime_z approximates dK/dHeight (the Visser 1997 diffusivity-gradient
-                // correction term - see random_walk() below), so it must be a SIGNED
-                // derivative in units of diffusivity/length (m/s), not a bare difference
-                // of two diffusivities (m^2/s). Previously this was fabs(K_z - K_above)
-                // with no division by the vertical separation between the two evaluation
-                // points: unsigned, so it could only ever push particles upward regardless
-                // of which direction diffusivity actually increased, and two orders of
-                // magnitude too large in typical GLM layer thicknesses (~0.1-0.2 m) since
-                // dividing by a sub-1 m distance was simply skipped. Divide by the distance
-                // between the two layers' mean heights (their diffusivity is defined at
-                // Lake[i].MeanHeight, not at the layer top) to get a proper derivative;
-                // guard against a degenerate (near-zero-thickness) layer pair.
-                if (Lake[layr+1].MeanHeight - Lake[layr].MeanHeight > 1e-6) {
-                    K_prime_z = (K_above - K_z) /
-                        (Lake[layr+1].MeanHeight - Lake[layr].MeanHeight);
-                } else {
-                    K_prime_z = 0;
-                }
+                lbe = (layr-1 >= botmLayer) ? layr-1 : layr;
+                K_below = Lake[lbe].Epsilon;
+                if (K_below < ptm_diffusivity) K_below = ptm_diffusivity;
+                dz = Lake[layr+1].MeanHeight - Lake[lbe].MeanHeight;   // central spacing
+                if (fabs(dz) < 1.0e-6) dz = (dz < 0.0) ? -1.0e-6 : 1.0e-6;
+                K_prime_z = (K_above - K_below) / dz;                 // signed dK/dz (m/s)
+                K_local = K_z + K_prime_z * (_PTM_Vars(pg,p,HGHT) - Lake[layr].MeanHeight);
+                if (K_local < ptm_diffusivity) K_local = ptm_diffusivity;
             }
 
             // Capture current height of particle to calculate probability of settling below
@@ -433,7 +408,7 @@ void do_ptm_update()
             _PTM_Stat(pg,p,FLAG)= WATER;
 
             rand_draw = -1.0 + 2.0*((AED_REAL)rand() / (AED_REAL)RAND_MAX);
-            _PTM_Vars(pg,p,HGHT) = random_walk(dt_secs,_PTM_Vars(pg,p,HGHT), K_z, K_prime_z, _PTM_Vars(pg,p,VVEL), rand_draw);
+            _PTM_Vars(pg,p,HGHT) = move_particle(ptm_time_step,_PTM_Vars(pg,p,HGHT), K_local, K_prime_z, _PTM_Vars(pg,p,VVEL), rand_draw);
 
             if(_PTM_Vars(pg,p,HGHT) < 0.0){
                 _PTM_Vars(pg,p,HGHT) = 0.0;
@@ -514,18 +489,8 @@ void do_ptm_update()
             }
         }
       }
-      // Re-bin every particle's LAYR from its just-updated HGHT every
-      // sub_steps_layer_recalc substeps (not every single one - ptm_update_layerid()
-      // scans all max_particle_num slots, so doing it all 60 times per host step is
-      // expensive). K_z/K_prime_z above can therefore lag a particle's true layer by
-      // up to sub_steps_layer_recalc-1 substeps after it actually crosses a boundary.
-      if((tt + 1) % sub_steps_layer_recalc == 0 && tt+1 != sub_steps){
           ptm_update_layerid();
-      }
     }
-
-    ptm_update_layerid();   // safety net: keep LAYR current even if sub_steps isn't
-                            // an exact multiple of sub_steps_layer_recalc
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -716,43 +681,47 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
 void ptm_update_layerid()
 {
 //LOCALS
-    int p,i,pg;
+    int p, pg, layr;
+    AED_REAL hght;
 
 /*----------------------------------------------------------------------------*/
 //BEGIN
     pg = 0;
     for (p = 0; p < max_particle_num; p++) {
         if (_PTM_Stat(pg,p,STAT)>0) {
-            int found = 0;
-            for (i = botmLayer; i < NumLayers; i++) {
-                if (_PTM_Vars(pg,p,HGHT)<Lake[i].Height) {
-                    _PTM_Stat(pg,p,LAYR) = i;
-                    /* IDX3 is the cell the Fortran side bins this particle into, and it
-                     * is consumed 1-BASED there (aed_ptm.F90 guards on cell >= 1), while
-                     * C layer indices are 0-based (botmLayer 0 vs 1 in glm.h). Passing a
-                     * raw i shifted every particle one layer down and made bottom-layer
-                     * particles (i = 0) fail the >= 1 guard entirely, so they were never
-                     * binned and never had their physiology or environment updated.
-                     * LAYR stays 0-based - it indexes Lake[] on this side.            */
-                    _PTM_Stat(pg,p,IDX3) = i + 1;
-                    _PTM_Stat(pg,p,IDX2) = 1;
-                    found = 1;
-                    break; // get out of layer loop
-                }
-            }
-            // A particle clamped exactly to the surface (do_ptm_update's upper_boundary_cond
-            // = BC_CLAMP path sets HGHT = Lake[surfLayer].Height, not strictly less than it)
-            // satisfies HGHT < Lake[i].Height for NO i, including i = surfLayer - so the loop
-            // above never breaks and LAYR is left at its STALE previous value. Only reachable
-            // now that surface-layer particles actually move (see the do_ptm_update surface
-            // fix): previously they were frozen and could never reach this height. Any
-            // particle not caught by the loop is, by construction, at or above the highest
-            // layer boundary, so it belongs in surfLayer.
-            if (!found) {
-                _PTM_Stat(pg,p,LAYR) = surfLayer;
-                _PTM_Stat(pg,p,IDX3) = surfLayer + 1;   /* 1-based for Fortran, see above */
-                _PTM_Stat(pg,p,IDX2) = 1;
-            }
+
+            hght = _PTM_Vars(pg,p,HGHT);
+            layr = _PTM_Stat(pg,p,LAYR);
+
+            // Hunt from the particle's own previous layer instead of rescanning from
+            // botmLayer every call: called every substep now, and a particle's height
+            // moves by only one move_particle() step (bounded diffusion + settling
+            // velocity * dt_secs) between calls, so it typically hasn't left its
+            // previous layer at all. Clamp first in case NumLayers changed (layer
+            // merge/split via check_layer_thickness()/check_layer_stability()/
+            // do_deep_mixing()) since LAYR was last set - the walk below still
+            // converges to the correct layer either way, just in more steps.
+            if (layr < botmLayer)      layr = botmLayer;
+            else if (layr > surfLayer) layr = surfLayer;
+
+            // Particle sank below its bracket: walk down.
+            while (layr > botmLayer && hght < Lake[layr-1].Height) layr--;
+            // Particle rose above its bracket: walk up. surfLayer absorbs the clamp
+            // case (do_ptm_update's upper_boundary_cond = BC_CLAMP sets HGHT exactly
+            // to Lake[surfLayer].Height, which is never strictly less than itself) -
+            // any particle not caught below belongs, by construction, in surfLayer.
+            while (layr < surfLayer && hght >= Lake[layr].Height) layr++;
+
+            _PTM_Stat(pg,p,LAYR) = layr;
+            /* IDX3 is the cell the Fortran side bins this particle into, and it
+             * is consumed 1-BASED there (aed_ptm.F90 guards on cell >= 1), while
+             * C layer indices are 0-based (botmLayer 0 vs 1 in glm.h). Passing a
+             * raw layr shifted every particle one layer down and made bottom-layer
+             * particles (layr = 0) fail the >= 1 guard entirely, so they were never
+             * binned and never had their physiology or environment updated.
+             * LAYR stays 0-based - it indexes Lake[] on this side.            */
+            _PTM_Stat(pg,p,IDX3) = layr + 1;
+            _PTM_Stat(pg,p,IDX2) = 1;
         }
     }
 }
@@ -761,10 +730,11 @@ void ptm_update_layerid()
 
 /******************************************************************************
  *                                                                            *
- *      This routine redistributes particles using a random walk function     *
+ *   This routine moves a particle by a random-walk diffusion step plus a     *
+ *   directional sinking/floating step (vvel * dt_secs)                       *
  *                                                                            *
  ******************************************************************************/
-AED_REAL random_walk(AED_REAL dt_secs, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel, AED_REAL rand_draw)
+AED_REAL move_particle(AED_REAL dt_secs, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel, AED_REAL rand_draw)
 {
 //LOCALS
 
