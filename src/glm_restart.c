@@ -61,6 +61,28 @@
 #include "glm_wqual.h"
 #include "glm_restart.h"
 
+/* Defined in glm_ptm.c. The PTM arrays are 3-D (groups x particles x vars) and the group
+ * index varies FASTEST - see _IDX_3d in glm_types.h. */
+extern CINTEGER num_particle_groups;
+/* Restart-exact particle transport: every random draw of the particle model goes through
+ * one counted stream; the count is saved and replayed on resume. The buoyancy model's
+ * dawn-hysteresis state and the writer's previous-depth memory are saved for the same
+ * reason. All optional on read: an older file loads with a warning. */
+extern double ptm_rng_call_count(void);
+extern void   ptm_rng_restore(double n);
+extern void   ptm_buoy_light_state_get(double *is_day, double *sfc_last);
+extern void   ptm_buoy_light_state_set(double is_day, double sfc_last);
+extern int    ptm_outmem_len(void);
+extern int    ptm_outmem_valid(void);
+extern void   ptm_outmem_get(AED_REAL *buf);
+extern void   ptm_outmem_set(const AED_REAL *buf, int n, int valid);
+/* aed_phyto_abm's Eulerian daily-bin state (libaed-water); length 0 when the diagnostic is off. */
+extern int  pam_db_state_len(void);
+extern void pam_db_state_get(double *buf, int n);
+extern int  pam_db_state_set(double *buf, int n);
+extern void pam_db_mark_incomplete(void);
+extern int  pam_db_active(void);
+
 /*----------------------------------------------------------------------------*/
 /* Global restart configuration                                               */
 char *restart_fname    = NULL;
@@ -140,13 +162,21 @@ void write_glm_restart(const char *fn)
     /* PTM dimensions (only defined when particles are active) */
     static const int PTM_STAT_NVARS = 7; /* STAT,IDX2,IDX3,LAYR,FLAG,PTID,GRP */
     static const int PTM_ENV_NVARS  = 5; /* MASS,DIAM,DENS,VVEL,HGHT (n_ptm_env) */
-    int dim_ptm_par = -1, dim_ptm_sv = -1, dim_ptm_wqv = -1;
+    int dim_ptm_par = -1, dim_ptm_sv = -1, dim_ptm_wqv = -1, dim_ptm_grp = -1, dim_ptmprev = -1;
     int ptm_enabled = (ptm_sw && PTM_Stat != NULL && max_particle_num > 0) ? 1 : 0;
+    int n_prev = ptm_enabled ? ptm_outmem_len() : 0;
     if (ptm_enabled) {
         RST_CHECK(nc_def_dim(ncid, "ptm_particles",  max_particle_num,            &dim_ptm_par));
         RST_CHECK(nc_def_dim(ncid, "ptm_stat_vars",  PTM_STAT_NVARS,              &dim_ptm_sv));
         RST_CHECK(nc_def_dim(ncid, "num_ptm_wq_vars", PTM_ENV_NVARS + Num_PTM_Vars, &dim_ptm_wqv));
+        RST_CHECK(nc_def_dim(ncid, "ptm_groups",     num_particle_groups,         &dim_ptm_grp));
+        if (n_prev > 0)
+            RST_CHECK(nc_def_dim(ncid, "ptm_prev_len", n_prev, &dim_ptmprev));
     }
+    /* aed_phyto_abm daily-bin state (only when the diagnostic is on) */
+    int dim_db = -1, n_db = wq_calc ? pam_db_state_len() : 0;
+    if (n_db > 0)
+        RST_CHECK(nc_def_dim(ncid, "pam_db_len", n_db, &dim_db));
 
     /* -------- global attributes -------- */
     {
@@ -168,6 +198,8 @@ void write_glm_restart(const char *fn)
     if (ptm_enabled) {
         RST_CHECK(nc_put_att_int(ncid, NC_GLOBAL, "max_particle_num",NC_INT, 1, &max_particle_num));
         RST_CHECK(nc_put_att_int(ncid, NC_GLOBAL, "Num_PTM_Vars",    NC_INT, 1, &Num_PTM_Vars));
+        int _ng = num_particle_groups;
+        RST_CHECK(nc_put_att_int(ncid, NC_GLOBAL, "num_particle_groups", NC_INT, 1, &_ng));
     }
 
     /* -------- define variables -------- */
@@ -307,15 +339,29 @@ void write_glm_restart(const char *fn)
     if (sed_zone_energy != NULL)
         def_var_d(ncid, "sed_zone_energy", 1, &dim_zones, &id_sedenergy);
 
-    /* PTM particle state [ptm_stat_vars, ptm_particles] and
-     *                    [ptm_wq_vars,   ptm_particles]             */
+    /* PTM particle state [ptm_stat_vars, ptm_particles, ptm_groups] and
+     *                    [ptm_wq_vars,   ptm_particles, ptm_groups].
+     * The group dimension is LAST on purpose: NetCDF C is row-major with the last dimension
+     * fastest, giving flat index var*parts*groups + part*groups + grp, which is exactly
+     * _IDX_3d(groups,parts,nvars, grp,part,var) in glm_types.h, so the in-memory array is
+     * written and read whole. A one-group run gives the same bytes as the former 2-D layout. */
     int id_ptm_stat = -1, id_ptm_vars = -1;
+    int id_rng = -1, id_bday = -1, id_bsfc = -1, id_prev = -1, id_prevv = -1, id_db = -1;
     if (ptm_enabled) {
-        int dims_ps[2] = { dim_ptm_sv,  dim_ptm_par };
-        int dims_pv[2] = { dim_ptm_wqv, dim_ptm_par };
-        def_var_i(ncid, "ptm_stat", 2, dims_ps, &id_ptm_stat);
-        def_var_d(ncid, "ptm_vars", 2, dims_pv, &id_ptm_vars);
+        int dims_ps[3] = { dim_ptm_sv,  dim_ptm_par, dim_ptm_grp };
+        int dims_pv[3] = { dim_ptm_wqv, dim_ptm_par, dim_ptm_grp };
+        def_var_i(ncid, "ptm_stat", 3, dims_ps, &id_ptm_stat);
+        def_var_d(ncid, "ptm_vars", 3, dims_pv, &id_ptm_vars);
+        def_var_d(ncid, "ptm_rng_calls",     0, NULL, &id_rng);
+        def_var_d(ncid, "ptm_buoy_is_day",   0, NULL, &id_bday);
+        def_var_d(ncid, "ptm_buoy_sfc_last", 0, NULL, &id_bsfc);
+        if (n_prev > 0) {
+            def_var_d(ncid, "ptm_prev_depth",       1, &dim_ptmprev, &id_prev);
+            def_var_d(ncid, "ptm_prev_depth_valid", 0, NULL,         &id_prevv);
+        }
     }
+    if (n_db > 0)
+        def_var_d(ncid, "pam_db_state", 1, &dim_db, &id_db);
 
     /* End define mode */
     RST_CHECK(nc_enddef(ncid));
@@ -530,12 +576,31 @@ void write_glm_restart(const char *fn)
     }
 
     /* PTM particle state
-     * PTM_Stat layout: PTM_Stat[var * max_particle_num + part]  (grp=0 only)
-     * PTM_Vars layout: PTM_Vars[var * max_particle_num + part]  (grp=0 only)
-     * These match the [ptm_stat_vars/ptm_wq_vars, ptm_particles] NC layout. */
+     * Written whole: the 3-D NetCDF layout defined above matches _IDX_3d. */
     if (ptm_enabled) {
+        double rng = ptm_rng_call_count(), bday, bsfc;
         RST_CHECK(nc_put_var_int   (ncid, id_ptm_stat, PTM_Stat));
         RST_CHECK(nc_put_var_double(ncid, id_ptm_vars, PTM_Vars));
+        RST_CHECK(nc_put_var_double(ncid, id_rng, &rng));
+        ptm_buoy_light_state_get(&bday, &bsfc);
+        RST_CHECK(nc_put_var_double(ncid, id_bday, &bday));
+        RST_CHECK(nc_put_var_double(ncid, id_bsfc, &bsfc));
+        if (id_prev >= 0) {
+            AED_REAL *pb = malloc((size_t)n_prev * sizeof(AED_REAL));
+            double pv = ptm_outmem_valid() ? 1.0 : 0.0;
+            if (!pb) { fprintf(stderr, "glm_restart: out of memory\n"); exit(1); }
+            ptm_outmem_get(pb);
+            RST_CHECK(nc_put_var_double(ncid, id_prev, pb));
+            RST_CHECK(nc_put_var_double(ncid, id_prevv, &pv));
+            free(pb);
+        }
+    }
+    if (id_db >= 0) {
+        double *db = calloc((size_t)n_db, sizeof(double));
+        if (!db) { fprintf(stderr, "glm_restart: out of memory\n"); exit(1); }
+        pam_db_state_get(db, n_db);
+        RST_CHECK(nc_put_var_double(ncid, id_db, db));
+        free(db);
     }
 
     nc_close(ncid);
@@ -858,7 +923,7 @@ int read_glm_restart_ptm(const char *fn)
 {
     int ncid;
     int err;
-    int att_ptm_en = 0, att_max_ptm = 0, att_ptm_vars = 0;
+    int att_ptm_en = 0, att_max_ptm = 0, att_ptm_vars = 0, att_grp = 1;
 
     err = nc_open(fn, NC_NOWRITE, &ncid);
     if (err != NC_NOERR) return 0; /* read_glm_restart() already reported/handled this */
@@ -869,6 +934,8 @@ int read_glm_restart_ptm(const char *fn)
     nc_get_att_int(ncid, NC_GLOBAL, "ptm_enabled",     &att_ptm_en);
     nc_get_att_int(ncid, NC_GLOBAL, "max_particle_num",&att_max_ptm);
     nc_get_att_int(ncid, NC_GLOBAL, "Num_PTM_Vars",    &att_ptm_vars);
+    /* absent in files written before the group dimension existed: those hold one group */
+    nc_get_att_int(ncid, NC_GLOBAL, "num_particle_groups", &att_grp);
 
     if (att_ptm_en) {
         if (!ptm_sw || PTM_Stat == NULL) {
@@ -882,12 +949,73 @@ int read_glm_restart_ptm(const char *fn)
             fprintf(stderr, "     WARNING: restart Num_PTM_Vars (%d) "
                     "!= current (%d); particle state skipped.\n",
                     att_ptm_vars, Num_PTM_Vars);
+        } else if (att_grp != num_particle_groups) {
+            fprintf(stderr, "     WARNING: restart num_particle_groups (%d) "
+                    "!= current (%d); particle state skipped.\n",
+                    att_grp, num_particle_groups);
         } else {
-            int _id;
+            int _id, _dim;
+            double v = 0.0;
             RST_CHECK(nc_inq_varid(ncid, "ptm_stat", &_id));
             RST_CHECK(nc_get_var_int(ncid, _id, PTM_Stat));
             RST_CHECK(nc_inq_varid(ncid, "ptm_vars", &_id));
             RST_CHECK(nc_get_var_double(ncid, _id, PTM_Vars));
+
+            /* the counted random stream: replay it so a resumed run draws what the
+             * uninterrupted run would have drawn */
+            if (nc_inq_varid(ncid, "ptm_rng_calls", &_id) == NC_NOERR &&
+                nc_get_var_double(ncid, _id, &v) == NC_NOERR) {
+                ptm_rng_restore(v);
+                fprintf(stderr, "     particle RNG replayed to %.0f draws\n", v);
+            } else {
+                fprintf(stderr, "     WARNING: restart carries no particle RNG call count (older file); "
+                                "the particle random stream restarts from the seed.\n");
+            }
+            /* the buoyancy model's light history (dawn hysteresis, previous surface PAR) */
+            {
+                int _id2; double bday = -1.0, bsfc = 0.0;
+                if (nc_inq_varid(ncid, "ptm_buoy_is_day", &_id) == NC_NOERR &&
+                    nc_inq_varid(ncid, "ptm_buoy_sfc_last", &_id2) == NC_NOERR &&
+                    nc_get_var_double(ncid, _id, &bday) == NC_NOERR &&
+                    nc_get_var_double(ncid, _id2, &bsfc) == NC_NOERR) {
+                    ptm_buoy_light_state_set(bday, bsfc);
+                } else {
+                    fprintf(stderr, "     WARNING: restart carries no particle buoyancy light state (older file); "
+                                    "a daytime resume re-detects dawn on its first step.\n");
+                }
+            }
+            /* the writer's previous-depth memory (particle_delta_depth_m continuity) */
+            if (nc_inq_varid(ncid, "ptm_prev_depth", &_id) == NC_NOERR &&
+                nc_inq_dimid(ncid, "ptm_prev_len", &_dim) == NC_NOERR) {
+                size_t _n = 0;
+                if (nc_inq_dimlen(ncid, _dim, &_n) == NC_NOERR && _n > 0) {
+                    AED_REAL *pb = malloc(_n * sizeof(AED_REAL));
+                    int _vid; double pv = 0.0;
+                    if (pb != NULL && nc_get_var_double(ncid, _id, pb) == NC_NOERR) {
+                        if (nc_inq_varid(ncid, "ptm_prev_depth_valid", &_vid) == NC_NOERR)
+                            nc_get_var_double(ncid, _vid, &pv);
+                        ptm_outmem_set(pb, (int)_n, pv > 0.5);
+                    }
+                    free(pb);
+                }
+            }
+            /* aed_phyto_abm daily-bin history */
+            if (nc_inq_varid(ncid, "pam_db_state", &_id) == NC_NOERR &&
+                nc_inq_dimid(ncid, "pam_db_len", &_dim) == NC_NOERR) {
+                size_t _n = 0;
+                if (nc_inq_dimlen(ncid, _dim, &_n) == NC_NOERR && _n > 0) {
+                    double *_b = calloc(_n, sizeof(double));
+                    if (_b != NULL && nc_get_var_double(ncid, _id, _b) == NC_NOERR) {
+                        if (pam_db_state_set(_b, (int)_n))
+                            fprintf(stderr, "     daily-bin history restored from restart\n");
+                        else if (pam_db_active())
+                            pam_db_mark_incomplete();   /* size mismatch: the first period is partial */
+                    }
+                    free(_b);
+                }
+            } else if (pam_db_active()) {
+                pam_db_mark_incomplete();   /* older file, diagnostic on: first period partial */
+            }
             nc_close(ncid);
             rst_ncid_ = -1;
             return 1;

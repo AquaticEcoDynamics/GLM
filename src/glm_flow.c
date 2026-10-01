@@ -400,6 +400,11 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
         }
     }
 
+    /* The surface height BEFORE any water leaves: resize_internals at the end of this
+     * routine lowers every layer height, and the particles that survived the draw must
+     * follow it down (ptm_follow_surface_drop). */
+    AED_REAL ptm_surface_before_removal = Lake[surfLayer].Height;
+
     /**********************************************************************
      * Now we have Delta_V[i] for all layers we can remove it             *
      **********************************************************************/
@@ -428,6 +433,12 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
     * Update layer heights                                                *
     **********************************************************************/
     resize_internals(2, botmLayer);
+
+    /* ONE call site covers every water removal in GLM - ordinary withdrawal, seepage, both
+     * overflow branches and the oxygenation recirculation all funnel through this routine.
+     * The export was accounted above by ptm_removeparticles, exactly once; this moves the
+     * survivors with the boundary and is a no-op when the surface did not fall. */
+    if ( ptm_sw ) ptm_follow_surface_drop(ptm_surface_before_removal);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

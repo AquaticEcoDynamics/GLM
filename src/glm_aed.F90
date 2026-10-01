@@ -44,10 +44,18 @@ MODULE glm_aed
 
    USE aed_util
    USE aed_common
+   USE aed_core, ONLY : aed_substep_frac
+   USE aed_ptm, ONLY : Particles, aed_calculate_particles, aed_split_particles
    USE glm_types
    USE glm_zones
 
    IMPLICIT NONE
+
+   INTERFACE
+      SUBROUTINE ptm_update_particle_par() BIND(C, name="ptm_update_particle_par")
+        USE ISO_C_BINDING
+      END SUBROUTINE ptm_update_particle_par
+   END INTERFACE
 
    PRIVATE ! By default, make everything private
 !
@@ -96,6 +104,26 @@ MODULE glm_aed
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_diag_hz
    AED_REAL,DIMENSION(:),  ALLOCATABLE        :: z_prev
 
+   !# Bound directly to the C global of the same name in glm_ptm.c, so the
+   !# &particles/particle_random_seed setting drives both RNGs from one knob.
+   CINTEGER,BIND(C, name="particle_random_seed") :: particle_random_seed
+
+   !# OASIM diagnostics the particle model samples by NAME (see the aed_sample_oasim_*
+   !# routines below): the 7 spectral bands, their per-band Kd, scalar PAR + Kd, and the
+   !# per-IOP absorption factor. Indices are cached on first use; 0 = not registered.
+   INTEGER, PARAMETER :: PTM_OASIM_NBANDS = 7
+   INTEGER,DIMENSION(PTM_OASIM_NBANDS) :: ptm_oasim_dir_diag = 0
+   INTEGER,DIMENSION(PTM_OASIM_NBANDS) :: ptm_oasim_dif_diag = 0
+   LOGICAL :: ptm_oasim_cache_ready = .FALSE.
+   INTEGER :: ptm_oasim_par_diag = 0
+   INTEGER, PARAMETER :: PTM_MAX_IOP = 16
+   INTEGER :: ptm_oasim_afac_diag(PTM_MAX_IOP) = 0
+   LOGICAL :: ptm_oasim_afac_cache_ready = .FALSE.
+   INTEGER :: ptm_oasim_kd_diag = 0
+   LOGICAL :: ptm_oasim_par_kd_cache_ready = .FALSE.
+   INTEGER,DIMENSION(PTM_OASIM_NBANDS) :: ptm_oasim_kd_band_diag = 0
+   LOGICAL :: ptm_oasim_kd_band_cache_ready = .FALSE.
+
    !# Arrays for work, vertical movement, and cross-boundary fluxes
    AED_REAL,DIMENSION(:,:),ALLOCATABLE :: ws
    AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: dz
@@ -122,6 +150,8 @@ MODULE glm_aed
    AED_REAL,DIMENSION(:),POINTER :: temp
    AED_REAL,DIMENSION(:),POINTER :: rho
    AED_REAL,DIMENSION(:),POINTER :: area
+   AED_REAL,DIMENSION(:),POINTER :: lvol   !# layer volume (theLake%LayerVol), published as 'layer_vol'
+   AED_REAL,DIMENSION(:),ALLOCATABLE,TARGET :: zone_lvol   !# zones carry no volume: zeros, so a reader falls back
    AED_REAL,DIMENSION(:),POINTER :: extc
    AED_REAL,DIMENSION(:),POINTER :: layer_stress
    AED_REAL,DIMENSION(:),POINTER :: vel
@@ -147,6 +177,7 @@ MODULE glm_aed
    AED_REAL,ALLOCATABLE,TARGET :: flux_pel(:,:)        !# (n_vars+n_vars_ben, MAX(n_layers, aed_n_zones))
    AED_REAL,DIMENSION(:,:),ALLOCATABLE :: flux_pel_pre !# (n_vars+n_vars_ben, MAX(n_layers, aed_n_zones))
    AED_REAL,DIMENSION(:,:),ALLOCATABLE :: flux_pel_z   !# (n_vars+n_vars_ben, MAX(n_layers, aed_n_zones))
+   AED_REAL,DIMENSION(:,:),ALLOCATABLE :: flux_pel_ptm !# particle-only snapshot of flux_pel (see aed_do_glm)
 
    CHARACTER(len=48),ALLOCATABLE :: names(:)
    CHARACTER(len=48),ALLOCATABLE :: bennames(:)
@@ -160,7 +191,7 @@ MODULE glm_aed
 
    LOGICAL :: reinited = .FALSE.
 
-   INTEGER :: n_aed_vars, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
+   INTEGER :: n_aed_vars, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet, n_ptm_vars
    INTEGER :: zone_var = 0
 
    CHARACTER(len=64) :: NULCSTR = ""
@@ -193,6 +224,10 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
 !-------------------------------------------------------------------------------
 !BEGIN
    CALL make_string(fname, i_fname, len)
+
+   !# Seed the Fortran RNG (ABM mortality and trait mutation) from the SAME value the
+   !# C side uses, so a single namelist knob controls both generators.
+   CALL seed_fortran_rng()
 
 #ifdef __INTEL_COMPILER
 #  ifdef __INTEL_LLVM_COMPILER
@@ -227,6 +262,7 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    tv = aed_provide_global('density',     'density',       '')
    tv = aed_provide_global('layer_ht',    'layer heights', 'meters')
    tv = aed_provide_global('layer_area',  'layer area',    'm2')
+   tv = aed_provide_global('layer_vol',   'layer volume',  'm3')
    tv = aed_provide_sheet_global('rain',  'rainfall',      'm/s')
    !rainloss
    !material
@@ -288,7 +324,7 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    CLOSE(namlst)
 !  print *,"      ... nml file parsing completed."
 
-   n_aed_vars = aed_core_status(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet)
+   n_aed_vars = aed_core_status(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet, n_ptm_vars)
 
 #if DEBUG
    DO i=1,n_aed_vars
@@ -302,7 +338,9 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
 
    print "(/,5X,'AED : n_aed_vars  = ',I3,' ; MaxLayers         = ',I4)",n_aed_vars,MaxLayers
    print "(  5X,'AED : n_vars      = ',I3,' ; n_vars_ben        = ',I4)",n_vars,n_vars_ben
-   print "(  5X,'AED : n_vars_diag = ',I3,' ; n_vars_diag_sheet = ',I4,/)",n_vars_diag,n_vars_diag_sheet
+   print "(  5X,'AED : n_vars_diag = ',I3,' ; n_vars_diag_sheet = ',I4)",n_vars_diag,n_vars_diag_sheet
+   print "(  5X,'AED : n_ptm_vars  = ',I3,/)",n_ptm_vars
+   CALL set_c_num_ptm_vars(n_ptm_vars)
 
    CALL check_data
 
@@ -528,6 +566,322 @@ END FUNCTION aed_is_var
 
 
 !###############################################################################
+INTEGER FUNCTION aed_diag_index_by_name(vname)
+!-------------------------------------------------------------------------------
+! Index of a (non-sheet) diagnostic in cc_diag by its registered name; 0 if absent.
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   CHARACTER(len=*),INTENT(in) :: vname
+!LOCALS
+   TYPE(aed_variable_t),POINTER :: tvar
+   INTEGER :: i, d
+!-------------------------------------------------------------------------------
+!BEGIN
+   d = 0
+   DO i=1,n_aed_vars
+      IF ( aed_get_var(i, tvar) ) THEN
+         IF ( tvar%var_type == V_DIAGNOSTIC .AND. .NOT. tvar%sheet ) THEN
+            d = d + 1
+            IF ( TRIM(tvar%name) == TRIM(vname) ) THEN
+               aed_diag_index_by_name = d
+               RETURN
+            ENDIF
+         ENDIF
+      ENDIF
+   ENDDO
+   aed_diag_index_by_name = 0
+END FUNCTION aed_diag_index_by_name
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE seed_fortran_rng()
+!-------------------------------------------------------------------------------
+! Seed the intrinsic Fortran RNG (ABM mortality and trait mutation) from
+! particle_random_seed, already resolved on the C side (0 replaced by a wall-clock
+! value), so one namelist knob controls both generators.
+!-------------------------------------------------------------------------------
+!LOCALS
+   INTEGER :: n, i
+   INTEGER,ALLOCATABLE :: sd(:)
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   CALL random_seed(size = n)
+   ALLOCATE(sd(n))
+   DO i = 1, n
+      sd(i) = INT(particle_random_seed) + 37 * (i - 1)
+   ENDDO
+   CALL random_seed(put = sd)
+   DEALLOCATE(sd)
+   print *,'    AED RNG seeded from particle_random_seed = ', particle_random_seed
+END SUBROUTINE seed_fortran_rng
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE aed_cache_ptm_oasim_bands()
+!-------------------------------------------------------------------------------
+!BEGIN
+   ptm_oasim_dir_diag(1) = aed_diag_index_by_name('OAS_dir_band6')   ! 440 nm
+   ptm_oasim_dif_diag(1) = aed_diag_index_by_name('OAS_dif_band6')
+   ptm_oasim_dir_diag(2) = aed_diag_index_by_name('OAS_dir_band7')   ! 490 nm
+   ptm_oasim_dif_diag(2) = aed_diag_index_by_name('OAS_dif_band7')
+   ptm_oasim_dir_diag(3) = aed_diag_index_by_name('OAS_dir_band9')   ! 550 nm
+   ptm_oasim_dif_diag(3) = aed_diag_index_by_name('OAS_dif_band9')
+   ptm_oasim_dir_diag(4) = aed_diag_index_by_name('OAS_dir_band10')  ! 565 nm
+   ptm_oasim_dif_diag(4) = aed_diag_index_by_name('OAS_dif_band10')
+   ptm_oasim_dir_diag(5) = aed_diag_index_by_name('OAS_dir_band11')  ! 590 nm
+   ptm_oasim_dif_diag(5) = aed_diag_index_by_name('OAS_dif_band11')
+   ptm_oasim_dir_diag(6) = aed_diag_index_by_name('OAS_dir_band12')  ! 620 nm
+   ptm_oasim_dif_diag(6) = aed_diag_index_by_name('OAS_dif_band12')
+   ptm_oasim_dir_diag(7) = aed_diag_index_by_name('OAS_dir_band15')  ! 665 nm
+   ptm_oasim_dif_diag(7) = aed_diag_index_by_name('OAS_dif_band15')
+   ptm_oasim_cache_ready = .TRUE.
+END SUBROUTINE aed_cache_ptm_oasim_bands
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE aed_cache_ptm_oasim_band_kd()
+!-------------------------------------------------------------------------------
+!# aed_oasim registers Kd_band<n> only when save_Kd=.true., so missing indices are
+!# expected, not an error.
+!BEGIN
+   ptm_oasim_kd_band_diag(1) = aed_diag_index_by_name('OAS_Kd_band6')    ! 440 nm
+   ptm_oasim_kd_band_diag(2) = aed_diag_index_by_name('OAS_Kd_band7')    ! 490 nm
+   ptm_oasim_kd_band_diag(3) = aed_diag_index_by_name('OAS_Kd_band9')    ! 550 nm
+   ptm_oasim_kd_band_diag(4) = aed_diag_index_by_name('OAS_Kd_band10')   ! 565 nm
+   ptm_oasim_kd_band_diag(5) = aed_diag_index_by_name('OAS_Kd_band11')   ! 590 nm
+   ptm_oasim_kd_band_diag(6) = aed_diag_index_by_name('OAS_Kd_band12')   ! 620 nm
+   ptm_oasim_kd_band_diag(7) = aed_diag_index_by_name('OAS_Kd_band15')   ! 665 nm
+   ptm_oasim_kd_band_cache_ready = .TRUE.
+END SUBROUTINE aed_cache_ptm_oasim_band_kd
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE aed_sample_oasim_band_kd(layer, kds, nbands, status) &
+                                    BIND(C, name="aed_sample_oasim_band_kd")
+!-------------------------------------------------------------------------------
+!# Per-band Kd at a layer centre. status: 0 = all bands exact, 1 = layer out of
+!# range, 2 = unavailable (caller falls back). The magnitude guard rejects the NetCDF
+!# fill value (finite and positive) that a bare isfinite test would let through.
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   CINTEGER, VALUE       :: layer, nbands
+   AED_REAL, INTENT(out) :: kds(*)
+   CINTEGER, INTENT(out) :: status
+!LOCALS
+   INTEGER  :: i, n, f_layer
+   AED_REAL :: v
+   AED_REAL, PARAMETER :: KD_SANE_MAX = 1.0e3   !# m-1; real lake Kd is O(0.1..10)
+!-------------------------------------------------------------------------------
+!BEGIN
+   n = MIN(INT(nbands), PTM_OASIM_NBANDS)
+   DO i=1,INT(nbands)
+      kds(i) = zero_
+   ENDDO
+
+   IF (.NOT. ALLOCATED(cc_diag)) THEN
+      status = 2
+      RETURN
+   ENDIF
+
+   IF (.NOT. ptm_oasim_kd_band_cache_ready) CALL aed_cache_ptm_oasim_band_kd()
+
+   DO i=1,n
+      IF (ptm_oasim_kd_band_diag(i) <= 0) THEN
+         status = 2
+         RETURN
+      ENDIF
+   ENDDO
+
+   f_layer = INT(layer) + 1
+   IF (f_layer < 1 .OR. f_layer > SIZE(cc_diag,2)) THEN
+      status = 1
+      RETURN
+   ENDIF
+
+   DO i=1,n
+      v = cc_diag(ptm_oasim_kd_band_diag(i), f_layer)
+      IF (v /= v .OR. v < zero_ .OR. v > KD_SANE_MAX) THEN
+         status = 2
+         RETURN
+      ENDIF
+      kds(i) = v
+   ENDDO
+   status = 0
+END SUBROUTINE aed_sample_oasim_band_kd
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE aed_sample_oasim_particle_bands(layer, bands, nbands, status) &
+                                           BIND(C, name="aed_sample_oasim_particle_bands")
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   CINTEGER, VALUE       :: layer, nbands
+   AED_REAL, INTENT(out) :: bands(*)
+   CINTEGER, INTENT(out) :: status
+!LOCALS
+   INTEGER :: i, n, f_layer
+!-------------------------------------------------------------------------------
+!BEGIN
+   n = MIN(INT(nbands), PTM_OASIM_NBANDS)
+   DO i=1,INT(nbands)
+      bands(i) = zero_
+   ENDDO
+
+   IF (.NOT. ALLOCATED(cc_diag)) THEN
+      status = 2
+      RETURN
+   ENDIF
+
+   IF (.NOT. ptm_oasim_cache_ready) CALL aed_cache_ptm_oasim_bands()
+
+   DO i=1,n
+      IF (ptm_oasim_dir_diag(i) <= 0 .OR. ptm_oasim_dif_diag(i) <= 0) THEN
+         status = 2
+         RETURN
+      ENDIF
+   ENDDO
+
+   f_layer = INT(layer) + 1
+   IF (f_layer < 1 .OR. f_layer > SIZE(cc_diag,2)) THEN
+      status = 1
+      RETURN
+   ENDIF
+
+   DO i=1,n
+      bands(i) = cc_diag(ptm_oasim_dir_diag(i), f_layer) + cc_diag(ptm_oasim_dif_diag(i), f_layer)
+   ENDDO
+   status = 0
+END SUBROUTINE aed_sample_oasim_particle_bands
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE aed_cache_ptm_oasim_par_kd()
+!-------------------------------------------------------------------------------
+!BEGIN
+   ptm_oasim_par_diag = aed_diag_index_by_name('OAS_par_J_scalar')
+   ptm_oasim_kd_diag  = aed_diag_index_by_name('OAS_Kd')
+   ptm_oasim_par_kd_cache_ready = .TRUE.
+END SUBROUTINE aed_cache_ptm_oasim_par_kd
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE aed_cache_ptm_oasim_afac()
+!-------------------------------------------------------------------------------
+!# OAS_afac_iop<n> indices; absent ones are 0 and reported as status=2 by the sampler.
+!LOCALS
+   INTEGER :: i
+   CHARACTER(len=8) :: sidx
+!BEGIN
+   DO i = 1, PTM_MAX_IOP
+      WRITE(sidx,'(i0)') i
+      ptm_oasim_afac_diag(i) = aed_diag_index_by_name('OAS_afac_iop' // TRIM(sidx))
+   ENDDO
+   ptm_oasim_afac_cache_ready = .TRUE.
+END SUBROUTINE aed_cache_ptm_oasim_afac
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE aed_sample_oasim_afac(layer, iop, afac, status) &
+                                 BIND(C, name="aed_sample_oasim_afac")
+!-------------------------------------------------------------------------------
+!# OASIM's spectral absorption factor for one IOP at one layer: dimensionless, 1.0 for
+!# a flat spectrum. `iop` is the 1-based index into &aed_oasim's iop_link list, not a
+!# particle group; the caller maps groups to IOPs. A failed sample returns 1.0.
+!ARGUMENTS
+   CINTEGER, VALUE       :: layer, iop
+   AED_REAL, INTENT(out) :: afac
+   CINTEGER, INTENT(out) :: status
+!LOCALS
+   INTEGER :: f_layer
+   AED_REAL :: v
+!-------------------------------------------------------------------------------
+!BEGIN
+   afac = one_          !# a failed sample must leave light UNCHANGED, never zeroed
+
+   IF (.NOT. ALLOCATED(cc_diag)) THEN
+      status = 2
+      RETURN
+   ENDIF
+
+   IF (.NOT. ptm_oasim_afac_cache_ready) CALL aed_cache_ptm_oasim_afac()
+
+   IF (iop < 1 .OR. iop > PTM_MAX_IOP) THEN
+      status = 2
+      RETURN
+   ENDIF
+   IF (ptm_oasim_afac_diag(iop) <= 0) THEN
+      status = 2
+      RETURN
+   ENDIF
+
+   f_layer = INT(layer) + 1
+   IF (f_layer < 1 .OR. f_layer > SIZE(cc_diag,2)) THEN
+      status = 1
+      RETURN
+   ENDIF
+
+   v = cc_diag(ptm_oasim_afac_diag(iop), f_layer)
+   IF (v /= v .OR. v <= zero_ .OR. v > 1.0d2) THEN
+      status = 2
+      RETURN
+   ENDIF
+
+   afac = v
+   status = 0
+END SUBROUTINE aed_sample_oasim_afac
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE aed_sample_oasim_par_kd(layer, par_center, kd, status) &
+                                       BIND(C, name="aed_sample_oasim_par_kd")
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   CINTEGER, VALUE       :: layer
+   AED_REAL, INTENT(out) :: par_center, kd
+   CINTEGER, INTENT(out) :: status
+!LOCALS
+   INTEGER :: f_layer
+!-------------------------------------------------------------------------------
+!BEGIN
+   par_center = zero_
+   kd = zero_
+
+   IF (.NOT. ALLOCATED(cc_diag)) THEN
+      status = 2
+      RETURN
+   ENDIF
+
+   IF (.NOT. ptm_oasim_par_kd_cache_ready) CALL aed_cache_ptm_oasim_par_kd()
+
+   IF (ptm_oasim_par_diag <= 0 .OR. ptm_oasim_kd_diag <= 0) THEN
+      status = 2
+      RETURN
+   ENDIF
+
+   f_layer = INT(layer) + 1
+   IF (f_layer < 1 .OR. f_layer > SIZE(cc_diag,2)) THEN
+      status = 1
+      RETURN
+   ENDIF
+
+   par_center = cc_diag(ptm_oasim_par_diag, f_layer)
+   kd = cc_diag(ptm_oasim_kd_diag, f_layer)
+   status = 0
+END SUBROUTINE aed_sample_oasim_par_kd
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
 SUBROUTINE aed_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
@@ -537,10 +891,15 @@ SUBROUTINE aed_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
 !BEGIN
    !# Save pointers to external dynamic variables that we need later (in do_glm_wq)
    height => theLake%Height
+   !# glm_zones' lheights is read by the zavg remap below and by the zone code, but was only
+   !# associated when zones were set up: without zones the second aed_do_glm call read an
+   !# unassociated pointer (segmentation fault on the first step of every no-zone run).
+   lheights => theLake%Height
    temp   => theLake%Temp
    salt   => theLake%Salinity
    rho    => theLake%Density
    area   => theLake%LayerArea
+   lvol   => theLake%LayerVol
    rad    => theLake%Light
    vel    => theLake%Umean
    extc   => theLake%ExtcCoefSW
@@ -548,6 +907,8 @@ SUBROUTINE aed_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
 
    ALLOCATE(depth(MaxLayers))
    ALLOCATE(layer_area(MaxLayers))
+   ALLOCATE(zone_lvol(MAX(1, n_zones)))
+   zone_lvol = zero_
    ALLOCATE(sed_zones(MaxLayers))
    sed_zones = 0.
 
@@ -557,6 +918,8 @@ SUBROUTINE aed_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
 
    ALLOCATE(flux_pel_pre(n_vars+n_vars_ben, MAX(MaxLayers, n_zones)))
    ALLOCATE(flux_pel_z(  n_vars+n_vars_ben, MAX(MaxLayers, n_zones)))
+   ALLOCATE(flux_pel_ptm(n_vars+n_vars_ben, MAX(MaxLayers, n_zones)))
+   flux_pel_ptm = zero_
 
    IF ( n_zones > 0 ) THEN
       ALLOCATE(flux_zon(n_vars+n_vars_ben, n_zones))
@@ -633,6 +996,7 @@ SUBROUTINE check_data
             CASE ( 'col_area' )    ; tvar%found = .true.
             CASE ( 'evap' )        ; tvar%found = .true.
             CASE ( 'layer_area' )  ; tvar%found = .true.
+            CASE ( 'layer_vol' )   ; tvar%found = .true.
             CASE ( 'rain' )        ; tvar%found = .true.
             CASE ( 'delzBlueIce' ) ; tvar%found = .true.
             CASE ( 'delzWhiteIce' ) ; tvar%found = .true.
@@ -725,6 +1089,7 @@ SUBROUTINE define_column(column, top)
             CASE ( 'col_area' )    ; column(av)%cell_sheet => area(top)
             CASE ( 'evap' )        ; column(av)%cell_sheet => evap
             CASE ( 'layer_area' )  ; column(av)%cell => layer_area(:)
+            CASE ( 'layer_vol' )   ; column(av)%cell => lvol(:)
             CASE ( 'rain' )        ; column(av)%cell_sheet => precip
             CASE ( 'air_temp' )    ; column(av)%cell_sheet => air_temp
             CASE ( 'air_pres' )    ; column(av)%cell_sheet => air_pres
@@ -851,6 +1216,7 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
    TYPE (aed_column_t) :: column(n_aed_vars)
    TYPE (aed_column_t) :: column_sed(n_aed_vars)
    AED_REAL :: pa = 0.
+   INTEGER  :: ptm_layer_map(wlev)   !# layer map for the OASIM pre-solve
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -990,6 +1356,9 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
       ENDDO
    ENDIF
 
+   !# Bin the active particles into the current layers before the biology reads them.
+   IF (do_particle_bgc) CALL Particles(wlev)
+
    IF ( .NOT. mobility_off ) THEN
       v = 0
       DO i=1,n_aed_vars
@@ -1042,6 +1411,23 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
       IF (benthic_mode .GT. 1) &
          CALL copy_to_zone(cc, cc_diag, wlev)
 
+      !# Publish this sub-step's fraction of the host step for per-step MEAN diagnostics.
+      !# Exactly 1.0 when split_factor = 1; reset to 1.0 after the loop.
+      aed_substep_frac = dt_eff / dt
+
+      !# Layer-map convention shared by the OASIM pre-solve and the particle call.
+      DO lev=1,wlev
+         ptm_layer_map(lev) = 1 + wlev-lev
+      ENDDO
+
+      !# Run OASIM's column solve BEFORE update_light. Its per-band diagnostics are otherwise
+      !# filled by aed_calculate_column inside calculate_fluxes, which runs AFTER the particle
+      !# call, so the ABM would read a zeroed spectrum; and update_light's extinction hook reads
+      !# OAS_Kd_bio, which was one step stale without this. The solve is idempotent (its band
+      !# diagnostics are assigned, not accumulated) and aed_calculate_column_model is a name
+      !# lookup that no-ops when 'aed_oasim' is not in the model list.
+      CALL aed_calculate_column_model('aed_oasim', column, ptm_layer_map)
+
       !# Update local light field (self-shading may have changed through
       !# changes in biological state variables). Update_light is set to
       !# be inline with current aed_phyoplankton, which requires only
@@ -1053,8 +1439,26 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
       uva(:) = (par(:)/par_fraction) * uva_fraction
       uvb(:) = (par(:)/par_fraction) * uvb_fraction
 
+      IF (do_particle_bgc) THEN
+         !# Particle PAR from the OASIM field just solved (host state of THIS step).
+         CALL ptm_update_particle_par()
+         !# The biological sub-step in DAYS: this call sits inside the split loop, so the
+         !# interval is dt_eff, not dt. flux_pel is zeroed first because calculate_fluxes
+         !# does not clear it until after this call: the snapshot below must hold the particle
+         !# contribution alone, not the previous sub-step's complete flux.
+         flux_pel = zero_
+         CALL aed_calculate_particles(column, wlev, 1, wlev, 1, dt_eff/86400.0)
+         !# Snapshot the particle contribution before calculate_fluxes zeroes flux_pel, and
+         !# re-add it after (once per sub-step: the term is a RATE over dt_eff). Same
+         !# snapshot/re-add pair as libaed-api's aed_run_model.
+         flux_pel_ptm(1:n_vars, 1:wlev) = flux_pel(1:n_vars, 1:wlev)
+      ENDIF
+
       !# Time-integrate one biological time step
       CALL calculate_fluxes(wlev)
+
+      IF ( do_particle_bgc ) &
+         flux_pel(1:n_vars, 1:wlev) = flux_pel(1:n_vars, 1:wlev) + flux_pel_ptm(1:n_vars, 1:wlev)
 
       !# Update the water column layers
       cc(1:n_vars, 1:wlev) = cc(1:n_vars, 1:wlev) + dt_eff*flux_pel(1:n_vars, 1:wlev)
@@ -1084,6 +1488,11 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
 
       CALL check_states(wlev)
    ENDDO
+   aed_substep_frac = 1.0   !# back to whole-step outside the split loop
+
+   IF (do_particle_bgc) THEN
+      CALL aed_split_particles()
+   ENDIF
 
    IF (.NOT. link_ext_par) THEN
       localext_post = zero_
@@ -1168,6 +1577,7 @@ CONTAINS
             CASE ( 'col_area' )    ; column_sed(av)%cell_sheet => area(top)
             CASE ( 'evap' )        ; column_sed(av)%cell_sheet => evap
             CASE ( 'layer_area' )  ; column_sed(av)%cell => theZones(:)%zarea
+            CASE ( 'layer_vol' )   ; column_sed(av)%cell => zone_lvol(:)
             CASE ( 'rain' )        ; column_sed(av)%cell_sheet => precip
             CASE ( 'air_temp' )    ; column_sed(av)%cell_sheet => air_temp
             CASE ( 'air_pres' )    ; column_sed(av)%cell_sheet => air_pres
@@ -1507,9 +1917,21 @@ SUBROUTINE aed_clean_glm() BIND(C, name=_WQ_CLEAN_GLM)
 !-------------------------------------------------------------------------------
 ! Finish biogeochemical model
 !-------------------------------------------------------------------------------
+!LOCALS
+   INTERFACE
+      SUBROUTINE aed_phyto_abm_daily_finish() BIND(C, name="aed_phyto_abm_daily_finish")
+      END SUBROUTINE aed_phyto_abm_daily_finish
+   END INTERFACE
+!
+!-------------------------------------------------------------------------------
 !BEGIN
+   !# Flush the final, PARTIAL reporting period of the Eulerian daily bins and close the
+   !# file. A no-op unless daily_bins > 0 in &aed_phyto_abm.
+   CALL aed_phyto_abm_daily_finish()
+
    CALL aed_delete()
    ! Deallocate internal arrays
+   IF (ALLOCATED(flux_pel_ptm)) DEALLOCATE(flux_pel_ptm)
    IF (ALLOCATED(cc_diag))      DEALLOCATE(cc_diag)
    IF (ALLOCATED(cc_diag_old))  DEALLOCATE(cc_diag_old)
    IF (ALLOCATED(cc_diag_hz))   DEALLOCATE(cc_diag_hz)

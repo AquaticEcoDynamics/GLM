@@ -41,6 +41,10 @@ void do_ptm_update(void);
 void ptm_redistribute(AED_REAL upper_height, AED_REAL lower_height);
 void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_height, AED_REAL lower_height);
 void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount);
+/* B2h 2026-09-16: re-anchor the particles a water removal left above the lowered surface. Beside
+ * ptm_layershift because it is the same kind of operation - particles following the water - for the
+ * opposite sign of level change. */
+void ptm_follow_surface_drop(AED_REAL old_height);
 void ptm_update_layerid(void);
 
 void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, int max_particle_num);
@@ -51,6 +55,22 @@ extern AED_REAL particle_density;
 extern AED_REAL particle_diameter;
 extern AED_REAL settling_velocity;
 extern int init_particle_num;
+extern int *init_particle_num_by_group;
+extern CINTEGER particle_reseed_enabled;
+extern CINTEGER particle_reseed_min;
+extern CINTEGER particle_reseed_target;
+extern int *particle_reseed_min_by_group;
+extern int *particle_reseed_target_by_group;
+extern AED_REAL *init_depth_min_by_group;
+extern AED_REAL *init_depth_max_by_group;
+extern AED_REAL *particle_density_by_group;
+extern AED_REAL *particle_diameter_by_group;
+extern AED_REAL *settling_velocity_by_group;
+extern char **particle_group_names;
+extern char **particle_phyto_links;
+extern char **particle_pigment_type;
+extern int particle_group_names_n;
+extern int particle_pigment_type_n;
 extern LOGICAL sed_deactivation;
 extern AED_REAL settling_efficiency;
 extern FLOGICAL do_particle_bgc;

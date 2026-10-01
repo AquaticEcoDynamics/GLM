@@ -92,8 +92,97 @@ char wq_lib[256] = DEFAULT_WQ_LIB;
 static void create_lake(int namlst);
 static void initialise_lake(int namlst);
 static int init_time(const char *start, char *stop, int timefmt, int *startTOD, int *stopTOD, int *nDays);
+static int *sanitize_particle_int_list(int namlst, const char *entry_name, int *raw,
+                                       int groups, int max_value, int default_value);
+static AED_REAL *sanitize_particle_real_list(int namlst, const char *entry_name, AED_REAL *raw,
+                                             int groups, AED_REAL default_value);
+static char **copy_particle_str_list(int namlst, const char *entry_name, char **raw, int *n_out);
 
 /*############################################################################*/
+
+static int *sanitize_particle_int_list(int namlst, const char *entry_name, int *raw,
+                                       int groups, int max_value, int default_value)
+{
+    int i, len, value;
+    int *clean;
+
+    if (groups < 1) groups = 1;
+    clean = calloc(groups, sizeof(int));
+    if (clean == NULL) {
+        fprintf(stderr, "     ERROR: unable to allocate sanitized %s list\n", entry_name);
+        exit(1);
+    }
+
+    len = get_nml_listlen(namlst, "particles", entry_name);
+    for (i = 0; i < groups; i++) {
+        if (raw != NULL && len > 0) {
+            value = raw[(i < len) ? i : (len - 1)];
+        } else {
+            value = default_value;
+        }
+
+        if (value < 0) {
+            fprintf(stderr, "     WARNING: %s for particle group %d is %d; using 0\n",
+                    entry_name, i + 1, value);
+            value = 0;
+        }
+        if (value > max_value) {
+            fprintf(stderr, "     WARNING: %s for particle group %d is %d; capping to max_particle_num=%d\n",
+                    entry_name, i + 1, value, max_value);
+            value = max_value;
+        }
+        clean[i] = value;
+    }
+
+    if (raw != NULL && len > 0 && len < groups) {
+        fprintf(stderr, "     WARNING: %s has %d values for %d particle groups; extending with last value\n",
+                entry_name, len, groups);
+    }
+
+    return clean;
+}
+
+/* Per-group real lists (init_depth_min/max, particle_density, particle_diameter,
+ * settling_velocity): one value per group, a shorter list extended with its last value,
+ * an absent list filled with the default - so glm_ptm.c can index every list by group. */
+static AED_REAL *sanitize_particle_real_list(int namlst, const char *entry_name, AED_REAL *raw,
+                                             int groups, AED_REAL default_value)
+{
+    int i, len;
+    AED_REAL *clean;
+
+    if (groups < 1) groups = 1;
+    clean = calloc(groups, sizeof(AED_REAL));
+    if (clean == NULL) {
+        fprintf(stderr, "     ERROR: unable to allocate sanitized %s list\n", entry_name);
+        exit(1);
+    }
+    len = get_nml_listlen(namlst, "particles", entry_name);
+    for (i = 0; i < groups; i++) {
+        if (raw != NULL && len > 0) clean[i] = raw[(i < len) ? i : (len - 1)];
+        else                        clean[i] = default_value;
+    }
+    if (raw != NULL && len > 0 && len < groups)
+        fprintf(stderr, "     WARNING: %s has %d values for %d particle groups; extending with last value\n",
+                entry_name, len, groups);
+    return clean;
+}
+
+/* Per-group string lists (particle_group_names, particle_pigment_type, particle_phyto_links):
+ * a deep copy, because close_namelist() frees the reader's strings at the end of init_glm and
+ * the particle model reads these for the life of the run. *n_out = number of entries given. */
+static char **copy_particle_str_list(int namlst, const char *entry_name, char **raw, int *n_out)
+{
+    int i, len = (raw != NULL) ? get_nml_listlen(namlst, "particles", entry_name) : 0;
+    char **clean = calloc((size_t)len + 1, sizeof(char *));
+    if (clean == NULL) {
+        fprintf(stderr, "     ERROR: unable to allocate %s list\n", entry_name);
+        exit(1);
+    }
+    for (i = 0; i < len; i++) clean[i] = (raw[i] != NULL) ? strdup(raw[i]) : NULL;
+    *n_out = len;
+    return clean;
+}
 
 /******************************************************************************
  *                                                                            *
@@ -649,15 +738,32 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 //  extern CLOGICAL  sed_deactivation;
     extern int       max_particle_num;
     extern int       init_particle_num;
+    extern int       num_particle_grp;
     extern AED_REAL  *inflow_conc;
     extern AED_REAL  init_depth_min;
     extern AED_REAL  init_depth_max;
     extern AED_REAL  ptm_time_step;
     extern AED_REAL  ptm_diffusivity;
+    extern CINTEGER  ptm_buoy_substep;
+    extern CINTEGER  particle_random_seed;
     extern AED_REAL  particle_density;
     extern AED_REAL  particle_diameter;
     extern AED_REAL  settling_velocity;
     extern AED_REAL  settling_efficiency;
+    extern int       *init_particle_num_by_group;
+    extern CINTEGER  particle_reseed_enabled;
+    extern int       *particle_reseed_min_by_group;
+    extern int       *particle_reseed_target_by_group;
+    extern AED_REAL  *init_depth_min_by_group;
+    extern AED_REAL  *init_depth_max_by_group;
+    extern AED_REAL  *particle_density_by_group;
+    extern AED_REAL  *particle_diameter_by_group;
+    extern AED_REAL  *settling_velocity_by_group;
+    extern char      **particle_group_names;
+    extern char      **particle_phyto_links;
+    extern char      **particle_pigment_type;
+    extern int       particle_group_names_n;
+    extern int       particle_pigment_type_n;
 //  extern CLOGICAL  do_particle_bgc;
     extern int       upper_boundary_cond;
     extern int       lower_boundary_cond;
@@ -668,15 +774,24 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "ptm_sw",            TYPE_BOOL,             &ptm_sw               },
           { "sed_deactivation",  TYPE_BOOL,             &sed_deactivation     },
           { "max_particle_num",  TYPE_INT,              &max_particle_num     },
-          { "init_particle_num", TYPE_INT,              &init_particle_num    },
+          { "num_particle_grp",  TYPE_INT,              &num_particle_grp     },
+          { "init_particle_num", TYPE_INT|MASK_LIST,    &init_particle_num_by_group },
           { "inflow_conc",       TYPE_DOUBLE|MASK_LIST, &inflow_conc          },
-          { "init_depth_min",    TYPE_DOUBLE,           &init_depth_min       },
-          { "init_depth_max",    TYPE_DOUBLE,           &init_depth_max       },
+          { "init_depth_min",    TYPE_DOUBLE|MASK_LIST, &init_depth_min_by_group },
+          { "init_depth_max",    TYPE_DOUBLE|MASK_LIST, &init_depth_max_by_group },
           { "ptm_time_step",     TYPE_DOUBLE,           &ptm_time_step        },
           { "ptm_diffusivity",   TYPE_DOUBLE,           &ptm_diffusivity      },
-          { "particle_density",  TYPE_DOUBLE,           &particle_density     },
-          { "particle_diameter", TYPE_DOUBLE,           &particle_diameter    },
-          { "settling_velocity", TYPE_DOUBLE,           &settling_velocity    },
+          { "ptm_buoy_substep",  TYPE_INT,              &ptm_buoy_substep     },
+          { "particle_random_seed", TYPE_INT,           &particle_random_seed },
+          { "particle_reseed_enabled", TYPE_INT,         &particle_reseed_enabled },
+          { "particle_reseed_min", TYPE_INT|MASK_LIST,  &particle_reseed_min_by_group },
+          { "particle_reseed_target", TYPE_INT|MASK_LIST, &particle_reseed_target_by_group },
+          { "particle_group_names", TYPE_STR|MASK_LIST, &particle_group_names },
+          { "particle_phyto_links", TYPE_STR|MASK_LIST, &particle_phyto_links },
+          { "particle_pigment_type", TYPE_STR|MASK_LIST, &particle_pigment_type },
+          { "particle_density",  TYPE_DOUBLE|MASK_LIST, &particle_density_by_group },
+          { "particle_diameter", TYPE_DOUBLE|MASK_LIST, &particle_diameter_by_group },
+          { "settling_velocity", TYPE_DOUBLE|MASK_LIST, &settling_velocity_by_group },
           { "settling_efficiency", TYPE_DOUBLE,         &settling_efficiency  },
           { "do_particle_bgc",   TYPE_BOOL,             &do_particle_bgc      },
           { "upper_boundary_cond", TYPE_INT,             &upper_boundary_cond  },
@@ -865,6 +980,37 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( get_namelist(namlst, particles) ) {
         fprintf(stderr, "No 'particles' config, assuming no particles\n");
     }
+    if (num_particle_grp < 1) num_particle_grp = 1;
+    init_particle_num_by_group =
+        sanitize_particle_int_list(namlst, "init_particle_num", init_particle_num_by_group,
+                                   num_particle_grp, max_particle_num, init_particle_num);
+    init_particle_num = init_particle_num_by_group[0];
+    particle_reseed_min_by_group =
+        sanitize_particle_int_list(namlst, "particle_reseed_min", particle_reseed_min_by_group,
+                                   num_particle_grp, max_particle_num, 0);
+    particle_reseed_target_by_group =
+        sanitize_particle_int_list(namlst, "particle_reseed_target", particle_reseed_target_by_group,
+                                   num_particle_grp, max_particle_num, init_particle_num);
+    init_depth_min_by_group = sanitize_particle_real_list(namlst, "init_depth_min", init_depth_min_by_group,
+                                                          num_particle_grp, init_depth_min);
+    init_depth_max_by_group = sanitize_particle_real_list(namlst, "init_depth_max", init_depth_max_by_group,
+                                                          num_particle_grp, init_depth_max);
+    particle_density_by_group = sanitize_particle_real_list(namlst, "particle_density", particle_density_by_group,
+                                                            num_particle_grp, particle_density);
+    particle_diameter_by_group = sanitize_particle_real_list(namlst, "particle_diameter", particle_diameter_by_group,
+                                                             num_particle_grp, particle_diameter);
+    settling_velocity_by_group = sanitize_particle_real_list(namlst, "settling_velocity", settling_velocity_by_group,
+                                                             num_particle_grp, settling_velocity);
+    init_depth_min = init_depth_min_by_group[0];
+    init_depth_max = init_depth_max_by_group[0];
+    particle_density = particle_density_by_group[0];
+    particle_diameter = particle_diameter_by_group[0];
+    settling_velocity = settling_velocity_by_group[0];
+    /* string lists are copied: the namelist's own strings are freed with the file at the end of
+     * init_glm, and glm_ptm.c reads these when the output file is created and written */
+    particle_group_names  = copy_particle_str_list(namlst, "particle_group_names",  particle_group_names,  &particle_group_names_n);
+    particle_pigment_type = copy_particle_str_list(namlst, "particle_pigment_type", particle_pigment_type, &particle_pigment_type_n);
+    particle_phyto_links  = copy_particle_str_list(namlst, "particle_phyto_links",  particle_phyto_links,  &i);
 
     /* Re-seed the C RNG now that the namelist has been read. glm_main.c seeds from
      * time(NULL) before any config is parsed, which made every run irreproducible; that
@@ -1609,8 +1755,14 @@ for (i = 0; i < n_zones; i++) {
 
     // particles / ptm
     if ( ptm_sw ) {
-        fprintf(stderr, "     PTM module active: initial particles = %d\n", init_particle_num);
-        ptm_init_glm();  // max_particle_num, init_particle_num,
+        {
+            int ptm_initial_total = 0, ptm_group;
+            for (ptm_group = 0; ptm_group < num_particle_grp; ptm_group++)
+                ptm_initial_total += init_particle_num_by_group[ptm_group];
+            fprintf(stderr, "     PTM module active: initial particles = %d across %d group(s)\n",
+                    ptm_initial_total, num_particle_grp);
+        }
+        ptm_init_glm();  // num_particle_grp, max_particle_num, init_particle_num,
                          // init_depth_min, init_depth_max, ptm_time_step, ptm_diffusivity
 /*         if ( max_particle_num > 10000 ) {
             fprintf(stderr, "     ERROR: Sorry, this version of GLM only supports %d water quality variables\n", 1000000);

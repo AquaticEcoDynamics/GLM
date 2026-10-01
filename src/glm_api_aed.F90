@@ -525,14 +525,26 @@ SUBROUTINE api_set_glm_ptm(num_particle_groups,num_particles)    BIND(C, name=_W
 !ARGUMENTS
    CINTEGER,INTENT(in) :: num_particle_groups,num_particles
 !LOCALS
- ! INTEGER :: status
+   INTEGER :: status
 !
 !-------------------------------------------------------------------------------
 !BEGIN
 
-   ALLOCATE(ptm_bla(num_particle_groups))
+   !# glm_ptm.c calls this entry point for BOTH water-quality glues (wq_lib = 'aed' and
+   !# 'api'). Under the direct glue api_init_glm never ran, so n_ptm_vars is still 0 here;
+   !# ask the core for it, or the particles get no state slots at all.
+   IF (n_ptm_vars <= 0) &
+      n_aed_vars = aed_core_status(n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet, n_ptm_vars)
+
+   ALLOCATE(ptm_bla(num_particle_groups),stat=status)
+   IF (status /= 0) THEN
+      WRITE(*,*) 'api_set_glm_ptm: ERROR allocating ptm_bla : requested ', &
+                 num_particle_groups, ' groups, stat = ', status
+      ERROR STOP 1
+   ENDIF
 
    CALL aed_ptm_init(num_particle_groups,num_particles,ptm_bla,n_ptm_vars,MaxLayers)
+   CALL set_c_num_ptm_vars(n_ptm_vars)
 
   ! CALL set_c_ptmvars_ptr(cc)
    CALL set_c_ptmstat_ptr(ptm_istat)
