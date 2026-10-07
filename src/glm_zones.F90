@@ -82,9 +82,13 @@ SUBROUTINE wq_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV)            &
    lheights => theLake%Height
    zone_heights => theZones%zheight
 
+   IF (ALLOCATED(z_cc)) DEALLOCATE(z_cc)
+
    ALLOCATE(z_cc(numVars+numBenV, MaxLayers, n_zones)) ; z_cc = 0.
 !  ALLOCATE(z_cc_hz(numVars+numBenV, n_zones))         ; z_cc_hz = 0.
+   IF (ALLOCATED(z_diag)) DEALLOCATE(z_diag)
    ALLOCATE(z_diag(numDiagV, MaxLayers, n_zones))      ; z_diag = 0.
+   IF (ALLOCATED(z_diag_hz)) DEALLOCATE(z_diag_hz)
    ALLOCATE(z_diag_hz(numDiagHzV, n_zones+1))          ; z_diag_hz = 0.
    theZones%zarea = 0.
 END SUBROUTINE wq_set_glm_zones

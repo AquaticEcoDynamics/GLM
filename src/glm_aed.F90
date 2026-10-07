@@ -307,8 +307,10 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    CALL check_data
 
    !# names = grab the names from info
+   IF (ALLOCATED(names)) DEALLOCATE(names)
    ALLOCATE(names(n_vars),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (names)'
+   IF (ALLOCATED(bennames)) DEALLOCATE(bennames)
    ALLOCATE(bennames(n_vars_ben),stat=status)
    IF (status /= 0) STOP 'allocate_memory(): Error allocating (bennames)'
 
@@ -1531,6 +1533,15 @@ SUBROUTINE aed_clean_glm() BIND(C, name=_WQ_CLEAN_GLM)
    IF (ALLOCATED(flux_zon))     DEALLOCATE(flux_zon)
    IF (ALLOCATED(flux_pel_z))   DEALLOCATE(flux_pel_z)
    IF (ALLOCATED(flux_pel_pre)) DEALLOCATE(flux_pel_pre)
+   !# clarena fix: also free arrays allocated per run so the library can be re-initialised
+   IF (ALLOCATED(names)) DEALLOCATE(names)
+   IF (ALLOCATED(bennames)) DEALLOCATE(bennames)
+   IF (ALLOCATED(cc)) DEALLOCATE(cc)
+   IF (ALLOCATED(depth)) DEALLOCATE(depth)
+   IF (ALLOCATED(sed_zones)) DEALLOCATE(sed_zones)
+   IF (ALLOCATED(tss)) DEALLOCATE(tss)
+   IF (ALLOCATED(externalid)) DEALLOCATE(externalid)
+   IF (ALLOCATED(zexternalid)) DEALLOCATE(zexternalid)
 END SUBROUTINE aed_clean_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
