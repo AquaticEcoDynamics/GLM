@@ -1304,7 +1304,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                                                      Lake[surfLayer].LayerVol,
                                                      zero, rainvol+snowvol);
 
-//      resize_internals(1, surfLayer);  // recompute surflayer volume
+        resize_internals(1, surfLayer);  // recompute surflayer volume
 
         //---------------------------------------------------------------------+
         //# Evaporation and evapo-concentration, as evaporation leaves consituents
