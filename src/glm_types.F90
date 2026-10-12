@@ -167,6 +167,7 @@ MODULE glm_types
       AED_REAL :: z_sed_zones
       AED_REAL :: z_pc_wet
       AED_REAL :: heatflux
+      AED_REAL :: ztop_area      !# plan area at zheight (bed area below the zone top)
       CINTEGER :: n_sed_layers;    !# number of sediment layers
       TYPE(C_PTR) :: c_layers      !# array of sed layers
    END TYPE ZoneType

@@ -106,6 +106,7 @@ SUBROUTINE api_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV, nAEDvars) &
    DO zon=1,n_zones
       aedZones(zon)%z_env%z_area = 0.
       aedZones(zon)%z_env%z_height = theZones(zon)%zheight
+      aedZones(zon)%z_env%z_top_area = theZones(zon)%ztop_area
    ENDDO
    theZones%zarea = 0.
    zone_heights => theZones%zheight
@@ -127,7 +128,7 @@ SUBROUTINE api_calc_zone_areas(aedZones, n_zones, areas, wheights, wlev)
 !LOCALS
    INTEGER  :: lev, zon
    LOGICAL  :: w_zones
-   AED_REAL :: surf, scale
+   AED_REAL :: surf
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -137,35 +138,30 @@ SUBROUTINE api_calc_zone_areas(aedZones, n_zones, areas, wheights, wlev)
    w_zones = .FALSE.
    surf = wheights(wlev)
 
-   zon = 1
-   aedZones(1)%z_env%z_area = areas(1)
-   IF ( aedZones(1)%z_env%z_height > surf ) THEN
-      aedZones(1)%z_env%z_pc_wet = surf / aedZones(1)%z_env%z_height
-   ELSE
-      aedZones(1)%z_env%z_pc_wet = 1.0
-   ENDIF
-   DO lev=2, wlev
-      ! areas() here is the INCREMENTAL layer area, so summing it gives the zone band area
-      IF (wheights(lev) <= aedZones(zon)%z_env%z_height) THEN
-         aedZones(zon)%z_env%z_area = aedZones(zon)%z_env%z_area + areas(lev)
-      ELSEIF (wheights(lev) > aedZones(zon)%z_env%z_height .AND. wheights(lev-1) < aedZones(zon)%z_env%z_height) THEN
-         scale = (aedZones(zon)%z_env%z_height - wheights(lev-1)) / (wheights(lev) - wheights(lev-1))
-         aedZones(zon)%z_env%z_area = aedZones(zon)%z_env%z_area + areas(lev) * scale
-         zon = zon + 1
-         aedZones(zon)%z_env%z_area = aedZones(zon)%z_env%z_area + areas(lev) * (1-scale)
-      ENDIF
+   !# Zone areas: each layer's bed (areas() is the INCREMENTAL layer area) is
+   !# shared between zones by the part of that bed lying in each zone
+   !# (zone_bed_frac), the same shares glm_benthics uses to map zone fluxes onto
+   !# layers. This handles a layer whose bottom sits exactly on a boundary, a
+   !# bottom layer that straddles a boundary and a layer spanning several zones.
+   DO lev=1, wlev
+      DO zon=1, n_zones
+         aedZones(zon)%z_env%z_area = aedZones(zon)%z_env%z_area &
+                                    + areas(lev) * zone_bed_frac(aedZones, n_zones, wheights, lev, zon)
+      ENDDO
+   ENDDO
 
-      IF ( aedZones(zon)%z_env%z_height > surf ) THEN
-         IF (.NOT. w_zones) THEN
-            w_zones = .TRUE.
-            IF ( zon > 1 ) THEN
-               aedZones(zon)%z_env%z_pc_wet = surf / (aedZones(zon)%z_env%z_height - aedZones(zon-1)%z_env%z_height)
-            ELSE
-               aedZones(zon)%z_env%z_pc_wet = surf / aedZones(zon)%z_env%z_height
-            ENDIF
-         ENDIF
-      ELSE
+   !# Wet fraction of each zone (unchanged): zones below the surface are fully
+   !# wet, the first zone reaching above it is partly wet, those above are dry.
+   DO zon=1, n_zones
+      IF ( aedZones(zon)%z_env%z_height <= surf ) THEN
          aedZones(zon)%z_env%z_pc_wet = 1.0
+      ELSEIF ( .NOT. w_zones ) THEN
+         w_zones = .TRUE.
+         IF ( zon > 1 ) THEN
+            aedZones(zon)%z_env%z_pc_wet = surf / (aedZones(zon)%z_env%z_height - aedZones(zon-1)%z_env%z_height)
+         ELSE
+            aedZones(zon)%z_env%z_pc_wet = surf / aedZones(zon)%z_env%z_height
+         ENDIF
       ENDIF
    ENDDO
 
@@ -195,8 +191,8 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
 !
 !LOCALS
    INTEGER  :: zon, lev, a_zones
-   AED_REAL :: surf
-   INTEGER  :: zcount(n_zones)
+   AED_REAL :: surf, f, bed, w
+   AED_REAL :: wbed(n_zones), wvol(n_zones)
    LOGICAL  :: w_zones
    INTEGER  :: i, sd
    TYPE(aed_variable_t),POINTER :: tv
@@ -239,75 +235,54 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
       aedZones(zon)%z_env%z_vel = 0.
    ENDDO
 
-   a_zones = 1
-   zcount = 0
+   !# Zone-averaged water conditions (what each zone's sediment sees). Each
+   !# layer is weighted by the bed area it touches within the zone
+   !# (zone_bed_frac * bed area), the same shares used for the zone areas and
+   !# to map zone fluxes onto layers. A wet zone with no bed of its own
+   !# (vertical wall) falls back to water-volume weights, shared by height
+   !# (zone_frac). Zones entirely above the water have no weight and are left
+   !# at zero, as before.
    w_zones = .FALSE.
-   zon = 1
+   wbed = 0. ; wvol = 0.
    DO lev=1,wlev
-      IF ( lev > 1 .AND. wheights(lev) > aedZones(zon)%z_env%z_height ) THEN
-         zon = zon + 1
-         IF (zon > n_zones) STOP 'Water level height is higher than highest zone height'
-!        aedZones(zon)%z_env(1)%z_sed_zones = zon
-!        z_diag_hz(:,zon) = z_diag_hz(:,zon) + x_diag_hz(:)
-      ENDIF
-
-      ! Pelagic variables need zonifying, in case benthic people want them
-      ! Note that this should not be done on benthic vars because it will
-      ! introduce errors in z_cc (split layers)
-      ! Ideally this average would be based on volume weighting
-
-      !z_cc(1:nvars,lev,zon) = z_cc(1:nvars,lev,zon) + x_cc(1:nvars,lev)
-!RQT
-      z_cc(1:nvars,1,zon) = z_cc(1:nvars,1,zon) + x_cc(1:nvars,lev)  ! level=1 to match aedZones(zon)%z_cc => z_cc(:,1,:) pointer
-
-     !z_diag(:,zon,zon) = z_diag(:,zon,zon) + x_diag(:,lev)      ! level=zon so cell(zon) correct with layer_idx=zon
-      z_diag(:,1,zon) = z_diag(:,1,zon) + x_diag(:,lev)          ! level=1 matches agnostic library wiring z_cc_diag => z_diag(:,1,:) (cell(zon) -> z_diag(:,1,zon))
-
-      aedZones(zon)%z_env%z_temp         = aedZones(zon)%z_env%z_temp + theLake(lev)%Temp
-      aedZones(zon)%z_env%z_salt         = aedZones(zon)%z_env%z_salt + theLake(lev)%Salinity
-      aedZones(zon)%z_env%z_rho          = aedZones(zon)%z_env%z_rho  + theLake(lev)%Density
-      aedZones(zon)%z_env%z_rad          = aedZones(zon)%z_env%z_rad  + theLake(lev)%Light
-      aedZones(zon)%z_env%z_par          = aedZones(zon)%z_env%z_par  + theLake(lev)%Light*0.45
-      aedZones(zon)%z_env%z_vel          = aedZones(zon)%z_env%z_vel  + theLake(lev)%Umean
-      aedZones(zon)%z_env%z_extc         = aedZones(zon)%z_env%z_extc + theLake(lev)%ExtcCoefSW
-      aedZones(zon)%z_env%z_layer_stress = aedZones(zon)%z_env%z_layer_stress + theLake(lev)%LayerStress
-
-      zcount(zon) = zcount(zon) + 1
-   ENDDO
-   a_zones = zon
-
-   DO zon=1,a_zones
-      z_cc(1:nvars,1,zon) = z_cc(1:nvars,1,zon)/zcount(zon)   ! level=1 to match pointer
-     !z_diag(:,zon,zon)   = z_diag(:,zon,zon)/zcount(zon)    ! level=zon matches accumulation and layer_idx=zon
-      z_diag(:,1,zon)     = z_diag(:,1,zon)/zcount(zon)      ! level=1 matches agnostic library wiring z_cc_diag => z_diag(:,1,:)
-!     z_diag_hz(:,zon)    = z_diag_hz(:,zon)/zcount(zon)
-
-      ! Set the water column above a zone, to the respective water layer values
-!     z_cc(1:nvars,2:wlev,zon) = x_cc(1:nvars,2:wlev) ! water column state vars
-!     z_diag(:,2:wlev,zon)     = x_diag(:,2:wlev)     ! water column diag vars
+      bed = theLake(lev)%LayerArea ; IF ( lev > 1 ) bed = bed - theLake(lev-1)%LayerArea
+      DO zon=1,n_zones
+         wbed(zon) = wbed(zon) + zone_bed_frac(aedZones, n_zones, wheights, lev, zon) * bed
+         wvol(zon) = wvol(zon) + zone_frac(aedZones, n_zones, wheights, lev, zon) * theLake(lev)%LayerVol
+      ENDDO
    ENDDO
 
-   DO zon=1,a_zones
-      IF (zcount(zon) /= 0) THEN
-         aedZones(zon)%z_env%z_temp         = aedZones(zon)%z_env%z_temp / zcount(zon)
-         aedZones(zon)%z_env%z_salt         = aedZones(zon)%z_env%z_salt / zcount(zon)
-         aedZones(zon)%z_env%z_rho          = aedZones(zon)%z_env%z_rho  / zcount(zon)
-         aedZones(zon)%z_env%z_rad          = aedZones(zon)%z_env%z_rad  / zcount(zon)
-         aedZones(zon)%z_env%z_par          = aedZones(zon)%z_env%z_par  / zcount(zon)
-         aedZones(zon)%z_env%z_vel          = aedZones(zon)%z_env%z_vel  / zcount(zon)
-         aedZones(zon)%z_env%z_extc         = aedZones(zon)%z_env%z_extc / zcount(zon)
-         aedZones(zon)%z_env%z_layer_stress = aedZones(zon)%z_env%z_layer_stress / zcount(zon)
-      ELSE
-         aedZones(zon)%z_env%z_temp         = 0.
-         aedZones(zon)%z_env%z_salt         = 0.
-         aedZones(zon)%z_env%z_rho          = 0.
-         aedZones(zon)%z_env%z_rad          = 0.
-         aedZones(zon)%z_env%z_par          = 0.
-         aedZones(zon)%z_env%z_vel          = 0.
-         aedZones(zon)%z_env%z_extc         = 0.
-         aedZones(zon)%z_env%z_layer_stress = 0.
-      ENDIF
+   a_zones = 1
+   DO lev=1,wlev
+      bed = theLake(lev)%LayerArea ; IF ( lev > 1 ) bed = bed - theLake(lev-1)%LayerArea
+      DO zon=1,n_zones
+         IF ( wbed(zon) > 0. ) THEN
+            f = zone_bed_frac(aedZones, n_zones, wheights, lev, zon)
+            IF ( f <= 0. ) CYCLE
+            w = f * bed / wbed(zon)
+         ELSE
+            f = zone_frac(aedZones, n_zones, wheights, lev, zon)
+            IF ( f <= 0. ) CYCLE
+            w = f * theLake(lev)%LayerVol / wvol(zon)
+         ENDIF
+         IF ( w <= 0. ) CYCLE
+         a_zones = MAX(a_zones, zon)
 
+         z_cc(1:nvars,1,zon) = z_cc(1:nvars,1,zon) + w * x_cc(1:nvars,lev)  ! level=1 to match aedZones(zon)%z_cc => z_cc(:,1,:) pointer
+         z_diag(:,1,zon)     = z_diag(:,1,zon)     + w * x_diag(:,lev)      ! level=1 matches library wiring z_cc_diag => z_diag(:,1,:)
+
+         aedZones(zon)%z_env%z_temp         = aedZones(zon)%z_env%z_temp + w * theLake(lev)%Temp
+         aedZones(zon)%z_env%z_salt         = aedZones(zon)%z_env%z_salt + w * theLake(lev)%Salinity
+         aedZones(zon)%z_env%z_rho          = aedZones(zon)%z_env%z_rho  + w * theLake(lev)%Density
+         aedZones(zon)%z_env%z_rad          = aedZones(zon)%z_env%z_rad  + w * theLake(lev)%Light
+         aedZones(zon)%z_env%z_par          = aedZones(zon)%z_env%z_par  + w * theLake(lev)%Light*0.45
+         aedZones(zon)%z_env%z_vel          = aedZones(zon)%z_env%z_vel  + w * theLake(lev)%Umean
+         aedZones(zon)%z_env%z_extc         = aedZones(zon)%z_env%z_extc + w * theLake(lev)%ExtcCoefSW
+         aedZones(zon)%z_env%z_layer_stress = aedZones(zon)%z_env%z_layer_stress + w * theLake(lev)%LayerStress
+      ENDDO
+   ENDDO
+
+   DO zon=1,n_zones
       aedZones(zon)%z_env%z_dz = 0.
    ENDDO
 
@@ -376,96 +351,47 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
 !LOCALS
    INTEGER  :: zon, lev, i, j
    AED_REAL :: scale, area
-   LOGICAL  :: splitZone
    TYPE(aed_variable_t),POINTER :: tvar
 !
 !-------------------------------------------------------------------------------
 !BEGIN
    _UNUSED(x_cc)
-   zon = n_zones
 
-   ! Loop down through water layers
-   DO lev=wlev,1,-1
-      ! Check if zone boundary is in this water layer range
-      IF ( zon .GT. 1 ) THEN
-         IF (lev .GT. 1) THEN
-            splitZone = wheights(lev-1) < aedZones(zon-1)%z_env%z_height
-         ELSE
-            splitZone = 0.0 < aedZones(zon-1)%z_env%z_height
+   ! Set water layer zone-averaged diagnostics (zavg == true) from the zones,
+   ! each zone weighted by its share of the layer's bed (zone_bed_frac, the
+   ! same shares used for zone areas and flux mapping).
+   DO lev=1,wlev
+      j = 0
+      DO i=1,n_aed_vars
+         IF ( aed_get_var(i, tvar) ) THEN
+            IF ( tvar%var_type == V_DIAGNOSTIC ) THEN
+               IF ( .NOT.  tvar%sheet ) THEN
+                  j = j + 1
+                  IF ( tvar%zavg ) THEN
+                     x_diag(j,lev) = 0.
+                     DO zon=1,n_zones
+                        scale = zone_bed_frac(aedZones, n_zones, wheights, lev, zon)
+                        IF ( scale > 0. ) x_diag(j,lev) = x_diag(j,lev) + z_diag(j,1,zon) * scale   ! level=1 matches library z_cc_diag => z_diag(:,1,:)
+                     ENDDO
+                  ENDIF
+               ENDIF
+            ENDIF
          ENDIF
-      ELSE
-         splitZone = .FALSE.
-      ENDIF
-
-      ! Set water layer variables, based on zone infomration, where variable is flagged for zavg
-      IF (splitZone) THEN
-         ! Compute layer fraction
-         IF (lev .GT. 1) THEN
-            scale = (aedZones(zon-1)%z_env%z_height - wheights(lev-1)) / (wheights(lev) - wheights(lev-1))
-         ELSE
-            scale = (aedZones(zon-1)%z_env%z_height - 0.0) / (wheights(lev) - 0.0)
-         ENDIF
-
-         ! Select the diag vars that have zavg == true, and assign to layer
-         ! (for first zone in the layer)
-         j = 0
-         DO i=1,n_aed_vars
-            IF ( aed_get_var(i, tvar) ) THEN
-               IF ( tvar%var_type == V_DIAGNOSTIC ) THEN
-                  IF ( .NOT.  tvar%sheet ) THEN
-                     j = j + 1
-                     IF ( tvar%zavg ) THEN
-                       !x_diag(j,lev) = z_diag(j,zon,zon) * scale
-                        x_diag(j,lev) = z_diag(j,1,zon) * scale   ! level=1 matches library z_cc_diag => z_diag(:,1,:)
-                     ENDIF
-                  ENDIF
-               ENDIF
-            ENDIF
-         ENDDO
-         ! Select the benthic vars (implicitly all zavg == true), and assign to layer
-         ! (for first zone in the layer)
-         x_cc_hz(:) = z_cc_hz(:,zon) * scale
-
-         ! Select the diag vars that have zavg == true, and assign to layer
-         ! (for second zone in the layer)
-         zon = zon - 1
-         j = 0
-         DO i=1,n_aed_vars
-            IF ( aed_get_var(i, tvar) ) THEN
-               IF ( tvar%var_type == V_DIAGNOSTIC ) THEN
-                  IF ( .NOT.  tvar%sheet ) THEN
-                     j = j + 1
-                     IF ( tvar%zavg ) THEN
-                       !x_diag(j,lev) = x_diag(j,lev) + (z_diag(j,zon,zon) * (1.0 - scale))
-                        x_diag(j,lev) = x_diag(j,lev) + (z_diag(j,1,zon) * (1.0 - scale))   ! level=1 matches library z_cc_diag => z_diag(:,1,:)
-                     ENDIF
-                  ENDIF
-               ENDIF
-            ENDIF
-         ENDDO
-         ! Select the benthic vars (implicitly all zavg == true), and assign to layer
-         ! (for first zone in the layer)
-         x_cc_hz(:) = x_cc_hz(:) + z_cc_hz(:,zon) * (1.0 - scale)
-      ELSE  ! Not a split layer - layer bounds are fully within zone
-         ! Select the diag vars that have zavg == true, and assign to layer
-         j = 0
-         DO i=1,n_aed_vars
-            IF ( aed_get_var(i, tvar) ) THEN
-               IF ( tvar%var_type == V_DIAGNOSTIC ) THEN
-                  IF ( .NOT.  tvar%sheet ) THEN
-                     j = j + 1
-                     IF ( tvar%zavg ) THEN
-                       !x_diag(j,lev) = z_diag(j,zon,zon)
-                        x_diag(j,lev) = z_diag(j,1,zon)   ! level=1 matches library z_cc_diag => z_diag(:,1,:)
-                     ENDIF
-                  ENDIF
-               ENDIF
-            ENDIF
-         ENDDO
-         ! Select the benthic vars (implicitly all zavg == true), and assign to layer
-         x_cc_hz(:) = z_cc_hz(:,zon)
-      ENDIF
+      ENDDO
    ENDDO
+
+   ! Single-value (lake-wide) benthic state output: mean of the zones weighted
+   ! by bed area (it previously ended up holding the bottom zone's values).
+   area = 0.
+   DO zon=1,n_zones
+      area = area + aedZones(zon)%z_env%z_area
+   ENDDO
+   IF ( area > 0. ) THEN
+      x_cc_hz(:) = 0.
+      DO zon=1,n_zones
+         x_cc_hz(:) = x_cc_hz(:) + z_cc_hz(:,zon) * (aedZones(zon)%z_env%z_area/area)
+      ENDDO
+   ENDIF
 
    ! Set the normal sheet diagnostics to the mean of the zone, weighted by area.
    ! Re-zero only the rezero=.TRUE. sheet diagnostics here: aed_run_model calls
@@ -500,6 +426,75 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
 
 END SUBROUTINE api_copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+AED_REAL FUNCTION zone_frac(aedZones, n_zones, wheights, lev, zon)
+!-------------------------------------------------------------------------------
+! Fraction of layer lev (heights wheights(lev-1)..wheights(lev), from 0 for the
+! bottom layer) lying in zone zon. The bottom zone extends down to the bed and
+! the top zone upward without limit, so the fractions of every layer sum to 1.
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   TYPE(api_zone_t),DIMENSION(:),INTENT(in) :: aedZones
+   INTEGER,INTENT(in) :: n_zones, lev, zon
+   AED_REAL,DIMENSION(:),POINTER,INTENT(in) :: wheights
+!
+!LOCALS
+   AED_REAL :: lo, hi, zlo, zhi
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   lo = 0. ; IF ( lev > 1 ) lo = wheights(lev-1)
+   hi = wheights(lev)
+   zlo = -1.0e30 ; IF ( zon > 1 ) zlo = aedZones(zon-1)%z_env%z_height
+   zhi =  1.0e30 ; IF ( zon < n_zones ) zhi = aedZones(zon)%z_env%z_height
+   IF ( hi <= lo ) THEN
+      zone_frac = 0. ; IF ( hi > zlo .AND. hi <= zhi ) zone_frac = 1.
+   ELSE
+      zone_frac = MAX(0., MIN(hi, zhi) - MAX(lo, zlo)) / (hi - lo)
+   ENDIF
+END FUNCTION zone_frac
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+AED_REAL FUNCTION zone_bed_frac(aedZones, n_zones, wheights, lev, zon)
+!-------------------------------------------------------------------------------
+! Fraction of layer lev's BED (A(top) - A(bottom), the full area for the bottom
+! layer) lying in zone zon. The bed between two heights is the difference of
+! the plan areas there: the layer's own areas at its bottom and top, and the
+! zone's z_top_area (same table interpolation as the layer areas) where a zone
+! boundary cuts the layer. Shares of every layer sum to 1 and summed over the
+! layers give each zone its true bed area. A layer with no bed (zero thickness
+! or a vertical wall) is shared by height (zone_frac).
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   TYPE(api_zone_t),DIMENSION(:),INTENT(in) :: aedZones
+   INTEGER,INTENT(in) :: n_zones, lev, zon
+   AED_REAL,DIMENSION(:),POINTER,INTENT(in) :: wheights
+!
+!LOCALS
+   AED_REAL :: lo, hi, zlo, zhi, alo, ahi, a1, a2
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   lo = 0. ; IF ( lev > 1 ) lo = wheights(lev-1)
+   hi = wheights(lev)
+   alo = 0. ; IF ( lev > 1 ) alo = theLake(lev-1)%LayerArea
+   ahi = theLake(lev)%LayerArea
+   zlo = -1.0e30 ; IF ( zon > 1 ) zlo = aedZones(zon-1)%z_env%z_height
+   zhi =  1.0e30 ; IF ( zon < n_zones ) zhi = aedZones(zon)%z_env%z_height
+   IF ( hi <= lo .OR. ahi <= alo ) THEN
+      zone_bed_frac = zone_frac(aedZones, n_zones, wheights, lev, zon)
+   ELSEIF ( hi <= zlo .OR. lo >= zhi ) THEN
+      zone_bed_frac = 0.
+   ELSE
+      a1 = alo ; IF ( lo < zlo ) a1 = aedZones(zon-1)%z_env%z_top_area
+      a2 = ahi ; IF ( hi > zhi ) a2 = aedZones(zon)%z_env%z_top_area
+      zone_bed_frac = MIN(1., MAX(0., (a2 - a1) / (ahi - alo)))
+   ENDIF
+END FUNCTION zone_bed_frac
 
 
 END MODULE glm_api_zones

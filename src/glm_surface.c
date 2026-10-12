@@ -43,6 +43,7 @@
 #include "aed_time.h"
 #include "glm_mixu.h"
 #include "glm_layers.h"
+#include "glm_input.h"
 
 #include "glm_wqual.h"  // for sediment heating - move?
 
@@ -70,6 +71,84 @@ static double ref(double ri, double cr, double cmu);
 static void   gaus10(double ri, double cr, double c, double d, ref_f f, int n, double h, double *v);
 
 static AED_REAL grischenko_albedo(AED_REAL Latitude, AED_REAL mDays);
+
+/******************************************************************************
+ * Fraction of layer i's bed (heights Lake[i-1].Height..Lake[i].Height, from  *
+ * 0 for the bottom layer) that lies in sediment zone z, the same shares the  *
+ * AED zone fluxes use (zone_frac). The bed between two heights is the        *
+ * difference of the plan areas there: the layer's own areas at its bottom    *
+ * and top, and theZones[].ztop_area (same table interpolation) where a zone  *
+ * boundary cuts the layer. The bottom zone extends down to the bed and the   *
+ * top zone upward without limit, so the shares of every layer sum to 1. A    *
+ * layer with no bed (zero thickness, or a vertical wall) is shared by height.*
+ ******************************************************************************/
+static AED_REAL sed_zone_frac(int i, int z)
+{
+    AED_REAL lo  = (i == botmLayer) ? zero : Lake[i-1].Height;
+    AED_REAL hi  = Lake[i].Height;
+    AED_REAL Alo = (i == botmLayer) ? zero : Lake[i-1].LayerArea;
+    AED_REAL Ahi = Lake[i].LayerArea;
+    AED_REAL zlo = (z == 0) ? -1.0e30 : theZones[z-1].zheight;
+    AED_REAL zhi = (z == n_zones-1) ? 1.0e30 : theZones[z].zheight;
+    AED_REAL a1, a2;
+
+    if ( hi <= lo ) return ( hi > zlo && hi <= zhi ) ? 1.0 : zero;
+    if ( hi <= zlo || lo >= zhi ) return zero;
+    if ( Ahi <= Alo ) return MAX(zero, MIN(hi, zhi) - MAX(lo, zlo)) / (hi - lo);
+    a1 = ( lo >= zlo ) ? Alo : theZones[z-1].ztop_area;
+    a2 = ( hi <= zhi ) ? Ahi : theZones[z].ztop_area;
+    return MIN(1.0, MAX(zero, (a2 - a1) / (Ahi - Alo)));
+}
+
+/******************************************************************************
+ * Net longwave flux (W/m2, +ve into the surface) for a surface emitting      *
+ * Q_lw_out (water or ice/snow). The incoming part is the same for open water *
+ * and ice: 3% reflected, scaled by lw_factor, plus lw_offset. With LW_CC the *
+ * sky emissivity follows cloud_mode.                                         *
+ ******************************************************************************/
+static AED_REAL longwave_net(int LWModel, AED_REAL Q_lw_out)
+{
+    AED_REAL eps_star = 0.8;  // default in case of a duff cloudmode value
+    AED_REAL CloudCover, Q_lw_in = 0.;
+
+    if (LWModel == LW_NET)
+        // Net long-wave data is provided (ignore internally computed Q_lw_out)
+        return MetData.LongWave * lw_factor + lw_offset;
+
+    if (LWModel == LW_CC) {
+        // Cloud data is available
+        CloudCover = MetData.LongWave;
+        switch (cloud_mode) {
+            case 1:
+                // Idso and Jackson (1969) style
+                eps_star = (1.0 + 0.275*CloudCover)*(1.0 - 0.261 * exp(-0.000777 * pow(MetData.AirTemp, 2.0)));
+                break;
+            case 2:
+                // Swinbank (1963) style
+                eps_star = (1.0 + 0.17*CloudCover*CloudCover) * (9.365e-6 * pow(MetData.AirTemp + Kelvin, 2.0));
+                break;
+            case 3:
+                // Brutsaert (1975) style (1.0/7: 1/7 is integer division = 0)
+                eps_star = (1.0 + 0.275*CloudCover) * 1.24 * pow(MetData.SatVapDef/(MetData.AirTemp+Kelvin), 1.0/7.0);
+                break;
+            case 4:
+                // Yajima 2014 - Tono Dam
+                eps_star = (1.0 - pow(CloudCover, 2.796) ) * 1.24
+                               * pow(MetData.SatVapDef/(MetData.AirTemp+Kelvin), 1.0/7.0)
+                                      + 0.955 * pow(CloudCover, 2.796) ;
+                break;
+        }
+        Q_lw_in = (1 - 0.03) * eps_star * Stefan_Boltzman * pow((Kelvin+MetData.AirTemp), 4.0);
+    } else if (LWModel == LW_IN) {
+        // Incoming long-wave data is provided (assumes not corrected for lw albedo)
+        Q_lw_in = (1 - 0.03) * MetData.LongWave;
+    }
+
+    //# Apply longwave factor and offset to the incoming longwave
+    return Q_lw_out + Q_lw_in * lw_factor + lw_offset;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
 
 int  atmos_stability(     AED_REAL *Q_latentheat,
                           AED_REAL *Q_sensible,
@@ -168,7 +247,6 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
     AED_REAL *LayerThickness;
     AED_REAL *heat;
-    int *layer_zone;
 
     AED_REAL *gx;
 
@@ -179,12 +257,10 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     AED_REAL latent_heat_vap;
 
     AED_REAL WindSp;         //# Wind speed corrected by multiplicative factor
-    AED_REAL CloudCover;     //# Cloud cover as a fraction of 1 used to calculate incident long wave radiation
 
     AED_REAL dTemp;          //# Change in temperature due to atmospheric heat exchange
     AED_REAL dHt_WhiteIce;   //# Change in height of white ice when snow weight exceeds buoyancy potential
 
-    AED_REAL Q_lw_in;        //# Long wave radiation from atmosphere W/m2
     AED_REAL Q_lw_out;       //# Long wave radiation emission W/m2
     AED_REAL Q_whiteice;     //# heat flux due to snow turning into white ice
     AED_REAL Q_snowice;      //# heat flux due to snow turning into white ice
@@ -287,11 +363,10 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
     LayerThickness = calloc(MaxLayers, sizeof(AED_REAL));
     heat = calloc(MaxLayers, sizeof(AED_REAL));
-    layer_zone = calloc(MaxLayers, sizeof(int));
     gx = calloc(MaxLayers, sizeof(AED_REAL));
     for (i=0; i < MaxLayers; i++) {
         LayerThickness[i] = 0.0; heat[i] = 0.0;
-        layer_zone[i] = 0; gx[i] = 0.0;
+        gx[i] = 0.0;
     }
 
     SUMPO4 = zero; SUMTP = zero; SUMNO3 = zero;
@@ -492,6 +567,13 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
     if (iclock == 0 && ice) {
         AED_REAL BuoyantPotential;
+        AED_REAL keepRain = MetData.Rain, keepSnow = MetData.Snow;
+
+        //# This block runs once a day and treats Rain and Snow (m/day) as the
+        //# day's totals. With sub-daily met, MetData holds only this hour's
+        //# rates, so the midnight rate was counted for the whole day and rain or
+        //# snow at any other hour was ignored: use the day's mean rates instead.
+        if ( subdaily ) daily_mean_precip(&MetData.Rain, &MetData.Snow);
 
         if (SurfData.delzSnow > 0.0) {
           // Snow cover as well as ice cover
@@ -544,10 +626,11 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                     SurfData.dailyRain += MetData.Rain * Lake[surfLayer].LayerArea;
                     recalc_surface_salt_wq();
 
-                    if (Temp_ice == Temp_melt)
-                        Q_rain = SPHEAT*(MetData.AirTemp-Temp_ice)*(MetData.Rain)/noSecs;
-                    else
-                        Q_rain = Latent_Heat_Fusion*MetData.Rain/noSecs;
+                    //# the rain joins the lake as liquid (added to the height
+                    //# above), so it delivers only its sensible heat to the ice
+                    //# surface as it cools to the melting point; Rain is in m
+                    //# of water, so include its density (J/m2 over this step)
+                    Q_rain = SPHEAT*rho0*(MetData.AirTemp-Temp_melt)*MetData.Rain/noSecs;
 
                 } else {
                     // If AirTemp < 0 then add the rainfall to snow
@@ -590,10 +673,11 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                     SurfData.dailyRain += MetData.Rain * Lake[surfLayer].LayerArea;
                     recalc_surface_salt_wq();
 
-                    if (Temp_ice == Temp_melt)
-                        Q_rain = SPHEAT*(MetData.AirTemp-Temp_ice)*(MetData.Rain)/noSecs;
-                    else
-                        Q_rain = Latent_Heat_Fusion*MetData.Rain/noSecs;
+                    //# the rain joins the lake as liquid (added to the height
+                    //# above), so it delivers only its sensible heat to the ice
+                    //# surface as it cools to the melting point; Rain is in m
+                    //# of water, so include its density (J/m2 over this step)
+                    Q_rain = SPHEAT*rho0*(MetData.AirTemp-Temp_melt)*MetData.Rain/noSecs;
 
                 } else {
                     // If AirTemp < 0
@@ -646,6 +730,8 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         SUMTN  = SUMTN  + 2.576 + MetData.RainConcTn  * MetData.Rain ;
         SUMSI  = SUMSI  + 0.0   + MetData.RainConcSi  * MetData.Rain ;
 
+        //# restore this step's met values for anything that reads them later
+        MetData.Rain = keepRain; MetData.Snow = keepSnow;
     }  // end iclock == 0 && ice
 
     /**********************************************************************
@@ -705,46 +791,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
         //# Longwave absorption (ie. longwave in) also affects only top layer
         //  see Henderson-Sellers (1986) or Flerchinger (2009) for a good summary
-        if (LWModel  ==  LW_CC) {
-            // Cloud data is available
-            AED_REAL eps_star = 0.8;  // default in case of a duff cloudmode value
-            CloudCover = MetData.LongWave;
-            switch (cloud_mode) {
-                case 1:
-                    // Idso and Jackson (1969) style
-                    // eps_star = (1.0 + 0.275*CloudCover)*(1.0 - 0.261 * exp(-0.000777 * pow(-MetData.AirTemp, 2.0))); //
-                    eps_star = (1.0 + 0.275*CloudCover)*(1.0 - 0.261 * exp(-0.000777 * pow(MetData.AirTemp, 2.0)));
-                    break;
-                case  2:
-                    // Swinbank (1963) style
-                    eps_star = (1.0 + 0.17*CloudCover*CloudCover) * (9.365e-6 * pow(MetData.AirTemp + Kelvin, 2.0));
-                    break;
-                case 3:
-                    // Brutsaert (1975) style
-                    eps_star = (1.0 + 0.275*CloudCover) * 1.24 * pow(MetData.SatVapDef/(MetData.AirTemp+Kelvin), 1/7) ;
-                    break;
-                case 4:
-                    // Yajima 2014 - Tono Dam
-                    eps_star = (1.0 - pow(CloudCover, 2.796) ) * 1.24
-                                   * pow(MetData.SatVapDef/(MetData.AirTemp+Kelvin), 1/7)
-                                          + 0.955 * pow(CloudCover, 2.796) ;
-                    break;
-            }
-
-            Q_lw_in = (1 - 0.03) * eps_star * Stefan_Boltzman * pow((Kelvin+MetData.AirTemp), 4.0);
-            Q_longwave = Q_lw_out + Q_lw_in * lw_factor;
-
-        } else if (LWModel  ==  LW_IN) {
-            // Incoming long-wave data is provided (assumes not corrected for lw albedo)
-            Q_lw_in = (1 - 0.03) * MetData.LongWave;
-            Q_longwave = Q_lw_out + Q_lw_in * lw_factor;
-
-        } else if (LWModel  ==  LW_NET)
-            // Net long-wave data is provided (ignore internally computed Q_lw_out)
-            Q_longwave = MetData.LongWave * lw_factor;
-
-        //# Apply longwave factor to net longwave rather than input data
-        Q_longwave = Q_longwave + lw_offset ;
+        Q_longwave = longwave_net(LWModel, Q_lw_out);
 
         //# Update surface layer heat (J/s)
         heat[surfLayer] = heat[surfLayer]+(Q_latentheat+Q_sensibleheat+Q_longwave)*Lake[surfLayer].LayerArea;
@@ -789,20 +836,15 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
 
             //Q_sensibleheat = -CH * MetData.WindSpeed * (Temp_ice - MetData.AirTemp);
             //# Q_sensibleheat [W/m2] = CH * rho_air * specific heat * windspeed * temp diff
-            Q_sensibleheat = -CH * rho_air * cp_air * WindSp * (Temp_ice - MetData.AirTemp);
+            //# use the actual wind over the ice (WindSp is damped to ~0 under
+            //# ice for the water-side mixing), as the latent heat above does
+            Q_sensibleheat = -CH * rho_air * cp_air * MetData.WindSpeed * (Temp_ice - MetData.AirTemp);
 
             Q_lw_out = -Stefan_Boltzman * eps_water * pow((Kelvin+Temp_ice), 4.0);
 
-            if (LWModel  ==  LW_CC) {
-                CloudCover = MetData.LongWave;
-                Q_lw_in = (1.0 + 0.275 * CloudCover) * Stefan_Boltzman * pow((Kelvin+MetData.AirTemp), 4.0) *
-                          (1.0 - 0.261 * exp(-0.000777E-4 * pow(MetData.AirTemp, 2.0)));
-                Q_longwave = Q_lw_out+Q_lw_in;
-            } else if (LWModel  ==  LW_IN) {
-                Q_lw_in = MetData.LongWave;
-                Q_longwave = Q_lw_out+Q_lw_in;
-            } else if (LWModel  ==  LW_NET)
-                Q_longwave = MetData.LongWave;
+            //# incoming longwave as for open water (reflection, lw_factor,
+            //# lw_offset and the cloud_mode sky emissivity)
+            Q_longwave = longwave_net(LWModel, Q_lw_out);
 
             //# This is the net meteorological flux that drives the ice algorithm
             //  flux due to precipitation on ice or snow
@@ -872,24 +914,15 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
             Temp_ice = Temp_melt;
             SatVap_surface = (1+(0.00972*Temp_ice)+(0.000042*pow((Temp_ice), 2)))*saturated_vapour(Temp_ice);
             //# Q_latentheat [W/m2] = CE * rho_air * latent heat * psychro const / air_presssure * windspeed * VPD
-            Q_latentheat = -CE * rho_air * Latent_Heat_Evap * (0.622/p_atm) * WindSp * (SatVap_surface - MetData.SatVapDef);
+            Q_latentheat = -CE * rho_air * Latent_Heat_Evap * (0.622/p_atm) * MetData.WindSpeed * (SatVap_surface - MetData.SatVapDef);
             if (Q_latentheat > 0.0) Q_latentheat = 0.0;
 
             //# Q_sensibleheat [W/m2] = CH * rho_air * specific heat * windspeed * temp diff
-            Q_sensibleheat = -CH * (rho_air * 1005.) * WindSp * (Temp_ice - MetData.AirTemp);
+            Q_sensibleheat = -CH * (rho_air * 1005.) * MetData.WindSpeed * (Temp_ice - MetData.AirTemp);
 
             Q_lw_out = -Stefan_Boltzman * eps_water * pow((Kelvin+Temp_ice), 4.0);
 
-            if (LWModel  ==  LW_CC) {
-                CloudCover = MetData.LongWave;
-                Q_lw_in = (1.0 + 0.275 * CloudCover) * Stefan_Boltzman * pow((Kelvin+MetData.AirTemp), 4.0) *
-                          (1.0 - 0.261 * exp(-0.000777E-4 * pow(MetData.AirTemp, 2.0)));
-                Q_longwave = Q_lw_out + Q_lw_in;
-            } else if (LWModel  ==  LW_IN) {
-                Q_lw_in = MetData.LongWave;
-                Q_longwave = Q_lw_out + Q_lw_in;
-            } else if (LWModel  ==  LW_NET)
-                Q_longwave = MetData.LongWave;
+            Q_longwave = longwave_net(LWModel, Q_lw_out);
 
             Q_icemet = (Q_latentheat+Q_sensibleheat+Q_longwave+Q_rain);
             Q_iceout = Q_shortwave+Q_whiteice+((Temp_melt-Temp_ice-(Q_shortwave
@@ -1006,9 +1039,14 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     }
 
     /**************************************************************************
-     * Check if the ice melted in code above
+     * Check if the ice melted completely in code above. Only remove it here
+     * when none is left: ice thinner than min_ice_thickness is removed at the
+     * end of the step, after bottom growth. Removing it here (before the
+     * bottom accretion below) let sublimation take newly formed ice of
+     * min_ice_thickness away every step, so ice could never grow in cold, dry
+     * weather - only on mild, humid nights with no sublimation.
      *************************************************************************/
-    if ((SurfData.delzBlueIce+SurfData.delzWhiteIce) < min_ice_thickness && ice) {
+    if ((SurfData.delzBlueIce+SurfData.delzWhiteIce) <= 0. && ice) {
       Lake[surfLayer].Height = Lake[surfLayer].Height
       + SurfData.delzBlueIce  * (rho_ice_blue/Lake[surfLayer].Density)
       + SurfData.delzWhiteIce * (rho_ice_white/Lake[surfLayer].Density)
@@ -1095,8 +1133,13 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
         //Lake[surfLayer].Temp = Lake[surfLayer].Temp+(((K_water*((Temp_melt-Lake[surfLayer].Temp)/0.039))*Lake[surfLayer].LayerArea*
         //                         noSecs)+Q_latent_ice)/(SPHEAT*Lake[surfLayer].Density*Lake[surfLayer].LayerVol);
 
+        //# The water only loses the heat it conducts into the ice. The latent
+        //# heat of freezing (or melting) at the interface is already in the
+        //# balance that set dHt (Lf*rho*dHt/dt = Q_icewater - Q_watermol), i.e.
+        //# it is conducted up through the ice; adding it to the water as well
+        //# counted it twice and warmed the water under growing ice.
         Lake[surfLayer].Temp = Lake[surfLayer].Temp
-                +((-Q_watermol + Q_latent_ice)*Lake[surfLayer].LayerArea*noSecs)
+                -(Q_watermol*Lake[surfLayer].LayerArea*noSecs)
                 /(SPHEAT*Lake[surfLayer].Density*Lake[surfLayer].LayerVol);
 
         Lake[surfLayer].Height = Lake[surfLayer].Height
@@ -1129,95 +1172,76 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                                           (SPHEAT*Lake[botmLayer].Density * Lake[botmLayer].LayerVol);
         } else  if (benthic_mode == 2) {
             //# Apply the sediment zone specific heating parameters to overlying
-            //  layers. First find which layers correspond to which zone
-            for (i = botmLayer; i <= surfLayer; i++) {
-                layer_zone[i] = 0;
-                for (z = 1; z < n_zones; z++) {
-                    if ((Lake[i].Height < theZones[z].zheight) && (Lake[i].Height > theZones[z-1].zheight))
-                        layer_zone[i] = z;
-                }
-            }
+            //  layers. Each layer's bed is shared between zones by sed_zone_frac.
             //# Now compute layer-specifc sed heating and increment temperature
             if ( sed_heat_model == 2 ){
               soil_dt = noSecs;   /* per-step timestep for the dynamic soil solver (s) */
-//            memset(sed_depths, 0, sizeof(AED_REAL)*sed_layers);
-//            memset(sed_vwc, 0, sizeof(AED_REAL)*sed_layers);
-//            memset(sed_temps, 0, sizeof(AED_REAL)*sed_layers);
 
-              //# Volume-weighted zone-average water temperature: the soil model's
-              //# surface boundary condition.  Computed here rather than in the WQ
-              //# coupler because only the legacy 'aed' coupler's copy_to_zone fills
-              //# ztemp; the 'api' coupler and wq_calc=.false. runs would leave it 0.
-              //# Zones with no wet layers keep their previous ztemp.
+              //# Each layer's bed is shared between zones by sed_zone_frac (all
+              //# layers, including the bottom one; layers above the top zone
+              //# height belong to the top zone).
+              //# The soil model's surface boundary condition is the mean water
+              //# temperature over the zone weighted by BED-CONTACT AREA (the water
+              //# actually touching the sediment), not by water volume, which is
+              //# dominated by the upper part of a zone. Computed here rather than
+              //# in the WQ coupler because only the legacy 'aed' coupler's
+              //# copy_to_zone fills ztemp; the 'api' coupler and wq_calc=.false.
+              //# runs would leave it 0. Zones with no wet bed keep their previous
+              //# ztemp.
               for (z = 0; z < n_zones; z++) {
-                  AED_REAL tsum = 0., tvol = 0.;
+                  AED_REAL tsum = 0., asum = 0., a;
                   for (i = botmLayer; i <= surfLayer; i++) {
-                      if (layer_zone[i] == z) {
-                          tsum += Lake[i].Temp * Lake[i].LayerVol;
-                          tvol += Lake[i].LayerVol;
-                      }
+                      a = sed_zone_frac(i, z) * ((i == botmLayer) ? Lake[i].LayerArea
+                                                 : (Lake[i].LayerArea - Lake[i-1].LayerArea));
+                      tsum += a * Lake[i].Temp;
+                      asum += a;
                   }
-                  if (tvol > 0.) theZones[z].ztemp = tsum / tvol;
+                  if (asum > 0.) theZones[z].ztemp = tsum / asum;
               }
 
               for (z = 0; z < n_zones; z++) {
-                  // call the dynamic soil/sediment temperature model
-                  /*
-                  SoilTemp( &theZones[z].n_sed_layers,
-                             sed_depths,
-                             sed_vwc,
-                             theZones[z].ztemp,
-                             sed_temps );
-                            // &soil_heat_flux );
-                  */
 #ifdef AED
                   // ZSoilTemp advances this zone's sediment temperature profile
                   // and stores the sediment-water interface heat flux (W/m2) in
-                  // theZones[z].heatflux.
+                  // theZones[z].heatflux, POSITIVE INTO THE SEDIMENT.
                   if ( p_wq_ZSoilTemp != NULL ) ZSoilTemp(&theZones[z]);
 #endif
-                  // flux heat from the soil into the water, if the layer is over z
-                  for (i = botmLayer+1; i <= surfLayer; i++) {
-                    if (layer_zone[i] == z){
-                      Lake[i].Temp += theZones[z].heatflux
-                              * ((Lake[i].LayerArea - Lake[i-1].LayerArea) * noSecs)
-                              / (SPHEAT * Lake[i].Density * Lake[i].LayerVol);
+                  // move that heat out of the water over this zone's bed; the
+                  // same flux per m2 applies to every layer in the zone, so the
+                  // sediment never carries heat from one layer to another
+                  for (i = botmLayer; i <= surfLayer; i++) {
+                      AED_REAL f = sed_zone_frac(i, z), bed, dE;
+                      if ( f <= zero ) continue;
+                      bed = (i == botmLayer) ? Lake[i].LayerArea
+                                             : (Lake[i].LayerArea - Lake[i-1].LayerArea);
+                      dE = -theZones[z].heatflux * f * bed * noSecs;
+                      Lake[i].Temp += dE / (SPHEAT * Lake[i].Density * Lake[i].LayerVol);
                       //# accumulate the exact Joules delivered to the water from
-                      //# this zone's bed (= flux * bed-contact area * dt), summed
-                      //# over layers and sub-steps -> written to restart.nc.
-                      if ( sed_zone_energy != NULL )
-                        sed_zone_energy[z] += theZones[z].heatflux
-                              * (Lake[i].LayerArea - Lake[i-1].LayerArea) * noSecs;
-                    }
+                      //# this zone's bed, summed over layers and sub-steps
+                      //# -> written to restart.nc.
+                      if ( sed_zone_energy != NULL ) sed_zone_energy[z] += dE;
                   }
-               }
+              }
             } else if ( sed_heat_model == 1 ) {
-                for (i = botmLayer+1; i <= surfLayer; i++) {
-                    TYEAR = sed_temp_mean[layer_zone[i]]
-                          + sed_temp_amplitude[layer_zone[i]]
-                          * cos(((kDays-sed_temp_peak_doy[layer_zone[i]])*2.*Pi)/365.);
-                    soil_heat_flux = KSED * (TYEAR - Lake[i].Temp) / ZSED;
-                    Lake[i].Temp += soil_heat_flux
-                              * ((Lake[i].LayerArea - Lake[i-1].LayerArea) * noSecs)
-                              / (SPHEAT * Lake[i].Density * Lake[i].LayerVol);
-                    //# accumulate the exact Joules delivered to this layer's water
-                    //# from its zone's bed (= flux * flank area * dt) -> restart.nc.
-                    if ( sed_zone_energy != NULL )
-                        sed_zone_energy[layer_zone[i]] += soil_heat_flux
-                                * (Lake[i].LayerArea - Lake[i-1].LayerArea) * noSecs;
+                for (i = botmLayer; i <= surfLayer; i++) {
+                    //# bed-contact area: flank for interior layers, the full
+                    //# LayerArea for the bottom layer (it sits on the flat bed)
+                    AED_REAL bed = (i == botmLayer) ? Lake[i].LayerArea
+                                       : (Lake[i].LayerArea - Lake[i-1].LayerArea);
+                    AED_REAL T0 = Lake[i].Temp;   //# every zone sees the pre-update temp
+                    for (z = 0; z < n_zones; z++) {
+                        AED_REAL f = sed_zone_frac(i, z), dE;
+                        if ( f <= zero ) continue;
+                        TYEAR = sed_temp_mean[z] + sed_temp_amplitude[z]
+                              * cos(((kDays-sed_temp_peak_doy[z])*2.*Pi)/365.);
+                        soil_heat_flux = KSED * (TYEAR - T0) / ZSED;
+                        dE = soil_heat_flux * f * bed * noSecs;
+                        Lake[i].Temp += dE / (SPHEAT * Lake[i].Density * Lake[i].LayerVol);
+                        //# accumulate the exact Joules delivered to the water
+                        //# from this zone's bed -> restart.nc.
+                        if ( sed_zone_energy != NULL ) sed_zone_energy[z] += dE;
+                    }
                 }
-
-                TYEAR = sed_temp_mean[0] + sed_temp_amplitude[0] * cos(((kDays-sed_temp_peak_doy[0])*2.*Pi)/365.);
-                //# bottom layer sits on the flat lake bed: bed-contact area is its
-                //# full LayerArea. Compute the flux into the local so we can both
-                //# apply it and accumulate the identical Joules (uses pre-update Temp).
-                soil_heat_flux = KSED * (TYEAR - Lake[botmLayer].Temp) / ZSED;
-                Lake[botmLayer].Temp += (soil_heat_flux *
-                                      Lake[botmLayer].LayerArea * noSecs) /
-                                      (SPHEAT * Lake[botmLayer].Density*Lake[botmLayer].LayerVol);
-                if ( sed_zone_energy != NULL )
-                    sed_zone_energy[layer_zone[botmLayer]] += soil_heat_flux
-                                  * Lake[botmLayer].LayerArea * noSecs;
             } else if ( sed_heat_model == 3 && sed_zone_heat != NULL ) {
                 //# Prescribed per-zone heat. Deposit each zone's total power
                 //# sed_zone_heat[z] [W] across its water layers, weighted by
@@ -1230,16 +1254,15 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                     //# pass 1: this zone's total bed-contact area
                     AED_REAL za = 0.0;
                     for (i = botmLayer; i <= surfLayer; i++) {
-                        if (layer_zone[i] != z) continue;
-                        za += (i == botmLayer) ? Lake[i].LayerArea
-                                  : (Lake[i].LayerArea - Lake[i-1].LayerArea);
+                        za += sed_zone_frac(i, z) * ((i == botmLayer) ? Lake[i].LayerArea
+                                  : (Lake[i].LayerArea - Lake[i-1].LayerArea));
                     }
                     if (za <= 0.0) continue;   //# dry/absent zone -> nothing to heat
                     //# pass 2: deposit power * area-fraction into each layer
                     for (i = botmLayer; i <= surfLayer; i++) {
-                        if (layer_zone[i] != z) continue;
-                        AED_REAL a_i = (i == botmLayer) ? Lake[i].LayerArea
-                                    : (Lake[i].LayerArea - Lake[i-1].LayerArea);
+                        AED_REAL a_i = sed_zone_frac(i, z) * ((i == botmLayer) ? Lake[i].LayerArea
+                                    : (Lake[i].LayerArea - Lake[i-1].LayerArea));
+                        if (a_i <= zero) continue;
                         AED_REAL dE = sed_zone_heat[z] * (a_i/za) * noSecs;
                         Lake[i].Temp += dE /
                             (SPHEAT * Lake[i].Density * Lake[i].LayerVol);
@@ -1304,7 +1327,12 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
                                                      Lake[surfLayer].LayerVol,
                                                      zero, rainvol+snowvol);
 
-//      resize_internals(1, surfLayer);  // recompute surflayer volume
+        //# The combines above already diluted the surface layer by the rain
+        //# and snow: count that water in the layer volume now, so that
+        //# recalc_surface_salt_wq below (OldVol -> new volume) only applies the
+        //# evaporative concentration. Otherwise the rain dilution was applied
+        //# twice and dissolved mass was lost.
+        Lake[surfLayer].LayerVol += rainvol + snowvol;
 
         //---------------------------------------------------------------------+
         //# Evaporation and evapo-concentration, as evaporation leaves consituents
@@ -1360,7 +1388,7 @@ void do_surface_thermodynamics(int jday, int iclock, int LWModel,
     }
     SurfData.RhoSnow = rho_snow;
 
-    free(LayerThickness);  free(heat);  free(layer_zone);
+    free(LayerThickness);  free(heat);
 
     free(gx);
 }

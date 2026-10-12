@@ -56,6 +56,7 @@ static unsigned int wallclock_seed(void) { return (unsigned int)time(NULL); }
 #include "glm_restart.h"
 #include "glm_heatexchange.h"
 #include "glm_oxygenation.h"
+#include "glm_mixu.h"
 
 #include <aed_time.h>
 #include <namelist.h>
@@ -380,6 +381,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
           { "inflow_varnum",     TYPE_INT,              &inflow_varnum        },
           { "inflow_vars",       TYPE_STR|MASK_LIST,    &inflow_vars          },
           { "coef_inf_entrain",  TYPE_DOUBLE,           &coef_inf_entrain     },
+          //# submerged inflow whose subm_height is above the water surface:
+          //#   .false. (default) = dropped (legacy behaviour), .true. = put in the surface layer
+          { "subm_insert_above_surface", TYPE_BOOL,     &subm_insert_above_surface },
           { "time_fmt",          TYPE_STR,              &timefmt_i            },
           { "timezone",          TYPE_DOUBLE,           &timezone_i           },
           { NULL,                TYPE_END,              NULL                  }
@@ -1166,6 +1170,9 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
 
             theZones[n_zones++].zheight = (max_elev-base_elev)+1;
         }
+        //# plan area at each zone top, from the same table interpolation as
+        //# the layer areas: zone shares of a layer's bed use these (zone_frac)
+        for (i = 0; i < n_zones; i++) theZones[i].ztop_area = area_at_height(theZones[i].zheight);
     }
 
     /**************************************************************************

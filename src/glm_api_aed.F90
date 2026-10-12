@@ -617,7 +617,7 @@ SUBROUTINE doMobilityF(N,dt,h,A,ww,min_C,mcc)
 !## but, with gfortran - using local copy "area" works, using passed array "A" doesnt
 !## Woods lake example Oxy and Oxy_sat NaN out with the A passed in.
 !  CALL doMobility(N,dt,h,A,ww,min_C,mcc)
-   CALL doMobility(N,dt,h,area,ww,min_C,mcc)
+   CALL doMobility(N,dt,h,area,lvol,ww,min_C,mcc)
 END SUBROUTINE doMobilityF
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

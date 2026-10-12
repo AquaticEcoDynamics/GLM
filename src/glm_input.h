@@ -57,6 +57,7 @@ void read_daily_kw(int julian, AED_REAL *kwout);
 
 AED_REAL get_fetch(AED_REAL windDir);
 void read_sub_daily_met(int julian,int iclock, MetDataType *met);
+void daily_mean_precip(AED_REAL *rain, AED_REAL *snow);
 
 void close_evap_files(void);
 void close_kw_files(void);

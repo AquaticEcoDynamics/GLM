@@ -6,8 +6,15 @@
  *                                                                            *
  * Assumptions :                                                              *
  *                                                                            *
- *  1) movement direction has at most one change down the layers              *
- *  2) sides of the lake slope inward (ie bottom is narrower than top)        *
+ *  1) sides of the lake slope inward (ie bottom is narrower than top)        *
+ *  2) layer 0 is the bottom layer, layer N-1 the surface layer               *
+ *                                                                            *
+ * Deposition is an EXPORT: material that settles onto the lake bed (the bed  *
+ * ring of a layer, or the flat bed under the bottom layer) leaves the water  *
+ * column and is not credited to any sediment pool or zone here. AED's        *
+ * benthic sedimentation terms (e.g. Psed_poc / swi_poc in                    *
+ * aed_organic_matter) are computed separately as w*C of the bottom water and *
+ * are reporting estimates, not a flux balanced against this removal.         *
  *                                                                            *
  * -------------------------------------------------------------------------- *
  *                                                                            *
@@ -46,26 +53,36 @@
 
 
 
-/******************************************************************************/
-static AED_REAL Rising(AED_REAL *Y, AED_REAL *mcc,
-                                    const AED_REAL *ww, const AED_REAL *vols,
-                                    const AED_REAL *A,  const AED_REAL *mins,
-                                              AED_REAL dt, int start, int end);
-static AED_REAL Sinking(AED_REAL *Y, AED_REAL *mcc,
-                                     const AED_REAL *ww, const AED_REAL *vols,
-                                     const AED_REAL *A,  const AED_REAL *mins,
-                                              AED_REAL dt, int start, int end);
-
-
-
-
 /******************************************************************************
+ *                                                                            *
+ * Vertical settling/rising of one variable through the layers.               *
+ *                                                                            *
+ * Each layer moves at its own velocity ww[i] (+ve up, -ve down), so any      *
+ * pattern of rising and sinking layers is handled. In each sub-step, from    *
+ * the concentrations at the start of the sub-step:                           *
+ *   sinking layer i : mov = |w| dt A[i] C[i] leaves the layer; the share     *
+ *                     A[i-1]/A[i] enters layer i-1 (the part over the        *
+ *                     layer's bottom face) and the rest deposits on the bed  *
+ *                     ring between A[i-1] and A[i]. For the bottom layer     *
+ *                     all of it deposits on the flat bed.                    *
+ *   rising layer i  : mov = w dt A[i] C[i] enters layer i+1; nothing rises   *
+ *                     out of the surface layer.                              *
+ * A[i] is the area at the top of layer i and vols are the TRUE layer         *
+ * volumes, so the mass moved is exactly the change in C * V.                 *
+ *                                                                            *
+ * (The previous version handled at most one change of direction and had two *
+ * index errors: with all layers sinking the bottom layer never settled and   *
+ * never received the material falling from the layer above (it was          *
+ * discarded), and where the direction changed, layers were assigned to the  *
+ * wrong direction - sinking layers were moved upward, giving negative        *
+ * concentrations - or material was delivered two layers down.)               *
  *                                                                            *
  ******************************************************************************/
 void doMobility(const CINTEGER *N_in,   // number of vertical layers
               const AED_REAL *dt_in,    // time step (s)
               const AED_REAL *h,        // array of layer thicknesses (m)
               const AED_REAL *A,        // array of layer areas (m^2)
+              const AED_REAL *V,        // array of layer volumes (m^3)
               const AED_REAL *ww,       // array of vertical mobility speeds (m/s)
               const AED_REAL *min_C_in, // minimum concentration (mmol/m^3)
               AED_REAL *mcc)            // array of cell concentrations (mmol/m^3)
@@ -81,63 +98,49 @@ void doMobility(const CINTEGER *N_in,   // number of vertical layers
 
     int      i;
 
-    AED_REAL *vols;  // layer volume (m^3)
-    AED_REAL *mins;  // minimum layer mass of variable (mmol)
     AED_REAL *Y;     // total mass of variable (mmol) in layer
+    AED_REAL *mov;   // mass leaving each layer in this sub-step (mmol)
 
-    AED_REAL dtMax, tdt, tmp;
-    int dirChng, sign;
+    AED_REAL dtMax, tdt, tmp, w;
 
 /*----------------------------------------------------------------------------*/
-    vols = calloc(N, sizeof(AED_REAL));
-    mins = calloc(N, sizeof(AED_REAL));
-    Y = calloc(N, sizeof(AED_REAL));
+    if ( N < 1 ) return;
+
+    Y   = calloc(N, sizeof(AED_REAL));
+    mov = calloc(N, sizeof(AED_REAL));
 
     /**************************************************************************
-     * determine mobility timestep i.e. maximum time step that particles      *
-     * will not pass through more than one layer in a time step               *
+     * determine mobility timestep, the maximum time step for which:          *
+     *  - no layer loses more than it holds  (|w| dt A[i] <= V[i]), and       *
+     *  - particles do not pass through more than one layer (|w| dt <= h of   *
+     *    this layer and of the layer they move into)                         *
      **************************************************************************/
-
     dtMax = dt;
-    dirChng = 0;   //this represents the layer at which direction switches from sinking to rising or visa versa
-    sign = ( ww[0] > 0. );  // positive for rising, negative for sinking
-
     for (i = 0; i < N; i++) {
-        // for convenience
-        vols[i] = (h[i] * A[i]);
-        mins[i] = (min_C * vols[i]);
-        Y[i] = mcc[i] * vols[i];
+        Y[i] = mcc[i] * V[i];
+        w = fabs(ww[i]);
+        if ( w <= 0. ) continue;
 
-        // look for the change of direction
-        if ( sign != ( ww[i] > 0. ) ) { sign = !sign; dirChng = i-1; }
-
-        /**********************************************************************
-         * check if all movement can be from within this cell                 *
-         **********************************************************************/
-        if ( (fabs(ww[i]) * dt) > h[i] ) {
-            tdt = h[i]/fabs(ww[i]);
+        if ( A[i] > 0. && (w * dt * A[i]) > V[i] ) {
+            tdt = V[i] / (w * A[i]);
             if ( tdt < dtMax ) dtMax = tdt;
         }
-
-        /**********************************************************************
-         * check if movement can all be into the next cell.                   *
-         * if movement is settling, next is below, otherwise next is above.   *
-         * check also for top or bottom in case of oopsies                    *
-         **********************************************************************/
+        if ( (w * dt) > h[i] ) {
+            tdt = h[i] / w;
+            if ( tdt < dtMax ) dtMax = tdt;
+        }
         if ( ww[i] > 0. ) {
-            if ( (i < N-1) && (fabs(ww[i]) * dt) > h[i+1] ) {
-                tdt = h[i+1]/fabs(ww[i]);
+            if ( (i < N-1) && (w * dt) > h[i+1] ) {
+                tdt = h[i+1] / w;
                 if ( tdt < dtMax ) dtMax = tdt;
             }
         } else {
-            if ( (i > 0) && (fabs(ww[i]) * dt) > h[i-1] ) {
-                tdt = h[i-1]/fabs(ww[i]);
+            if ( (i > 0) && (w * dt) > h[i-1] ) {
+                tdt = h[i-1] / w;
                 if ( tdt < dtMax ) dtMax = tdt;
             }
         }
-    } // end find maximum time step dtMax
-    if ( dirChng == 0 && ww[0] > 0. ) dirChng = N; //all rising
-    if ( dirChng == 0 && ww[N-1] < 0. ) dirChng = N; //all sinking
+    }
 
     /**************************************************************************/
 
@@ -148,104 +151,31 @@ void doMobility(const CINTEGER *N_in,   // number of vertical layers
             // whatever was left.
             if ( (dt -= dtMax) < 0. ) tdt = dtMax + dt;
 
-            /******************************************************************
-             * 2 possibilities,                                               *
-             *   1) lower levels rising, upper levels sinking                 *
-             *   2) lower levels sinking, upper levels rising                 *
-             ******************************************************************/
-            if ( ww[0] > 0. ) { // lower levels rising
-                if ( ww[N-1] < 0. ) { // top levels are sinking
-                    tmp = Sinking(Y, mcc, ww, vols, A, mins, tdt, N-1, dirChng);
-                    Y[dirChng-1] += tmp;
-                    mcc[dirChng-1] = Y[dirChng-1] / vols[dirChng-1];
-                }
-                Rising( Y, mcc, ww, vols, A, mins, tdt, 0,   dirChng-1);
-            } else { // lower levels sinking
-                Sinking(Y, mcc, ww, vols, A, mins, tdt, dirChng-1, 0);
-                if ( ww[N-1] > 0. )   // top levels are rising
-                    Rising( Y, mcc, ww, vols, A, mins, tdt, dirChng,   N-1);
+            // 1) how much leaves each layer, from the start-of-step state,
+            //    never taking a layer below its minimum
+            for (i = 0; i < N; i++) {
+                mov[i] = 0.;
+                if ( ww[i] > 0. && i == N-1 ) continue;  // nothing rises out of the surface
+                if ( ww[i] == 0. ) continue;
+                mov[i] = fabs(ww[i]) * tdt * A[i] * mcc[i];
+                tmp = Y[i] - min_C * V[i];
+                if ( mov[i] > tmp ) mov[i] = ( tmp > 0. ) ? tmp : 0.;
             }
+            // 2) move it: up into the layer above, or down into the layer below
+            //    (the share over its bottom face) with the rest deposited
+            for (i = 0; i < N; i++) {
+                if ( mov[i] == 0. ) continue;
+                Y[i] -= mov[i];
+                if ( ww[i] > 0. )
+                    Y[i+1] += mov[i];
+                else if ( i > 0 )
+                    Y[i-1] += mov[i] * (A[i-1] / A[i]);
+            }
+            for (i = 0; i < N; i++) mcc[i] = Y[i] / V[i];
         } while ( dt > 0. );
     }
 
     /**************************************************************************/
-    free(vols); free(mins); free(Y);
-}
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
-
-/******************************************************************************
- * Rising is the easier on the two since the slope means we dont need to look *
- * at relative areas (the cell above will always be >= to the current cell)   *
- * all matter is moved to the next cell                                       *
- *  for each cell except the top :                                            *
- *    1) calculate how much is going to move                                  *
- *    2) subtract amount that must now move                                   *
- *    3) add the amount moved from previous cell to current cell              *
- *    4) fix concentration                                                    *
- *  for the top cell :                                                        *
- *    1) add the amount moved from previous cell to current cell              *
- *    2) fix concentration                                                    *
- ******************************************************************************/
-AED_REAL Rising(AED_REAL *Y, AED_REAL *mcc,
-                             const AED_REAL *ww, const AED_REAL *vols,
-                             const AED_REAL *A,  const AED_REAL *mins,
-                                              AED_REAL dt, int start, int end)
-{
-    int i;
-    AED_REAL mov = 0., moved = 0.;
-
-    // go from start to one below end
-    for (i = start; i < end; i++) {
-        // speed times time (=h) time area * concen = mass to move
-        mov = (ww[i] * dt) * A[i] * mcc[i];
-        //  if removing that much would bring it below min conc
-        if ( (Y[i] + moved - mov) < mins[i] ) mov = Y[i] + moved - mins[i];
-
-        Y[i] = Y[i] + moved - mov;
-        mcc[i] = Y[i] / vols[i]; // return it to a concentration
-        moved = mov; // for the next step
-    }
-    // nothing rises out of the end cell, but we still add that which came from below
-    Y[end] += moved;
-    mcc[end] = Y[end] / vols[end];
-
-    return 0.; // nothing has moved out of this cell
-}
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
-
-/******************************************************************************
- *  for each cell :                                                           *
- *    1) calculate how much is going to move                                  *
- *    2) subtract amount that must now move                                   *
- *    3) add the amount moved from previous cell to current cell              *
- *    4) fix concentration                                                    *
- *    5) compute the amount that will go to the next cell                     *
- ******************************************************************************/
-AED_REAL Sinking(AED_REAL *Y, AED_REAL *mcc,
-                              const AED_REAL *ww, const AED_REAL *vols,
-                              const AED_REAL *A,  const AED_REAL *mins,
-                                               AED_REAL dt, int start, int end)
-{
-    int i;
-    AED_REAL mov = 0., moved = 0.;
-
-    for (i = start; i > end; i--) {
-        // speed times time (=h) time area * concen = mass to move
-        mov = (fabs(ww[i]) * dt) * A[i] * mcc[i];
-        //  if removing that much would bring it below min conc
-        if ( (Y[i] + moved - mov) < mins[i] ) mov = Y[i] + moved - mins[i];
-
-        Y[i] = Y[i] + moved - mov;
-        mcc[i] = Y[i] / vols[i]; // return it to a concentration
-
-        // so now mov has how much has moved out of the cell, but not all
-        // of that will go into the next cell
-        if ( i > 0 ) moved = mov * (A[i-1] / A[i]); // for the next step
-        else moved = mov; // we are about to exit anyway.
-    }
-
-    return moved; // this is how much left this cell
+    free(Y); free(mov);
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

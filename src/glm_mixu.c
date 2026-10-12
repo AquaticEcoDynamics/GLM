@@ -98,6 +98,22 @@ void average_layer(int *j, int *k,
 
 
 /******************************************************************************
+ * Plan area at height h above the bed, by exactly the table interpolation    *
+ * resize_internals uses for Lake[].LayerArea (linear from zero below the     *
+ * first table entry), so it can be compared directly with layer areas.       *
+ ******************************************************************************/
+AED_REAL area_at_height(AED_REAL h)
+{
+    AED_REAL x = h * MphInc, y = AMOD(x, 1.0);
+    int ij = (x - y) - 1;
+    if (ij >= Nmorph) ij = Nmorph - 1;
+    if (ij >= 0) return MphLevelArea[ij] + y * dMphLevelArea[ij];
+    return MphLevelArea[0] * h * MphInc;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
  *                                                                            *
  ******************************************************************************/
 static void one_layer(int i, AED_REAL *xx, AED_REAL *dxx)
@@ -118,8 +134,13 @@ static void one_layer(int i, AED_REAL *xx, AED_REAL *dxx)
         Lake[i].Vol1 = xx[ij] + y * dxx[ij];
         Lake[i].LayerArea = MphLevelArea[ij] + y * dMphLevelArea[ij];
     } else {
-        Lake[i].Vol1 = xx[0];
-        Lake[i].LayerArea = MphLevelArea[0];
+        //# Below the first table entry (height 1/MphInc = 0.1 m) there is no
+        //# lower entry to interpolate from: interpolate linearly from zero at
+        //# the bed, as create_lake builds that part of the table and as
+        //# resize_internals(2) inverts it. (Returning the 0.1 m values here
+        //# gave a layer with a top at 0.02 m five times its volume.)
+        Lake[i].Vol1 = x * xx[0];
+        Lake[i].LayerArea = x * MphLevelArea[0];
     }
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -202,7 +223,11 @@ void resize_internals(int icode, int lnu)
         }
         if ( j < 0 ) j = 0;
         if (j >= Nmorph) j = Nmorph - 1;
-        Lake[surfLayer].Height = ((j+1) + ((VolSum - MphLevelVol[j]) / dMphLevelVol[j])) / MphInc;
+        if ( VolSum <= MphLevelVol[0] )
+            //# below the first table entry: linear from zero at the bed
+            Lake[surfLayer].Height = (VolSum / MphLevelVol[0]) / MphInc;
+        else
+            Lake[surfLayer].Height = ((j+1) + ((VolSum - MphLevelVol[j]) / dMphLevelVol[j])) / MphInc;
 
         if (lnu <= botmLayer) {
             l = 0;
@@ -234,7 +259,11 @@ void resize_internals(int icode, int lnu)
             if (j >= Nmorph) j = Nmorph - 1;
             if (j < 0) j = 0;
 
-            Lake[k].Height = ((j+1) + ( Lake[k].Vol1 - MphLevelVoldash[j] ) / dMphLevelVolda[j]) / MphInc;
+            if ( Lake[k].Vol1 <= MphLevelVoldash[0] )
+                //# below the first table entry: linear from zero at the bed
+                Lake[k].Height = (Lake[k].Vol1 / MphLevelVoldash[0]) / MphInc;
+            else
+                Lake[k].Height = ((j+1) + ( Lake[k].Vol1 - MphLevelVoldash[j] ) / dMphLevelVolda[j]) / MphInc;
         }
 
         //# determine areas
@@ -243,8 +272,11 @@ void resize_internals(int icode, int lnu)
             y = AMOD(x, 1.0);
             ij = (x - y) - 1;
             if (ij >= Nmorph) ij = Nmorph - 1;
-            if ( ij < 0 ) ij = 0;
 
+            //# below the first table entry (ij < 0) interpolate linearly from
+            //# zero at the bed; this branch was unreachable because ij was
+            //# clamped to 0 first, which extrapolated the 0.1-0.2 m segment
+            //# downward and made the area grow as the height shrank
             if (ij >= 0) Lake[i].LayerArea = MphLevelArea[ij] + y * dMphLevelArea[ij];
             else         Lake[i].LayerArea = MphLevelArea[0] * Lake[i].Height * MphInc;
         }

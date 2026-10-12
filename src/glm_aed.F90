@@ -122,6 +122,7 @@ MODULE glm_aed
    AED_REAL,DIMENSION(:),POINTER :: temp
    AED_REAL,DIMENSION(:),POINTER :: rho
    AED_REAL,DIMENSION(:),POINTER :: area
+   AED_REAL,DIMENSION(:),POINTER :: lvol
    AED_REAL,DIMENSION(:),POINTER :: extc
    AED_REAL,DIMENSION(:),POINTER :: layer_stress
    AED_REAL,DIMENSION(:),POINTER :: vel
@@ -147,6 +148,9 @@ MODULE glm_aed
    AED_REAL,ALLOCATABLE,TARGET :: flux_pel(:,:)        !# (n_vars+n_vars_ben, MAX(n_layers, aed_n_zones))
    AED_REAL,DIMENSION(:,:),ALLOCATABLE :: flux_pel_pre !# (n_vars+n_vars_ben, MAX(n_layers, aed_n_zones))
    AED_REAL,DIMENSION(:,:),ALLOCATABLE :: flux_pel_z   !# (n_vars+n_vars_ben, MAX(n_layers, aed_n_zones))
+   !# water-column fluxes from aed_calculate_column, held aside while the benthic
+   !# step uses flux_pel as zone scratch space and rescales/overwrites layers
+   AED_REAL,DIMENSION(:,:),ALLOCATABLE :: flux_pel_col !# (n_vars+n_vars_ben, MAX(n_layers, aed_n_zones))
 
    CHARACTER(len=48),ALLOCATABLE :: names(:)
    CHARACTER(len=48),ALLOCATABLE :: bennames(:)
@@ -541,6 +545,7 @@ SUBROUTINE aed_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
    salt   => theLake%Salinity
    rho    => theLake%Density
    area   => theLake%LayerArea
+   lvol   => theLake%LayerVol
    rad    => theLake%Light
    vel    => theLake%Umean
    extc   => theLake%ExtcCoefSW
@@ -557,6 +562,7 @@ SUBROUTINE aed_set_glm_data()                     BIND(C, name=_WQ_SET_GLM_DATA)
 
    ALLOCATE(flux_pel_pre(n_vars+n_vars_ben, MAX(MaxLayers, n_zones)))
    ALLOCATE(flux_pel_z(  n_vars+n_vars_ben, MAX(MaxLayers, n_zones)))
+   ALLOCATE(flux_pel_col(n_vars+n_vars_ben, MAX(MaxLayers, n_zones)))
 
    IF ( n_zones > 0 ) THEN
       ALLOCATE(flux_zon(n_vars+n_vars_ben, n_zones))
@@ -1022,7 +1028,7 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
                !# only for state_vars that are not sheet, and also non-zero ws
                IF ( .NOT. ieee_is_nan(tv%mobility) .AND. SUM(ABS(ws(i, 1:wlev)))>zero_ ) THEN
                   min_C = tv%minimum
-                  CALL doMobility(wlev, dt, dz, area, ws(i, :), min_C, cc(v, :))
+                  CALL doMobility(wlev, dt, dz, area, lvol, ws(i, :), min_C, cc(v, :))
                ENDIF
             ENDIF
          ENDIF
@@ -1289,7 +1295,6 @@ CONTAINS
       INTEGER :: layer_map(wlev)
       AED_REAL :: scale
       AED_REAL :: localrainl(n_zones), localshade(n_zones), localdrag(n_zones)
-      LOGICAL :: splitZone
       TYPE(aed_variable_t),POINTER :: tvar
    !----------------------------------------------------------------------------
    !BEGIN
@@ -1308,6 +1313,13 @@ CONTAINS
          layer_map(lev) = 1 + wlev-lev
       ENDDO
       CALL aed_calculate_column(column, layer_map)
+
+      !# The benthic step below uses flux_pel as zone scratch, assigns every
+      !# layer, and divides bottom fluxes by dz/volume, which would discard or
+      !# rescale the fluxes aed_calculate_column just added (e.g. macrophyte
+      !# epiphyte exchange). Hold them aside and add them back afterwards.
+      flux_pel_col = flux_pel
+      flux_pel = zero_
 
       !# Now do the general calculation all flux terms for RHS in mass/m3/s
       !# Includes (i) benthic flux, (ii) surface exchange and (ii) kinetic updates in each cell
@@ -1404,43 +1416,37 @@ CONTAINS
          ENDDO
 !$OMP END DO
 
-         !# Disaggregation of zone induced fluxes to overlying layers
-         zon = n_zones
-         DO lev=wlev,1,-1
-            IF ( zon .GT. 1 ) THEN
-               IF (lev .GT. 1) THEN
-                  splitZone = lheights(lev-1) < zone_heights(zon-1)
-               ELSE
-                  splitZone = 0.0 < zone_heights(zon-1)
-               ENDIF
-            ELSE
-               splitZone = .FALSE.
-            ENDIF
-
-            IF (splitZone) THEN
-               IF (lev .GT. 1) THEN
-                  scale = (zone_heights(zon-1) - lheights(lev-1)) / (lheights(lev) - lheights(lev-1))
-               ELSE
-                  scale = (zone_heights(zon-1) - 0.0) / (lheights(lev) - 0.0)
-               ENDIF
-               flux_pel(1:n_vars,lev) = flux_pel_z(1:n_vars,zon) * scale
-
-               zon = zon - 1
-
-               flux_pel(1:n_vars,lev) = flux_pel(1:n_vars,lev) + &
-                                        flux_pel_z(1:n_vars,zon) * (1.0 - scale)
-            ELSE
-               flux_pel(1:n_vars,lev) = flux_pel_z(1:n_vars,zon)
-            ENDIF
+         !# Disaggregation of zone induced fluxes to overlying layers: each layer
+         !# takes each zone's flux (per m2 of bed) weighted by the share of its
+         !# bed lying in that zone (zone_bed_frac), the same shares used for
+         !# the zone areas, so the mass delivered equals sum(zone flux *
+         !# zone area).
+         DO lev=1,wlev
+            flux_pel(1:n_vars,lev) = zero_
+            DO zon=1,n_zones
+               scale = zone_bed_frac(lev, zon)
+               IF ( scale > zero_ ) flux_pel(1:n_vars,lev) = flux_pel(1:n_vars,lev) + &
+                                                       flux_pel_z(1:n_vars,zon) * scale
+            ENDDO
          ENDDO
          !# Limit flux out of bottom waters to concentration of that layer
-         !# i.e. don't flux out more than is there & distribute
-         !# bottom flux into pelagic over bottom box (i.e., divide by layer height).
-         !# scaled to proportion of area that is "bottom"
+         !# i.e. don't flux out more than is there & distribute the
+         !# bottom flux (per m2 of sediment) into the layer it sits under.
+         !# The sediment exposed in this layer is area(lev)-area(lev-1), so
+         !# mass/s = flux * that, and the concentration rate is that over the
+         !# TRUE layer volume. Dividing by area(lev) * dz instead over-counts
+         !# the volume of a basin that narrows downward and loses part of
+         !# every sediment flux (~15% in the BARC hypsograph).
          DO lev=1,wlev
-            IF (lev > 1) flux_pel(:, lev) = flux_pel(:, lev) * (area(lev)-area(lev-1))/area(lev)
+            IF (lev > 1) THEN
+               flux_pel(:, lev) = flux_pel(:, lev) * (area(lev)-area(lev-1))
+            ELSE
+               flux_pel(:, lev) = flux_pel(:, lev) * area(lev)
+            ENDIF
             DO v=1,n_vars
-              IF ( cc(v, 1) .GE. 0.0 ) flux_pel(v, lev) = max(-1.0 * cc(v, lev), flux_pel(v, lev)/dz(lev))
+              !# cap: a sink may not remove more than the layer holds within one
+              !# step (-cc/dt_eff, a rate like the flux); test this layer's own sign
+              IF ( cc(v, lev) .GE. 0.0 ) flux_pel(v, lev) = max(-1.0 * cc(v, lev)/dt_eff, flux_pel(v, lev)/lvol(lev))
             END DO
          ENDDO
       ELSE
@@ -1457,7 +1463,7 @@ CONTAINS
          !# distribute bottom flux into pelagic over bottom box (i.e., divide by layer height)
          !# Skip -ve values, as GEO_ubalchg is -ve and doesnt not comply with this logic
          DO v=1,n_vars
-           IF ( cc(v, 1) .GE. 0.0 ) flux_pel(v, 1) = max(-1.0 * cc(v, 1), flux_pel(v, 1)/dz(1))
+           IF ( cc(v, 1) .GE. 0.0 ) flux_pel(v, 1) = max(-1.0 * cc(v, 1)/dt_eff, flux_pel(v, 1)/dz(1))
          END DO
 
          IF ( benthic_mode .EQ. 1 ) THEN
@@ -1472,7 +1478,7 @@ CONTAINS
                !# scaled to proportion of area that is "bottom"
                DO v=1,n_vars
                   IF ( cc(v, lev) .GE. 0.0 ) flux_pel(v, lev) = &
-                                   max(-1.0 * cc(v, lev), flux_pel(v, lev)/dz(lev))
+                                   max(-1.0 * cc(v, lev)/dt_eff, flux_pel(v, lev)/dz(lev))
                END DO
                flux_pel(:, lev) = flux_pel(:, lev) * (area(lev)-area(lev-1))/area(lev)
             ENDDO
@@ -1480,13 +1486,18 @@ CONTAINS
          ENDIF
       ENDIF
 
+      !# Restore the water-column fluxes held aside above
+      flux_pel = flux_pel + flux_pel_col
+
       !# (3) SURFACE FLUXES
       !# Calculate temporal derivatives due to air-water exchange.
       IF (.NOT. ice) THEN !# no surface exchange under ice cover
          CALL aed_calculate_surface(column, wlev)
 
-         !# Distribute the fluxes into pelagic surface layer
-         flux_pel(:, wlev) = flux_pel(:, wlev) + flux_atm(:)/dz(wlev)
+         !# Distribute the fluxes (per m2 of water surface) into the surface
+         !# layer: flux * surface area over the TRUE layer volume (GLM layers
+         !# narrow downward, so lvol < area * dz)
+         flux_pel(:, wlev) = flux_pel(:, wlev) + flux_atm(:)*area(wlev)/lvol(wlev)
       ENDIF
 
       !# (4) WATER CELL KINETICS
@@ -1531,6 +1542,7 @@ SUBROUTINE aed_clean_glm() BIND(C, name=_WQ_CLEAN_GLM)
    IF (ALLOCATED(flux_zon))     DEALLOCATE(flux_zon)
    IF (ALLOCATED(flux_pel_z))   DEALLOCATE(flux_pel_z)
    IF (ALLOCATED(flux_pel_pre)) DEALLOCATE(flux_pel_pre)
+   IF (ALLOCATED(flux_pel_col)) DEALLOCATE(flux_pel_col)
 END SUBROUTINE aed_clean_glm
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

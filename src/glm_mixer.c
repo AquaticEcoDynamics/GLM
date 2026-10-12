@@ -647,8 +647,14 @@ static int shear_production(int Mixer_Count, int *_Epi_botmLayer, int *_Meta_top
         u_avg = sqrt((u0_old*u0_old + u0_old*u_f + u_f*u_f)/3.0);
 
         del_u = u_avg - u_eff;
-        deltaKH = coef_mix_KH*u_avg*u_avg/(redg);
-        del_deltaKH = 2.0*coef_mix_KH*u_avg*del_u/(redg);
+        //# redg is zero when the next layer has the same density as the
+        //# mixed layer (gprime returns 0 below 1e-7), e.g. sub-layers of the
+        //# previous step's mixed layer. Dividing by it made the available
+        //# energy NaN, which never compares less than the required energy, so
+        //# the whole lake was entrained in one step. Floor it as is done for
+        //# gPrimeTwoLayer.
+        deltaKH = coef_mix_KH*u_avg*u_avg/MAX(redg, 1E-7);
+        del_deltaKH = 2.0*coef_mix_KH*u_avg*del_u/MAX(redg, 1E-7);
 
         u0 = u_f;
         _DBG_MIXER_(3, _DBG_LOOP_);

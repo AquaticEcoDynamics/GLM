@@ -225,9 +225,11 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
         //# lake, less than the specified outflow may be removed and this is what is
         //# noted in the lake.csv diagnostic file
         if (surfLayer == botmLayer) {
-            if (Delta_V[0] >= Lake[0].LayerVol)
-                Delta_V[0] = Lake[0].LayerVol - 1.0;
-            Delta_V[0] = 0.9 * Lake[0].LayerVol;
+            //# never take more than 90% of the only layer. (The cap used to be
+            //# applied unconditionally, so any outflow from a single-layer lake
+            //# removed 90% of its volume.)
+            if (Delta_V[0] >= 0.9 * Lake[0].LayerVol)
+                Delta_V[0] = 0.9 * Lake[0].LayerVol;
         } else {
             for (i = botmLayer; i < surfLayer; i++) {
                 if (Delta_V[i] >= Lake[i].LayerVol) {
@@ -770,13 +772,15 @@ static int insert_inflow(int k, //# Inflow parcel counter
                              Inflow_Flowrate, Inflow_Density, Lake[Layer].Temp, Delta_Q, Lake[Layer].Density);
         Inflow_Density = calculate_density(Inflow_Temp, Inflow_Salinity);
 
+        //# Update other water attributes, weighting by the parcel volume BEFORE
+        //# entrainment (as for T and S above). Doing this after the volume
+        //# was increased weighted the parcel by Q+dQ and lost or created mass.
+        for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
+            WQ_VarsS[wqidx] = combine_vol(WQ_VarsS[wqidx], Inflow_Flowrate, _WQ_Vars(wqidx, Layer), Delta_Q);
+
         //# Add entrained water to inflow aliquot and take from adjacent layer
         Inflow_Flowrate += Delta_Q;
         Lake[Layer].LayerVol -= Delta_Q;
-
-        //# Update other water attributes
-        for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
-            WQ_VarsS[wqidx] = combine_vol(WQ_VarsS[wqidx], Inflow_Flowrate, _WQ_Vars(wqidx, Layer), Delta_Q);
 
         //# Calculate energy of inflowing streams.
         if (Layer == botmLayer)
@@ -1002,6 +1006,27 @@ AED_REAL do_inflows()
                 for (Layer_subm = botmLayer; Layer_subm <= surfLayer; Layer_subm++)
                     if (Lake[Layer_subm].Height >= Inflows[iRiver].SubmHeight) break;
 
+                //# Submerged inflow above the water surface. The search above ran
+                //# past the surface layer, so the inflow was written to a layer
+                //# that does not exist and was lost. Keep that (dropping the
+                //# inflow, without writing past the last layer) unless
+                //# subm_insert_above_surface is set, which puts it in the
+                //# surface layer.
+                if (Layer_subm > surfLayer) {
+                    static int warned = FALSE;
+                    if ( !subm_insert_above_surface ) {
+                        if ( !warned ) {
+                            fprintf(stderr, "     WARNING: submerged inflow %d (subm_height %.2f m) is above the water surface;\n"
+                                            "              the inflow is dropped (set subm_insert_above_surface = .true. in\n"
+                                            "              &inflow to put it in the surface layer instead)\n",
+                                            iRiver+1, Inflows[iRiver].SubmHeight);
+                            warned = TRUE;
+                        }
+                        continue;
+                    }
+                    Layer_subm = surfLayer;
+                }
+
                 Lake[Layer_subm].Temp = combine(Lake[Layer_subm].Temp, Lake[Layer_subm].LayerVol, Lake[Layer_subm].Density,
                                                Inflows[iRiver].TemInf, (Inflows[iRiver].FlowRate*Inflows[iRiver].Factor),
                                                calculate_density(Inflows[iRiver].TemInf, Inflows[iRiver].SalInf));
@@ -1069,7 +1094,12 @@ AED_REAL do_inflows()
                                          // QIns is flow; D depth, WQ vars defined above; need to pass particle
                                          // fraction to insert routine
 
-                    for (jk = Inflows[iRiver].InPar[j]-1; jk < Inflows[iRiver].iCnt-1; jk++) {
+                    //# remove the inserted parcel (index InPar[j], 0-based) from
+                    //# the downflow stack by shifting the ones above it down. (This
+                    //# started at InPar[j]-1, a leftover from 1-based indexing: it
+                    //# wrote element -1 of each stack array, and would have
+                    //# removed the parcel below the inserted one.)
+                    for (jk = Inflows[iRiver].InPar[j]; jk < Inflows[iRiver].iCnt-1; jk++) {
                         Inflows[iRiver].QDown[jk] = Inflows[iRiver].QDown[jk+1];
                         Inflows[iRiver].TDown[jk] = Inflows[iRiver].TDown[jk+1];
                         Inflows[iRiver].SDown[jk] = Inflows[iRiver].SDown[jk+1];
@@ -1204,7 +1234,12 @@ static int new_storage(int *iRiv)
     }
     if (j >= Nmorph) j = Nmorph - 1;
     if (j < 0) j = 0;
-    Lake[surfLayer].Height = ((j+1) + (VOLSUM - MphLevelVol[j])/dMphLevelVol[j]) * 0.1;
+    //# table spacing is 1/MphInc (was a hard-coded 0.1); below the first
+    //# entry interpolate linearly from zero, as resize_internals does
+    if ( VOLSUM <= MphLevelVol[0] )
+        Lake[surfLayer].Height = (VOLSUM / MphLevelVol[0]) / MphInc;
+    else
+        Lake[surfLayer].Height = ((j+1) + (VOLSUM - MphLevelVol[j])/dMphLevelVol[j]) / MphInc;
 
     //# Calculate the flowing depths of the inflowing streams.
     //#
@@ -1612,11 +1647,16 @@ AED_REAL delta_volume(AED_REAL z1, AED_REAL z2, AED_REAL da, AED_REAL avdel,
         a = da / avdel;
 
         // If top and bottom of layer fall within lower curve
-        if (z1 <= 0.25*a*avdel+hh) {
+        //# z1 is the bottom and z2 the top of the interval: use the lower
+        //# curve when it lies wholly below the join, the upper curve when
+        //# wholly above, and both when the join is inside. (The tests were
+        //# on z1 then z2, which sent every interval containing the join to
+        //# the lower curve and never reached the join branch.)
+        if (z2 <= 0.25*a*avdel+hh) {
             tmp1 = s1 + 2.0 / a / (1.0 + 0.5*a*(DeltaBot/avdel + s1));
             tmp2 = s2 + 2.0 / a / (1.0 + 0.5*a*(DeltaBot/avdel + s2));
             dV  = tmp1 - tmp2;
-        } else if (z2 >= hh+0.25*avdel*a) {
+        } else if (z1 >= hh+0.25*avdel*a) {
             //  If layer falls within upper curve
             tmp1 = exp(-1 * sqrt(2.0) * (DeltaTop/avdel + 0.75*a));
             tmp2 = 1.0 + 0.5 * a * DeltaBot / avdel + sqr(a)/8.0;
@@ -1628,15 +1668,16 @@ AED_REAL delta_volume(AED_REAL z1, AED_REAL z2, AED_REAL da, AED_REAL avdel,
             dV = (tmp6 - tmp7) / sqrt(2.0) * tmp3;
         } else {
             //  If join of curves lies within the layer
+            //# lower curve from z1 to the join, upper curve from the join to z2
             s3 = 0.25*a;
-            tmp2 = s2 + 2.0 / a / (1.0 + 0.5*a*(DeltaBot/avdel + s2));
-            tmp1 = s3 + 2.0 / a / (1.0 + 0.5*a*(DeltaBot/avdel + s3));
+            tmp1 = s1 + 2.0 / a / (1.0 + 0.5*a*(DeltaBot/avdel + s1));
+            tmp2 = s3 + 2.0 / a / (1.0 + 0.5*a*(DeltaBot/avdel + s3));
             dV = tmp1 - tmp2;
             tmp1 = exp(-1 * sqrt(2.0) * (DeltaTop / avdel + 0.75*a));
             tmp2 = 1.0 + 0.5 * a * DeltaBot / avdel + sqr(a)/8.0;
             tmp3 = (1 - 1.0 / sqr(tmp2)) * sqr((1+tmp1) / (1-tmp1));
-            tmp4 = sqrt(2.0) * (s1 - DeltaTop/avdel - a);
-            tmp5 = sqrt(2.0) * (s3 - DeltaTop/avdel - a);
+            tmp4 = sqrt(2.0) * (s3 - DeltaTop/avdel - a);
+            tmp5 = sqrt(2.0) * (s2 - DeltaTop/avdel - a);
             tmp6 = 4.0 / (1 + exp(tmp4)) + tmp4;
             tmp7 = 4.0 / (1 + exp(tmp5)) + tmp5;
             dV = dV + (tmp6 - tmp7) / sqrt(2.0) * tmp3;
@@ -1645,12 +1686,12 @@ AED_REAL delta_volume(AED_REAL z1, AED_REAL z2, AED_REAL da, AED_REAL avdel,
         //  Curves for small withdrawal
         da4 = da / 4.0;
         da7 = da * 0.75;
-        if (z1 <= da4 + hh) {
+        if (z2 <= da4 + hh) {
             //  If top and bottom fall within lower curve
             tmp1 = z1 + (DeltaBot + da4) / Pi * sin(Pi * (z1 - hh - da4) / (DeltaBot + da4));
             tmp2 = z2 + (DeltaBot + da4) / Pi * sin(Pi * (z2 - hh - da4) / (DeltaBot + da4));
             dV = tmp1 - tmp2;
-        } else if (z2 >= hh+da4) {
+        } else if (z1 >= hh+da4) {
             //  If layer falls within upper curve
             tmp1 = z1 + (DeltaTop + da7) / Pi * sin(Pi * (z1 - hh - da4) / (DeltaTop + da7));
             tmp2 = z2 + (DeltaTop + da7) / Pi * sin(Pi * (z2 - hh - da4) / (DeltaTop + da7));
@@ -1658,12 +1699,13 @@ AED_REAL delta_volume(AED_REAL z1, AED_REAL z2, AED_REAL da, AED_REAL avdel,
         } else {
             // If join of curves falls within the layer
             z3 = 0.25 * da + hh;
-            tmp1 = z3 + (DeltaBot + da4) / Pi * sin(Pi * (z3 - hh - da4) / (DeltaBot + da4));
-            tmp2 = z2 + (DeltaBot + da4) / Pi * sin(Pi * (z2 - hh - da4) / (DeltaBot + da4));
+            //# lower curve from z1 to the join z3, upper curve from z3 to z2
+            tmp1 = z1 + (DeltaBot + da4) / Pi * sin(Pi * (z1 - hh - da4) / (DeltaBot + da4));
+            tmp2 = z3 + (DeltaBot + da4) / Pi * sin(Pi * (z3 - hh - da4) / (DeltaBot + da4));
             dV = tmp1 - tmp2;
             tmp3 = z3 + (DeltaTop + da7) / Pi * sin(Pi * (z3 - hh - da4) / (DeltaTop + da7));
-            tmp4 = z1 + (DeltaTop + da7) / Pi * sin(Pi * (z1 - hh - da4) / (DeltaTop + da7));
-            dV = tmp4 - tmp3 + dV;
+            tmp4 = z2 + (DeltaTop + da7) / Pi * sin(Pi * (z2 - hh - da4) / (DeltaTop + da7));
+            dV = tmp3 - tmp4 + dV;
         }
     }
 

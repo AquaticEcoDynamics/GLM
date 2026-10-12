@@ -95,6 +95,7 @@ AED_REAL crest_width = 6.0;
 AED_REAL crest_factor = 0.61;
 
 CLOGICAL single_layer_draw = FALSE;
+CLOGICAL subm_insert_above_surface = FALSE; //# submerged inflow above the surface: FALSE = dropped (legacy), TRUE = into the surface layer
 AED_REAL outflow_thick_limit = 100.0;
 
 CLOGICAL evap_from_file = FALSE;   // do we have evap values coming from a file

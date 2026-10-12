@@ -104,6 +104,11 @@ static int n_steps;
 static MetDataType *submet = NULL;
 static AED_REAL loaded_day;
 
+static char *met_fname = NULL;           //# for error messages
+static const char *inf_fname[MaxInf];    //# for warnings
+
+extern int startTOD;                     //# seconds into the first day the run starts (glm_model.c)
+
 AED_REAL wind_factor = 1.0;   //# Windspeed scaling factor
 AED_REAL sw_factor   = 1.0;
 //AED_REAL lw_factor   = 1.0;
@@ -262,6 +267,8 @@ void read_daily_withdraw_temp(int julian, AED_REAL *withdrTemp)
 void read_daily_met(int julian, MetDataType *met)
 {
     int csv, i, idx ;//, err = 0;
+    int have_hour[24] = { 0 };   //# hours of this day that have a met record
+    int more_data = FALSE;       //# the file continues past the end of this day
     AED_REAL now, tomorrow, t_val, sol;
     AED_REAL eff_area, surf_area, ld, x_ws;
 
@@ -283,7 +290,11 @@ void read_daily_met(int julian, MetDataType *met)
     }
 
     i = 0;
-    while ( (t_val = get_csv_val_r(csv, time_idx)) < tomorrow) {
+    while ( 1 ) {
+        if ( (t_val = get_csv_val_r(csv, time_idx)) >= tomorrow ) {
+            more_data = TRUE;
+            break;
+        }
         if ( i >= n_steps ) {
             int dd,mm,yy;
             calendar_date(now,&yy,&mm,&dd);
@@ -308,6 +319,8 @@ void read_daily_met(int julian, MetDataType *met)
             fprintf(stderr, "Step error for %4d-%02d-%02d!\n", yy,mm,dd);
             break;
         }
+
+        if ( idx >= 0 && idx < 24 ) have_hour[idx] = TRUE;
 
         // Rain is the exception - goes as is
         submet[idx].Rain        = get_csv_val_r(csv, rain_idx) * rain_factor;
@@ -382,6 +395,7 @@ void read_daily_met(int julian, MetDataType *met)
         // wind-sheltering
         switch ( fetch_mode ) {
             case 0 : // no change to the wind-speed
+                break;   //# (was falling through to case 1)
             case 1 : // effective area based on general relationship
                 eff_area = surf_area* tanh(surf_area/fetch_aws);
                 submet[idx].WindSpeed = submet[idx].WindSpeed * eff_area/surf_area;
@@ -403,6 +417,46 @@ void read_daily_met(int julian, MetDataType *met)
         if (!load_csv_line(csv) ) break;
     }
 
+    /**************************************************************************
+     * With sub-daily met, each step uses the record for its hour of the day  *
+     * (read_sub_daily_met) and hours with no record would be left at zero    *
+     * (0 C air, no wind, no sun, 0% humidity). Stop with an error instead.   *
+     * Hours before the start of the run on its first day are not needed;    *
+     * if the file simply ends during this day (e.g. the last day of the run) *
+     * hours after its last record are not checked.                           *
+     **************************************************************************/
+    if ( subdaily ) {
+        int h, first_h = startTOD / 3600, last_h = -1, n_hours = (n_steps < 24) ? n_steps : 24;
+        int n_missing = 0;
+
+        for (h = 0; h < n_hours; h++) if (have_hour[h]) last_h = h;
+        if ( more_data ) last_h = n_hours - 1;
+
+        for (h = first_h; h <= last_h; h++) if ( !have_hour[h] ) n_missing++;
+
+        if ( n_missing > 0 ) {
+            int dd,mm,yy, shown = 0;
+            calendar_date(now,&yy,&mm,&dd);
+            fprintf(stderr, "\nERROR: the sub-daily meteorology file '%s' has no record for %d hour(s)\n"
+                            "       of %4d-%02d-%02d:", (met_fname != NULL) ? met_fname : "(met file)",
+                            n_missing, yy, mm, dd);
+            for (h = first_h; h <= last_h; h++)
+                if ( !have_hour[h] ) {
+                    if ( shown++ % 8 == 0 ) fprintf(stderr, "\n         ");
+                    fprintf(stderr, " %02d:00", h);
+                }
+            fprintf(stderr, "\n"
+                "       With sub-daily met (a time step of an hour or less), GLM uses the met\n"
+                "       record for each hour of the day and needs one for every hour from\n"
+                "       00:00 to 23:00. Missing hours are not filled in (they would be read\n"
+                "       as 0 C air, no wind, no sunlight and 0%% humidity).\n"
+                "       Fix the met file so it has a record for every hour (for example,\n"
+                "       interpolate 3-hourly data to hourly), or use daily met data with a\n"
+                "       daily time step.\n\n");
+            exit(1);
+        }
+    }
+
     *met = submet[0];
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -416,9 +470,17 @@ AED_REAL get_fetch(AED_REAL windDir)
     AED_REAL fetch_s;
     int i = 0;
 
-    while (windDir > 360.) windDir -= 360.;
+    //# wind_dir is a list of directions in ascending order within [0, 360);
+    //# interpolate the scale linearly between them, wrapping around 360.
+    //# (The search used windDir < fetch_dirs[i], which stopped at the first
+    //# entry for ascending directions, and the wrap-around was missing its
+    //# +360, so every direction got fetch_scale[0].)
+    while (windDir >= 360.) windDir -= 360.;
+    while (windDir < 0.)    windDir += 360.;
 
-    while (i < fetch_ndirs && windDir < fetch_dirs[i])
+    if ( fetch_ndirs < 2 ) return fetch_scale[0];
+
+    while (i < fetch_ndirs && windDir >= fetch_dirs[i])
         i++;
 
     if ( i > 0 && i < fetch_ndirs ) {
@@ -426,12 +488,13 @@ AED_REAL get_fetch(AED_REAL windDir)
         fetch_s = fetch_scale[i-1] +
                    (fetch_scale[i] - fetch_scale[i-1]) *
                     (windDir - fetch_dirs[i-1]) / (fetch_dirs[i] - fetch_dirs[i-1]);
-    } else if ( i == 0 ) fetch_s = fetch_scale[0];
-    else {
+    } else {
+        // between the last direction and the first one (+ 360)
+        AED_REAL w = ( i == 0 ) ? windDir + 360. : windDir;
         fetch_s = fetch_scale[fetch_ndirs-1] +
                    (fetch_scale[0] - fetch_scale[fetch_ndirs-1]) *
-                    (windDir - fetch_dirs[fetch_ndirs-1]) /
-                       (fetch_dirs[0] - fetch_dirs[fetch_ndirs-1]);
+                    (w - fetch_dirs[fetch_ndirs-1]) /
+                       (fetch_dirs[0] + 360. - fetch_dirs[fetch_ndirs-1]);
     }
 
     return fetch_s;
@@ -440,6 +503,23 @@ AED_REAL get_fetch(AED_REAL windDir)
 /******************************************************************************
  *                                                                            *
  ******************************************************************************/
+/******************************************************************************
+ * Mean rain and snow rates (m/day) over the loaded day's hourly met rows.     *
+ * Used where a once-a-day calculation needs the day's total precipitation    *
+ * from sub-daily met (rows are stored by hour of the day).                   *
+ ******************************************************************************/
+void daily_mean_precip(AED_REAL *rain, AED_REAL *snow)
+{
+    int i, n = (n_steps < 24) ? n_steps : 24;
+    AED_REAL r = 0., s = 0.;
+
+    for (i = 0; i < n; i++) { r += submet[i].Rain; s += submet[i].Snow; }
+    *rain = r / 24.;
+    *snow = s / 24.;
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
 void read_sub_daily_met(int julian, int iclock, MetDataType *met)
 {
     AED_REAL now ;
@@ -529,6 +609,7 @@ void open_met_file(const char *fname, int snow_sw, int rain_sw,
     have_snow = snow_sw;
     have_rain_conc = rain_sw;
     have_fetch = fetch_sw;
+    met_fname = strdup(fname);
     if ( (metf = open_csv_input(fname, timefmt)) < 0 ) {
         fprintf(stderr, "Failed to open '%s'\n", fname);
         exit(1);
@@ -637,12 +718,14 @@ void open_kw_file(const char *fname, const char *timefmt)
  ******************************************************************************/
 void open_evap_file(const char *fname, const char *timefmt)
 {
-    if ( (kwf = open_csv_input(fname, timefmt)) < 0 ) {
+    //# (this opened the file into kwf, the Kd file handle, so evaporation was
+    //# never read - read_daily_evap returned -1 - and a Kd file was replaced)
+    if ( (evapf = open_csv_input(fname, timefmt)) < 0 ) {
         fprintf(stderr, "Failed to open '%s'\n", fname);
         exit(1);
     }
-    locate_time_column(kwf, "Evap", fname);
-    if ( (evap_idx = find_csv_var(kwf, "Evap")) < 0 ) {
+    locate_time_column(evapf, "Evap", fname);
+    if ( (evap_idx = find_csv_var(evapf, "Evap")) < 0 ) {
         fprintf(stderr,"Error in Evap file, Evap not found!\n");
         exit(1);
     }
@@ -659,6 +742,7 @@ void open_inflow_file(int idx, const char *fname, const char *timefmt)
         fprintf(stderr, "Failed to open '%s'\n", fname);
         exit(1) ;
     }
+    inf_fname[idx] = strdup(fname);
     locate_time_column(inf[idx].inf, "inflow", fname);
 
     inf[idx].flow_idx = find_csv_var(inf[idx].inf,"flow");
@@ -685,16 +769,30 @@ void index_inflow_file(int idx, int nvars, const char *vars[])
     size_t sl = 0;
     const char *nm;
 
+    //# A column that is not a water-quality variable of this simulation is
+    //# skipped with a warning. (It used to be kept with index -1, and
+    //# read_daily_inflow then wrote its values into the WQ variable whose
+    //# index equalled the column's position in the list - e.g. an extra
+    //# column ended up in NIT_amm. With no inflow_vars list the time column
+    //# was treated the same way.)
     l = 0;
     if ( vars == NULL ) {
         k = 0;
         while ( (nm = get_csv_colname(inf[idx].inf, k)) != NULL ) {
-            if ( k != inf[idx].flow_idx && k != inf[idx].temp_idx &&
+            if ( k != time_idx &&
+                 k != inf[idx].flow_idx && k != inf[idx].temp_idx &&
                  k != inf[idx].salt_idx && k != inf[idx].elev_idx &&
                  k != inf[idx].particles_idx) {
+                int wq;
                 sl = strlen(nm);
-                inf[idx].wq_vars[l] = wq_var_index_c(nm, &sl);
-                inf[idx].in_vars[l++] = k;
+                if ( (wq = wq_var_index_c(nm, &sl)) < 0 )
+                    fprintf(stderr, "     WARNING: column '%s' in inflow file '%s' is not a water-quality\n"
+                                    "              variable in this simulation; it is ignored\n",
+                                    nm, (inf_fname[idx] != NULL) ? inf_fname[idx] : "?");
+                else {
+                    inf[idx].wq_vars[l] = wq;
+                    inf[idx].in_vars[l++] = k;
+                }
             }
             k++;
         }
@@ -708,9 +806,16 @@ void index_inflow_file(int idx, int nvars, const char *vars[])
                 if ( k != inf[idx].flow_idx && k != inf[idx].temp_idx &&
                      k != inf[idx].salt_idx && k != inf[idx].elev_idx &&
                      k != inf[idx].particles_idx) {
+                    int wq;
                     sl = strlen(nm);
-                    inf[idx].wq_vars[l] = wq_var_index_c(nm, &sl);
-                    inf[idx].in_vars[l++] = k;
+                    if ( (wq = wq_var_index_c(nm, &sl)) < 0 )
+                        fprintf(stderr, "     WARNING: inflow_vars entry '%s' (inflow file '%s') is not a\n"
+                                        "              water-quality variable in this simulation; it is ignored\n",
+                                        nm, (inf_fname[idx] != NULL) ? inf_fname[idx] : "?");
+                    else {
+                        inf[idx].wq_vars[l] = wq;
+                        inf[idx].in_vars[l++] = k;
+                    }
                 }
             }
         }

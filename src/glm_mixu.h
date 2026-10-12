@@ -36,5 +36,6 @@ void add_this_layer(AED_REAL *VMsum, AED_REAL *Tsum,
 void average_layer(int *j1, int *k1,
                            AED_REAL MeanTemp, AED_REAL MeanSalt, AED_REAL Dens);
 void resize_internals(int icode, int lnu);
+AED_REAL area_at_height(AED_REAL h);
 
 #endif

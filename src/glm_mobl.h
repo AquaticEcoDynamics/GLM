@@ -37,7 +37,7 @@
 #ifdef __STDC__
 
    void doMobility(const CINTEGER *N, const AED_REAL *dt,
-                         const AED_REAL *h,  const AED_REAL *A,
+                         const AED_REAL *h,  const AED_REAL *A, const AED_REAL *V,
                          const AED_REAL *ww, const AED_REAL *min_C, AED_REAL *mcc);
 
 #else
@@ -45,7 +45,7 @@
 
   INTERFACE
 
-    SUBROUTINE doMobility(N,dt,h,A,ww,min_C,mcc) BIND(C, name="doMobility")
+    SUBROUTINE doMobility(N,dt,h,A,V,ww,min_C,mcc) BIND(C, name="doMobility")
        USE ISO_C_BINDING
 #      if defined( _WIN32 ) && USE_DL_LOADER
        !DEC$ ATTRIBUTES DLLIMPORT :: doMobility
@@ -54,6 +54,7 @@
        AED_REAL,INTENT(in)     :: dt      !# time step (s)
        AED_REAL,INTENT(in)     :: h(*)    !# layer thickness (m)
        AED_REAL,INTENT(in)     :: A(*)    !# layer areas (m2)
+       AED_REAL,INTENT(in)     :: V(*)    !# layer volumes (m3)
        AED_REAL,INTENT(in)     :: ww(*)   !# vertical speed (m/s)
        AED_REAL,INTENT(in)     :: min_C   !# minimum allowed cell concentration
        AED_REAL,INTENT(inout)  :: mcc(*)  !# cell concentration

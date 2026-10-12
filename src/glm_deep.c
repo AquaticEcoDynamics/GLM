@@ -269,12 +269,13 @@ static void calculate_diffusion(AED_REAL RTimeStep,
             ic = 1;
         } else {
             // going from upper to lower layers
-            ia = iTop;
-            ib = iBot;
+            // (pairs are (i,i+1): start at the top pair, stop after the bottom pair)
+            ia = iTop-1;
+            ib = iBot-1;
             ic = -1;
         }
 
-        for (i = ia; i < ib; i+=ic ) {
+        for (i = ia; i != ib; i+=ic ) {
             if (fabs(_Scalars(i,difidx))   < 1E-20) _Scalars(i,difidx) = 0.;
             if (fabs(_Scalars(i+1,difidx)) < 1E-20) _Scalars(i+1,difidx) = 0.;
 
@@ -290,7 +291,9 @@ static void calculate_diffusion(AED_REAL RTimeStep,
 
                 meanConc = (_Scalars(i,difidx) * dz1 + _Scalars(i+1,difidx) * dz2) / (dz2+dz1);
                 deltaConc = _Scalars(i,difidx) - _Scalars(i+1,difidx);
-                factor = ((tot_diffusivity[i] + tot_diffusivity[i+1])/2.0) * pow((2.0/(dz2+dz1)),2)*HalfTS;
+                // decay rate of the difference between two layers exchanging a flux K*dC/L
+                // (L = distance between centres): K * (1/dz1 + 1/dz2) / L
+                factor = ((tot_diffusivity[i] + tot_diffusivity[i+1])/2.0) * (1.0/dz1 + 1.0/dz2) * (2.0/(dz2+dz1)) * HalfTS;
 
                 if (factor > 20.0)
                     exfac = zero;

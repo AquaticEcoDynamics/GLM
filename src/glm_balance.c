@@ -57,6 +57,10 @@
 static int mbf = -1;
 static int mbnv = 0;
 
+//# mb_idx codes: -2 = heat (Temp), -1 = salt (Salinity), >= 0 = WQ variable
+//# index, MB_UNKNOWN = a name that is not a WQ variable (reported, then 0)
+#define MB_UNKNOWN -3
+
 //------------------------------------------------------------------------------
 // These for mass balance
 //------------------------------------------------------------------------------
@@ -73,12 +77,14 @@ void mb_add_inflows(AED_REAL vol, AED_REAL inTemp, AED_REAL inSalt, AED_REAL *wq
     int i;
     if ( mbf < 0 ) return;
 
+    //# if / else-if / else: with two separate ifs, the heat entry (-2) also
+    //# fell through to the WQ branch and added wq_vars[-2]*vol
     for (i = 0; i < mbnv; i++) {
         if ( mb_idx[i] == -2 )
             mb_ifvar[i] +=  (inTemp * vol);
-        if ( mb_idx[i] == -1 )
+        else if ( mb_idx[i] == -1 )
             mb_ifvar[i] +=  (inSalt * vol);
-        else
+        else if ( mb_idx[i] >= 0 )
             mb_ifvar[i] += (wq_vars[mb_idx[i]] * vol);
     }
 }
@@ -95,9 +101,9 @@ void mb_sub_outflows(int layer, AED_REAL subvol)
     for (i = 0; i < mbnv; i++) {
         if ( mb_idx[i] == -2 )
             mb_ofvar[i] +=  (Lake[layer].Temp * subvol);
-        if ( mb_idx[i] == -1 )
+        else if ( mb_idx[i] == -1 )
             mb_ofvar[i] +=  (Lake[layer].Salinity * subvol);
-        else
+        else if ( mb_idx[i] >= 0 )
             mb_ofvar[i] += (_WQ_Vars(mb_idx[i], layer) * subvol);
     }
 }
@@ -145,6 +151,12 @@ void open_balance(const char *out_dir, const char *balance_fname,
         else {
             l = strlen(balance_vars[i]);
             mb_idx[i] = wq_var_index_c(balance_vars[i], &l);
+            //# not found is returned as -1, which would be read as salt
+            if ( mb_idx[i] < 0 ) {
+                fprintf(stderr, "     WARNING: balance variable '%s' is not a WQ variable; it will be reported as 0\n",
+                                balance_vars[i]);
+                mb_idx[i] = MB_UNKNOWN;
+            }
         }
     }
     csv_header_end(mbf);
@@ -169,18 +181,22 @@ void write_balance(int jday)
     write_csv_start(mbf, ts);
 
     for (i = 0; i < mbnv; i++) {
-        write_csv_val(mbf, mb_ifvar[i]);
-        write_csv_val(mbf, mb_ofvar[i]);
-
-        for (j = 0; j < surfLayer; j++) {
+        //# lake total over ALL layers (the loop stopped before the surface
+        //# layer), with the same if / else-if / else as above
+        for (j = botmLayer; j <= surfLayer; j++) {
             if ( mb_idx[i] == -2 )
                  mb_lkvar[i] +=  (Lake[j].Temp * Lake[j].LayerVol);
-            if ( mb_idx[i] == -1 )
+            else if ( mb_idx[i] == -1 )
                  mb_lkvar[i] +=  (Lake[j].Salinity * Lake[j].LayerVol);
-            else
+            else if ( mb_idx[i] >= 0 )
                  mb_lkvar[i] +=  (_WQ_Vars(mb_idx[i], j) * Lake[j].LayerVol);
         }
+
+        //# write in the order of the header: "Inf", "Lake", "Out" (the lake
+        //# and outflow values were written the other way round)
+        write_csv_val(mbf, mb_ifvar[i]);
         write_csv_val(mbf, mb_lkvar[i]);
+        write_csv_val(mbf, mb_ofvar[i]);
 
         mb_ifvar[i] = 0.0;
         mb_ofvar[i] = 0.0;
