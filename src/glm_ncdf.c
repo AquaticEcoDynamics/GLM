@@ -65,6 +65,8 @@ static int OverFVol_id, Evap_id, Rain_id, LocRunoff_id, SnowF_id, LakeLvl_id, Se
 static int SnowDns_id, Alb_id, MaxT_id, MinT_id, SfT_id, DQsw_id, DQe_id;
 static int DQh_id, DQlw_id, Light_id, BenLight_id, SWH_id, SWL_id, SWP_id;
 static int Qsw_id, Qe_id, Qh_id, Qlw_id;
+static int Hswbed_id, Hclip_id, Hsed_id, Hsurf_id, sed_pw_id;
+static int Hice_id[8], RSnow_id;
 static int LkNum_id, maxdtz_id, CD_id, CHE_id, zL_id;
 static int sedlayer_dim, sed_temp_id, sed_hf_id, sed_zt_id, sed_ld_id;
 static int zarea_id;
@@ -122,6 +124,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_var(ncid, "time",  NC_REALTYPE, 1, dims, &time_id));
     check_nc_error(nc_def_var(ncid, "blue_ice_thickness",  NC_REALTYPE, 1, dims, &HICE_id));
     check_nc_error(nc_def_var(ncid, "snow_thickness",      NC_REALTYPE, 1, dims, &HSNOW_id));
+    check_nc_error(nc_def_var(ncid, "snow_rho",            NC_REALTYPE, 1, dims, &RSnow_id));
     check_nc_error(nc_def_var(ncid, "white_ice_thickness", NC_REALTYPE, 1, dims, &HWICE_id));
     check_nc_error(nc_def_var(ncid, "surface_layer",       NC_INT,      1, dims, &SL_id));
 
@@ -165,6 +168,18 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     check_nc_error(nc_def_var(ncid, "daily_qe",            NC_REALTYPE, 3, dims, &DQe_id));
     check_nc_error(nc_def_var(ncid, "daily_qh",            NC_REALTYPE, 3, dims, &DQh_id));
     check_nc_error(nc_def_var(ncid, "daily_qlw",           NC_REALTYPE, 3, dims, &DQlw_id));
+    check_nc_error(nc_def_var(ncid, "heat_sw_bed",         NC_REALTYPE, 3, dims, &Hswbed_id));
+    check_nc_error(nc_def_var(ncid, "heat_clip",           NC_REALTYPE, 3, dims, &Hclip_id));
+    check_nc_error(nc_def_var(ncid, "heat_surf",           NC_REALTYPE, 3, dims, &Hsurf_id));
+    check_nc_error(nc_def_var(ncid, "heat_ice_atm", NC_REALTYPE, 3, dims, &Hice_id[0]));
+    check_nc_error(nc_def_var(ncid, "heat_ice_top", NC_REALTYPE, 3, dims, &Hice_id[1]));
+    check_nc_error(nc_def_var(ncid, "heat_ice_base", NC_REALTYPE, 3, dims, &Hice_id[2]));
+    check_nc_error(nc_def_var(ncid, "heat_ice_sw", NC_REALTYPE, 3, dims, &Hice_id[3]));
+    check_nc_error(nc_def_var(ncid, "heat_ice_melt", NC_REALTYPE, 3, dims, &Hice_id[4]));
+    check_nc_error(nc_def_var(ncid, "heat_ice_freeze", NC_REALTYPE, 3, dims, &Hice_id[5]));
+    check_nc_error(nc_def_var(ncid, "heat_ice_subl", NC_REALTYPE, 3, dims, &Hice_id[6]));
+    check_nc_error(nc_def_var(ncid, "heat_ice_sw_water", NC_REALTYPE, 3, dims, &Hice_id[7]));
+    check_nc_error(nc_def_var(ncid, "heat_sed",            NC_REALTYPE, 3, dims, &Hsed_id));
     check_nc_error(nc_def_var(ncid, "Qsw",                 NC_REALTYPE, 3, dims, &Qsw_id));
     check_nc_error(nc_def_var(ncid, "Qe",                  NC_REALTYPE, 3, dims, &Qe_id));
     check_nc_error(nc_def_var(ncid, "Qh",                  NC_REALTYPE, 3, dims, &Qh_id));
@@ -211,6 +226,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     dims[1] = zone_dim;
     dims[0] = time_dim;
     check_nc_error(nc_def_var(ncid, "zarea", NC_REALTYPE, 4, dims, &zarea_id));
+    check_nc_error(nc_def_var(ncid, "sed_heat_power", NC_REALTYPE, 4, dims, &sed_pw_id));
 
     /**************************************************************************
      * assign attributes                                                      *
@@ -227,6 +243,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
 
     set_nc_attributes(ncid, HICE_id,   "meters",  "Height of Ice"   PARAM_FILLVALUE);
     set_nc_attributes(ncid, HSNOW_id,  "meters",  "Height of Snow"  PARAM_FILLVALUE);
+    set_nc_attributes(ncid, RSnow_id,  "kg/m3",   "Density of Snow"  PARAM_FILLVALUE);
     set_nc_attributes(ncid, HWICE_id,  "meters",  "Height of WhiteIce" PARAM_FILLVALUE);
 
     //# x,y,t
@@ -259,6 +276,18 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     set_nc_attributes(ncid, DQe_id,       "unknown", "Daily Qe"             PARAM_FILLVALUE);
     set_nc_attributes(ncid, DQh_id,       "unknown", "Daily Qh"             PARAM_FILLVALUE);
     set_nc_attributes(ncid, DQlw_id,      "unknown", "Daily Qlw"            PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Hswbed_id,    "W",      "Shortwave entering the surface not absorbed by the water (bed; ice and snow when present)" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Hclip_id,     "W",      "Cooling not applied (layer heat content limit)" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Hsurf_id,     "W",      "Non-penetrative heat applied to the water surface (atmosphere, or ice when present)" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Hice_id[0],   "W",      "Net atmospheric heat flux at the ice or snow surface (latent + sensible + longwave + rain)" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Hice_id[1],   "W",      "Heat flux arriving at the ice or snow surface from within the pack (conduction and absorbed shortwave)" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Hice_id[2],   "W",      "Heat flux leaving the base of the ice upward (Q_icewater)" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Hice_id[3],   "W",      "Shortwave absorbed in snow and ice, as the ice conduction model has it" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Hice_id[4],   "W",      "Latent heat used by melting at the ice or snow surface" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Hice_id[5],   "W",      "Latent heat released by ice growth at the base (negative: melting)" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Hice_id[6],   "W",      "Latent heat flux of the vapour that changed the ice or snow thickness (sublimation)" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Hice_id[7],   "W",      "Shortwave entering the water under the ice" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, Hsed_id,      "W",      "Sediment heat delivered to the water" PARAM_FILLVALUE);
     set_nc_attributes(ncid, Qsw_id,       "W/m2",   "Shortwave Radiation"  PARAM_FILLVALUE);
     set_nc_attributes(ncid, Qe_id,        "W/m2",   "Latent Heat Flux"     PARAM_FILLVALUE);
     set_nc_attributes(ncid, Qh_id,        "W/m2",   "Sensible Heat Flux"   PARAM_FILLVALUE);
@@ -292,6 +321,7 @@ int init_glm_ncdf(const char *fn, const char *title, AED_REAL lat,
     set_nc_attributes(ncid, Taub_id,    "N/m2",    "layer stress"     PARAM_FILLVALUE);
     set_nc_attributes(ncid, epsilon_id, "m2/s",    "diffusivity"      PARAM_FILLVALUE);
     set_nc_attributes(ncid, zarea_id,   "m2",      "sediment zone area" PARAM_FILLVALUE);
+    set_nc_attributes(ncid, sed_pw_id,  "W",       "sediment heat delivered to the water, per zone" PARAM_FILLVALUE);
 
     //# global attributes
     nc_put_att(ncid, NC_GLOBAL, "Title", NC_CHAR, strlen(title), title);
@@ -379,6 +409,7 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     store_nc_scalar(ncid,  HICE_id, T_SHAPE, SurfData.delzBlueIce);
     store_nc_scalar(ncid, HWICE_id, T_SHAPE, SurfData.delzWhiteIce);
     store_nc_scalar(ncid, HSNOW_id, T_SHAPE, SurfData.delzSnow);
+    store_nc_scalar(ncid, RSnow_id, T_SHAPE, SurfData.RhoSnow);
 
     store_nc_scalar(ncid, precip_id, XYT_SHAPE, MetData.Rain);
     store_nc_scalar(ncid,   evap_id, XYT_SHAPE, SurfData.Evap);
@@ -386,6 +417,18 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
     store_nc_scalar(ncid,  i0_id, XYT_SHAPE, MetData.ShortWave);
     store_nc_scalar(ncid, wnd_id, XYT_SHAPE, MetData.WindSpeed);
 
+    store_nc_scalar(ncid, Hswbed_id, XYT_SHAPE, heat_sw_bed);
+    store_nc_scalar(ncid, Hclip_id,  XYT_SHAPE, heat_clip);
+    store_nc_scalar(ncid, Hsurf_id,  XYT_SHAPE, heat_surf);
+    store_nc_scalar(ncid, Hice_id[0],  XYT_SHAPE, heat_ice_atm);
+    store_nc_scalar(ncid, Hice_id[1],  XYT_SHAPE, heat_ice_top);
+    store_nc_scalar(ncid, Hice_id[2],  XYT_SHAPE, heat_ice_base);
+    store_nc_scalar(ncid, Hice_id[3],  XYT_SHAPE, heat_ice_sw);
+    store_nc_scalar(ncid, Hice_id[4],  XYT_SHAPE, heat_ice_melt);
+    store_nc_scalar(ncid, Hice_id[5],  XYT_SHAPE, heat_ice_freeze);
+    store_nc_scalar(ncid, Hice_id[6],  XYT_SHAPE, heat_ice_subl);
+    store_nc_scalar(ncid, Hice_id[7],  XYT_SHAPE, heat_ice_sw_water);
+    store_nc_scalar(ncid, Hsed_id,   XYT_SHAPE, heat_sed);
     store_nc_scalar(ncid, Qsw_id, XYT_SHAPE, SurfData.Qsw);
     store_nc_scalar(ncid,  Qe_id, XYT_SHAPE, SurfData.Qe);
     store_nc_scalar(ncid,  Qh_id, XYT_SHAPE, SurfData.Qh);
@@ -500,6 +543,8 @@ void write_glm_ncdf(int ncid, int wlev, int nlev, int stepnum, AED_REAL timestep
         for (i = 0; i < n_zones; i++) zarea[i] = theZones[i].zarea;
         store_nc_array(ncid, zarea_id, XYNT_SHAPE, n_zones, n_zones, zarea);
         free(zarea);
+        if ( sed_zone_power != NULL )
+            store_nc_array(ncid, sed_pw_id, XYNT_SHAPE, n_zones, n_zones, sed_zone_power);
     }
 
     check_nc_error(nc_sync(ncid));

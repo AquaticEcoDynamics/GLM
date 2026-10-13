@@ -218,6 +218,8 @@ extern AED_REAL salt_fall;
 extern int Nmorph;                //# Number of data points
 
 extern AED_REAL  MphInc;
+extern int       hyps_interp;
+extern AED_REAL  hyps_area0;
 extern AED_REAL *MphLevelArea;    //# area of each layer determined by linear interpolation
 extern AED_REAL *dMphLevelArea;   //# gradients of area between 0.1m layers
 extern AED_REAL *dMphLevelVol;    //# gradients of volume between 0.1m layers
@@ -315,6 +317,9 @@ extern AED_REAL *sed_reflectivity;
 extern AED_REAL *sed_roughness;
 // sed_heat_model == 2 (dynamic soil/sediment temperature model)
 extern AED_REAL *sed_zone_energy; //# per-zone bed->water heat accumulated over the run [J]
+extern AED_REAL heat_sw_bed, heat_clip, heat_sed, heat_surf;
+extern AED_REAL heat_ice_atm, heat_ice_top, heat_ice_base, heat_ice_sw, heat_ice_melt, heat_ice_freeze, heat_ice_subl, heat_ice_sw_water;  //# heat-budget terms of the current step [W], see glm_globals.c
+extern AED_REAL *sed_zone_power;                  //# per-zone bed -> water heat this step [W]
 extern AED_REAL *sed_zone_heat;   //# prescribed net bed->water power per zone [W] (sed_heat_model==3)
 extern int      n_sed_layers;
 extern AED_REAL *sed_layer_depth;

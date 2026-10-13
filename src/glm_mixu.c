@@ -98,12 +98,84 @@ void average_layer(int *j, int *k,
 
 
 /******************************************************************************
+ * Hypsograph lookups for &morphometry hyps_interp = 1.                       *
+ *                                                                            *
+ * The tables hold values at heights (j+1)/MphInc, j = 0..Nmorph-1. With      *
+ * hyps_interp = 1 the area is linear within each 0.1 m bin and the volume is *
+ * its exact integral, which within a bin is                                  *
+ *     V(y) = V[j] + y dV[j] + 0.5 bin dA[j] (y^2 - y),   0 <= y <= 1         *
+ * (linear interpolation plus the curvature from the area change across the  *
+ * bin). It matches the table volumes at both ends, has dV/dh = area, and      *
+ * reduces to linear when dA = 0. Below the first entry the bin runs from the  *
+ * bed (area hyps_area0 = A[0], volume 0) instead of from zero area. The same  *
+ * form is used for MphLevelVoldash (the volume table less inflow water still  *
+ * running down the slope); where its slope is below the curvature term the    *
+ * correction is dropped so the volume stays monotonic.                        *
+ * The legacy tables (hyps_interp = 0) keep their original interpolation at   *
+ * every call site and never reach these functions.                           *
+ ******************************************************************************/
+static void hyps_bin(const AED_REAL *V, const AED_REAL *dV, int j,
+                     AED_REAL *v0, AED_REAL *dv, AED_REAL *da)
+{
+    if ( j < 0 ) {   //# bed to the first table entry
+        *v0 = zero; *dv = V[0]; *da = MphLevelArea[0] - hyps_area0;
+    } else {
+        *v0 = V[j]; *dv = dV[j]; *da = dMphLevelArea[j];
+    }
+    if ( *dv - 0.5 * (*da) / MphInc < zero ) *da = zero;   //# keep V monotonic
+}
+
+AED_REAL hyps_volume(const AED_REAL *V, const AED_REAL *dV, AED_REAL h)
+{
+    AED_REAL x = h * MphInc, y, v0, dv, da;
+    int j;
+    if ( x <= 1.0 ) { j = -1; y = x; }
+    else {
+        j = (int)floor(x) - 1;
+        if ( j > Nmorph - 1 ) j = Nmorph - 1;
+        y = x - (j + 1);
+    }
+    hyps_bin(V, dV, j, &v0, &dv, &da);
+    return v0 + y * dv + 0.5 * (da / MphInc) * (y * y - y);
+}
+
+AED_REAL hyps_height(const AED_REAL *V, const AED_REAL *dV, AED_REAL vol)
+{
+    AED_REAL v0, dv, da, c1, c2, r, y;
+    int j;
+    if ( vol <= V[0] ) j = -1;
+    else for (j = 0; j < Nmorph - 1 && vol > V[j+1]; j++) ;
+    hyps_bin(V, dV, j, &v0, &dv, &da);
+    r = vol - v0;
+    c2 = 0.5 * da / MphInc;          //# c2 y^2 + c1 y = r
+    c1 = dv - c2;
+    if ( c1 <= zero && c2 <= zero ) y = zero;
+    else if ( fabs(c2) < 1e-12 * fabs(c1) ) y = r / c1;
+    else y = 2.0 * r / (c1 + sqrt(c1 * c1 + 4.0 * c2 * r));
+    return ((j + 1) + y) / MphInc;
+}
+
+AED_REAL hyps_area(AED_REAL h)
+{
+    AED_REAL x = h * MphInc, y;
+    int j;
+    if ( x <= 1.0 ) return hyps_area0 + (MphLevelArea[0] - hyps_area0) * x;
+    j = (int)floor(x) - 1;
+    if ( j > Nmorph - 1 ) j = Nmorph - 1;
+    y = x - (j + 1);
+    return MphLevelArea[j] + y * dMphLevelArea[j];
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
  * Plan area at height h above the bed, by exactly the table interpolation    *
  * resize_internals uses for Lake[].LayerArea (linear from zero below the     *
  * first table entry), so it can be compared directly with layer areas.       *
  ******************************************************************************/
 AED_REAL area_at_height(AED_REAL h)
 {
+    if ( hyps_interp == 1 ) return hyps_area(h);
     AED_REAL x = h * MphInc, y = AMOD(x, 1.0);
     int ij = (x - y) - 1;
     if (ij >= Nmorph) ij = Nmorph - 1;
@@ -121,6 +193,12 @@ static void one_layer(int i, AED_REAL *xx, AED_REAL *dxx)
     AED_REAL x, y;
 
     int ij;
+
+    if ( hyps_interp == 1 ) {
+        Lake[i].Vol1 = hyps_volume(xx, dxx, Lake[i].Height);
+        Lake[i].LayerArea = hyps_area(Lake[i].Height);
+        return;
+    }
 
     x = Lake[i].Height * MphInc;
     y = AMOD(x, 1.0);
@@ -223,47 +301,55 @@ void resize_internals(int icode, int lnu)
         }
         if ( j < 0 ) j = 0;
         if (j >= Nmorph) j = Nmorph - 1;
-        if ( VolSum <= MphLevelVol[0] )
+        if ( hyps_interp == 1 )
+            Lake[surfLayer].Height = hyps_height(MphLevelVol, dMphLevelVol, VolSum);
+        else if ( VolSum <= MphLevelVol[0] )
             //# below the first table entry: linear from zero at the bed
             Lake[surfLayer].Height = (VolSum / MphLevelVol[0]) / MphInc;
         else
             Lake[surfLayer].Height = ((j+1) + ((VolSum - MphLevelVol[j]) / dMphLevelVol[j])) / MphInc;
 
-        if (lnu <= botmLayer) {
-            l = 0;
-            j = 0;
-
-            /* find lowest layer (l) whose volume exceeds the first table entry */
-            while (l <= surfLayer && Lake[l].Vol1 <= MphLevelVoldash[0]) {
-                Lake[l].Height = (Lake[l].Vol1 / MphLevelVoldash[0]) / MphInc;
-                l++;
-            }
+        if ( hyps_interp == 1 ) {
+            /* compute to one below current surface */
+            for (k = (lnu <= botmLayer) ? botmLayer : lnu; k < surfLayer; k++)
+                Lake[k].Height = hyps_height(MphLevelVoldash, dMphLevelVolda, Lake[k].Vol1);
         } else {
-            x = Lake[lnu-1].Height * MphInc;
-            y = AMOD(x, 1.0);
-            j = (x - y) - 1;
-            l = lnu;
-        }
+            if (lnu <= botmLayer) {
+                l = 0;
+                j = 0;
 
-        if (j >= Nmorph) j = Nmorph - 1;
-        if (j < 0) j = 0;
-        /* compute to one below current surface */
-        for (k = l; k < surfLayer; k++) {
-            while (j < Nmorph) {
-                if (Lake[k].Vol1 <= MphLevelVoldash[j]) {
-                    j--;
-                    break;
+                /* find lowest layer (l) whose volume exceeds the first table entry */
+                while (l <= surfLayer && Lake[l].Vol1 <= MphLevelVoldash[0]) {
+                    Lake[l].Height = (Lake[l].Vol1 / MphLevelVoldash[0]) / MphInc;
+                    l++;
                 }
-                j++;
+            } else {
+                x = Lake[lnu-1].Height * MphInc;
+                y = AMOD(x, 1.0);
+                j = (x - y) - 1;
+                l = lnu;
             }
+
             if (j >= Nmorph) j = Nmorph - 1;
             if (j < 0) j = 0;
+            /* compute to one below current surface */
+            for (k = l; k < surfLayer; k++) {
+                while (j < Nmorph) {
+                    if (Lake[k].Vol1 <= MphLevelVoldash[j]) {
+                        j--;
+                        break;
+                    }
+                    j++;
+                }
+                if (j >= Nmorph) j = Nmorph - 1;
+                if (j < 0) j = 0;
 
-            if ( Lake[k].Vol1 <= MphLevelVoldash[0] )
-                //# below the first table entry: linear from zero at the bed
-                Lake[k].Height = (Lake[k].Vol1 / MphLevelVoldash[0]) / MphInc;
-            else
-                Lake[k].Height = ((j+1) + ( Lake[k].Vol1 - MphLevelVoldash[j] ) / dMphLevelVolda[j]) / MphInc;
+                if ( Lake[k].Vol1 <= MphLevelVoldash[0] )
+                    //# below the first table entry: linear from zero at the bed
+                    Lake[k].Height = (Lake[k].Vol1 / MphLevelVoldash[0]) / MphInc;
+                else
+                    Lake[k].Height = ((j+1) + ( Lake[k].Vol1 - MphLevelVoldash[j] ) / dMphLevelVolda[j]) / MphInc;
+            }
         }
 
         //# determine areas
@@ -277,7 +363,8 @@ void resize_internals(int icode, int lnu)
             //# zero at the bed; this branch was unreachable because ij was
             //# clamped to 0 first, which extrapolated the 0.1-0.2 m segment
             //# downward and made the area grow as the height shrank
-            if (ij >= 0) Lake[i].LayerArea = MphLevelArea[ij] + y * dMphLevelArea[ij];
+            if ( hyps_interp == 1 ) Lake[i].LayerArea = hyps_area(Lake[i].Height);
+            else if (ij >= 0) Lake[i].LayerArea = MphLevelArea[ij] + y * dMphLevelArea[ij];
             else         Lake[i].LayerArea = MphLevelArea[0] * Lake[i].Height * MphInc;
         }
     }

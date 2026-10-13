@@ -34,6 +34,7 @@
 #include "aed_csv.h"
 #include "glm_wqual.h"
 #include "glm_oxygenation.h"
+#include "glm_ptm.h"
 
 /*----------------------------------------------------------------------------*
  * CSV bookkeeping for the direct-addition devices (Approach 2) and the        *
@@ -394,7 +395,7 @@ AED_REAL do_oxygenation(AED_REAL day_fraction)
 AED_REAL oxy_do_recirculation(AED_REAL day_fraction)
 {
     int wqidx, L, j, Lo, Hi;
-    AED_REAL want_vol, drawn, inject_density, total = zero, dose;
+    AED_REAL want_vol, drawn, total = zero, dose;
     AED_REAL band_vol, share;
     AED_REAL cap_temp = 0.0, cap_salt = 0.0;
     AED_REAL cap_wq[MaxVars];
@@ -407,8 +408,11 @@ AED_REAL oxy_do_recirculation(AED_REAL day_fraction)
     if ( want_vol <= zero ) return zero;
 
     //# 1. Withdraw at the withdrawal height, capturing T/S/WQ of that water.
+    //# Particles in the withdrawn water are kept (in transit) and returned with it in 3.
+    if ( ptm_sw ) ptm_capture_begin();
     drawn = oxy_recirc_extract(oxy_recirc_withdraw_height, want_vol,
                                &cap_temp, &cap_salt, cap_wq);
+    if ( ptm_sw ) ptm_capture_end();
     if ( drawn <= zero ) return zero;
 
     //# 2. Add O2 to the captured stream (mass/day scaled to this step),
@@ -430,7 +434,8 @@ AED_REAL oxy_do_recirculation(AED_REAL day_fraction)
     band_vol = zero;
     for (L = Lo; L <= Hi; L++) band_vol += Lake[L].LayerVol;
 
-    inject_density = calculate_density(cap_temp, cap_salt);
+    //# particles keep their place in their (growing) layer - see ptm_save_layer_positions
+    if ( ptm_sw ) ptm_save_layer_positions();
 
     for (L = Lo; L <= Hi; L++) {
         //# Degenerate band (all layers empty): put everything in the lowest one
@@ -439,10 +444,11 @@ AED_REAL oxy_do_recirculation(AED_REAL day_fraction)
         else                   share = ( L == Lo ) ? drawn : zero;
         if ( share <= zero ) continue;
 
-        Lake[L].Temp = combine(Lake[L].Temp, Lake[L].LayerVol, Lake[L].Density,
-                               cap_temp, share, inject_density);
-        Lake[L].Salinity = combine(Lake[L].Salinity, Lake[L].LayerVol, Lake[L].Density,
-                                   cap_salt, share, inject_density);
+        //# Mix the return by volume, as the WQ variables are: the layer keeps
+        //# LayerVol + share, so sum V T and sum V S are conserved (a density-
+        //# weighted combine at that volume is not)
+        Lake[L].Temp = combine_vol(Lake[L].Temp, Lake[L].LayerVol, cap_temp, share);
+        Lake[L].Salinity = combine_vol(Lake[L].Salinity, Lake[L].LayerVol, cap_salt, share);
         if ( Num_WQ_Vars > 0 ) {
             for (wqidx = 0; wqidx < Num_WQ_Vars; wqidx++)
                 _WQ_Vars(wqidx, L) = combine_vol(_WQ_Vars(wqidx, L), Lake[L].LayerVol,
@@ -471,6 +477,13 @@ AED_REAL oxy_do_recirculation(AED_REAL day_fraction)
             Lake[j].Vol1 = Lake[j-1].Vol1 + Lake[j].LayerVol;
     }
     resize_internals(2, botmLayer);
+
+    //# Particles follow their water; the captured ones go into the return band,
+    //# spread by volume as the returned water is (each layer's share ~ its volume).
+    if ( ptm_sw ) {
+        ptm_restore_layer_positions();
+        ptm_release_captured((Lo > botmLayer) ? Lake[Lo-1].Height : zero, Lake[Hi].Height);
+    }
 
     return total;
 }

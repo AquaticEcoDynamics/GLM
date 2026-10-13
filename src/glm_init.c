@@ -1201,6 +1201,8 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         if ( n_zones > 0 ) {
             if ( sed_zone_energy != NULL ) free(sed_zone_energy);
             sed_zone_energy = calloc(n_zones, sizeof(AED_REAL));
+            if ( sed_zone_power != NULL ) free(sed_zone_power);
+            sed_zone_power = calloc(n_zones, sizeof(AED_REAL));
         }
         //# Prescribed per-zone heat [W] (sed_heat_model==3). If the nml provided
         //# a shorter/absent list, (re)allocate zeroed so an unset zone contributes
@@ -1785,6 +1787,15 @@ void create_lake(int namlst)
 //  int z, b, ij, mi;
     int b, ij, mi;
 
+    /* How the depth-area-volume table is filled between the H/A points:
+     *   0 (default, legacy): separate power-law fits for volume and area between points, and
+     *     both linear from zero below the first point. The two are not consistent: the
+     *     volume table is not the integral of the area table (and A[0] is ignored), so a
+     *     layer's volume and its reported area disagree, most near the bed.
+     *   1: area linear between the points (A[0] included) and volume its exact integral,
+     *     quadratic within each segment. Matches the trapezoid volumes at the points.     */
+    //# (hyps_interp is a global, glm_globals.c, so the layer routines can see it)
+
     NAMELIST morphometry[] = {
           { "morphometry",       TYPE_START,            NULL               },
           { "lake_name",         TYPE_STR,              &lake_name         },
@@ -1798,6 +1809,7 @@ void create_lake(int namlst)
           { "H",                 TYPE_DOUBLE|MASK_LIST, &H                 },
           { "A",                 TYPE_DOUBLE|MASK_LIST, &A                 },
           { "V",                 TYPE_DOUBLE|MASK_LIST, &V                 },
+          { "hyps_interp",       TYPE_INT,              &hyps_interp       },
           { NULL,                TYPE_END,              NULL               }
     };
     AED_REAL h_z = 0.;
@@ -1931,6 +1943,26 @@ void create_lake(int namlst)
     // increments (MphInc) to support layer interpolations later in the simulation
     // Note: kar is the first layer with a positive A
     // and  ksto is the first layer with a positive V
+    if ( hyps_interp != 0 && hyps_interp != 1 ) {
+        fprintf(stderr, "     ERROR: &morphometry hyps_interp must be 0 (power law) or 1 (linear area)\n");
+        exit(1);
+    }
+    if ( hyps_interp == 1 ) {
+        if (quiet < 2) printf("     Hypsograph: area linear between points, volume its exact integral\n");
+        hyps_area0 = A[0];
+        for (mi = 0; mi < Nmorph; mi++) {
+            AED_REAL s, slope;
+            h_z = (mi+1.0)/MphInc;
+            //# segment [H[b], H[b+1]] containing h_z (the last one above the top point);
+            //# skip zero-thickness segments (repeated H)
+            for (b = bsn_vals-2; b > 0 && H[b] > h_z; b--) ;
+            while ( b < bsn_vals-2 && H[b+1] <= H[b] ) b++;
+            slope = ( H[b+1] > H[b] ) ? (A[b+1] - A[b]) / (H[b+1] - H[b]) : zero;
+            s = h_z - H[b];
+            MphLevelArea[mi] = A[b] + slope * s;
+            MphLevelVol[mi]  = V[b] + A[b] * s + 0.5 * slope * s * s;
+        }
+    } else {
     b = -1;
     for (mi = 0; mi < Nmorph; mi++) {
         h_z = (mi+1.0)/MphInc;
@@ -1964,6 +1996,8 @@ void create_lake(int namlst)
         b--;
     }
 
+    } /* hyps_interp == 0 */
+
     // Calculate change between points for volume and area
     for (mi = 0; mi < Nmorph-1; mi++) {
         dMphLevelVol[mi] = (MphLevelVol[mi+1] - MphLevelVol[mi]);
@@ -1989,6 +2023,7 @@ void create_lake(int namlst)
         MaxVol = MphLevelVol[ij] + y * dMphLevelVol[ij];
     } else
         MaxVol = MphLevelVol[0];
+    if ( hyps_interp == 1 ) MaxVol = hyps_volume(MphLevelVol, dMphLevelVol, MaxHeight);
 
     // Calculate storage at crest/overflow level, VolAtCrest
     x = CrestHeight * MphInc;
@@ -2003,6 +2038,7 @@ void create_lake(int namlst)
         VolAtCrest = MphLevelVol[ij] + y * dMphLevelVol[ij];
     } else
         VolAtCrest = MphLevelVol[0];
+    if ( hyps_interp == 1 ) VolAtCrest = hyps_volume(MphLevelVol, dMphLevelVol, CrestHeight);
 
     if (quiet < 2) fprintf(stderr,"     VolAtCrest= %10.5f; MaxVol= %10.5f (m3)\n", VolAtCrest, MaxVol);
 

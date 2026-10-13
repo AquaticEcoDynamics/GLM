@@ -37,5 +37,8 @@ void average_layer(int *j1, int *k1,
                            AED_REAL MeanTemp, AED_REAL MeanSalt, AED_REAL Dens);
 void resize_internals(int icode, int lnu);
 AED_REAL area_at_height(AED_REAL h);
+AED_REAL hyps_volume(const AED_REAL *V, const AED_REAL *dV, AED_REAL h);
+AED_REAL hyps_height(const AED_REAL *V, const AED_REAL *dV, AED_REAL vol);
+AED_REAL hyps_area(AED_REAL h);
 
 #endif

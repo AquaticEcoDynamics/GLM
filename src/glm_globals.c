@@ -130,6 +130,8 @@ int subdaily = FALSE;
 int Nmorph = 0;             //# Number of data points in internal morphometry vector
 
 AED_REAL  MphInc = 10.0;
+int       hyps_interp = 0;     //# &morphometry hyps_interp: 0 legacy power-law tables, 1 linear area + exact volume
+AED_REAL  hyps_area0 = 0.0;    //# plan area at the bed, A[0] (used when hyps_interp = 1)
 AED_REAL *MphLevelArea    = NULL; //# area at each internal levels determined by linear interpolation
 AED_REAL *dMphLevelArea   = NULL; //# gradients of area between 0.1m levels
 AED_REAL *dMphLevelVol    = NULL; //# gradients of volume between 0.1m levels
@@ -225,6 +227,22 @@ AED_REAL *sed_roughness     = NULL;
 // A single soil-column profile is shared across all zones; only the prognostic
 // temperature state and the per-zone deep boundary (sed_temp_mean) differ by zone.
 AED_REAL *sed_zone_energy   = NULL; //# per-zone bed->water heat accumulated over the run [J]; zeroed at run start, written (only) to restart.nc
+//# Heat-budget terms of the current step that are not in Qsw/Qe/Qh/Qlw, written to
+//# output.nc so the heat budget can be closed from the output (W, lake totals):
+AED_REAL heat_sw_bed        = 0.0;  //# shortwave entering the surface that the water did not absorb: absorbed by the bed (and by ice/snow when present)
+AED_REAL heat_clip          = 0.0;  //# cooling not applied because it would take a layer's heat content below zero (positive)
+AED_REAL heat_surf          = 0.0;  //# non-penetrative heat applied to the water surface: (Qe+Qh+Qlw) x area in open water, the conduction into the ice under ice
+//# energy terms of the ice and snow cover for the current step [W, x surface area]; 0 without ice
+AED_REAL heat_ice_atm      = 0.0;  //# Net atmospheric heat flux at the ice or snow surface (latent + sensible + longwave + rain)
+AED_REAL heat_ice_top      = 0.0;  //# Heat flux arriving at the ice or snow surface from within the pack (conduction and absorbed shortwave)
+AED_REAL heat_ice_base     = 0.0;  //# Heat flux leaving the base of the ice upward (Q_icewater)
+AED_REAL heat_ice_sw       = 0.0;  //# Shortwave absorbed in snow and ice, as the ice conduction model has it
+AED_REAL heat_ice_melt     = 0.0;  //# Latent heat used by melting at the ice or snow surface
+AED_REAL heat_ice_freeze   = 0.0;  //# Latent heat released by ice growth at the base (negative: melting)
+AED_REAL heat_ice_subl     = 0.0;  //# Latent heat flux of the vapour that changed the ice or snow thickness (sublimation)
+AED_REAL heat_ice_sw_water = 0.0;  //# Shortwave entering the water under the ice
+AED_REAL heat_sed           = 0.0;  //# sediment heat delivered to the water, all sed_heat models (sum of zones)
+AED_REAL *sed_zone_power    = NULL; //# the same per zone, bed -> water (W); benthic_mode 2
 AED_REAL *sed_zone_heat     = NULL; //# prescribed net bed->water power per zone [W] (sed_heat_model==3); deposited into overlying layers by bed-contact area
 int       n_sed_layers      = 0;      //# total soil-column nodes N (incl. both boundaries)
 AED_REAL *sed_layer_depth   = NULL;   //# node depths below sediment surface (m), length N

@@ -52,11 +52,24 @@ MODULE glm_zones
 
    AED_REAL,DIMENSION(:),POINTER :: lheights
 
+   !# Layer-zone contact shares for the current host step, computed once by
+   !# set_zone_shares (from calc_zone_areas) and used by every mapping, including
+   !# the flux delivery in glm_aed.F90:
+   !#   zshare(lev,zon)  fraction of layer lev's bed lying in zone zon (zone_bed_frac)
+   !#   zhshare(lev,zon) fraction of layer lev's height lying in zone zon (zone_frac)
+   !#   zwbed(zon), zwvol(zon)  the zone's wet bed area and water volume from them
+   AED_REAL,DIMENSION(:,:),ALLOCATABLE :: zshare, zhshare
+   AED_REAL,DIMENSION(:),  ALLOCATABLE :: zwbed, zwvol
+   LOGICAL :: shares_set = .FALSE.
+   !# indices (into x_diag) of the zone-averaged (zavg) non-sheet diagnostics
+   INTEGER,DIMENSION(:),ALLOCATABLE :: zavg_idx
+
    AED_REAL,DIMENSION(:),POINTER :: zone_heights
    INTEGER :: nvars, nbenv, nvdiag, nvdiag_hz
 
    PUBLIC n_zones, zone_heights, lheights
    PUBLIC wq_set_glm_zones, copy_from_zone, copy_to_zone, calc_zone_areas, zone_frac, zone_bed_frac
+   PUBLIC zshare
 
 !  PUBLIC z_cc, z_cc_hz, z_diag, z_diag_hz, theZones, theLake
    PUBLIC z_cc, z_diag, z_diag_hz, theZones, theLake
@@ -92,6 +105,40 @@ END SUBROUTINE wq_set_glm_zones
 
 
 !###############################################################################
+SUBROUTINE set_zone_shares(wlev)
+!-------------------------------------------------------------------------------
+! The layer-zone contact shares for the current layer structure (see zshare).
+! Layers move only between host steps, so this runs once per step, from
+! calc_zone_areas; the routines that map between layers and zones read the
+! stored shares instead of recomputing them.
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   INTEGER,INTENT(in) :: wlev
+!LOCALS
+   INTEGER  :: lev, zon
+   AED_REAL :: bed
+!-------------------------------------------------------------------------------
+!BEGIN
+   IF ( .NOT. ALLOCATED(zshare) ) THEN
+      ALLOCATE(zshare(MaxLayers, n_zones), zhshare(MaxLayers, n_zones))
+      ALLOCATE(zwbed(n_zones), zwvol(n_zones))
+   ENDIF
+   zshare = 0. ; zhshare = 0. ; zwbed = 0. ; zwvol = 0.
+   DO lev=1,wlev
+      bed = theLake(lev)%LayerArea ; IF ( lev > 1 ) bed = bed - theLake(lev-1)%LayerArea
+      DO zon=1,n_zones
+         zshare(lev,zon)  = zone_bed_frac(lev, zon)
+         zhshare(lev,zon) = zone_frac(lev, zon)
+         zwbed(zon) = zwbed(zon) + zshare(lev,zon) * bed
+         zwvol(zon) = zwvol(zon) + zhshare(lev,zon) * theLake(lev)%LayerVol
+      ENDDO
+   ENDDO
+   shares_set = .TRUE.
+END SUBROUTINE set_zone_shares
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
 SUBROUTINE calc_zone_areas(areas, wlev, surf)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
@@ -114,10 +161,11 @@ SUBROUTINE calc_zone_areas(areas, wlev, surf)
    !# (zone_bed_frac), the same shares used to map zone fluxes onto layers. This
    !# handles a layer whose bottom sits exactly on a boundary, a bottom layer
    !# that straddles a boundary and a layer spanning several zones.
+   CALL set_zone_shares(wlev)
    DO lev=1, wlev
       bed = areas(lev) ; IF ( lev > 1 ) bed = areas(lev) - areas(lev-1)
       DO zon=1, n_zones
-         theZones(zon)%zarea = theZones(zon)%zarea + bed * zone_bed_frac(lev, zon)
+         theZones(zon)%zarea = theZones(zon)%zarea + bed * zshare(lev,zon)
       ENDDO
    ENDDO
 
@@ -188,27 +236,20 @@ SUBROUTINE copy_to_zone(x_cc, x_diag, wlev)
    ! left at zero, as before.
    ! Benthic vars (nvars+1 ->) are not touched: their zone values are kept.
    w_zones = .FALSE.
-   wbed = 0. ; wvol = 0.
-   DO lev=1,wlev
-      bed = theLake(lev)%LayerArea ; IF ( lev > 1 ) bed = bed - theLake(lev-1)%LayerArea
-      DO zon=1,n_zones
-         wbed(zon) = wbed(zon) + zone_bed_frac(lev, zon) * bed
-         wvol(zon) = wvol(zon) + zone_frac(lev, zon) * theLake(lev)%LayerVol
-      ENDDO
-   ENDDO
+   IF ( .NOT. shares_set ) CALL set_zone_shares(wlev)
 
    a_zones = 1
    DO lev=1,wlev
       bed = theLake(lev)%LayerArea ; IF ( lev > 1 ) bed = bed - theLake(lev-1)%LayerArea
       DO zon=1,n_zones
-         IF ( wbed(zon) > 0. ) THEN
-            f = zone_bed_frac(lev, zon)
+         IF ( zwbed(zon) > 0. ) THEN
+            f = zshare(lev,zon)
             IF ( f <= 0. ) CYCLE
-            w = f * bed / wbed(zon)
+            w = f * bed / zwbed(zon)
          ELSE
-            f = zone_frac(lev, zon)
+            f = zhshare(lev,zon)
             IF ( f <= 0. ) CYCLE
-            w = f * theLake(lev)%LayerVol / wvol(zon)
+            w = f * theLake(lev)%LayerVol / zwvol(zon)
          ENDIF
          IF ( w <= 0. ) CYCLE
          a_zones = MAX(a_zones, zon)
@@ -273,7 +314,7 @@ SUBROUTINE copy_from_zone(n_aed_vars, x_cc, x_diag, x_diag_hz, wlev)
    AED_REAL :: scale, area
 !  LOGICAL  :: column_benthic_var_averaging = .false.
 !  INTEGER  :: water_column_zone = 1
-   INTEGER  :: i, j
+   INTEGER  :: i, j, k
    TYPE(aed_variable_t),POINTER :: tvar
 !
 !-------------------------------------------------------------------------------
@@ -295,27 +336,33 @@ SUBROUTINE copy_from_zone(n_aed_vars, x_cc, x_diag, x_diag_hz, wlev)
    ! Set water layer zone-averaged diagnostics (zavg == true) and benthic vars
    ! from the zones, each zone weighted by the share of the layer's height
    ! bed in it (zone_bed_frac, the same shares used for zone areas and fluxes).
-   DO lev=1,wlev
-      j = 0
+   IF ( .NOT. ALLOCATED(zavg_idx) ) THEN
+      !# which non-sheet diagnostics are zone-averaged (fixed once the model is set up)
+      ALLOCATE(zavg_idx(n_aed_vars)) ; k = 0 ; j = 0
       DO i=1,n_aed_vars
          IF ( aed_get_var(i, tvar) ) THEN
-            IF ( tvar%var_type == V_DIAGNOSTIC ) THEN
-               IF ( .NOT.  tvar%sheet ) THEN
-                  j = j + 1
-                  IF ( tvar%zavg ) THEN
-                     x_diag(j, lev) = 0.
-                     DO zon=1,n_zones
-                        scale = zone_bed_frac(lev, zon)
-                        IF ( scale > 0. ) x_diag(j, lev) = x_diag(j, lev) + z_diag(j, zon, zon) * scale   ! level=zon matches copy_to_zone
-                     ENDDO
-                  ENDIF
-               ENDIF
+            IF ( tvar%var_type == V_DIAGNOSTIC .AND. .NOT. tvar%sheet ) THEN
+               j = j + 1
+               IF ( tvar%zavg ) THEN ; k = k + 1 ; zavg_idx(k) = j ; ENDIF
             ENDIF
          ENDIF
       ENDDO
+      zavg_idx = zavg_idx(1:k)
+   ENDIF
+   IF ( .NOT. shares_set ) CALL set_zone_shares(wlev)
+
+   DO lev=1,wlev
+      DO k=1,SIZE(zavg_idx)
+         j = zavg_idx(k)
+         x_diag(j, lev) = 0.
+         DO zon=1,n_zones
+            scale = zshare(lev,zon)
+            IF ( scale > 0. ) x_diag(j, lev) = x_diag(j, lev) + z_diag(j, zon, zon) * scale   ! level=zon matches copy_to_zone
+         ENDDO
+      ENDDO
       x_cc(v_start:v_end, lev) = 0.
       DO zon=1,n_zones
-         scale = zone_bed_frac(lev, zon)
+         scale = zshare(lev,zon)
          IF ( scale > 0. ) x_cc(v_start:v_end, lev) = x_cc(v_start:v_end, lev) + z_cc(v_start:v_end, 1, zon) * scale
       ENDDO
    ENDDO

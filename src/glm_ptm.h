@@ -44,6 +44,14 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount);
 void ptm_update_layerid(void);
 
 void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, int max_particle_num);
+
+// particles follow their water through flow-driven layer volume changes
+void ptm_save_layer_positions(void);
+void ptm_restore_layer_positions(void);
+// recirculation: keep withdrawn particles and release them in the return band
+void ptm_capture_begin(void);
+void ptm_capture_end(void);
+void ptm_release_captured(AED_REAL lower_height, AED_REAL upper_height);
 // void ptm_restart()
 
 extern CLOGICAL ptm_sw;

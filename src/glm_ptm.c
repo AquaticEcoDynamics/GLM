@@ -38,6 +38,7 @@
 #include "glm_globals.h"
 
 #include "glm_ptm.h"
+#include "glm_mixu.h"     // hyps_volume, hyps_height, hyps_area
 
 #include "glm_util.h"
 #include "glm_ncdf.h"
@@ -83,6 +84,13 @@ AED_REAL get_settling_velocity(AED_REAL settling_velocity);
 AED_REAL move_particle(AED_REAL dt_secs, AED_REAL Height, AED_REAL K_z, AED_REAL K_prime_z, AED_REAL vvel, AED_REAL rand_draw);
 static AED_REAL draw_height_in_range(AED_REAL lo, AED_REAL hi);
 static int ptm_next_free_slot(int pg, int max_particle_num);
+
+// Particle positions through flow-driven layer changes (see ptm_save_layer_positions)
+static int      *snap_layr  = NULL;  // layer at the last save; -1 = not tracked
+static AED_REAL *snap_frac  = NULL;  // volume fraction of that layer below the particle
+static char     *in_transit = NULL;  // captured by a recirculation withdrawal
+static AED_REAL *snap_lo = NULL, *snap_hi = NULL;  // layer bounds at the last save
+static int       capture_on = 0;
 
 /*============================================================================*/
 
@@ -388,6 +396,11 @@ void do_ptm_update()
                 // froze the surface population and excluded it from settling regardless
                 // of species, physiology, or vertical velocity.
                 K_prime_z = 0;
+                // K_local was left unset here, so surface-layer particles moved with
+                // whatever value the previous particle (or the stack) left behind:
+                // undefined behaviour, which also made results change with unrelated
+                // code edits. With no gradient, the local diffusivity is K_z.
+                K_local = K_z;
             } else {
                 K_above = Lake[layr+1].Epsilon;
                 if (K_above < ptm_diffusivity) K_above = ptm_diffusivity;
@@ -425,6 +438,7 @@ void do_ptm_update()
                     ij1 = Nmorph - 1;
                 } else if (ij1 < 0 ) ij1 = 0;
                 a1 = MphLevelArea[ij1] + y1 * dMphLevelArea[ij1];
+                if ( hyps_interp == 1 ) a1 = hyps_area(prev_height);
 
                 // Get area at depth of current (already boundary-clamped) particle height
                 x2 = _PTM_Vars(pg,p,HGHT) * 10.0;
@@ -435,6 +449,7 @@ void do_ptm_update()
                     ij2 = Nmorph - 1;
                 } else if (ij2 < 0 ) ij2 = 0;
                 a2 = MphLevelArea[ij2] + y2 * dMphLevelArea[ij2];
+                if ( hyps_interp == 1 ) a2 = hyps_area(_PTM_Vars(pg,p,HGHT));
 
                 // Calculate proportional difference between two areas.
                 prob = (a1 - a2) / a1;
@@ -608,7 +623,10 @@ void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, i
     for (p = 0; p < max_particle_num; p++) {
         if(_PTM_Stat(pg,p,STAT) == 1 && _PTM_Stat(pg,p,LAYR) == layer_id){
             rand_float = ((AED_REAL)rand())/RAND_MAX;
-            if(rand_float <= layer_prop){
+            if(rand_float <= layer_prop && capture_on){
+                // recirculated water is returned: keep the particle (see ptm_capture_begin)
+                in_transit[p] = 1;
+            } else if(rand_float <= layer_prop){
                 // If particle leaves through outflow, reset completely.
                 //
                 // STAT==0 && FLAG==3 (EXIT) is exactly the free-slot test
@@ -669,6 +687,165 @@ void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount)
     }
 
     ptm_update_layerid();     // assign layers to active particles
+}
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+
+/******************************************************************************
+ *                                                                            *
+ *    Particles follow their water through flow-driven layer volume changes   *
+ *                                                                            *
+ *    Outflows, overflow, seepage, the oxygenation recirculation and inflow   *
+ *    insertion all change Lake[].LayerVol and then re-derive the layer       *
+ *    heights (resize_internals), without renumbering layers. Previously the  *
+ *    surviving particles kept their absolute heights, so after a withdrawal  *
+ *    a particle near the old surface was left above the water (and later     *
+ *    clamped to depth 0), and particles above the outlet did not move down   *
+ *    with their water; the inflow path's ptm_layershift(0, dH) only moved    *
+ *    particles in the bottom dH metres.                                      *
+ *                                                                            *
+ *    Instead, ptm_save_layer_positions() records, before the volumes change, *
+ *    each active particle's layer and its VOLUME fraction within it, and     *
+ *    ptm_restore_layer_positions(), after resize_internals, puts it at the   *
+ *    same volume fraction of the same (resized) layer. A GLM layer gains or  *
+ *    loses water as a well-mixed parcel, so this is where its water now is:  *
+ *    layers below a withdrawal do not move, layers above it move down by     *
+ *    exactly the volume taken below them, nothing ends up above the surface, *
+ *    and no random draws are used.                                           *
+ *                                                                            *
+ *    Volume below a height uses the same table GLM converts layer volumes    *
+ *    to heights with (MphLevelVoldash, as in resize_internals), so particles *
+ *    sit in GLM's own layers exactly. Particles in layers whose bounds did   *
+ *    not change are left untouched.                                          *
+ *                                                                            *
+ ******************************************************************************/
+// snap_layr, snap_frac, in_transit, capture_on: declared near the top of this file
+
+static void ptm_alloc_snapshots(void)
+{
+    int p;
+    if ( snap_layr != NULL ) return;
+    snap_layr  = malloc(max_particle_num * sizeof(int));
+    snap_frac  = malloc(max_particle_num * sizeof(AED_REAL));
+    in_transit = calloc(max_particle_num, sizeof(char));
+    snap_lo    = malloc(MaxLayers * sizeof(AED_REAL));
+    snap_hi    = malloc(MaxLayers * sizeof(AED_REAL));
+    for (p = 0; p < max_particle_num; p++) snap_layr[p] = -1;
+}
+
+static AED_REAL layer_bottom(int i) { return (i <= botmLayer) ? zero : Lake[i-1].Height; }
+
+/* Volume below height h, by the table resize_internals inverts for layer heights:
+ * MphLevelVoldash[j] is the volume below height (j+1)/MphInc, linear in between,
+ * and linear from zero at the bed below the first entry. */
+static AED_REAL vol_at_height(AED_REAL h)
+{
+    AED_REAL x = h * MphInc;
+    int j;
+    if ( hyps_interp == 1 ) return hyps_volume(MphLevelVoldash, dMphLevelVolda, h);
+    if ( x <= 1.0 ) return x * MphLevelVoldash[0];
+    j = (int)floor(x) - 1;
+    if ( j > Nmorph - 1 ) j = Nmorph - 1;
+    return MphLevelVoldash[j] + (x - (j + 1)) * dMphLevelVolda[j];
+}
+
+/* Inverse of vol_at_height, as resize_internals computes an interior layer's top */
+static AED_REAL height_at_vol(AED_REAL v)
+{
+    int j = 0;
+    if ( hyps_interp == 1 ) return hyps_height(MphLevelVoldash, dMphLevelVolda, v);
+    if ( v <= MphLevelVoldash[0] ) return (v / MphLevelVoldash[0]) / MphInc;
+    while ( j < Nmorph - 1 && v > MphLevelVoldash[j+1] ) j++;
+    return ((j + 1) + (v - MphLevelVoldash[j]) / dMphLevelVolda[j]) / MphInc;
+}
+
+/* Fraction of the volume of [lo, hi] that lies below h */
+static AED_REAL vol_frac_below(AED_REAL lo, AED_REAL hi, AED_REAL h)
+{
+    AED_REAL v0, vt;
+    if ( h <= lo ) return zero;
+    if ( h >= hi ) return 1.0;
+    v0 = vol_at_height(lo); vt = vol_at_height(hi) - v0;
+    if ( vt <= zero ) return (h - lo) / (hi - lo);
+    return (vol_at_height(h) - v0) / vt;
+}
+
+/* Inverse of vol_frac_below: the height in [lo, hi] with volume fraction f below it */
+static AED_REAL height_at_vol_frac(AED_REAL lo, AED_REAL hi, AED_REAL f)
+{
+    AED_REAL v0, vt, h;
+    if ( hi <= lo || f <= zero ) return lo;
+    if ( f >= 1.0 ) return hi;
+    v0 = vol_at_height(lo); vt = vol_at_height(hi) - v0;
+    if ( vt <= zero ) return lo + f * (hi - lo);
+    h = height_at_vol(v0 + f * vt);
+    if ( h < lo ) h = lo;
+    if ( h > hi ) h = hi;
+    return h;
+}
+
+void ptm_save_layer_positions(void)
+{
+    int p, i, pg = 0;
+    AED_REAL h, lo, hi;
+
+    ptm_alloc_snapshots();
+    // LAYR can be stale here (check_layer_thickness may have renumbered layers since
+    // the last PTM step), and ptm_removeparticles selects particles by LAYR.
+    ptm_update_layerid();
+    for (i = botmLayer; i <= surfLayer; i++) { snap_lo[i] = layer_bottom(i); snap_hi[i] = Lake[i].Height; }
+    for (p = 0; p < max_particle_num; p++) {
+        snap_layr[p] = -1;
+        if ( _PTM_Stat(pg,p,STAT) <= 0 ) continue;
+        h = _PTM_Vars(pg,p,HGHT);
+        // same membership rule as ptm_update_layerid: layer i is [Height[i-1], Height[i])
+        for (i = botmLayer; i < surfLayer && h >= Lake[i].Height; i++) ;
+        lo = layer_bottom(i); hi = Lake[i].Height;
+        snap_layr[p] = i;
+        snap_frac[p] = (h >= hi) ? 1.0 : vol_frac_below(lo, hi, h);
+    }
+}
+
+void ptm_restore_layer_positions(void)
+{
+    int p, i, pg = 0;
+
+    if ( snap_layr == NULL ) return;
+    for (p = 0; p < max_particle_num; p++) {
+        i = snap_layr[p];
+        snap_layr[p] = -1;
+        if ( i < botmLayer || i > surfLayer || _PTM_Stat(pg,p,STAT) <= 0 ) continue;
+        if ( layer_bottom(i) == snap_lo[i] && Lake[i].Height == snap_hi[i] ) continue;   // layer unchanged
+        _PTM_Vars(pg,p,HGHT) = height_at_vol_frac(layer_bottom(i), Lake[i].Height, snap_frac[p]);
+    }
+    ptm_update_layerid();
+}
+
+/******************************************************************************
+ * Recirculation (oxygenation_mode 3) withdraws water and returns the same    *
+ * volume elsewhere in the same call. Between ptm_capture_begin() and         *
+ * ptm_capture_end(), ptm_removeparticles() marks the particles in the        *
+ * withdrawn water as in transit instead of deleting them (which destroyed    *
+ * their C, N and P although the water itself was returned);                  *
+ * ptm_release_captured() then places them in the return band, weighted by    *
+ * plan area (i.e. by volume), as the returned water is spread.               *
+ ******************************************************************************/
+void ptm_capture_begin(void) { ptm_alloc_snapshots(); capture_on = 1; }
+void ptm_capture_end(void)   { capture_on = 0; }
+
+void ptm_release_captured(AED_REAL lower_height, AED_REAL upper_height)
+{
+    int p, pg = 0;
+
+    if ( in_transit == NULL ) return;
+    for (p = 0; p < max_particle_num; p++) {
+        if ( !in_transit[p] ) continue;
+        in_transit[p] = 0;
+        if ( _PTM_Stat(pg,p,STAT) <= 0 ) continue;
+        _PTM_Vars(pg,p,HGHT) = draw_height_in_range(lower_height, upper_height);
+        _PTM_Stat(pg,p,FLAG) = WATER;     // carried in the water column, whatever it was before
+    }
+    ptm_update_layerid();
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 

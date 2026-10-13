@@ -1092,10 +1092,17 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
    ENDDO
 
    IF (.NOT. link_ext_par) THEN
+      !# extc is the host's ExtcCoefSW, used next by GLM to heat the water: it
+      !# carries the biotic extinction only with bioshade_feedback, otherwise
+      !# Kw alone (update_light gives AED the full extinction for its own light)
       localext_post = zero_
       DO i = 1, wlev - 1
-         CALL aed_light_extinction(column, i, localext_post)
-         extc(i) = Kw + localext_post
+         IF (bioshade_feedback) THEN
+            CALL aed_light_extinction(column, i, localext_post)
+            extc(i) = Kw + localext_post
+         ELSE
+            extc(i) = Kw
+         ENDIF
       ENDDO
    ENDIF
 
@@ -1424,7 +1431,7 @@ CONTAINS
          DO lev=1,wlev
             flux_pel(1:n_vars,lev) = zero_
             DO zon=1,n_zones
-               scale = zone_bed_frac(lev, zon)
+               scale = zshare(lev, zon)   ! this step's shares (calc_zone_areas)
                IF ( scale > zero_ ) flux_pel(1:n_vars,lev) = flux_pel(1:n_vars,lev) + &
                                                        flux_pel_z(1:n_vars,zon) * scale
             ENDDO
@@ -1578,7 +1585,9 @@ SUBROUTINE update_light(column, nlev)
 
       par(i) = par(i+1) * EXP( -(Kw + localext_up) * dz(i+1) )
 
-      IF (bioshade_feedback) extc(i) = Kw + localext
+      !# AED's own light uses the full extinction; whether GLM's heating sees it
+      !# (bioshade_feedback) is decided after the step, in do_glm_aed
+      extc(i) = Kw + localext
    ENDDO
 END SUBROUTINE update_light
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

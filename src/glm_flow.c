@@ -72,6 +72,15 @@
 typedef AED_REAL wq_vars_t[MaxVars];
 typedef wq_vars_t wq_partic_t[MaxPar];
 
+/******************************************************************************
+ * Accumulator for the water actually drawn by do_single_outflow while the     *
+ * oxygenation recirculation withdraws (volume-weighted T, S and WQ).          *
+ ******************************************************************************/
+static struct {
+    int on;
+    AED_REAL vol, temp, salt, wq[MaxVars];
+} recirc_cap = { 0 };
+
 /******************************************************************************/
 static int flowing_depth(AED_REAL *HF, AED_REAL *DL, AED_REAL VOL,
                                   AED_REAL DEPTH, AED_REAL Phi, AED_REAL Alpha);
@@ -180,6 +189,8 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
     HeightLayerBot = zero;   HeightLayerTop = zero;
 
     //# Reset Delta_V (layer specific withdrawal amount) for all layers as zero
+    //# (allocated here too: oxy_recirc_extract can reach this before do_outflows)
+    if ( Delta_V == NULL ) Delta_V = calloc(MaxLayers, sizeof(AED_REAL));
     for (i = botmLayer; i < MaxLayers; i++) Delta_V[i]=0.0;
 
     /***********************************************************************
@@ -405,6 +416,8 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
     /**********************************************************************
      * Now we have Delta_V[i] for all layers we can remove it             *
      **********************************************************************/
+    //# particles keep their place in their (shrinking) layer - see ptm_save_layer_positions
+    if ( ptm_sw ) ptm_save_layer_positions();
     for (i = botmLayer; i <= surfLayer; i++){
         if (Delta_V[i] > zero) {
 /*
@@ -413,6 +426,16 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
 */
             if ( ptm_sw ) {
                 ptm_removeparticles(i, Delta_V[i], Lake[i].LayerVol, max_particle_num);
+            }
+            //# recirculation capture: the flow-weighted properties of the water
+            //# actually drawn (see oxy_recirc_extract)
+            if ( recirc_cap.on ) {
+                int wqidx;
+                recirc_cap.vol  += Delta_V[i];
+                recirc_cap.temp += Lake[i].Temp * Delta_V[i];
+                recirc_cap.salt += Lake[i].Salinity * Delta_V[i];
+                for (wqidx = 0; wqidx < Num_WQ_Vars && wqidx < MaxVars; wqidx++)
+                    recirc_cap.wq[wqidx] += _WQ_Vars(wqidx, i) * Delta_V[i];
             }
             Lake[i].LayerVol -= Delta_V[i];
         }
@@ -430,6 +453,7 @@ void do_single_outflow(AED_REAL HeightOfOutflow, AED_REAL flow, OutflowDataType 
     * Update layer heights                                                *
     **********************************************************************/
     resize_internals(2, botmLayer);
+    if ( ptm_sw ) ptm_restore_layer_positions();
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -455,6 +479,8 @@ AED_REAL oxy_recirc_extract(AED_REAL height, AED_REAL want_vol,
         if (Lake[lvl].Height >= height) break;
     if (lvl > surfLayer) lvl = surfLayer;
 
+    //# Fallback sample: the layer at the withdrawal height (used only if no
+    //# water is drawn)
     if (temp != NULL) *temp = Lake[lvl].Temp;
     if (salt != NULL) *salt = Lake[lvl].Salinity;
     if (wq != NULL)
@@ -468,10 +494,25 @@ AED_REAL oxy_recirc_extract(AED_REAL height, AED_REAL want_vol,
     tmp.FloatOff = FALSE;
     tmp.WQ_Outflow = NULL;
 
+    //# Capture the flow-weighted properties of the layers actually drawn: the
+    //# withdrawal takes water from a band of layers, so the single layer at the
+    //# withdrawal height does not represent it (heat and solutes were not
+    //# conserved by the recirculation).
+    memset(&recirc_cap, 0, sizeof(recirc_cap));
+    recirc_cap.on = 1;
     vol_before = Lake[surfLayer].Vol1;
     do_single_outflow(height, want_vol, &tmp);
+    recirc_cap.on = 0;
     drawn = vol_before - Lake[surfLayer].Vol1;
     if (drawn < zero) drawn = zero;
+
+    if ( recirc_cap.vol > zero ) {
+        if (temp != NULL) *temp = recirc_cap.temp / recirc_cap.vol;
+        if (salt != NULL) *salt = recirc_cap.salt / recirc_cap.vol;
+        if (wq != NULL)
+            for (wqidx = 0; wqidx < Num_WQ_Vars && wqidx < MaxVars; wqidx++)
+                wq[wqidx] = recirc_cap.wq[wqidx] / recirc_cap.vol;
+    }
     return drawn;
 }
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -878,7 +919,6 @@ AED_REAL do_inflows()
     AED_REAL VolSum = Lake[surfLayer].Vol1; //# Total lake volume before inflows
 
     int new_particles;
-    AED_REAL height_start = Lake[surfLayer].Height; //# Total lake height before inflows
     AED_REAL double_particles;
     AED_REAL upper_height, lower_height;
 
@@ -886,6 +926,9 @@ AED_REAL do_inflows()
 //BEGIN
 
     if ( NumInf <= 0 ) return zero; // nothing more to do
+
+    //# particles keep their place in their (growing or entrained-from) layer
+    if ( ptm_sw ) ptm_save_layer_positions();
 
     // Array allocation for WQ in the inflow parcels
     if ( WQ_VarsS == NULL && Num_WQ_Vars > 0)
@@ -1145,11 +1188,12 @@ AED_REAL do_inflows()
 
     //# Make adjustments to update the layer heights, based on these vol changes
     resize_internals(2, botmLayer);
-    check_layer_thickness();
 
-    //# Update particle vertical position due to inflow insertion
-    if ( ptm_sw )
-        ptm_layershift(0.0, Lake[surfLayer].Height - height_start);  // !!!! ASSUMING SHIFT IS ALL LAYERS
+    //# Particles follow their water before check_layer_thickness renumbers layers.
+    //# (This replaces ptm_layershift(0, surface rise), which only moved particles
+    //# lying in the bottom 'rise' metres, and none when the surface fell.)
+    if ( ptm_sw ) ptm_restore_layer_positions();
+    check_layer_thickness();
 
     return Lake[surfLayer].Vol1 - VolSum;
 }
@@ -1236,7 +1280,9 @@ static int new_storage(int *iRiv)
     if (j < 0) j = 0;
     //# table spacing is 1/MphInc (was a hard-coded 0.1); below the first
     //# entry interpolate linearly from zero, as resize_internals does
-    if ( VOLSUM <= MphLevelVol[0] )
+    if ( hyps_interp == 1 )
+        Lake[surfLayer].Height = hyps_height(MphLevelVol, dMphLevelVol, VOLSUM);
+    else if ( VOLSUM <= MphLevelVol[0] )
         Lake[surfLayer].Height = (VOLSUM / MphLevelVol[0]) / MphInc;
     else
         Lake[surfLayer].Height = ((j+1) + (VOLSUM - MphLevelVol[j])/dMphLevelVol[j]) / MphInc;

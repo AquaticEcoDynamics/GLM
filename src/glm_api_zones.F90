@@ -55,6 +55,20 @@ MODULE glm_api_zones
 
    AED_REAL,DIMENSION(:),POINTER :: lheights
 
+   !# Layer-zone contact shares for the current host step, computed once by
+   !# set_zone_shares (from api_calc_zone_areas) and used by every mapping:
+   !#   zshare(lev,zon)  fraction of layer lev's bed lying in zone zon (zone_bed_frac)
+   !#   zhshare(lev,zon) fraction of layer lev's height lying in zone zon (zone_frac),
+   !#                    the volume weights for a wet zone with no bed of its own
+   !#   zwbed(zon), zwvol(zon)  the zone's wet bed area and water volume from them
+   !# aedZones(zon)%z_share points at zshare(:,zon), so libaed-api's glm_benthics
+   !# delivers the zone fluxes with the same shares.
+   AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: zshare, zhshare
+   AED_REAL,DIMENSION(:),  ALLOCATABLE :: zwbed, zwvol
+   LOGICAL :: shares_set = .FALSE.
+   !# indices (into x_diag) of the zone-averaged (zavg) non-sheet diagnostics
+   INTEGER,DIMENSION(:),ALLOCATABLE :: zavg_idx
+
    AED_REAL,DIMENSION(:),POINTER :: zone_heights
    INTEGER :: n_aed_vars
    INTEGER :: nvars, nbenv, nvdiag, nvdiag_hz
@@ -103,14 +117,52 @@ SUBROUTINE api_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV, nAEDvars) &
    calc_areas => api_calc_zone_areas
    CALL api_set_zone_funcs(copy_to, copy_from, calc_areas)
 
+   ALLOCATE(zshare(MaxLayers, n_zones))  ; zshare = 0.
+   ALLOCATE(zhshare(MaxLayers, n_zones)) ; zhshare = 0.
+   ALLOCATE(zwbed(n_zones), zwvol(n_zones)) ; zwbed = 0. ; zwvol = 0.
+
    DO zon=1,n_zones
       aedZones(zon)%z_env%z_area = 0.
       aedZones(zon)%z_env%z_height = theZones(zon)%zheight
       aedZones(zon)%z_env%z_top_area = theZones(zon)%ztop_area
+      aedZones(zon)%z_share => zshare(:,zon)
    ENDDO
    theZones%zarea = 0.
    zone_heights => theZones%zheight
 END SUBROUTINE api_set_glm_zones
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE set_zone_shares(aedZones, n_zones, wheights, wlev)
+!-------------------------------------------------------------------------------
+! The layer-zone contact shares for the current layer structure (see zshare).
+! Layers move only between host steps, so this runs once per step, from
+! api_calc_zone_areas; the routines that map between layers and zones read the
+! stored shares instead of recomputing them.
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   TYPE(api_zone_t),DIMENSION(:),INTENT(in) :: aedZones
+   INTEGER,INTENT(in) :: n_zones, wlev
+   AED_REAL,DIMENSION(:),POINTER,INTENT(in) :: wheights
+!LOCALS
+   INTEGER  :: lev, zon
+   AED_REAL :: bed
+!-------------------------------------------------------------------------------
+!BEGIN
+   zshare = 0. ; zhshare = 0.     !# rows above wlev stay 0 (no layer there)
+   zwbed = 0. ; zwvol = 0.
+   DO lev=1,wlev
+      bed = theLake(lev)%LayerArea ; IF ( lev > 1 ) bed = bed - theLake(lev-1)%LayerArea
+      DO zon=1,n_zones
+         zshare(lev,zon)  = zone_bed_frac(aedZones, n_zones, wheights, lev, zon)
+         zhshare(lev,zon) = zone_frac(aedZones, n_zones, wheights, lev, zon)
+         zwbed(zon) = zwbed(zon) + zshare(lev,zon) * bed
+         zwvol(zon) = zwvol(zon) + zhshare(lev,zon) * theLake(lev)%LayerVol
+      ENDDO
+   ENDDO
+   shares_set = .TRUE.
+END SUBROUTINE set_zone_shares
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -143,10 +195,10 @@ SUBROUTINE api_calc_zone_areas(aedZones, n_zones, areas, wheights, wlev)
    !# (zone_bed_frac), the same shares glm_benthics uses to map zone fluxes onto
    !# layers. This handles a layer whose bottom sits exactly on a boundary, a
    !# bottom layer that straddles a boundary and a layer spanning several zones.
+   CALL set_zone_shares(aedZones, n_zones, wheights, wlev)
    DO lev=1, wlev
       DO zon=1, n_zones
-         aedZones(zon)%z_env%z_area = aedZones(zon)%z_env%z_area &
-                                    + areas(lev) * zone_bed_frac(aedZones, n_zones, wheights, lev, zon)
+         aedZones(zon)%z_env%z_area = aedZones(zon)%z_env%z_area + areas(lev) * zshare(lev,zon)
       ENDDO
    ENDDO
 
@@ -192,7 +244,6 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
 !LOCALS
    INTEGER  :: zon, lev, a_zones
    AED_REAL :: surf, f, bed, w
-   AED_REAL :: wbed(n_zones), wvol(n_zones)
    LOGICAL  :: w_zones
    INTEGER  :: i, sd
    TYPE(aed_variable_t),POINTER :: tv
@@ -243,27 +294,20 @@ SUBROUTINE api_copy_to_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag, 
    !# (zone_frac). Zones entirely above the water have no weight and are left
    !# at zero, as before.
    w_zones = .FALSE.
-   wbed = 0. ; wvol = 0.
-   DO lev=1,wlev
-      bed = theLake(lev)%LayerArea ; IF ( lev > 1 ) bed = bed - theLake(lev-1)%LayerArea
-      DO zon=1,n_zones
-         wbed(zon) = wbed(zon) + zone_bed_frac(aedZones, n_zones, wheights, lev, zon) * bed
-         wvol(zon) = wvol(zon) + zone_frac(aedZones, n_zones, wheights, lev, zon) * theLake(lev)%LayerVol
-      ENDDO
-   ENDDO
+   IF ( .NOT. shares_set ) CALL set_zone_shares(aedZones, n_zones, wheights, wlev)
 
    a_zones = 1
    DO lev=1,wlev
       bed = theLake(lev)%LayerArea ; IF ( lev > 1 ) bed = bed - theLake(lev-1)%LayerArea
       DO zon=1,n_zones
-         IF ( wbed(zon) > 0. ) THEN
-            f = zone_bed_frac(aedZones, n_zones, wheights, lev, zon)
+         IF ( zwbed(zon) > 0. ) THEN
+            f = zshare(lev,zon)
             IF ( f <= 0. ) CYCLE
-            w = f * bed / wbed(zon)
+            w = f * bed / zwbed(zon)
          ELSE
-            f = zone_frac(aedZones, n_zones, wheights, lev, zon)
+            f = zhshare(lev,zon)
             IF ( f <= 0. ) CYCLE
-            w = f * theLake(lev)%LayerVol / wvol(zon)
+            w = f * theLake(lev)%LayerVol / zwvol(zon)
          ENDIF
          IF ( w <= 0. ) CYCLE
          a_zones = MAX(a_zones, zon)
@@ -349,7 +393,7 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
    INTEGER,INTENT(in) :: wlev
 !
 !LOCALS
-   INTEGER  :: zon, lev, i, j
+   INTEGER  :: zon, lev, i, j, k
    AED_REAL :: scale, area
    TYPE(aed_variable_t),POINTER :: tvar
 !
@@ -360,23 +404,29 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
    ! Set water layer zone-averaged diagnostics (zavg == true) from the zones,
    ! each zone weighted by its share of the layer's bed (zone_bed_frac, the
    ! same shares used for zone areas and flux mapping).
-   DO lev=1,wlev
-      j = 0
+   IF ( .NOT. ALLOCATED(zavg_idx) ) THEN
+      !# which non-sheet diagnostics are zone-averaged (fixed once the model is set up)
+      ALLOCATE(zavg_idx(n_aed_vars)) ; k = 0 ; j = 0
       DO i=1,n_aed_vars
          IF ( aed_get_var(i, tvar) ) THEN
-            IF ( tvar%var_type == V_DIAGNOSTIC ) THEN
-               IF ( .NOT.  tvar%sheet ) THEN
-                  j = j + 1
-                  IF ( tvar%zavg ) THEN
-                     x_diag(j,lev) = 0.
-                     DO zon=1,n_zones
-                        scale = zone_bed_frac(aedZones, n_zones, wheights, lev, zon)
-                        IF ( scale > 0. ) x_diag(j,lev) = x_diag(j,lev) + z_diag(j,1,zon) * scale   ! level=1 matches library z_cc_diag => z_diag(:,1,:)
-                     ENDDO
-                  ENDIF
-               ENDIF
+            IF ( tvar%var_type == V_DIAGNOSTIC .AND. .NOT. tvar%sheet ) THEN
+               j = j + 1
+               IF ( tvar%zavg ) THEN ; k = k + 1 ; zavg_idx(k) = j ; ENDIF
             ENDIF
          ENDIF
+      ENDDO
+      zavg_idx = zavg_idx(1:k)
+   ENDIF
+   IF ( .NOT. shares_set ) CALL set_zone_shares(aedZones, n_zones, wheights, wlev)
+
+   DO lev=1,wlev
+      DO k=1,SIZE(zavg_idx)
+         j = zavg_idx(k)
+         x_diag(j,lev) = 0.
+         DO zon=1,n_zones
+            scale = zshare(lev,zon)
+            IF ( scale > 0. ) x_diag(j,lev) = x_diag(j,lev) + z_diag(j,1,zon) * scale   ! level=1 matches library z_cc_diag => z_diag(:,1,:)
+         ENDDO
       ENDDO
    ENDDO
 
