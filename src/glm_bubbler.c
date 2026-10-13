@@ -207,7 +207,12 @@ void do_bubbler(int jday, int iclock)
     AED_REAL tDiff;
     int i;
 
-    if ( ! bubOn ) return;
+    //# Gate on the master switch, NOT the transient bubOn.  bubOn is toggled
+    //# on/off each step by the window/opopt logic below; using it here would
+    //# permanently latch the bubbler off the first time bubOn goes false
+    //# (e.g. at spring turnover with opopt), since the re-enable branch lives
+    //# below this return and would never be reached again.
+    if ( ! bubbler_on ) return;
 
     //# Bubbler calculations
     if (ibub >= 0) {
@@ -313,8 +318,12 @@ void do_bubbler(int jday, int iclock)
  ******************************************************************************/
 void read_bubbler(int jday)
 {
-    //# Input from bubbler file if required
-    if ( bubOn && jday >= iDayStart && jday <= iDayFinish) {
+    //# Input from bubbler file if required.
+    //# Only re-read when a data_file was actually supplied; otherwise aFlow etc.
+    //# keep their namelist values (set in init_bubbler).  Without this guard the
+    //# read hits the zero-initialised bubl handle (== met file) and clobbers the
+    //# namelist aFlow with an unrelated met column every day.
+    if ( bubbler_data_file != NULL && bubOn && jday >= iDayStart && jday <= iDayFinish) {
         read_bubble_data(jday, &aFlow, &nPorts, &bDepth, &bubLen);
         if (aFlow <= 0.0) bubOn = FALSE;
     }
