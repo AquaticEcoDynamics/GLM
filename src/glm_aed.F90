@@ -95,6 +95,20 @@ MODULE glm_aed
    AED_REAL,DIMENSION(:,:),ALLOCATABLE        :: cc_diag_old
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_diag_hz
    AED_REAL,DIMENSION(:),  ALLOCATABLE        :: z_prev
+   !# Sheet diagnostics written by aed_calculate_surface this sub-step (air-water
+   !# fluxes such as OXY_oxy_atm). With sediment zones, copy_from_zone rebuilds
+   !# cc_diag_hz from the zone values, which never contain them; these are put
+   !# back afterwards (known issue K15).
+   AED_REAL,DIMENSION(:),  ALLOCATABLE        :: srf_diag_hz
+   LOGICAL, DIMENSION(:),  ALLOCATABLE        :: srf_diag_set
+   !# With split_factor > 1 the per-step (rezero) diagnostics are averaged over the
+   !# sub-steps, so the output holds the step's mean flux, not the last sub-step's
+   !# (known issue K18). rz_d / rz_s flag the rezero layer and sheet diagnostics that are rates (units
+   !# per time, e.g. mmol/m2/d); state-like diagnostics (mmol/m3, -, counts) keep the
+   !# end-of-step value, consistent with the states.
+   LOGICAL, DIMENSION(:),  ALLOCATABLE        :: rz_d, rz_s
+   AED_REAL,DIMENSION(:,:),ALLOCATABLE        :: acc_diag, acc_zdiag_hz
+   AED_REAL,DIMENSION(:),  ALLOCATABLE        :: acc_diag_hz
 
    !# Arrays for work, vertical movement, and cross-boundary fluxes
    AED_REAL,DIMENSION(:,:),ALLOCATABLE :: ws
@@ -425,6 +439,8 @@ SUBROUTINE aed_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    ALLOCATE(cc_diag_hz(n_vars_diag_sheet),stat=rc)
    IF (rc /= 0) STOP 'allocate_memory(): Error allocating (cc_diag_hz)'
    cc_diag_hz = zero_
+   ALLOCATE(srf_diag_hz(n_vars_diag_sheet), srf_diag_set(n_vars_diag_sheet))
+   srf_diag_hz = zero_ ; srf_diag_set = .FALSE.
 
    CALL set_c_wqdvars_ptr(cc_diag, cc_diag_hz, n_vars_diag, n_vars_diag_sheet)
 
@@ -1044,6 +1060,28 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
    IF (benthic_mode .GT. 1) &
       CALL calc_zone_areas(area, wlev, height(wlev))
 
+   IF ( split_factor > 1 ) THEN
+      IF ( .NOT. ALLOCATED(rz_d) ) THEN
+         ALLOCATE(rz_d(n_vars_diag), rz_s(n_vars_diag_sheet))
+         rz_d = .FALSE. ; rz_s = .FALSE. ; d_rz = 0 ; sd_rz = 0
+         DO i = 1, n_aed_vars
+            IF ( aed_get_var(i, tv) ) THEN
+               IF ( tv%var_type == V_DIAGNOSTIC ) THEN
+                  IF ( tv%sheet ) THEN
+                     sd_rz = sd_rz + 1 ; rz_s(sd_rz) = tv%rezero .AND. is_rate_unit(tv%units)
+                  ELSE
+                     d_rz = d_rz + 1 ; rz_d(d_rz) = tv%rezero .AND. is_rate_unit(tv%units)
+                  ENDIF
+               ENDIF
+            ENDIF
+         ENDDO
+         ALLOCATE(acc_diag(SIZE(cc_diag,1), SIZE(cc_diag,2)), acc_diag_hz(SIZE(cc_diag_hz)))
+         IF ( benthic_mode .GT. 1 ) ALLOCATE(acc_zdiag_hz(SIZE(z_diag_hz,1), SIZE(z_diag_hz,2)))
+      ENDIF
+      acc_diag = zero_ ; acc_diag_hz = zero_
+      IF ( benthic_mode .GT. 1 ) acc_zdiag_hz = zero_
+   ENDIF
+
    DO split=1,split_factor
       IF (benthic_mode .GT. 1) &
          CALL copy_to_zone(cc, cc_diag, wlev)
@@ -1060,6 +1098,7 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
       uvb(:) = (par(:)/par_fraction) * uvb_fraction
 
       !# Time-integrate one biological time step
+      srf_diag_set = .FALSE.
       CALL calculate_fluxes(wlev)
 
       !# Update the water column layers
@@ -1073,6 +1112,9 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
 
          !# Distribute cc-sed benthic properties back into main cc array
          CALL copy_from_zone(n_aed_vars, cc, cc_diag, cc_diag_hz, wlev)
+         !# Restore the surface (air-water) sheet diagnostics that the zone
+         !# copy-back has just overwritten (K15)
+         WHERE (srf_diag_set) cc_diag_hz = srf_diag_hz
 
       ELSE
          cc(n_vars+1:n_vars+n_vars_ben, 1) = cc(n_vars+1:n_vars+n_vars_ben, 1) &
@@ -1089,7 +1131,26 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
       !     aed_update_column (column,layer_map,)
 
       CALL check_states(wlev)
+
+      IF ( split_factor > 1 ) THEN   !# accumulate this sub-step's diagnostics (K18)
+         acc_diag(:, 1:wlev) = acc_diag(:, 1:wlev) + cc_diag(:, 1:wlev)
+         acc_diag_hz = acc_diag_hz + cc_diag_hz
+         IF ( benthic_mode .GT. 1 ) acc_zdiag_hz = acc_zdiag_hz + z_diag_hz
+      ENDIF
    ENDDO
+
+   IF ( split_factor > 1 ) THEN
+      !# per-step diagnostics: the mean over the sub-steps (K18)
+      DO i = 1, SIZE(rz_d)
+         IF ( rz_d(i) ) cc_diag(i, 1:wlev) = acc_diag(i, 1:wlev) / split_factor
+      ENDDO
+      WHERE (rz_s) cc_diag_hz = acc_diag_hz / split_factor
+      IF ( benthic_mode .GT. 1 ) THEN
+         DO i = 1, SIZE(rz_s)
+            IF ( rz_s(i) ) z_diag_hz(i, :) = acc_zdiag_hz(i, :) / split_factor
+         ENDDO
+      ENDIF
+   ENDIF
 
    IF (.NOT. link_ext_par) THEN
       !# extc is the host's ExtcCoefSW, used next by GLM to heat the water: it
@@ -1499,7 +1560,13 @@ CONTAINS
       !# (3) SURFACE FLUXES
       !# Calculate temporal derivatives due to air-water exchange.
       IF (.NOT. ice) THEN !# no surface exchange under ice cover
+         IF ( benthic_mode .GT. 1 ) srf_diag_hz = cc_diag_hz
          CALL aed_calculate_surface(column, wlev)
+         IF ( benthic_mode .GT. 1 ) THEN
+            !# remember the sheet diagnostics the surface routine wrote (K15)
+            srf_diag_set = ( cc_diag_hz /= srf_diag_hz )
+            srf_diag_hz  = cc_diag_hz
+         ENDIF
 
          !# Distribute the fluxes (per m2 of water surface) into the surface
          !# layer: flux * surface area over the TRUE layer volume (GLM layers
@@ -1531,6 +1598,8 @@ SUBROUTINE aed_clean_glm() BIND(C, name=_WQ_CLEAN_GLM)
    IF (ALLOCATED(cc_diag))      DEALLOCATE(cc_diag)
    IF (ALLOCATED(cc_diag_old))  DEALLOCATE(cc_diag_old)
    IF (ALLOCATED(cc_diag_hz))   DEALLOCATE(cc_diag_hz)
+   IF (ALLOCATED(srf_diag_hz))  DEALLOCATE(srf_diag_hz)
+   IF (ALLOCATED(srf_diag_set)) DEALLOCATE(srf_diag_set)
    IF (ALLOCATED(z_prev))       DEALLOCATE(z_prev)
 
    IF (ALLOCATED(ws))           DEALLOCATE(ws)
@@ -1882,5 +1951,31 @@ SUBROUTINE aed_get_var_names(wbuf, wlen, bbuf, blen) BIND(C, name="aed_get_var_n
 END SUBROUTINE aed_get_var_names
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+
+
+!###############################################################################
+LOGICAL FUNCTION is_rate_unit(units)
+!-------------------------------------------------------------------------------
+! True if a diagnostic's units are per time (a rate or flux, e.g. mmol/m2/d,
+! mmol N/m3/day, mg C m-3 d-1, umol/m2/s). Used to average such diagnostics over
+! AED sub-steps (known issue K18); other diagnostics keep their end-of-step value.
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   CHARACTER(len=*),INTENT(in) :: units
+!LOCALS
+   CHARACTER(len=LEN(units)) :: u
+   INTEGER :: i, c
+!-------------------------------------------------------------------------------
+!BEGIN
+   u = units
+   DO i = 1, LEN(u)   !# lower case
+      c = ICHAR(u(i:i))
+      IF ( c >= ICHAR('A') .AND. c <= ICHAR('Z') ) u(i:i) = CHAR(c + 32)
+   ENDDO
+   is_rate_unit = INDEX(u, '/d') > 0 .OR. INDEX(u, 'd-1') > 0 .OR. &
+                  INDEX(u, '/s') > 0 .OR. INDEX(u, 's-1') > 0 .OR. &
+                  INDEX(u, '/h') > 0 .OR. INDEX(u, '/yr') > 0
+END FUNCTION is_rate_unit
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 END MODULE glm_aed

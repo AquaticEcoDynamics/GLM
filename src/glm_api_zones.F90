@@ -68,6 +68,7 @@ MODULE glm_api_zones
    LOGICAL :: shares_set = .FALSE.
    !# indices (into x_diag) of the zone-averaged (zavg) non-sheet diagnostics
    INTEGER,DIMENSION(:),ALLOCATABLE :: zavg_idx
+   INTEGER,DIMENSION(:),ALLOCATABLE :: bflux_idx   !# bflux layer diagnostics (K88)
 
    AED_REAL,DIMENSION(:),POINTER :: zone_heights
    INTEGER :: n_aed_vars
@@ -394,7 +395,7 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
 !
 !LOCALS
    INTEGER  :: zon, lev, i, j, k
-   AED_REAL :: scale, area
+   AED_REAL :: scale, area, ring
    TYPE(aed_variable_t),POINTER :: tvar
 !
 !-------------------------------------------------------------------------------
@@ -429,6 +430,38 @@ SUBROUTINE api_copy_from_zone(aedZones, n_zones, wheights, x_cc, x_cc_hz, x_diag
          ENDDO
       ENDDO
    ENDDO
+
+
+   !# Benthic-flux diagnostics (bflux, e.g. OXY_oxy_dsfv): the module sets them
+   !# per zone as flux / zone thickness; rebuild each layer's value as the rate the
+   !# coupler applies, sum over zones of flux x share x bed ring / layer volume (K88).
+   IF ( .NOT. ALLOCATED(bflux_idx) ) THEN
+      ALLOCATE(bflux_idx(n_aed_vars)) ; k = 0 ; j = 0
+      DO i=1,n_aed_vars
+         IF ( aed_get_var(i, tvar) ) THEN
+            IF ( tvar%var_type == V_DIAGNOSTIC .AND. .NOT. tvar%sheet ) THEN
+               j = j + 1
+               IF ( tvar%bflux ) THEN ; k = k + 1 ; bflux_idx(k) = j ; ENDIF
+            ENDIF
+         ENDIF
+      ENDDO
+      bflux_idx = bflux_idx(1:k)
+   ENDIF
+   IF ( SIZE(bflux_idx) > 0 ) THEN
+      DO lev=1,wlev
+         ring = theLake(lev)%LayerArea ; IF ( lev > 1 ) ring = ring - theLake(lev-1)%LayerArea
+         DO k=1,SIZE(bflux_idx)
+            j = bflux_idx(k)
+            x_diag(j, lev) = 0.
+            IF ( theLake(lev)%LayerVol <= 0. ) CYCLE
+            DO zon=1,n_zones
+               scale = zshare(lev,zon)
+               IF ( scale > 0. ) x_diag(j, lev) = x_diag(j, lev) + z_diag(j, 1, zon) * aedZones(zon)%z_env%z_dz * scale
+            ENDDO
+            x_diag(j, lev) = x_diag(j, lev) * ring / theLake(lev)%LayerVol
+         ENDDO
+      ENDDO
+   ENDIF
 
    ! Single-value (lake-wide) benthic state output: mean of the zones weighted
    ! by bed area (it previously ended up holding the bottom zone's values).
