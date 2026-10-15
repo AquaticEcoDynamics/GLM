@@ -69,6 +69,8 @@ wq_inflow_update_t   p_wq_inflow_update   = (wq_inflow_update_t)dummy_inflow_upd
 wq_get_var_names_t   p_wq_get_var_names   = NULL;
 wq_get_rng_state_t   p_wq_get_rng_state   = NULL;
 wq_set_rng_state_t   p_wq_set_rng_state   = NULL;
+wq_get_zone_ben_t    p_wq_get_zone_ben    = NULL;
+wq_set_zone_ben_t    p_wq_set_zone_ben    = NULL;
 
 void glm_init_fortran_support(void);
 
@@ -141,6 +143,8 @@ int prime_wq(const char *which)
     p_wq_get_var_names   =   (wq_get_var_names_t) dlsym(glm_wq_handle, "wq_get_var_names");
     p_wq_get_rng_state   =   (wq_get_rng_state_t) dlsym(glm_wq_handle, "api_get_rng_state");
     p_wq_set_rng_state   =   (wq_set_rng_state_t) dlsym(glm_wq_handle, "api_set_rng_state");
+    p_wq_get_zone_ben    =    (wq_get_zone_ben_t) dlsym(glm_wq_handle, "wq_get_zone_ben");
+    p_wq_set_zone_ben    =    (wq_set_zone_ben_t) dlsym(glm_wq_handle, "wq_set_zone_ben");
 #ifdef _WIN32
     p_set_funcs          =          (set_funcs_t) find_entry(glm_wq_handle, "set_funcs");
 
@@ -195,6 +199,8 @@ int prime_wq(const char *which)
         p_wq_is_var          =          (wq_is_var_t) aed_is_var;
         p_wq_inflow_update   =   (wq_inflow_update_t) aed_update_inflow_wq;
         p_wq_get_var_names   =   (wq_get_var_names_t) aed_get_var_names;
+        p_wq_get_zone_ben    =    (wq_get_zone_ben_t) aed_get_zone_ben;
+        p_wq_set_zone_ben    =    (wq_set_zone_ben_t) aed_set_zone_ben;
 #else
         exit(1);
 #endif
@@ -214,6 +220,8 @@ int prime_wq(const char *which)
         p_wq_get_var_names   =   (wq_get_var_names_t) api_get_var_names;
         p_wq_get_rng_state   =   (wq_get_rng_state_t) api_get_rng_state;
         p_wq_set_rng_state   =   (wq_set_rng_state_t) api_set_rng_state;
+        p_wq_get_zone_ben    =    (wq_get_zone_ben_t) api_get_zone_ben;
+        p_wq_set_zone_ben    =    (wq_set_zone_ben_t) api_set_zone_ben;
 #else
         fprintf(stderr, "API not supported in this build\n");
         exit(1);

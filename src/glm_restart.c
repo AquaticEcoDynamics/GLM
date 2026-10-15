@@ -62,6 +62,36 @@
 #include "glm_restart.h"
 #include "glm_ptm.h"
 
+/* lake.csv daily accumulators saved for a mid-day resume (K28) */
+#define N_SURF_DAILY 14
+static AED_REAL rst_surf_daily[N_SURF_DAILY];
+static int rst_have_daily = 0;
+
+static void surf_daily_pack(AED_REAL *d)
+{
+    d[0]  = SurfData.dailyRain;     d[1]  = SurfData.dailyEvap;
+    d[2]  = SurfData.dailyQsw;      d[3]  = SurfData.dailyQe;
+    d[4]  = SurfData.dailyQh;       d[5]  = SurfData.dailyQlw;
+    d[6]  = SurfData.dailyInflow;   d[7]  = SurfData.dailySnow;
+    d[8]  = SurfData.dailyOutflow;  d[9]  = SurfData.dailyOverflow;
+    d[10] = SurfData.dailySeepage;  d[11] = SurfData.dailyzonL;
+    d[12] = SurfData.dailyRunoff;   d[13] = SurfData.albedo;
+}
+
+void restore_restart_daily(void)
+{
+    AED_REAL *d = rst_surf_daily;
+    if (!rst_have_daily) return;
+    SurfData.dailyRain    = d[0];  SurfData.dailyEvap     = d[1];
+    SurfData.dailyQsw     = d[2];  SurfData.dailyQe       = d[3];
+    SurfData.dailyQh      = d[4];  SurfData.dailyQlw      = d[5];
+    SurfData.dailyInflow  = d[6];  SurfData.dailySnow     = d[7];
+    SurfData.dailyOutflow = d[8];  SurfData.dailyOverflow = d[9];
+    SurfData.dailySeepage = d[10]; SurfData.dailyzonL     = d[11];
+    SurfData.dailyRunoff  = d[12]; SurfData.albedo        = d[13];
+    rst_have_daily = 0;
+}
+
 /*----------------------------------------------------------------------------*/
 /* Global restart configuration                                               */
 char *restart_fname    = NULL;
@@ -249,6 +279,34 @@ void write_glm_restart(const char *fn)
     int id_rswold;
     def_var_d(ncid, "restart_swold", 0, NULL, &id_rswold);
 
+    /* Daily lake.csv accumulators (SurfData.daily*, albedo), restored on a
+     * mid-day resume so the first day's totals cover the whole day (K28), and
+     * the plunging-inflow energy einff that deep mixing uses until the next
+     * do_inflows (K26). */
+    int id_sdaily, id_einff, id_wnsq, id_vel, dim_sdaily;
+    RST_CHECK(nc_def_dim(ncid, "surf_daily", N_SURF_DAILY, &dim_sdaily));
+    def_var_d(ncid, "surf_daily", 1, &dim_sdaily, &id_sdaily);
+    def_var_d(ncid, "inflow_einff", 0, NULL, &id_einff);
+    /* set by do_inflows at the end of a day, used (and updated) by deep mixing
+     * through the next day (K26) */
+    def_var_d(ncid, "deep_wavenum_sq", 0, NULL, &id_wnsq);
+    def_var_d(ncid, "deep_vel", 0, NULL, &id_vel);
+
+    /* Per-zone benthic states [n_zones, num_wq_ben] (K27). WQS_Vars holds one
+     * value per sheet variable; with zones each zone has its own. */
+    int id_wqsz = -1;
+    AED_REAL *wqszbuf = NULL;
+    if (wq_calc && Num_WQ_Ben > 0 && n_zones > 0 && p_wq_get_zone_ben != NULL) {
+        int nb = Num_WQ_Ben, nz = n_zones, ok = 0;
+        wqszbuf = malloc((size_t)nb * nz * sizeof(AED_REAL));
+        if (!wqszbuf) { fprintf(stderr, "glm_restart: out of memory\n"); exit(1); }
+        p_wq_get_zone_ben(&nb, &nz, wqszbuf, &ok);
+        if (ok) {
+            int dims_z[2] = { dim_zones, dim_wqben };
+            def_var_d(ncid, "wqs_zone_vars", 2, dims_z, &id_wqsz);
+        }
+    }
+
     /* Mixer scalars */
     int id_depmx, id_prevthick, id_eavail, id_oldslope;
     int id_tce, id_tcs, id_hsp, id_fo, id_fsum, id_uf, id_u0, id_uavg;
@@ -271,6 +329,8 @@ void write_glm_restart(const char *fn)
     int id_dold, id_qins, id_tins, id_sins, id_diins;
     int id_inpar, id_noins, id_icnt, id_submelev;
     int id_wqins = -1;
+    int id_totin = -1, id_dlwst = -1, id_hflow = -1;
+    int id_qdown = -1, id_tdown = -1, id_sdown = -1, id_ddown = -1, id_wqdown = -1;
     if (NumInf > 0) {
         int dims_ip[2] = { dim_numinf, dim_maxpar };
         def_var_d(ncid, "inflow_dold",  2, dims_ip, &id_dold);
@@ -285,6 +345,20 @@ void write_glm_restart(const char *fn)
         if (wq_calc && Num_WQ_Vars > 0) {
             int dims_iw[3] = { dim_numinf, dim_maxpar, dim_wqvars };
             def_var_d(ncid, "inflow_wqins", 3, dims_iw, &id_wqins);
+        }
+        /* Downflow (plunging) parcels still travelling: iCnt of them per inflow,
+         * carried across days by do_inflows. Without them a resumed run has
+         * iCnt empty parcels (K26). */
+        def_var_d(ncid, "inflow_totin", 1, &dim_numinf, &id_totin);
+        def_var_d(ncid, "inflow_dlwst", 1, &dim_numinf, &id_dlwst);
+        def_var_d(ncid, "inflow_hflow", 1, &dim_numinf, &id_hflow);
+        def_var_d(ncid, "inflow_qdown", 2, dims_ip, &id_qdown);
+        def_var_d(ncid, "inflow_tdown", 2, dims_ip, &id_tdown);
+        def_var_d(ncid, "inflow_sdown", 2, dims_ip, &id_sdown);
+        def_var_d(ncid, "inflow_ddown", 2, dims_ip, &id_ddown);
+        if (wq_calc && Num_WQ_Vars > 0) {
+            int dims_iw[3] = { dim_numinf, dim_maxpar, dim_wqvars };
+            def_var_d(ncid, "inflow_wqdown", 3, dims_iw, &id_wqdown);
         }
     }
 
@@ -454,6 +528,17 @@ void write_glm_restart(const char *fn)
     /* Sub-daily SWold (see note at definition above) */
     RST_CHECK(nc_put_var_double(ncid, id_rswold,  &Restart_SWold));
 
+    {
+        AED_REAL sd[N_SURF_DAILY];
+        surf_daily_pack(sd);
+        RST_CHECK(nc_put_var_double(ncid, id_sdaily, sd));
+        RST_CHECK(nc_put_var_double(ncid, id_einff, &einff));
+        RST_CHECK(nc_put_var_double(ncid, id_wnsq, &WaveNumSquared));
+        RST_CHECK(nc_put_var_double(ncid, id_vel, &vel));
+    }
+    if (id_wqsz >= 0) RST_CHECK(nc_put_var_double(ncid, id_wqsz, wqszbuf));
+    free(wqszbuf);
+
     /* Mixer scalars */
     RST_CHECK(nc_put_var_double(ncid, id_depmx,    &DepMX));
     RST_CHECK(nc_put_var_double(ncid, id_prevthick, &PrevThick));
@@ -502,6 +587,14 @@ void write_glm_restart(const char *fn)
         RST_CHECK(nc_put_var_double(ncid, id_diins, dbuf));
         FILL_INF_IFIELD(InPar);
         RST_CHECK(nc_put_var_int(ncid, id_inpar, ibuf));
+        FILL_INF_DFIELD(QDown);
+        RST_CHECK(nc_put_var_double(ncid, id_qdown, dbuf));
+        FILL_INF_DFIELD(TDown);
+        RST_CHECK(nc_put_var_double(ncid, id_tdown, dbuf));
+        FILL_INF_DFIELD(SDown);
+        RST_CHECK(nc_put_var_double(ncid, id_sdown, dbuf));
+        FILL_INF_DFIELD(DDown);
+        RST_CHECK(nc_put_var_double(ncid, id_ddown, dbuf));
 #undef FILL_INF_DFIELD
 #undef FILL_INF_IFIELD
 
@@ -511,6 +604,13 @@ void write_glm_restart(const char *fn)
         RST_CHECK(nc_put_var_int(ncid, id_icnt, ivec));
         for (int s = 0; s < NumInf; s++) svec[s] = Inflows[s].SubmHeight;
         RST_CHECK(nc_put_var_double(ncid, id_submelev, svec));
+        /* downflow in transit: volume, lowest depth reached, flow thickness (K26) */
+        for (int s = 0; s < NumInf; s++) svec[s] = Inflows[s].TotIn;
+        RST_CHECK(nc_put_var_double(ncid, id_totin, svec));
+        for (int s = 0; s < NumInf; s++) svec[s] = Inflows[s].Dlwst;
+        RST_CHECK(nc_put_var_double(ncid, id_dlwst, svec));
+        for (int s = 0; s < NumInf; s++) svec[s] = Inflows[s].HFlow;
+        RST_CHECK(nc_put_var_double(ncid, id_hflow, svec));
 
         /* WQIns [NumInf, MaxPar, Num_WQ_Vars] */
         if (id_wqins >= 0) {
@@ -522,6 +622,14 @@ void write_glm_restart(const char *fn)
                         wibuf[(s * MaxPar + p) * Num_WQ_Vars + v] =
                             Inflows[s].WQIns[p][v];
             RST_CHECK(nc_put_var_double(ncid, id_wqins, wibuf));
+            if (id_wqdown >= 0) {
+                for (int s = 0; s < NumInf; s++)
+                    for (int p = 0; p < MaxPar; p++)
+                        for (int v = 0; v < Num_WQ_Vars; v++)
+                            wibuf[(s * MaxPar + p) * Num_WQ_Vars + v] =
+                                Inflows[s].WQDown[p][v];
+                RST_CHECK(nc_put_var_double(ncid, id_wqdown, wibuf));
+            }
             free(wibuf);
         }
 
@@ -713,6 +821,32 @@ int read_glm_restart(const char *fn)
         }
     }
 
+    /* ---- Per-zone benthic states (K27) ---- handed to the coupler, which
+     * applies them after its first-step benthic initialisation. */
+    if (wq_calc && Num_WQ_Ben > 0 && n_zones > 0 && p_wq_set_zone_ben != NULL) {
+        int id_wqsz;
+        if (nc_inq_varid(ncid, "wqs_zone_vars", &id_wqsz) == NC_NOERR) {
+            int dimids[2]; size_t l0, l1;
+            RST_CHECK(nc_inq_vardimid(ncid, id_wqsz, dimids));
+            RST_CHECK(nc_inq_dimlen(ncid, dimids[0], &l0));
+            RST_CHECK(nc_inq_dimlen(ncid, dimids[1], &l1));
+            if ((int)l0 != n_zones || (int)l1 != Num_WQ_Ben) {
+                fprintf(stderr, "     WARNING: restart wqs_zone_vars is [%d, %d], not [%d, %d]; "
+                        "zone benthic states not restored.\n", (int)l0, (int)l1, n_zones, Num_WQ_Ben);
+            } else {
+                int nb = Num_WQ_Ben, nz = n_zones, ok = 0;
+                AED_REAL *zb = malloc((size_t)nb * nz * sizeof(AED_REAL));
+                if (!zb) { fprintf(stderr, "glm_restart: out of memory\n"); exit(1); }
+                RST_CHECK(nc_get_var_double(ncid, id_wqsz, zb));
+                p_wq_set_zone_ben(&nb, &nz, zb, &ok);
+                free(zb);
+            }
+        } else {
+            fprintf(stderr, "     WARNING: restart has no wqs_zone_vars; every zone's "
+                    "benthic state set from wqs_vars.\n");
+        }
+    }
+
     /* ---- Pelagic WQ diagnostics (all MaxLayers slots) ----
      * Required for bit-for-bit restart: cc_diag persists between timesteps
      * (see glm_aed.F90). Num_WQD_Vars is validated above, so wqd_vars must be
@@ -749,6 +883,22 @@ int read_glm_restart(const char *fn)
             int _id;
             if (nc_inq_varid(ncid, "restart_swold", &_id) == NC_NOERR)
                 RST_CHECK(nc_get_var_double(ncid, _id, &Restart_SWold));
+        }
+
+        /* Daily accumulators (K28; applied by restore_restart_daily on a
+         * mid-day resume) and einff (K26). Optional for older files. */
+        {
+            int _id;
+            if (nc_inq_varid(ncid, "surf_daily", &_id) == NC_NOERR) {
+                RST_CHECK(nc_get_var_double(ncid, _id, rst_surf_daily));
+                rst_have_daily = 1;
+            }
+            if (nc_inq_varid(ncid, "inflow_einff", &_id) == NC_NOERR)
+                RST_CHECK(nc_get_var_double(ncid, _id, &einff));
+            if (nc_inq_varid(ncid, "deep_wavenum_sq", &_id) == NC_NOERR)
+                RST_CHECK(nc_get_var_double(ncid, _id, &WaveNumSquared));
+            if (nc_inq_varid(ncid, "deep_vel", &_id) == NC_NOERR)
+                RST_CHECK(nc_get_var_double(ncid, _id, &vel));
         }
 
         /* ---- Mixer scalars ---- */
@@ -804,6 +954,17 @@ int read_glm_restart(const char *fn)
         READ_INF_DFIELD("inflow_sins",  SIns);
         READ_INF_DFIELD("inflow_diins", DIIns);
         READ_INF_IFIELD("inflow_inpar", InPar);
+        {   /* downflow parcels (K26); absent in older restart files */
+            int _id;
+            if (nc_inq_varid(ncid, "inflow_qdown", &_id) == NC_NOERR) {
+                READ_INF_DFIELD("inflow_qdown", QDown);
+                READ_INF_DFIELD("inflow_tdown", TDown);
+                READ_INF_DFIELD("inflow_sdown", SDown);
+                READ_INF_DFIELD("inflow_ddown", DDown);
+            } else
+                fprintf(stderr, "     WARNING: restart has no inflow downflow parcels; "
+                        "plunging inflows in transit are lost.\n");
+        }
 #undef READ_INF_DFIELD
 #undef READ_INF_IFIELD
 
@@ -820,6 +981,18 @@ int read_glm_restart(const char *fn)
             RST_CHECK(nc_inq_varid(ncid, "inflow_submelev", &_id));
             RST_CHECK(nc_get_var_double(ncid, _id, svec));
             for (int s = 0; s < NumInf; s++) Inflows[s].SubmHeight = svec[s];
+
+            /* downflow in transit (K26); absent in older files */
+            if (nc_inq_varid(ncid, "inflow_totin", &_id) == NC_NOERR) {
+                RST_CHECK(nc_get_var_double(ncid, _id, svec));
+                for (int s = 0; s < NumInf; s++) Inflows[s].TotIn = svec[s];
+                RST_CHECK(nc_inq_varid(ncid, "inflow_dlwst", &_id));
+                RST_CHECK(nc_get_var_double(ncid, _id, svec));
+                for (int s = 0; s < NumInf; s++) Inflows[s].Dlwst = svec[s];
+                RST_CHECK(nc_inq_varid(ncid, "inflow_hflow", &_id));
+                RST_CHECK(nc_get_var_double(ncid, _id, svec));
+                for (int s = 0; s < NumInf; s++) Inflows[s].HFlow = svec[s];
+            }
         }
 
         if (wq_calc && Num_WQ_Vars > 0) {
@@ -833,6 +1006,14 @@ int read_glm_restart(const char *fn)
                     for (int v = 0; v < Num_WQ_Vars; v++)
                         Inflows[s].WQIns[p][v] =
                             wibuf[(s * MaxPar + p) * Num_WQ_Vars + v];
+            if (nc_inq_varid(ncid, "inflow_wqdown", &_id) == NC_NOERR) {
+                RST_CHECK(nc_get_var_double(ncid, _id, wibuf));
+                for (int s = 0; s < NumInf; s++)
+                    for (int p = 0; p < MaxPar; p++)
+                        for (int v = 0; v < Num_WQ_Vars; v++)
+                            Inflows[s].WQDown[p][v] =
+                                wibuf[(s * MaxPar + p) * Num_WQ_Vars + v];
+            }
             free(wibuf);
         }
 

@@ -62,4 +62,11 @@ int  read_glm_restart(const char *fn);
  */
 int  read_glm_restart_ptm(const char *fn);
 
+/*
+ * restore_restart_daily: on a mid-day resume, put back the lake.csv daily
+ * accumulators (SurfData.daily*) the previous run had built up for this day
+ * (K28). Call right after the day loop resets them, on the first day only.
+ */
+void restore_restart_daily(void);
+
 #endif

@@ -1189,4 +1189,42 @@ SUBROUTINE api_set_rng_state(n, buf, iset, gset, ok) BIND(C, name="api_set_rng_s
 END SUBROUTINE api_set_rng_state
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+
+!###############################################################################
+SUBROUTINE api_get_zone_ben(nben, nzones, buf, ok) BIND(C, name="api_get_zone_ben")
+!-------------------------------------------------------------------------------
+! Per-zone benthic (sheet) states for the restart file (K27): z_cc_hz.
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   CINTEGER,INTENT(in)  :: nben, nzones
+   AED_REAL,INTENT(out) :: buf(nben, nzones)
+   CINTEGER,INTENT(out) :: ok
+!-------------------------------------------------------------------------------
+!BEGIN
+   ok = 0
+   IF ( .NOT. ALLOCATED(z_cc_hz) ) RETURN
+   IF ( SIZE(z_cc_hz, 1) < nben .OR. SIZE(z_cc_hz, 2) < nzones ) RETURN
+   buf = z_cc_hz(1:nben, 1:nzones)
+   ok = 1
+END SUBROUTINE api_get_zone_ben
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE api_set_zone_ben(nben, nzones, buf, ok) BIND(C, name="api_set_zone_ben")
+!-------------------------------------------------------------------------------
+! Hand restart per-zone benthic states to aed_api, which applies them after its
+! first-step zone initialisation (K27).
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   CINTEGER,INTENT(in)  :: nben, nzones
+   AED_REAL,INTENT(in)  :: buf(nben, nzones)
+   CINTEGER,INTENT(out) :: ok
+!-------------------------------------------------------------------------------
+!BEGIN
+   CALL aed_set_zone_ben_restart(INT(nben), INT(nzones), buf)
+   ok = 1
+END SUBROUTINE api_set_zone_ben
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 END MODULE glm_api_aed

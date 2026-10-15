@@ -52,6 +52,11 @@ typedef void (*wq_get_var_names_t)(char *wbuf, int *wlen, char *bbuf, int *blen)
  * coupler has no RNG (only the API coupler, which runs the particle ABM, has one). */
 typedef void (*wq_get_rng_state_t)(int *n, int *buf, int *iset, AED_REAL *gset);
 typedef void (*wq_set_rng_state_t)(int *n, int *buf, int *iset, AED_REAL *gset, int *ok);
+/* Per-zone benthic (sheet) states for restarts (K27): buf is [n_zones][n_ben].
+ * get: *ok = 1 if written. set: held by the coupler and applied right after its
+ * first-step benthic initialisation (which would otherwise reset every zone). */
+typedef void (*wq_get_zone_ben_t)(int *nben, int *nzones, AED_REAL *buf, int *ok);
+typedef void (*wq_set_zone_ben_t)(int *nben, int *nzones, AED_REAL *buf, int *ok);
 
 
 extern wq_init_glm_t        p_wq_init_glm;
@@ -67,6 +72,8 @@ extern wq_inflow_update_t   p_wq_inflow_update;
 extern wq_get_var_names_t   p_wq_get_var_names;
 extern wq_get_rng_state_t   p_wq_get_rng_state;
 extern wq_set_rng_state_t   p_wq_set_rng_state;
+extern wq_get_zone_ben_t    p_wq_get_zone_ben;
+extern wq_set_zone_ben_t    p_wq_set_zone_ben;
 
 #define wq_init_glm        (*p_wq_init_glm)
 #define wq_set_glm_data    (*p_wq_set_glm_data)
@@ -123,6 +130,8 @@ void api_update_inflow_wq(AED_REAL *wqinf, int *nwqVars, AED_REAL *temp, AED_REA
 void api_get_var_names(char *wbuf, int *wlen, char *bbuf, int *blen);
 void api_get_rng_state(int *n, int *buf, int *iset, AED_REAL *gset);
 void api_set_rng_state(int *n, int *buf, int *iset, AED_REAL *gset, int *ok);
+void api_get_zone_ben(int *nben, int *nzones, AED_REAL *buf, int *ok);
+void api_set_zone_ben(int *nben, int *nzones, AED_REAL *buf, int *ok);
 #endif
 
 #if AED
@@ -136,6 +145,8 @@ int  aed_var_index_c(const char*name, size_t *len);
 int  aed_is_var(int *id, const char *v, size_t *len);
 void aed_update_inflow_wq(AED_REAL *wqinf, int *nwqVars, AED_REAL *temp, AED_REAL *salt);
 void aed_get_var_names(char *wbuf, int *wlen, char *bbuf, int *blen);
+void aed_get_zone_ben(int *nben, int *nzones, AED_REAL *buf, int *ok);
+void aed_set_zone_ben(int *nben, int *nzones, AED_REAL *buf, int *ok);
 #endif
 
 #if AED2

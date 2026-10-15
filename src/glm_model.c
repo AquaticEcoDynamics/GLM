@@ -373,6 +373,8 @@ void do_model(int jstart, int nsave)
         SurfData.dailyOutflow = 0.; SurfData.dailyOverflow = 0.;
         SurfData.dailySeepage = 0.; SurfData.dailyzonL = 0.;
         SurfData.dailyRunoff = 0.; SurfData.albedo = 1.;
+        //# A mid-day resume continues the day's totals of the previous run (K28)
+        if (resuming_midday && ntot == 1) restore_restart_daily();
 
         //# Read & set today's inflow properties
         read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, Elev, WQNew);
@@ -631,6 +633,8 @@ void do_model_non_avg(int jstart, int nsave)
         SurfData.dailyOutflow = 0.; SurfData.dailyOverflow = 0.;
         SurfData.dailySeepage = 0.; SurfData.dailyzonL     = 0.;
         SurfData.dailyRunoff  = 0.; SurfData.albedo        = 1.;
+        //# A mid-day resume continues the day's totals of the previous run (K28)
+        if (resuming_midday && ntot == 1) restore_restart_daily();
 
         //# Read & set today's inflow properties
         read_daily_inflow(jday, NumInf, FlowNew, TempNew, SaltNew, Elev, WQNew);

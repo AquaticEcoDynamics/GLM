@@ -185,6 +185,9 @@ MODULE glm_aed
 #endif
 
    LOGICAL :: reinited = .FALSE.
+   !# Per-zone benthic states from a restart file (n_vars_ben, n_zones), applied by
+   !# re_initialize right after it resets every zone from cc (K27).
+   AED_REAL,DIMENSION(:,:),ALLOCATABLE :: zone_ben_restart
 
    INTEGER :: n_aed_vars, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
    INTEGER :: zone_var = 0
@@ -1376,6 +1379,13 @@ CONTAINS
            !# (4) ZONE COLUMN INITIALISATION
            ! CALL aed_initialize_zone_column(column_sed, zon)
          ENDDO
+         !# On a restart, every zone gets back its own benthic states (K27)
+         IF ( ALLOCATED(zone_ben_restart) ) THEN
+            DO zon=1,MIN(n_zones, SIZE(zone_ben_restart, 2))
+               z_cc(n_vars+1:n_vars+n_vars_ben, 1, zon) = zone_ben_restart(1:n_vars_ben, zon)
+            ENDDO
+            DEALLOCATE(zone_ben_restart)
+         ENDIF
       ENDIF
       reinited = .TRUE.
    END SUBROUTINE re_initialize
@@ -1981,6 +1991,47 @@ SUBROUTINE aed_get_var_names(wbuf, wlen, bbuf, blen) BIND(C, name="aed_get_var_n
    wlen = w
    blen = b
 END SUBROUTINE aed_get_var_names
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE aed_get_zone_ben(nben, nzones, buf, ok) BIND(C, name="aed_get_zone_ben")
+!-------------------------------------------------------------------------------
+! Per-zone benthic (sheet) states for the restart file (K27).
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   CINTEGER,INTENT(in)  :: nben, nzones
+   AED_REAL,INTENT(out) :: buf(nben, nzones)
+   CINTEGER,INTENT(out) :: ok
+!-------------------------------------------------------------------------------
+!BEGIN
+   ok = 0
+   IF ( .NOT. ALLOCATED(z_cc) ) RETURN
+   IF ( nben /= n_vars_ben .OR. SIZE(z_cc, 3) < nzones ) RETURN
+   buf = z_cc(n_vars+1:n_vars+n_vars_ben, 1, 1:nzones)
+   ok = 1
+END SUBROUTINE aed_get_zone_ben
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE aed_set_zone_ben(nben, nzones, buf, ok) BIND(C, name="aed_set_zone_ben")
+!-------------------------------------------------------------------------------
+! Hold restart per-zone benthic states until re_initialize has reset the zones.
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   CINTEGER,INTENT(in)  :: nben, nzones
+   AED_REAL,INTENT(in)  :: buf(nben, nzones)
+   CINTEGER,INTENT(out) :: ok
+!-------------------------------------------------------------------------------
+!BEGIN
+   ok = 0
+   IF ( nben /= n_vars_ben ) RETURN
+   IF ( ALLOCATED(zone_ben_restart) ) DEALLOCATE(zone_ben_restart)
+   ALLOCATE(zone_ben_restart(nben, nzones))
+   zone_ben_restart = buf
+   ok = 1
+END SUBROUTINE aed_set_zone_ben
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
