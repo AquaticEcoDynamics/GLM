@@ -48,6 +48,10 @@ typedef void (*wq_ZSoilTemp_t)(ZoneType *zone);
 
 typedef void (*wq_inflow_update_t)(AED_REAL *wqinf, int *nwqVars, AED_REAL *temp, AED_REAL *salt);
 typedef void (*wq_get_var_names_t)(char *wbuf, int *wlen, char *bbuf, int *blen);
+/* WQ-side random number generator state, for restarts (K30). NULL when the WQ
+ * coupler has no RNG (only the API coupler, which runs the particle ABM, has one). */
+typedef void (*wq_get_rng_state_t)(int *n, int *buf, int *iset, AED_REAL *gset);
+typedef void (*wq_set_rng_state_t)(int *n, int *buf, int *iset, AED_REAL *gset, int *ok);
 
 
 extern wq_init_glm_t        p_wq_init_glm;
@@ -61,6 +65,8 @@ extern wq_is_var_t          p_wq_is_var;
 extern wq_ZSoilTemp_t       p_wq_ZSoilTemp;
 extern wq_inflow_update_t   p_wq_inflow_update;
 extern wq_get_var_names_t   p_wq_get_var_names;
+extern wq_get_rng_state_t   p_wq_get_rng_state;
+extern wq_set_rng_state_t   p_wq_set_rng_state;
 
 #define wq_init_glm        (*p_wq_init_glm)
 #define wq_set_glm_data    (*p_wq_set_glm_data)
@@ -115,6 +121,8 @@ int  api_var_index_c(const char*name, size_t *len);
 int  api_is_var(int *id, const char *v, size_t *len);
 void api_update_inflow_wq(AED_REAL *wqinf, int *nwqVars, AED_REAL *temp, AED_REAL *salt);
 void api_get_var_names(char *wbuf, int *wlen, char *bbuf, int *blen);
+void api_get_rng_state(int *n, int *buf, int *iset, AED_REAL *gset);
+void api_set_rng_state(int *n, int *buf, int *iset, AED_REAL *gset, int *ok);
 #endif
 
 #if AED

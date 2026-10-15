@@ -884,7 +884,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
         fprintf(stderr, "     PTM RNG: fixed seed = %d (reproducible)\n",
                         particle_random_seed);
     }
-    srand((unsigned int)particle_random_seed);
+    ptm_rng_seed((unsigned int)particle_random_seed);
 
     //-------------------------------------------------
     if ( get_namelist(namlst, time) ) {

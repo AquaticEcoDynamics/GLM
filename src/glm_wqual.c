@@ -67,6 +67,8 @@ wq_set_glm_zones_t   p_wq_set_glm_zones   = NULL;
 wq_ZSoilTemp_t       p_wq_ZSoilTemp       = NULL;
 wq_inflow_update_t   p_wq_inflow_update   = (wq_inflow_update_t)dummy_inflow_update;
 wq_get_var_names_t   p_wq_get_var_names   = NULL;
+wq_get_rng_state_t   p_wq_get_rng_state   = NULL;
+wq_set_rng_state_t   p_wq_set_rng_state   = NULL;
 
 void glm_init_fortran_support(void);
 
@@ -137,6 +139,8 @@ int prime_wq(const char *which)
     p_wq_inflow_update   =   (wq_inflow_update_t) find_entry(glm_wq_handle, "wq_inflow_update");
     /* optional — not present in older plugin builds */
     p_wq_get_var_names   =   (wq_get_var_names_t) dlsym(glm_wq_handle, "wq_get_var_names");
+    p_wq_get_rng_state   =   (wq_get_rng_state_t) dlsym(glm_wq_handle, "api_get_rng_state");
+    p_wq_set_rng_state   =   (wq_set_rng_state_t) dlsym(glm_wq_handle, "api_set_rng_state");
 #ifdef _WIN32
     p_set_funcs          =          (set_funcs_t) find_entry(glm_wq_handle, "set_funcs");
 
@@ -208,6 +212,8 @@ int prime_wq(const char *which)
         p_wq_is_var          =          (wq_is_var_t) api_is_var;
         p_wq_inflow_update   =   (wq_inflow_update_t) api_update_inflow_wq;
         p_wq_get_var_names   =   (wq_get_var_names_t) api_get_var_names;
+        p_wq_get_rng_state   =   (wq_get_rng_state_t) api_get_rng_state;
+        p_wq_set_rng_state   =   (wq_set_rng_state_t) api_set_rng_state;
 #else
         fprintf(stderr, "API not supported in this build\n");
         exit(1);

@@ -1122,4 +1122,71 @@ SUBROUTINE api_get_var_names(wbuf, wlen, bbuf, blen) BIND(C, name="api_get_var_n
 END SUBROUTINE api_get_var_names
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+
+!###############################################################################
+SUBROUTINE api_get_rng_state(n, buf, iset, gset) BIND(C, name="api_get_rng_state")
+!-------------------------------------------------------------------------------
+! Return the intrinsic Fortran RNG state (random_seed GET returns the live state,
+! which PUT restores exactly) and the Gaussian variate gasdev holds over between
+! calls, so the ABM's random draws continue across a restart (K30).
+! On entry n is the capacity of buf; on exit the number of elements written,
+! or -(size needed) if buf is too small.
+!-------------------------------------------------------------------------------
+   USE mGf90, ONLY : gasdev_get_state
+!ARGUMENTS
+   CINTEGER,INTENT(inout) :: n
+   CINTEGER,INTENT(out)   :: buf(*)
+   CINTEGER,INTENT(out)   :: iset
+   AED_REAL,INTENT(out)   :: gset
+!LOCALS
+   INTEGER :: sz, is
+   INTEGER,ALLOCATABLE :: st(:)
+   DOUBLE PRECISION :: gs
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   CALL random_seed(size = sz)
+   IF ( sz > n ) THEN ; n = -sz ; RETURN ; ENDIF
+   ALLOCATE(st(sz))
+   CALL random_seed(get = st)
+   buf(1:sz) = st
+   DEALLOCATE(st)
+   n = sz
+   CALL gasdev_get_state(is, gs)
+   iset = is ; gset = gs
+END SUBROUTINE api_get_rng_state
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE api_set_rng_state(n, buf, iset, gset, ok) BIND(C, name="api_set_rng_state")
+!-------------------------------------------------------------------------------
+! Restore the state saved by api_get_rng_state. ok = 0 (nothing changed) if n is
+! not this compiler's RNG state size, e.g. a restart file from another build.
+!-------------------------------------------------------------------------------
+   USE mGf90, ONLY : gasdev_set_state
+!ARGUMENTS
+   CINTEGER,INTENT(in)  :: n
+   CINTEGER,INTENT(in)  :: buf(*)
+   CINTEGER,INTENT(in)  :: iset
+   AED_REAL,INTENT(in)  :: gset
+   CINTEGER,INTENT(out) :: ok
+!LOCALS
+   INTEGER :: sz
+   INTEGER,ALLOCATABLE :: st(:)
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   CALL random_seed(size = sz)
+   ok = 0
+   IF ( sz /= n ) RETURN
+   ALLOCATE(st(sz))
+   st = buf(1:sz)
+   CALL random_seed(put = st)
+   DEALLOCATE(st)
+   CALL gasdev_set_state(INT(iset), DBLE(gset))
+   ok = 1
+END SUBROUTINE api_set_rng_state
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 END MODULE glm_api_aed

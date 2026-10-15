@@ -60,6 +60,7 @@
 #include "glm_ncdf.h"
 #include "glm_wqual.h"
 #include "glm_restart.h"
+#include "glm_ptm.h"
 
 /*----------------------------------------------------------------------------*/
 /* Global restart configuration                                               */
@@ -317,6 +318,30 @@ void write_glm_restart(const char *fn)
         def_var_d(ncid, "ptm_vars", 2, dims_pv, &id_ptm_vars);
     }
 
+    /* Random number generator states (K30): the particle RNG (glm_ptm.c) and
+     * the WQ side's (the ABM's intrinsic Fortran RNG and gasdev's spare
+     * Gaussian). Without them a resumed particle run draws a different walk. */
+    #define MAX_WQ_RNG 128
+    int id_ptm_rng = -1, id_wq_rng = -1, wq_rng_n = MAX_WQ_RNG, wq_rng_iset = 0;
+    int wq_rng_buf[MAX_WQ_RNG];
+    AED_REAL wq_rng_gset = 0.;
+    if (ptm_enabled) {
+        RST_CHECK(nc_def_var(ncid, "ptm_rng_state", NC_UINT64, 0, NULL, &id_ptm_rng));
+        if (wq_calc && p_wq_get_rng_state != NULL) {
+            p_wq_get_rng_state(&wq_rng_n, wq_rng_buf, &wq_rng_iset, &wq_rng_gset);
+            if (wq_rng_n > 0) {
+                int dim_wqrng;
+                RST_CHECK(nc_def_dim(ncid, "wq_rng_size", wq_rng_n, &dim_wqrng));
+                def_var_i(ncid, "wq_rng_state", 1, &dim_wqrng, &id_wq_rng);
+                RST_CHECK(nc_put_att_int(ncid, id_wq_rng, "gasdev_iset", NC_INT, 1, &wq_rng_iset));
+                double gs = wq_rng_gset;
+                RST_CHECK(nc_put_att_double(ncid, id_wq_rng, "gasdev_gset", NC_DOUBLE, 1, &gs));
+            } else
+                fprintf(stderr, "     WARNING: WQ RNG state needs %d ints (> %d); not saved in restart\n",
+                                                                       -wq_rng_n, MAX_WQ_RNG);
+        }
+    }
+
     /* End define mode */
     RST_CHECK(nc_enddef(ncid));
 
@@ -537,6 +562,12 @@ void write_glm_restart(const char *fn)
         RST_CHECK(nc_put_var_int   (ncid, id_ptm_stat, PTM_Stat));
         RST_CHECK(nc_put_var_double(ncid, id_ptm_vars, PTM_Vars));
     }
+    if (id_ptm_rng >= 0) {
+        unsigned long long st = ptm_rng_get_state();
+        RST_CHECK(nc_put_var_ulonglong(ncid, id_ptm_rng, &st));
+    }
+    if (id_wq_rng >= 0)
+        RST_CHECK(nc_put_var_int(ncid, id_wq_rng, wq_rng_buf));
 
     nc_close(ncid);
     rst_ncid_ = -1;
@@ -888,6 +919,39 @@ int read_glm_restart_ptm(const char *fn)
             RST_CHECK(nc_get_var_int(ncid, _id, PTM_Stat));
             RST_CHECK(nc_inq_varid(ncid, "ptm_vars", &_id));
             RST_CHECK(nc_get_var_double(ncid, _id, PTM_Vars));
+
+            /* RNG states (K30). Absent in restart files from older builds:
+             * the run then continues on the freshly seeded generators. */
+            if (nc_inq_varid(ncid, "ptm_rng_state", &_id) == NC_NOERR) {
+                unsigned long long st;
+                RST_CHECK(nc_get_var_ulonglong(ncid, _id, &st));
+                ptm_rng_set_state((uint64_t)st);
+            } else
+                fprintf(stderr, "     WARNING: restart has no ptm_rng_state; "
+                        "particle random walk reseeded.\n");
+            if (wq_calc && p_wq_set_rng_state != NULL) {
+                if (nc_inq_varid(ncid, "wq_rng_state", &_id) == NC_NOERR) {
+                    int dimid, n, iset = 0, ok = 0, *buf;
+                    size_t len;
+                    double gs = 0.;
+                    AED_REAL gset;
+                    RST_CHECK(nc_inq_vardimid(ncid, _id, &dimid));
+                    RST_CHECK(nc_inq_dimlen(ncid, dimid, &len));
+                    n = (int)len;
+                    buf = malloc(len * sizeof(int));
+                    RST_CHECK(nc_get_var_int(ncid, _id, buf));
+                    nc_get_att_int(ncid, _id, "gasdev_iset", &iset);
+                    nc_get_att_double(ncid, _id, "gasdev_gset", &gs);
+                    gset = gs;
+                    p_wq_set_rng_state(&n, buf, &iset, &gset, &ok);
+                    free(buf);
+                    if (!ok)
+                        fprintf(stderr, "     WARNING: restart wq_rng_state has %d elements, not this "
+                                "build's RNG size; AED random draws reseeded.\n", n);
+                } else
+                    fprintf(stderr, "     WARNING: restart has no wq_rng_state; "
+                            "AED random draws reseeded.\n");
+            }
             nc_close(ncid);
             rst_ncid_ = -1;
             return 1;

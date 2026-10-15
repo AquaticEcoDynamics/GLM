@@ -119,6 +119,26 @@ CINTEGER num_particle_groups = 1;
  * runs were comparable. Set to 0 in &particles to seed from the wall clock instead, which
  * is only wanted when deliberately generating ensemble members. */
 CINTEGER particle_random_seed = 20250723;
+
+/* Particle RNG: SplitMix64 (Steele, Lea & Flood 2014). Replaces libc rand(), whose
+ * state cannot be saved, so the restart file can carry it (K30); it also gives the
+ * same sequence on every platform for a given particle_random_seed. ptm_rand()
+ * returns 31 bits, in [0, PTM_RAND_MAX], like rand() on macOS and glibc. */
+#define PTM_RAND_MAX 2147483647
+static uint64_t ptm_rng = 20250723;
+
+void     ptm_rng_seed(unsigned int seed)  { ptm_rng = (uint64_t)seed; }
+uint64_t ptm_rng_get_state(void)          { return ptm_rng; }
+void     ptm_rng_set_state(uint64_t state) { ptm_rng = state; }
+
+static int ptm_rand(void)
+{
+    uint64_t z = (ptm_rng += 0x9E3779B97F4A7C15ULL);
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+    z ^= z >> 31;
+    return (int)(z >> 33);
+}
 // Particle boundary conditions (1 = clamping, 2 = reflective)
 int upper_boundary_cond = BC_CLAMP;   // surface
 // lower_boundary_cond also governs what happens when the area-ratio settling
@@ -186,11 +206,11 @@ static AED_REAL draw_height_in_range(AED_REAL lo, AED_REAL hi)
 
     if (total <= 0.0) {
         // Degenerate (zero-area range): fall back to uniform, same as the old behavior.
-        u = (AED_REAL)rand() / RAND_MAX;
+        u = (AED_REAL)ptm_rand() / PTM_RAND_MAX;
         return lo + u * (hi - lo);
     }
 
-    u = ((AED_REAL)rand() / RAND_MAX) * total;
+    u = ((AED_REAL)ptm_rand() / PTM_RAND_MAX) * total;
     for (k = 0; k < n; k++)
         if (u <= cdf[k]) break;
     if (k >= n) k = n - 1;
@@ -420,7 +440,7 @@ void do_ptm_update()
             // Update particle position based on diffusivity and vert velocity
             _PTM_Stat(pg,p,FLAG)= WATER;
 
-            rand_draw = -1.0 + 2.0*((AED_REAL)rand() / (AED_REAL)RAND_MAX);
+            rand_draw = -1.0 + 2.0*((AED_REAL)ptm_rand() / (AED_REAL)PTM_RAND_MAX);
             _PTM_Vars(pg,p,HGHT) = move_particle(ptm_time_step,_PTM_Vars(pg,p,HGHT), K_local, K_prime_z, _PTM_Vars(pg,p,VVEL), rand_draw);
 
             if(_PTM_Vars(pg,p,HGHT) < 0.0){
@@ -457,9 +477,9 @@ void do_ptm_update()
                 // Bernoulli draw to determine if particle should be assigned as BED;
                 // if triggered, a second draw tests settling_efficiency_substep (this
                 // call's per-substep equivalent of the per-day settling_efficiency rate).
-                rand_float = (float)rand() / (float)RAND_MAX;
+                rand_float = (float)ptm_rand() / (float)PTM_RAND_MAX;
                 if(rand_float < prob){
-                    rand_float = (float)rand() / (float)RAND_MAX;
+                    rand_float = (float)ptm_rand() / (float)PTM_RAND_MAX;
                     if(rand_float < settling_efficiency_substep){
                         _PTM_Stat(pg,p,FLAG) = BED;
                         if(sed_deactivation){
@@ -592,7 +612,7 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
                 }
 
                 // Assign particles initial height
-                rand_int = rand() % 100 + 1;                            // random draw from unit distribution
+                rand_int = ptm_rand() % 100 + 1;                            // random draw from unit distribution
                 double random_double = (double)rand_int / 100;
                 random_double = random_double * height_range;           // scale unit random to requested range
                 _PTM_Vars(pg,p,HGHT) = lower_height + random_double;     // set particle height
@@ -622,7 +642,7 @@ void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, i
     layer_prop = delta_vol / layer_vol;
     for (p = 0; p < max_particle_num; p++) {
         if(_PTM_Stat(pg,p,STAT) == 1 && _PTM_Stat(pg,p,LAYR) == layer_id){
-            rand_float = ((AED_REAL)rand())/RAND_MAX;
+            rand_float = ((AED_REAL)ptm_rand())/PTM_RAND_MAX;
             if(rand_float <= layer_prop && capture_on){
                 // recirculated water is returned: keep the particle (see ptm_capture_begin)
                 in_transit[p] = 1;

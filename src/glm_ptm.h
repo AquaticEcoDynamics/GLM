@@ -43,6 +43,14 @@ void ptm_addparticles(int new_particles, int max_particle_num, AED_REAL upper_he
 void ptm_layershift(AED_REAL shift_height, AED_REAL shift_amount);
 void ptm_update_layerid(void);
 
+/* Particle RNG. Its whole state is one 64-bit integer, which the restart file
+ * saves and restores (glm_restart.c), so a resumed run draws the same numbers
+ * as an uninterrupted one (K30). */
+#include <stdint.h>
+void     ptm_rng_seed(unsigned int seed);
+uint64_t ptm_rng_get_state(void);
+void     ptm_rng_set_state(uint64_t state);
+
 void ptm_removeparticles(int layer_id, AED_REAL delta_vol, AED_REAL layer_vol, int max_particle_num);
 
 // particles follow their water through flow-driven layer volume changes
