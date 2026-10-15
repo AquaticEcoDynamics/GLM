@@ -87,6 +87,25 @@ void doMobility(const CINTEGER *N_in,   // number of vertical layers
               const AED_REAL *min_C_in, // minimum concentration (mmol/m^3)
               AED_REAL *mcc)            // array of cell concentrations (mmol/m^3)
 {
+    doMobilityDep(N_in, dt_in, h, A, V, ww, min_C_in, mcc, NULL);
+}
+
+/******************************************************************************
+ * As doMobility, and if dep is not NULL also adds to dep[i] the mass (mmol)  *
+ * that layer i deposited on its bed strip during the call: what leaves a     *
+ * sinking layer and does not pass into the layer below (K19, K20). The host  *
+ * hands it to the sediment zones in contact with each strip.                 *
+ ******************************************************************************/
+void doMobilityDep(const CINTEGER *N_in,   // number of vertical layers
+              const AED_REAL *dt_in,    // time step (s)
+              const AED_REAL *h,        // array of layer thicknesses (m)
+              const AED_REAL *A,        // array of layer areas (m^2)
+              const AED_REAL *V,        // array of layer volumes (m^3)
+              const AED_REAL *ww,       // array of vertical mobility speeds (m/s)
+              const AED_REAL *min_C_in, // minimum concentration (mmol/m^3)
+              AED_REAL *mcc,            // array of cell concentrations (mmol/m^3)
+              AED_REAL *dep)            // deposited mass per layer (mmol), added to; may be NULL
+{
     /**************************************************************************
      * Since this routine is called only from the fortran the arguments are   *
      * in the "by reference" form used by fortran, and assigned to local      *
@@ -168,8 +187,11 @@ void doMobility(const CINTEGER *N_in,   // number of vertical layers
                 Y[i] -= mov[i];
                 if ( ww[i] > 0. )
                     Y[i+1] += mov[i];
-                else if ( i > 0 )
+                else if ( i > 0 ) {
                     Y[i-1] += mov[i] * (A[i-1] / A[i]);
+                    if ( dep != NULL ) dep[i] += mov[i] * (1. - A[i-1] / A[i]);
+                } else if ( dep != NULL )
+                    dep[i] += mov[i];             // the bottom layer: all of it
             }
             for (i = 0; i < N; i++) mcc[i] = Y[i] / V[i];
         } while ( dt > 0. );

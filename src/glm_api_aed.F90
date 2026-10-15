@@ -298,6 +298,7 @@ SUBROUTINE api_set_glm_env()
    TYPE(aed_env_t) :: env(1)
 
    PROCEDURE(aed_mobility_fn_t),POINTER :: doMobilityP
+   PROCEDURE(aed_mobility_dep_fn_t),POINTER :: doMobilityDepP
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -455,6 +456,9 @@ SUBROUTINE api_set_glm_env()
 
    doMobilityP => doMobilityF
    CALL aed_set_mobility_fn(doMobilityP)
+   !# settling that also reports deposition, delivered to the zones (K19, K20)
+   doMobilityDepP => doMobilityDepF
+   CALL aed_set_mobility_dep_fn(doMobilityDepP)
 END SUBROUTINE api_set_glm_env
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -619,6 +623,28 @@ SUBROUTINE doMobilityF(N,dt,h,A,ww,min_C,mcc)
 !  CALL doMobility(N,dt,h,A,ww,min_C,mcc)
    CALL doMobility(N,dt,h,area,lvol,ww,min_C,mcc)
 END SUBROUTINE doMobilityF
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE doMobilityDepF(N,dt,h,A,ww,min_C,mcc,dep)
+!-------------------------------------------------------------------------------
+! As doMobilityF, also adding to dep what each layer deposits on its bed strip
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   CINTEGER,INTENT(in)    :: N       !# number of vertical layers
+   AED_REAL,INTENT(in)    :: dt      !# time step (s)
+   AED_REAL,INTENT(in)    :: h(:)    !# layer thicknesses (m)
+   AED_REAL,INTENT(in)    :: A(:)    !# layer areas (m2)
+   AED_REAL,INTENT(in)    :: ww(:)   !# vertical speed (m/s)
+   AED_REAL,INTENT(in)    :: min_C   !# minimum allowed cell concentration
+   AED_REAL,INTENT(inout) :: mcc(:)  !# cell concentration
+   AED_REAL,INTENT(inout) :: dep(:)  !# deposited mass per layer (mmol)
+!-------------------------------------------------------------------------------
+!BEGIN
+   _UNUSED(A)
+   CALL doMobilityDep(N,dt,h,area,lvol,ww,min_C,mcc,dep)
+END SUBROUTINE doMobilityDepF
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 

@@ -109,6 +109,14 @@ MODULE glm_aed
    LOGICAL, DIMENSION(:),  ALLOCATABLE        :: rz_d, rz_s
    AED_REAL,DIMENSION(:,:),ALLOCATABLE        :: acc_diag, acc_zdiag_hz
    AED_REAL,DIMENSION(:),  ALLOCATABLE        :: acc_diag_hz
+   !# Deposition delivered to the zones' benthic pools (K19, K20): dep_lay(v, lev)
+   !# is the mass of water variable v that layer lev deposited on its bed strip
+   !# this step; routes (from aed_define_deposition) in this coupler's indices.
+   LOGICAL :: dep_set = .FALSE., dep_on = .FALSE.
+   AED_REAL,DIMENSION(:,:),ALLOCATABLE        :: dep_lay
+   INTEGER, DIMENSION(:),  ALLOCATABLE        :: rt_v, rt_b
+   AED_REAL,DIMENSION(:),  ALLOCATABLE        :: rt_s
+   INTEGER :: n_rt = 0
 
    !# Arrays for work, vertical movement, and cross-boundary fluxes
    AED_REAL,DIMENSION(:,:),ALLOCATABLE :: ws
@@ -867,6 +875,8 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
    AED_REAL :: min_C, surf, ratio, localext_post
    INTEGER  :: i, j, v, lev, split, k, j_d
    INTEGER  :: d_rz, sd_rz     ! rezero counters (independent of j_d / other index vars)
+   INTEGER  :: zon             ! zone index (deposition delivery, K19/K20)
+   AED_REAL :: zm              ! mass deposited in a zone (mmol)
    INTEGER, SAVE :: wlev_prev = 0
    LOGICAL  :: grid_changed
 
@@ -1036,6 +1046,8 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
       !# (3) Calculate source/sink terms due to the settling or rising of
       !# state variables in the water column (note that settling into benthos
       !# is done in aed_do_benthos)
+      IF ( .NOT. dep_set ) CALL setup_deposition()
+      IF ( dep_on ) dep_lay = zero_
       v = 0
       DO i=1,n_aed_vars
          IF ( aed_get_var(i, tv) ) THEN
@@ -1044,7 +1056,11 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
                !# only for state_vars that are not sheet, and also non-zero ws
                IF ( .NOT. ieee_is_nan(tv%mobility) .AND. SUM(ABS(ws(i, 1:wlev)))>zero_ ) THEN
                   min_C = tv%minimum
-                  CALL doMobility(wlev, dt, dz, area, lvol, ws(i, :), min_C, cc(v, :))
+                  IF ( dep_on ) THEN   !# also record what each layer deposits (K19, K20)
+                     CALL doMobilityDep(wlev, dt, dz, area, lvol, ws(i, :), min_C, cc(v, :), dep_lay(v, :))
+                  ELSE
+                     CALL doMobility(wlev, dt, dz, area, lvol, ws(i, :), min_C, cc(v, :))
+                  ENDIF
                ENDIF
             ENDIF
          ENDIF
@@ -1059,6 +1075,22 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
 
    IF (benthic_mode .GT. 1) &
       CALL calc_zone_areas(area, wlev, height(wlev))
+
+   !# Deliver this step's deposition to the zones' benthic pools (K19, K20): each
+   !# layer's deposit goes to the zones its bed strip lies in (zshare, the same
+   !# shares as the zone areas), so the pools gain what the water lost.
+   IF ( dep_on ) THEN
+      DO k = 1, n_rt
+         DO zon = 1, n_zones
+            IF ( theZones(zon)%zarea <= zero_ ) CYCLE
+            zm = zero_
+            DO lev = 1, wlev
+               zm = zm + dep_lay(rt_v(k), lev) * zshare(lev, zon)
+            ENDDO
+            z_cc(n_vars+rt_b(k), 1, zon) = z_cc(n_vars+rt_b(k), 1, zon) + rt_s(k) * zm / theZones(zon)%zarea
+         ENDDO
+      ENDDO
+   ENDIF
 
    IF ( split_factor > 1 ) THEN
       IF ( .NOT. ALLOCATED(rz_d) ) THEN
@@ -1951,6 +1983,55 @@ SUBROUTINE aed_get_var_names(wbuf, wlen, bbuf, blen) BIND(C, name="aed_get_var_n
 END SUBROUTINE aed_get_var_names
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+
+
+!###############################################################################
+SUBROUTINE setup_deposition()
+!-------------------------------------------------------------------------------
+! Once: decide whether deposition is delivered (zones on and some module has
+! declared a route), and map the routes (AED variable ids) onto this coupler's
+! water (v) and benthic (b, row n_vars+b of z_cc) indices (K19, K20).
+!-------------------------------------------------------------------------------
+!LOCALS
+   INTEGER :: i, v, b, r, src, tgt
+   AED_REAL :: sc
+   INTEGER,DIMENSION(:),ALLOCATABLE :: v_of, b_of
+   TYPE(aed_variable_t),POINTER :: tv
+!-------------------------------------------------------------------------------
+!BEGIN
+   dep_set = .TRUE.
+   dep_on = benthic_mode > 1 .AND. aed_n_deposition_routes() > 0
+   IF ( .NOT. dep_on ) RETURN
+
+   ALLOCATE(v_of(n_aed_vars), b_of(n_aed_vars)) ; v_of = 0 ; b_of = 0
+   v = 0 ; b = 0
+   DO i = 1, n_aed_vars
+      IF ( aed_get_var(i, tv) ) THEN
+         IF ( tv%var_type == V_STATE ) THEN
+            IF ( tv%sheet ) THEN
+               b = b + 1 ; b_of(i) = b
+            ELSE
+               v = v + 1 ; v_of(i) = v
+            ENDIF
+         ENDIF
+      ENDIF
+   ENDDO
+   ALLOCATE(rt_v(aed_n_deposition_routes()), rt_b(aed_n_deposition_routes()), rt_s(aed_n_deposition_routes()))
+   n_rt = 0
+   DO r = 1, aed_n_deposition_routes()
+      CALL aed_get_deposition_route(r, src, tgt, sc)
+      IF ( v_of(src) > 0 .AND. b_of(tgt) > 0 ) THEN
+         n_rt = n_rt + 1 ; rt_v(n_rt) = v_of(src) ; rt_b(n_rt) = b_of(tgt) ; rt_s(n_rt) = sc
+      ENDIF
+   ENDDO
+   dep_on = n_rt > 0
+   IF ( dep_on ) THEN
+      ALLOCATE(dep_lay(n_vars, SIZE(cc, 2))) ; dep_lay = zero_
+      CALL aed_set_host_deposition(.TRUE.)
+   ENDIF
+   DEALLOCATE(v_of, b_of)
+END SUBROUTINE setup_deposition
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 !###############################################################################

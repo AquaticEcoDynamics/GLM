@@ -76,6 +76,7 @@ MODULE glm_api_zones
 
    PUBLIC n_zones, zone_heights, lheights
    PUBLIC api_set_glm_zones, api_copy_from_zone, api_copy_to_zone, api_calc_zone_areas
+   PUBLIC api_deposit_zone
 
    PUBLIC z_cc, z_cc_hz, z_diag, z_diag_hz, theZones, theLake
 
@@ -95,6 +96,7 @@ SUBROUTINE api_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV, nAEDvars) &
    PROCEDURE(copy_to_zone_t),POINTER    :: copy_to
    PROCEDURE(copy_from_zone_t),POINTER  :: copy_from
    PROCEDURE(calc_zone_areas_t),POINTER :: calc_areas
+   PROCEDURE(deposit_zone_t),POINTER    :: dep_zone
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -117,6 +119,8 @@ SUBROUTINE api_set_glm_zones(numVars, numBenV, numDiagV, numDiagHzV, nAEDvars) &
    copy_from => api_copy_from_zone
    calc_areas => api_calc_zone_areas
    CALL api_set_zone_funcs(copy_to, copy_from, calc_areas)
+   dep_zone => api_deposit_zone
+   CALL api_set_zone_dep_func(dep_zone)
 
    ALLOCATE(zshare(MaxLayers, n_zones))  ; zshare = 0.
    ALLOCATE(zhshare(MaxLayers, n_zones)) ; zhshare = 0.
@@ -579,5 +583,32 @@ AED_REAL FUNCTION zone_bed_frac(aedZones, n_zones, wheights, lev, zon)
    ENDIF
 END FUNCTION zone_bed_frac
 
+
+
+!###############################################################################
+SUBROUTINE api_deposit_zone(n_zones, dep, wlev, zmass)
+!-------------------------------------------------------------------------------
+! Mass deposited by each layer (mmol, on its bed strip) to the zones: a layer's
+! deposit is shared by the part of its bed lying in each zone (zshare), the same
+! shares as the zone areas, so sum(zmass) = sum(dep) (K19, K20).
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   INTEGER,INTENT(in) :: n_zones, wlev
+   AED_REAL,DIMENSION(:),INTENT(in)  :: dep
+   AED_REAL,DIMENSION(:),INTENT(out) :: zmass
+!
+!LOCALS
+   INTEGER :: lev, zon
+!-------------------------------------------------------------------------------
+!BEGIN
+   zmass(1:n_zones) = 0.
+   DO lev = 1, wlev
+      IF ( dep(lev) == 0. ) CYCLE
+      DO zon = 1, n_zones
+         zmass(zon) = zmass(zon) + dep(lev) * zshare(lev, zon)
+      ENDDO
+   ENDDO
+END SUBROUTINE api_deposit_zone
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 END MODULE glm_api_zones
