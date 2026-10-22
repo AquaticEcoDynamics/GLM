@@ -106,6 +106,7 @@ MODULE glm_api_aed
    AED_REAL,DIMENSION(:,:),ALLOCATABLE        :: cc_diag_old
    AED_REAL,DIMENSION(:),  ALLOCATABLE        :: z_prev
    AED_REAL,DIMENSION(:),  ALLOCATABLE        :: area_prev
+   INTEGER :: wlev_prev = 0   !# layers in the cc_diag_old snapshot (0: none yet)
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: cc_diag_hz
 
    LOGICAL,TARGET :: actv = .TRUE.
@@ -658,9 +659,9 @@ SUBROUTINE api_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
    LOGICAL :: doSurface
    INTEGER :: lev, zon, j, k, j_d
    INTEGER :: i, d_rz, sd_rz     ! rezero counters (independent of j_d)
-   INTEGER, SAVE :: wlev_prev = 0
    AED_REAL :: surf, pa, ratio
    AED_REAL :: I_old, I_new
+   AED_REAL :: zlo, zhi, olo, ohi, ovl, ssum, wsum   !# persisted-diag remap (K97)
    TYPE(aed_variable_t),POINTER :: tv
    LOGICAL :: grid_changed
 !
@@ -724,6 +725,13 @@ SUBROUTINE api_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
    !# previous step (see bottom of routine) on the previous grid, holds the true
    !# post-benthic value and is the remap source. This lets the bubble module read
    !# the previous step's ebullition, correctly remapped to the current layers.
+   !# Every other persisted layer diagnostic is restored the same way (K97): the
+   !# host's layer merges (check_layer_stability, the mixer, resize) move the WQ
+   !# states but not cc_diag, and aed_phyto_abm's light_extinction reads its layer
+   !# particle carbon (<group>_C, rezero=.FALSE.) at the start of the step, before
+   !# the particles refill it. Those are concentrations, so each new layer takes the
+   !# thickness-weighted mean of the old layers it overlaps (the old top layer is
+   !# taken to extend up to the new surface).
    grid_changed = ( wlev /= wlev_prev )
    IF ( .NOT. grid_changed .AND. wlev_prev > 0 ) grid_changed = ANY( lheights(1:wlev) /= z_prev(1:wlev) )
    IF ( grid_changed .AND. wlev_prev > 0 ) THEN
@@ -781,18 +789,37 @@ SUBROUTINE api_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
                      ENDDO
                      IF (I_new > 1.0e-30) cc_diag(j_d,:) = cc_diag(j_d,:) * (I_old/I_new)
                   ENDIF
+               ELSEIF ( .NOT. tv%rezero ) THEN
+                  DO lev = 1, wlev
+                     zlo = zero_ ; IF (lev > 1) zlo = lheights(lev-1)
+                     zhi = lheights(lev)
+                     ssum = zero_ ; wsum = zero_
+                     DO j = 1, wlev_prev
+                        olo = zero_ ; IF (j > 1) olo = z_prev(j-1)
+                        ohi = z_prev(j) ; IF (j == wlev_prev) ohi = MAX(ohi, zhi)
+                        ovl = MIN(zhi, ohi) - MAX(zlo, olo)
+                        IF (ovl > zero_) THEN
+                           ssum = ssum + ovl * cc_diag_old(j_d,j) ; wsum = wsum + ovl
+                        ENDIF
+                     ENDDO
+                     IF (wsum > zero_) THEN
+                        cc_diag(j_d,lev) = ssum / wsum
+                     ELSE
+                        cc_diag(j_d,lev) = cc_diag_old(j_d, MIN(lev, wlev_prev))
+                     ENDIF
+                  ENDDO
                ENDIF
             ENDIF
          ENDIF
       ENDDO
    ELSEIF ( wlev_prev > 0 ) THEN
-      !# Grid unchanged: restore persisted zavg diags from the snapshot (exact).
+      !# Grid unchanged: restore persisted diags from the snapshot (exact).
       j_d = 0
       DO k = 1, n_aed_vars
          IF ( aed_get_var(k, tv) ) THEN
             IF ( tv%var_type == V_DIAGNOSTIC .AND. .NOT. tv%sheet ) THEN
                j_d = j_d + 1
-               IF ( tv%zavg .AND. .NOT. tv%rezero ) cc_diag(j_d,1:wlev) = cc_diag_old(j_d,1:wlev)
+               IF ( .NOT. tv%rezero ) cc_diag(j_d,1:wlev) = cc_diag_old(j_d,1:wlev)
             ENDIF
          ENDIF
       ENDDO
@@ -1225,6 +1252,50 @@ SUBROUTINE api_set_zone_ben(nben, nzones, buf, ok) BIND(C, name="api_set_zone_be
    CALL aed_set_zone_ben_restart(INT(nben), INT(nzones), buf)
    ok = 1
 END SUBROUTINE api_set_zone_ben
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE api_get_diag_prev(nd, ml, buf, zbuf, abuf, wlev, ok) BIND(C, name="api_get_diag_prev")
+!-------------------------------------------------------------------------------
+! The end-of-step diagnostic snapshot (cc_diag_old on the grid z_prev/area_prev,
+! wlev_prev layers) that api_do_glm restores persisted diagnostics from, for the
+! restart file, so a resumed run restores them as the continuous run does (K97).
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   CINTEGER,INTENT(in)  :: nd, ml
+   AED_REAL,INTENT(out) :: buf(nd, ml), zbuf(ml), abuf(ml)
+   CINTEGER,INTENT(out) :: wlev, ok
+!-------------------------------------------------------------------------------
+!BEGIN
+   ok = 0 ; wlev = 0
+   IF ( .NOT. ALLOCATED(cc_diag_old) .OR. wlev_prev <= 0 ) RETURN
+   IF ( SIZE(cc_diag_old, 1) /= nd .OR. SIZE(cc_diag_old, 2) /= ml ) RETURN
+   buf = cc_diag_old ; zbuf = z_prev(1:ml) ; abuf = area_prev(1:ml)
+   wlev = wlev_prev
+   ok = 1
+END SUBROUTINE api_get_diag_prev
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+SUBROUTINE api_set_diag_prev(nd, ml, buf, zbuf, abuf, wlev, ok) BIND(C, name="api_set_diag_prev")
+!-------------------------------------------------------------------------------
+! Restore the end-of-step diagnostic snapshot from the restart file (K97).
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   CINTEGER,INTENT(in)  :: nd, ml, wlev
+   AED_REAL,INTENT(in)  :: buf(nd, ml), zbuf(ml), abuf(ml)
+   CINTEGER,INTENT(out) :: ok
+!-------------------------------------------------------------------------------
+!BEGIN
+   ok = 0
+   IF ( .NOT. ALLOCATED(cc_diag_old) ) RETURN
+   IF ( SIZE(cc_diag_old, 1) /= nd .OR. SIZE(cc_diag_old, 2) /= ml ) RETURN
+   cc_diag_old = buf ; z_prev(1:ml) = zbuf ; area_prev(1:ml) = abuf
+   wlev_prev = wlev
+   ok = 1
+END SUBROUTINE api_set_diag_prev
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 END MODULE glm_api_aed

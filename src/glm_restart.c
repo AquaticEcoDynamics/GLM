@@ -307,6 +307,27 @@ void write_glm_restart(const char *fn)
         }
     }
 
+    /* The coupler's end-of-step diagnostic snapshot (K97): api_do_glm restores
+     * persisted diagnostics from it after the host's layer merges, so a resumed run
+     * needs it to do on its first step what the continuous run does. */
+    int id_dprev = -1, id_dprevz = -1, id_dpreva = -1, dprev_wlev = 0;
+    AED_REAL *dprevbuf = NULL, *dprevz = NULL, *dpreva = NULL;
+    if (wq_calc && Num_WQD_Vars > 0 && p_wq_get_diag_prev != NULL) {
+        int nd = Num_WQD_Vars, ml = MaxLayers, ok = 0;
+        dprevbuf = malloc((size_t)nd * ml * sizeof(AED_REAL));
+        dprevz = malloc((size_t)ml * sizeof(AED_REAL));
+        dpreva = malloc((size_t)ml * sizeof(AED_REAL));
+        if (!dprevbuf || !dprevz || !dpreva) { fprintf(stderr, "glm_restart: out of memory\n"); exit(1); }
+        p_wq_get_diag_prev(&nd, &ml, dprevbuf, dprevz, dpreva, &dprev_wlev, &ok);
+        if (ok) {
+            int dims_p[2] = { dim_nlev, dim_wqdvars };   /* Fortran (nd, ml) */
+            def_var_d(ncid, "wqd_prev", 2, dims_p, &id_dprev);
+            RST_CHECK(nc_put_att_int(ncid, id_dprev, "wlev", NC_INT, 1, &dprev_wlev));
+            def_var_d(ncid, "wqd_prev_height", 1, &dim_nlev, &id_dprevz);
+            def_var_d(ncid, "wqd_prev_area", 1, &dim_nlev, &id_dpreva);
+        }
+    }
+
     /* Mixer scalars */
     int id_depmx, id_prevthick, id_eavail, id_oldslope;
     int id_tce, id_tcs, id_hsp, id_fo, id_fsum, id_uf, id_u0, id_uavg;
@@ -537,6 +558,12 @@ void write_glm_restart(const char *fn)
         RST_CHECK(nc_put_var_double(ncid, id_vel, &vel));
     }
     if (id_wqsz >= 0) RST_CHECK(nc_put_var_double(ncid, id_wqsz, wqszbuf));
+    if (id_dprev >= 0) {
+        RST_CHECK(nc_put_var_double(ncid, id_dprev, dprevbuf));
+        RST_CHECK(nc_put_var_double(ncid, id_dprevz, dprevz));
+        RST_CHECK(nc_put_var_double(ncid, id_dpreva, dpreva));
+    }
+    free(dprevbuf); free(dprevz); free(dpreva);
     free(wqszbuf);
 
     /* Mixer scalars */
@@ -844,6 +871,30 @@ int read_glm_restart(const char *fn)
         } else {
             fprintf(stderr, "     WARNING: restart has no wqs_zone_vars; every zone's "
                     "benthic state set from wqs_vars.\n");
+        }
+    }
+
+    /* ---- The coupler's end-of-step diagnostic snapshot (K97) ---- */
+    if (wq_calc && Num_WQD_Vars > 0 && p_wq_set_diag_prev != NULL) {
+        int id_dp, id_dz, id_da;
+        if (nc_inq_varid(ncid, "wqd_prev", &id_dp) == NC_NOERR &&
+            nc_inq_varid(ncid, "wqd_prev_height", &id_dz) == NC_NOERR &&
+            nc_inq_varid(ncid, "wqd_prev_area", &id_da) == NC_NOERR) {
+            int nd = Num_WQD_Vars, ml = MaxLayers, wl = 0, ok = 0;
+            AED_REAL *b = malloc((size_t)nd * ml * sizeof(AED_REAL));
+            AED_REAL *z = malloc((size_t)ml * sizeof(AED_REAL));
+            AED_REAL *a = malloc((size_t)ml * sizeof(AED_REAL));
+            if (!b || !z || !a) { fprintf(stderr, "glm_restart: out of memory\n"); exit(1); }
+            RST_CHECK(nc_get_att_int(ncid, id_dp, "wlev", &wl));
+            RST_CHECK(nc_get_var_double(ncid, id_dp, b));
+            RST_CHECK(nc_get_var_double(ncid, id_dz, z));
+            RST_CHECK(nc_get_var_double(ncid, id_da, a));
+            p_wq_set_diag_prev(&nd, &ml, b, z, a, &wl, &ok);
+            if (!ok) fprintf(stderr, "     WARNING: restart wqd_prev not restored (size mismatch).\n");
+            free(b); free(z); free(a);
+        } else {
+            fprintf(stderr, "     WARNING: restart has no wqd_prev; persisted diagnostics "
+                    "are not restored on the first step.\n");
         }
     }
 

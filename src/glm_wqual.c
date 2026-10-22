@@ -71,6 +71,8 @@ wq_get_rng_state_t   p_wq_get_rng_state   = NULL;
 wq_set_rng_state_t   p_wq_set_rng_state   = NULL;
 wq_get_zone_ben_t    p_wq_get_zone_ben    = NULL;
 wq_set_zone_ben_t    p_wq_set_zone_ben    = NULL;
+wq_diag_prev_t       p_wq_get_diag_prev   = NULL;
+wq_diag_prev_t       p_wq_set_diag_prev   = NULL;
 
 void glm_init_fortran_support(void);
 
@@ -145,6 +147,8 @@ int prime_wq(const char *which)
     p_wq_set_rng_state   =   (wq_set_rng_state_t) dlsym(glm_wq_handle, "api_set_rng_state");
     p_wq_get_zone_ben    =    (wq_get_zone_ben_t) dlsym(glm_wq_handle, "wq_get_zone_ben");
     p_wq_set_zone_ben    =    (wq_set_zone_ben_t) dlsym(glm_wq_handle, "wq_set_zone_ben");
+    p_wq_get_diag_prev   =       (wq_diag_prev_t) dlsym(glm_wq_handle, "wq_get_diag_prev");
+    p_wq_set_diag_prev   =       (wq_diag_prev_t) dlsym(glm_wq_handle, "wq_set_diag_prev");
 #ifdef _WIN32
     p_set_funcs          =          (set_funcs_t) find_entry(glm_wq_handle, "set_funcs");
 
@@ -222,6 +226,8 @@ int prime_wq(const char *which)
         p_wq_set_rng_state   =   (wq_set_rng_state_t) api_set_rng_state;
         p_wq_get_zone_ben    =    (wq_get_zone_ben_t) api_get_zone_ben;
         p_wq_set_zone_ben    =    (wq_set_zone_ben_t) api_set_zone_ben;
+        p_wq_get_diag_prev   =       (wq_diag_prev_t) api_get_diag_prev;
+        p_wq_set_diag_prev   =       (wq_diag_prev_t) api_set_diag_prev;
 #else
         fprintf(stderr, "API not supported in this build\n");
         exit(1);

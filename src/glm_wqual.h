@@ -57,6 +57,7 @@ typedef void (*wq_set_rng_state_t)(int *n, int *buf, int *iset, AED_REAL *gset, 
  * first-step benthic initialisation (which would otherwise reset every zone). */
 typedef void (*wq_get_zone_ben_t)(int *nben, int *nzones, AED_REAL *buf, int *ok);
 typedef void (*wq_set_zone_ben_t)(int *nben, int *nzones, AED_REAL *buf, int *ok);
+typedef void (*wq_diag_prev_t)(int *nd, int *ml, AED_REAL *buf, AED_REAL *z, AED_REAL *a, int *wlev, int *ok);
 
 
 extern wq_init_glm_t        p_wq_init_glm;
@@ -74,6 +75,8 @@ extern wq_get_rng_state_t   p_wq_get_rng_state;
 extern wq_set_rng_state_t   p_wq_set_rng_state;
 extern wq_get_zone_ben_t    p_wq_get_zone_ben;
 extern wq_set_zone_ben_t    p_wq_set_zone_ben;
+extern wq_diag_prev_t       p_wq_get_diag_prev;
+extern wq_diag_prev_t       p_wq_set_diag_prev;
 
 #define wq_init_glm        (*p_wq_init_glm)
 #define wq_set_glm_data    (*p_wq_set_glm_data)
@@ -132,6 +135,8 @@ void api_get_rng_state(int *n, int *buf, int *iset, AED_REAL *gset);
 void api_set_rng_state(int *n, int *buf, int *iset, AED_REAL *gset, int *ok);
 void api_get_zone_ben(int *nben, int *nzones, AED_REAL *buf, int *ok);
 void api_set_zone_ben(int *nben, int *nzones, AED_REAL *buf, int *ok);
+void api_get_diag_prev(int *nd, int *ml, AED_REAL *buf, AED_REAL *z, AED_REAL *a, int *wlev, int *ok);
+void api_set_diag_prev(int *nd, int *ml, AED_REAL *buf, AED_REAL *z, AED_REAL *a, int *wlev, int *ok);
 #endif
 
 #if AED
