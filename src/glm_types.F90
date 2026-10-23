@@ -251,6 +251,9 @@ MODULE glm_types
    TYPE(AED_REAL),TARGET,BIND(C, name="friction")    :: friction
 
    TYPE(AED_REAL),TARGET,BIND(C, name="Kw")          :: Kw
+   !# the day's background extinction (Kw_file, else Kw), set by GLM each day; the
+   !# couplers give it to AED as its background (K75)
+   TYPE(AED_REAL),TARGET,BIND(C, name="Kw_day")      :: Kw_day = 0.
    TYPE(AED_REAL),TARGET,BIND(C, name="dt")          :: dt = 0.
 
    TYPE(AED_REAL),TARGET,BIND(C, name="yearday")     :: yearday   = 0.

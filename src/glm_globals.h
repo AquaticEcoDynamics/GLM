@@ -451,6 +451,7 @@ extern AED_REAL sw_factor;
 extern AED_REAL friction;
 
 extern AED_REAL Kw;
+extern AED_REAL Kw_day;   //# the day's Kw (Kw_file, else Kw): AED's background (K75)
 extern AED_REAL dt;
 
 extern AED_REAL Longitude;

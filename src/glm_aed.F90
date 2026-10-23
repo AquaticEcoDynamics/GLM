@@ -1195,9 +1195,9 @@ SUBROUTINE aed_do_glm(wlev)                             BIND(C, name=_WQ_DO_GLM)
       DO i = 1, wlev - 1
          IF (bioshade_feedback) THEN
             CALL aed_light_extinction(column, i, localext_post)
-            extc(i) = Kw + localext_post
+            extc(i) = Kw_day + localext_post
          ELSE
-            extc(i) = Kw
+            extc(i) = Kw_day
          ENDIF
       ENDDO
    ENDIF
@@ -1687,18 +1687,18 @@ SUBROUTINE update_light(column, nlev)
    CALL aed_light_extinction(column, nlev, localext)
 
    ! Surface PAR — matches API path (aed_api.F90 Light) using zz = 0.001
-   par(nlev) = par_fraction * rad(nlev) * EXP( -(Kw+localext) * 0.001 )
+   par(nlev) = par_fraction * rad(nlev) * EXP( -(Kw_day+localext) * 0.001 )
 
    ! Now set the top of subsequent layers, down to the bottom
    DO i = (nlev-1),1,-1
       localext_up = localext
       CALL aed_light_extinction(column, i, localext)
 
-      par(i) = par(i+1) * EXP( -(Kw + localext_up) * dz(i+1) )
+      par(i) = par(i+1) * EXP( -(Kw_day + localext_up) * dz(i+1) )
 
       !# AED's own light uses the full extinction; whether GLM's heating sees it
       !# (bioshade_feedback) is decided after the step, in do_glm_aed
-      extc(i) = Kw + localext
+      extc(i) = Kw_day + localext
    ENDDO
 END SUBROUTINE update_light
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

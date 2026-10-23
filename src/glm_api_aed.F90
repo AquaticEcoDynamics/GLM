@@ -232,7 +232,7 @@ SUBROUTINE api_init_glm(i_fname, len, NumWQ_Vars, NumWQ_Ben)                   &
    conf%sw_factor => sw_factor
    conf%friction => friction
 
-   conf%Kw => Kw
+   conf%Kw => Kw_day   !# the day's Kw (Kw_file), not the namelist value (K75)
 
    conf%do_particle_bgc = do_particle_bgc
 

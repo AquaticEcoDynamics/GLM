@@ -1034,6 +1034,7 @@ void init_glm(int *jstart, char *outp_dir, char *outp_fn, int *nsave)
     if ( Kw_file != NULL ) open_kw_file(Kw_file, timefmt_m);
 
     for (i = 0; i < MaxLayers; i++) Lake[i].ExtcCoefSW = Kw;
+    Kw_day = Kw;   //# until the first daily read (K75)
 
     //-------------------------------------------------
     if ( ! get_namelist(namlst, evaporation) ) {

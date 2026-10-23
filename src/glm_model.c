@@ -421,6 +421,7 @@ void do_model(int jstart, int nsave)
         WithdrawalTemp = (WithdrTempOld + WithdrTempNew) / 2.0;
 
         read_daily_kw(jday, &DailyKw);
+        Kw_day = DailyKw;
         /* On a mid-day resume's first iter, keep the loaded ExtcCoefSW (it
          * carries the bioshade_feedback contribution from the previous run);
          * see note in glm_restart.c "lake_extc". A midnight resume resets
@@ -682,6 +683,7 @@ void do_model_non_avg(int jstart, int nsave)
 
         //# Read & set today's Kw (if it is being read in)
         read_daily_kw(jday, &DailyKw);
+        Kw_day = DailyKw;
         /* On a mid-day resume's first iter, keep the loaded ExtcCoefSW (it
          * carries the bioshade_feedback contribution from the previous run);
          * see note in glm_restart.c "lake_extc". A midnight resume resets
@@ -859,6 +861,7 @@ void do_model_coupled(int step_start, int step_end,
 
         //# Read & set today's Kw (if it is being read in)
         read_daily_kw(jday, &DailyKw);
+        Kw_day = DailyKw;
         for (i = 0; i < MaxLayers; i++) Lake[i].ExtcCoefSW = DailyKw;
 
         //# Read & set today's meteorological data
