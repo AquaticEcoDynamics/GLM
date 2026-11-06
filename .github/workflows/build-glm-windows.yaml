@@ -1,0 +1,339 @@
+name: Build GLM+ (Windows)
+
+on:
+  workflow_dispatch:
+    inputs:
+      glm_repo:
+        description: "GLM repository (owner/name)"
+        required: true
+        default: "limnotrack/GLM"
+      glm_refs:
+        description: "GLM branch/tag/SHA. Comma-separated list builds each one (e.g. dev,feature/x)"
+        required: true
+        default: "dev"
+      water_repo:
+        description: "libaed-water repository (owner/name)"
+        required: true
+        default: "limnotrack/libaed-water"
+      water_refs:
+        description: "libaed-water branch/tag/SHA. Comma-separated list builds each one (default branch there is 'master')"
+        required: true
+        default: "master,v3.0.1"
+      dev_repo:
+        description: "libaed-dev repository (owner/name). Private - uses AED_PRIVATE_PAT. Blank = pinned default"
+        required: false
+        default: ""
+      dev_ref:
+        description: "libaed-dev branch/tag/SHA (e.g. feature/alum-diag). Blank = pinned default. Applies to all matrix builds"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+# ---------------------------------------------------------------------------
+# Builds GLM+ (`make glm+`: public AED modules plus the private libaed-riparian /
+# -light / -dev modules and phreeqcrm) for Windows with MinGW. The private repos
+# are cloned with the AED_PRIVATE_PAT secret (must be set on this repository).
+# The binary is shipped as glm.exe.
+#
+# The build matrix is the cross product of glm_refs x water_refs, so one run
+# can produce e.g. {dev} x {master, v3.0.1} = two executables built with an
+# identical setup, for side-by-side comparison. Each combination uploads its
+# own artifact:  glmplus-windows_glm-<ref>_water-<ref>.zip  (download from the
+# run summary page -> Artifacts).
+#
+# The slow netcdf/hdf5/gd dependency chain (~20-30 min cold) is built once in
+# the `ancillary` job and cached; the matrix jobs only restore it.
+# Modelled on AEME's build-glm-v4.yaml.
+# ---------------------------------------------------------------------------
+
+env:
+  # Other sibling libraries stay pinned (de-facto lockfile).
+  LIBUTIL_REPO: limnotrack/libutil
+  LIBUTIL_REF: 3eee21d180602bbad7a225a14c8449ea8d147938
+  LIBAED_BENTHIC_REPO: AquaticEcoDynamics/libaed-benthic
+  LIBAED_BENTHIC_REF: c6d4b0ea79f6015a06fa85c32568099b7843a798
+  LIBAED_DEMO_REPO: AquaticEcoDynamics/libaed-demo
+  LIBAED_DEMO_REF: d35b05e0ee3ad9bf677dc16f43082c28a4c91593
+  LIBAED_API_REPO: AquaticEcoDynamics/libaed-api
+  LIBAED_API_REF: d62ed0d9c2442b0f9eb9af634a7ea48a7f35a60c
+  LIBPLOT_REPO: AquaticEcoDynamics/libplot
+  LIBPLOT_REF: 2a540c7774d43d8a97e887c00324ed85538c7fd7
+  # AED+ private modules (need the AED_PRIVATE_PAT secret)
+  LIBAED_RIPARIAN_REPO: AquaticEcoDynamics/libaed-riparian
+  LIBAED_RIPARIAN_REF: 8d0e1a4f3ae6c618573991ff796e361cd27d2451
+  LIBAED_LIGHT_REPO: AquaticEcoDynamics/libaed-light
+  LIBAED_LIGHT_REF: main
+  LIBAED_DEV_REPO: AquaticEcoDynamics/libaed-dev
+  LIBAED_DEV_REF: 63103be69ad22e583b9437fd812336b259cf357d
+  PHREEQCRM_REPO: usgs-coupled/phreeqcrm
+  AED_TOOLS_REPO: AquaticEcoDynamics/AED_Tools
+  AED_TOOLS_REF: cf91a0c411d7299b48b85397445f25eda965308e
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Turn the comma-separated inputs into a matrix.
+  # -------------------------------------------------------------------------
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - id: m
+        env:
+          GLM_REFS: ${{ inputs.glm_refs }}
+          WATER_REFS: ${{ inputs.water_refs }}
+        run: |
+          python3 - <<'EOF'
+          import json, os
+          split = lambda s: [x.strip() for x in s.split(",") if x.strip()]
+          glm, water = split(os.environ["GLM_REFS"]), split(os.environ["WATER_REFS"])
+          if not glm or not water:
+              raise SystemExit("glm_refs and water_refs must each contain at least one ref")
+          slug = lambda r: "".join(c if c.isalnum() or c in ".-" else "-" for c in r)
+          include = [{"glm_ref": g, "water_ref": w, "label": f"glm-{slug(g)}_water-{slug(w)}"}
+                     for g in glm for w in water]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write("matrix=" + json.dumps({"include": include}) + "\n")
+          print(json.dumps(include, indent=2))
+          EOF
+
+  # -------------------------------------------------------------------------
+  # Build + cache the Windows dependency chain once, so parallel matrix jobs
+  # don't each pay for a cold build.
+  # -------------------------------------------------------------------------
+  ancillary:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      ROOT: ${{ github.workspace }}
+    steps:
+      - name: Clone AED_Tools
+        run: |
+          git clone "https://github.com/${AED_TOOLS_REPO}.git" AED_Tools
+          git -C AED_Tools checkout "$AED_TOOLS_REF"
+          cp -r AED_Tools/ancillary ancillary
+
+      - name: Restore cache
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/ancillary/lib
+            ${{ github.workspace }}/ancillary/include
+            ${{ github.workspace }}/ancillary/bin
+            ${{ github.workspace }}/ancillary/share
+          # Bump the suffix if ancillary/sources/versions.inc changes semantics.
+          key: glm-ancillary-windows-v1-${{ hashFiles('ancillary/sources/versions.inc') }}
+
+      - name: Toolchain (choco make/mingw/cmake)
+        if: steps.cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          choco install -y make
+          choco install -y mingw
+          choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+
+      - name: Build ancillary dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        working-directory: ${{ github.workspace }}/ancillary
+        run: |
+          export PATH="/c/ProgramData/mingw64/mingw64/bin:/c/Program Files/CMake/bin:$PATH"
+          export FINALDIR="$ROOT/ancillary"
+          export CC=gcc FC=gfortran
+          ./build.sh --all
+
+  build:
+    needs: [setup, ancillary]
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      ROOT: ${{ github.workspace }}
+    name: build (${{ matrix.label }})
+
+    steps:
+      - name: Toolchain (choco make/mingw/cmake)
+        shell: pwsh
+        run: |
+          choco install -y make
+          choco install -y mingw
+          choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+
+      - name: Toolchain env
+        run: |
+          echo "C:\ProgramData\mingw64\mingw64\bin" >> "$GITHUB_PATH"
+          echo "C:\Program Files\CMake\bin" >> "$GITHUB_PATH"
+          for v in FC F77 F90 F95; do echo "$v=gfortran" >> "$GITHUB_ENV"; done
+          echo "CC=gcc" >> "$GITHUB_ENV"
+
+      - name: Checkout GLM (${{ inputs.glm_repo }}@${{ matrix.glm_ref }})
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.glm_repo }}
+          ref: ${{ matrix.glm_ref }}
+          path: GLM
+
+      - name: Checkout sibling libraries
+        working-directory: ${{ env.ROOT }}
+        env:
+          WATER_REPO: ${{ inputs.water_repo }}
+          WATER_REF: ${{ matrix.water_ref }}
+        run: |
+          # Full clone + checkout so branch, tag or raw SHA all work.
+          checkout_repo () {
+            git clone "https://github.com/$1.git" "$3"
+            git -C "$3" checkout "$2"
+          }
+          checkout_repo "$WATER_REPO"          "$WATER_REF"          libaed-water
+          checkout_repo "$LIBAED_BENTHIC_REPO" "$LIBAED_BENTHIC_REF" libaed-benthic
+          checkout_repo "$LIBAED_DEMO_REPO"    "$LIBAED_DEMO_REF"    libaed-demo
+          checkout_repo "$LIBAED_API_REPO"     "$LIBAED_API_REF"     libaed-api
+          checkout_repo "$LIBUTIL_REPO"        "$LIBUTIL_REF"        libutil
+          checkout_repo "$LIBPLOT_REPO"        "$LIBPLOT_REF"        libplot
+          checkout_repo "$AED_TOOLS_REPO"      "$AED_TOOLS_REF"      AED_Tools
+          cp -r AED_Tools/ancillary ancillary
+          echo "GLM:         $(git -C GLM rev-parse HEAD)"
+          echo "libaed-water: $(git -C libaed-water rev-parse HEAD)"
+
+      # Directory names matter: libaed-dev references ../libaed-riparian and
+      # ../libaed-light by path.
+      - name: Checkout AED+ private modules
+        working-directory: ${{ env.ROOT }}
+        env:
+          TOKEN: ${{ secrets.AED_PRIVATE_PAT }}
+          DEV_REPO: ${{ inputs.dev_repo || env.LIBAED_DEV_REPO }}
+          DEV_REF: ${{ inputs.dev_ref || env.LIBAED_DEV_REF }}
+        run: |
+          [ -n "$TOKEN" ] || { echo "::error::AED_PRIVATE_PAT secret is not set"; exit 1; }
+          checkout_repo () {
+            git clone "https://${TOKEN}@github.com/$1.git" "$3"
+            git -C "$3" checkout "$2"
+          }
+          checkout_repo "$LIBAED_RIPARIAN_REPO" "$LIBAED_RIPARIAN_REF" libaed-riparian
+          checkout_repo "$LIBAED_LIGHT_REPO"    "$LIBAED_LIGHT_REF"    libaed-light
+          checkout_repo "$DEV_REPO"               "$DEV_REF"               libaed-dev
+          git clone --depth 1 "https://github.com/${PHREEQCRM_REPO}.git" phreeqcrm
+
+      - name: Restore ancillary dependencies
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ github.workspace }}/ancillary/lib
+            ${{ github.workspace }}/ancillary/include
+            ${{ github.workspace }}/ancillary/bin
+            ${{ github.workspace }}/ancillary/share
+          key: glm-ancillary-windows-v1-${{ hashFiles('ancillary/sources/versions.inc') }}
+          fail-on-cache-miss: true
+
+      - name: Point build env at ancillary
+        run: |
+          echo "INCLUDES=-I${ROOT}/ancillary/include" >> "$GITHUB_ENV"
+          echo "LDFLAGS=-L${ROOT}/ancillary/lib" >> "$GITHUB_ENV"
+          echo "NETCDFHOME=${ROOT}/ancillary" >> "$GITHUB_ENV"
+          echo "${ROOT}/ancillary/bin" >> "$GITHUB_PATH"
+
+      - name: Sanity-check toolchain
+        run: |
+          gcc --version | head -1
+          gfortran --version | head -1
+          make --version | head -1
+
+      - name: Build libutil
+        run: make -C "$ROOT/libutil"
+
+      - name: Build libplot
+        run: make -C "$ROOT/libplot"
+
+      - name: Build libaed-water
+        run: make -C "$ROOT/libaed-water"
+
+      - name: Build libaed-benthic
+        run: make -C "$ROOT/libaed-benthic"
+
+      - name: Build libaed-demo
+        run: make -C "$ROOT/libaed-demo"
+
+      - name: Build libaed-riparian
+        run: make -C "$ROOT/libaed-riparian"
+
+      - name: Build libaed-light
+        run: make -C "$ROOT/libaed-light"
+
+      - name: Build phreeqcrm
+        working-directory: ${{ env.ROOT }}/phreeqcrm
+        run: |
+          mkdir build && cd build
+          # MinGW generator: the default (Visual Studio) would be ABI-incompatible with gfortran.
+          cmake .. -G "MinGW Makefiles" -DCMAKE_Fortran_COMPILER=gfortran -DCMAKE_BUILD_TYPE=Release
+          cmake --build . --config Release -j 2
+
+      - name: Build libaed-dev
+        run: make -C "$ROOT/libaed-dev" PHREEQDIR=../phreeqcrm
+
+      - name: Build libaed-api
+        run: |
+          make -C "$ROOT/libaed-api" \
+            AEDBENDIR=../libaed-benthic AEDDMODIR=../libaed-demo \
+            AEDRIPDIR=../libaed-riparian AEDLGTDIR=../libaed-light AEDDEVDIR=../libaed-dev
+
+      - name: Update Windows resource-file versions
+        working-directory: ${{ env.ROOT }}/GLM
+        run: |
+          if [ -f src/glm.h ]; then
+            VER=$(grep GLM_VERSION src/glm.h | cut -f2 -d\")
+          else
+            VER=$(grep GLM_VERSION include/glm.h | cut -f2 -d\")
+          fi
+          ( cd win && sh ../vers.sh "$VER" ) \
+            || echo "vers.sh failed - continuing with committed win/*.rc versions"
+
+      - name: Build GLM+
+        working-directory: ${{ env.ROOT }}/GLM
+        run: |
+          make glm+ WITH_AED=true WITH_API=true WITH_PLOTS=true WITH_XPLOTS=true \
+            WITH_AED_PLUS=1 \
+            PLOTDIR=$ROOT/libplot UTILDIR=$ROOT/libutil \
+            AEDBENDIR=$ROOT/libaed-benthic AEDDMODIR=$ROOT/libaed-demo \
+            AEDRIPDIR=$ROOT/libaed-riparian AEDLGTDIR=$ROOT/libaed-light \
+            AEDDEVDIR=$ROOT/libaed-dev PHREEQDIR=$ROOT/phreeqcrm
+
+      - name: Verify GLM+ runs and rename to glm.exe
+        working-directory: ${{ env.ROOT }}/GLM
+        run: |
+          [ -f "glm+.exe" ] && mv "glm+.exe" glm.exe || mv "glm+" glm.exe
+          PATH="$ROOT/ancillary/bin:$PATH" ./glm.exe --version
+
+      - name: Assemble distributable folder
+        run: |
+          D="$ROOT/glm_dist"
+          mkdir -p "$D"
+          cp "$ROOT/GLM/glm.exe" "$D/"
+          cp "$ROOT/ancillary/bin/libgd.dll" "$D/"
+          cp "$ROOT/ancillary/bin/libnetcdf.dll" "$D/"
+          for dll in libgfortran-5 libquadmath-0 libgcc_s_seh-1 libwinpthread-1; do
+            cp "C:/ProgramData/mingw64/mingw64/bin/$dll.dll" "$D/"
+          done
+          {
+            echo "GLM:          ${{ inputs.glm_repo }}@${{ matrix.glm_ref }} ($(git -C "$ROOT/GLM" rev-parse HEAD))"
+            echo "libaed-water: ${{ inputs.water_repo }}@${{ matrix.water_ref }} ($(git -C "$ROOT/libaed-water" rev-parse HEAD))"
+            echo "libaed-dev:   $(git -C "$ROOT/libaed-dev" remote get-url origin | sed 's#https://[^@]*@#https://#') ($(git -C "$ROOT/libaed-dev" rev-parse --abbrev-ref HEAD) $(git -C "$ROOT/libaed-dev" rev-parse HEAD))"
+          } > "$D/BUILD_INFO.txt"
+          cat "$D/BUILD_INFO.txt"
+
+      # upload-artifact zips the folder, so downloading gives a single zip.
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: glmplus-windows_${{ matrix.label }}
+          path: ${{ github.workspace }}/glm_dist/
+          if-no-files-found: error
+          retention-days: 30
